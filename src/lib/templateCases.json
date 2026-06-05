@@ -1,0 +1,161 @@
+{
+  "1": {
+    "target": { "mode": "every", "media_type": "reel_or_post" },
+    "condition": { "match_type": "contains", "keywords": ["price", "how much", "cost", "buy", "order", "link"], "follower_gate": false },
+    "actions": [
+      { "action_type": "reply_comment", "message_mode": "random", "messages": ["Check your DMs 👇", "Sent you the details 📩"], "rate_limit": { "scope": "post", "limit": 5, "window_seconds": 60 } },
+      { "action_type": "send_dm", "dm_format": "text", "message_mode": "random", "messages": ["Hey! 👋 Here are the details..."], "rate_limit": { "scope": "user", "limit": 1, "window_seconds": 86400 } }
+    ]
+  },
+  "2": {
+    "target": { "mode": "selected", "media_type": "reel_or_post" },
+    "condition": { "match_type": "contains", "keywords": ["size", "available", "stock", "fit", "sizing"], "follower_gate": false },
+    "actions": [
+      { "action_type": "reply_comment", "message_mode": "fixed", "messages": ["Check your DMs — we'll help you pick your size! 📩"] },
+      { "action_type": "send_dm", "dm_format": "quick_reply", "message_mode": "fixed", "messages": ["Hey! What size are you looking for? 👇"], "extra": "Pills: XS · S · M · L · XL" }
+    ]
+  },
+  "3": {
+    "target": { "mode": "selected", "media_type": "reel_or_post" },
+    "condition": { "match_type": "contains", "keywords": ["bag", "details", "info", "buy", "price", "link", "order"], "follower_gate": false },
+    "actions": [
+      { "action_type": "reply_comment", "message_mode": "random", "messages": ["Sent you all the details! 📩"] },
+      { "action_type": "send_dm", "dm_format": "generic_template", "message_mode": "fixed", "messages": ["Here's the product you asked about 👇"], "extra": "Card: Summer Tote Bag" }
+    ]
+  },
+  "4": {
+    "target": { "mode": "every", "media_type": "dm" },
+    "condition": { "match_type": "contains", "keywords": ["hi", "hello", "hey", "start", "menu", "help"], "follower_gate": false },
+    "actions": [
+      { "action_type": "send_dm", "dm_format": "button_template", "message_mode": "fixed", "messages": ["Welcome! 👋 How can we help you today?"], "extra": "Buttons: Shop Now, Track Order, Contact Us" }
+    ]
+  },
+  "5": {
+    "target": { "mode": "selected", "media_type": "story" },
+    "condition": { "match_type": "contains", "keywords": ["link", "buy", "want", "how", "price", "info"], "follower_gate": false },
+    "actions": [
+      { "action_type": "send_dm", "dm_format": "text", "message_mode": "random", "messages": ["🔥 Flash sale link 👇\nhttps://shop.example.com/flash-sale"] }
+    ]
+  },
+  "6": {
+    "target": { "mode": "selected", "media_type": "story" },
+    "condition": { "match_type": "any", "keywords": [], "follower_gate": true, "gate_msgs": ["Follow us first to get exclusive product details! 🙌"] },
+    "actions": [
+      { "action_type": "send_dm", "dm_format": "generic_template", "message_mode": "fixed", "messages": ["Here's the product from our story 👇"], "extra": "Card: Limited Edition Sneakers" }
+    ]
+  },
+  "7": {
+    "target": { "mode": "every", "media_type": "dm" },
+    "condition": { "match_type": "any", "keywords": [], "follower_gate": false },
+    "actions": [
+      { "action_type": "send_dm", "dm_format": "text", "message_mode": "random", "messages": ["Hey! 👋 Welcome to our store. How can we help you?"] }
+    ]
+  },
+  "8": {
+    "target": { "mode": "every", "media_type": "dm" },
+    "condition": { "match_type": "contains", "keywords": ["catalog", "collection", "products", "items", "what do you sell", "shop"], "follower_gate": false },
+    "actions": [
+      { "action_type": "send_dm", "dm_format": "generic_template", "message_mode": "fixed", "messages": ["Here's our latest collection 🛍️"], "extra": "3 cards: Summer Collection, Winter Essentials, Accessories" }
+    ]
+  },
+  "9": {
+    "target": { "mode": "every", "media_type": "reel_or_post" },
+    "condition": { "match_type": "contains", "keywords": ["code", "discount", "coupon", "offer", "deal", "promo"], "follower_gate": true, "gate_msgs": ["Follow us first to unlock your exclusive discount 🔐"] },
+    "actions": [
+      { "action_type": "reply_comment", "message_mode": "random", "messages": ["Your code is in your DMs! 🎁"] },
+      { "action_type": "send_dm", "dm_format": "text", "message_mode": "fixed", "messages": ["🎉 FOLLOWER20 — Save 20% on your next order! 🔗 Valid 48 hours"] }
+    ]
+  },
+  "10": {
+    "target": { "mode": "selected", "media_type": "reel_or_post" },
+    "condition": { "match_type": "contains", "keywords": ["win", "enter", "yes", "i want", "pick me"], "follower_gate": true, "gate_msgs": ["You must follow us to enter the giveaway! 🙌"] },
+    "actions": [
+      { "action_type": "reply_comment", "message_mode": "random", "messages": ["You're entered! 🎉 Winner announced June 17th"] }
+    ],
+    "giveaway": {
+      "method": "random", "winners": 1, "anti_fraud": { "age_days": 7, "followers": 0 }, "rewards": [{ "type": "physical", "val": "iPhone 15 Pro", "qty": 1 }]
+    }
+  },
+  "11": {
+    "target": { "mode": "selected", "media_type": "reel_or_post" },
+    "condition": { "match_type": "any", "keywords": [], "follower_gate": true, "gate_msgs": ["Follow us first to qualify! 🙌"] },
+    "actions": [
+      { "action_type": "reply_comment", "message_mode": "random", "messages": ["Your engagement is counted! 💯 Most active fan wins June 25th"] }
+    ],
+    "giveaway": {
+       "method": "most_engaged", "winners": 1, "anti_fraud": { "age_days": 30, "followers": 10 }, "rewards": [{ "type": "discount", "val": "50% off entire order", "qty": 1 }]
+    }
+  },
+  "12": {
+    "target": { "mode": "selected", "media_type": "reel_or_post" },
+    "condition": { "match_type": "any", "keywords": [], "follower_gate": true, "gate_msgs": ["Follow us to enter! 💙"] },
+    "actions": [],
+    "giveaway": {
+       "method": "ai_ranked", "winners": 1, "anti_fraud": { "age_days": 60, "followers": 20 }, "rewards": [{ "type": "physical", "val": "Mystery Gift Box", "qty": 1 }]
+    }
+  },
+  "13": {
+    "target": { "mode": "selected", "media_type": "reel_or_post" },
+    "condition": { "match_type": "equals", "keywords": ["i want it", "mine", "claim"], "follower_gate": true, "gate_msgs": ["Follow us to be eligible! ⚡"] },
+    "actions": [{ "action_type": "reply_comment", "message_mode": "fixed", "messages": ["⚡ You might be the one! Winner announced NOW!"] }],
+    "giveaway": {
+       "method": "first_come_first_serve", "winners": 1, "anti_fraud": { "age_days": 14, "followers": 0 }, "rewards": [{ "type": "discount", "val": "100% off (Free product)", "qty": 1 }]
+    }
+  },
+  "14": {
+    "target": { "mode": "selected", "media_type": "reel_or_post" },
+    "condition": { "match_type": "any", "keywords": [], "follower_gate": true, "gate_msgs": ["Follow us first! 💙"] },
+    "actions": [],
+    "giveaway": {
+       "method": "ai_ranked", "winners": 3, "anti_fraud": { "age_days": 30, "followers": 10 }, "rewards": [{ "type": "physical", "val": "1st Prize: MacBook Air", "qty": 1 }]
+    }
+  },
+  "15": {
+    "target": { "mode": "selected", "media_type": "reel_or_post" },
+    "condition": { "match_type": "contains", "keywords": ["spin", "enter", "yes", "i want"], "follower_gate": true, "gate_msgs": ["Follow us to join the spin wheel! 🎰"] },
+    "actions": [{ "action_type": "reply_comment", "message_mode": "random", "messages": ["You're in! 🎰 Check your DMs for your spin link!"] }],
+    "giveaway": {
+       "method": "random", "winners": 100, "gamification": "spin_wheel", "anti_fraud": { "age_days": 14, "followers": 0 }, "rewards": [{ "type": "discount", "val": "10% off", "qty": 50 }]
+    }
+  },
+  "16": {
+    "target": { "mode": "every", "media_type": "dm" },
+    "condition": { "match_type": "equals", "keywords": ["join", "enter", "win", "giveaway"], "follower_gate": false },
+    "actions": [{ "action_type": "send_dm", "dm_format": "text", "message_mode": "random", "messages": ["🎉 You're officially entered! Winner announced August 15th."] }],
+    "giveaway": {
+       "method": "random", "winners": 1, "anti_fraud": { "age_days": 30, "followers": 0 }, "rewards": [{ "type": "physical", "val": "Luxury Skincare Set", "qty": 1 }]
+    }
+  },
+  "17": {
+    "target": { "mode": "selected", "media_type": "reel_or_post" },
+    "condition": { "match_type": "any", "keywords": [], "follower_gate": true, "gate_msgs": ["Follow first to qualify! 🙌"] },
+    "actions": [],
+    "giveaway": {
+       "method": "weighted_random", "winners": 2, "anti_fraud": { "age_days": 14, "followers": 5 }, "rewards": [{ "type": "discount", "val": "30% off coupon", "qty": 2 }]
+    }
+  },
+  "18": {
+    "target": { "mode": "every", "media_type": "reel_or_post" },
+    "condition": { "match_type": "contains", "keywords": ["sale", "flash", "now", "buy", "deal", "code"], "follower_gate": false },
+    "actions": [
+      { "action_type": "reply_comment", "message_mode": "fixed", "messages": ["⚡ Check your DMs for your flash sale code!"] },
+      { "action_type": "send_dm", "dm_format": "button_template", "message_mode": "fixed", "messages": ["⚡ FLASH SALE — 2 Hours Only!"], "extra": "Button: Shop Now (url) · Code FLASH40" }
+    ]
+  },
+  "19": {
+    "target": { "mode": "selected", "media_type": "reel_or_post" },
+    "condition": { "match_type": "contains", "keywords": ["shoes", "price", "size", "available", "shipping", "buy", "link", "cost", "colors"], "follower_gate": false },
+    "actions": [
+      { "action_type": "reply_comment", "message_mode": "random", "messages": ["Sent you all the details! 📩", "Check your DMs for price and sizes 👇"], "rate_limit": { "scope": "post", "limit": 5, "window_seconds": 60 } },
+      { "action_type": "send_dm", "dm_format": "generic_template", "message_mode": "fixed", "messages": ["Here are the shoes from our latest reel 👟"], "extra": "Card: Air Runner Pro — $89" }
+    ]
+  },
+  "20": {
+    "target": { "mode": "selected", "media_type": "reel_or_post" },
+    "condition": { "match_type": "any", "keywords": [], "follower_gate": true, "gate_msgs": ["Follow us to enter! 💙"] },
+    "actions": [{ "action_type": "reply_comment", "message_mode": "random", "messages": ["Keep commenting! Most active commenter wins 🔥"] }],
+    "giveaway": {
+       "method": "most_comment_activity", "winners": 1, "anti_fraud": { "age_days": 30, "followers": 0 }, "rewards": [{ "type": "physical", "val": "Shopping Voucher $200", "qty": 1 }]
+    }
+  }
+}
