@@ -303,7 +303,7 @@ export default function CatalogPage() {
                   </td>
                 </tr>
               ) : (
-                filteredProducts.map((p, i) => {
+                filteredProducts.map((p: any, i: number) => {
                   // Dynamic display analytics metrics
                   const hashId = typeof p.id === "number" ? p.id : (p.id?.charCodeAt(0) || 5);
                   const inquiriesVal = p.inquiries || Math.floor((hashId * 7) % 150) + 12;
@@ -314,11 +314,26 @@ export default function CatalogPage() {
                   const titleText = p.title || p.name || "Untitled Product";
                   const skuCode = p.sku || (titleText.substring(0, 3).toUpperCase() + "-" + String(p.id).substring(0, 4).toUpperCase());
 
+                  const isInstagramProduct = p.source === "instagram" || 
+                    p.source_type === "REEL" || 
+                    p.source_type === "POST" || 
+                    !!p.instagram_permalink || 
+                    (p.source_id && p.source_type !== "MANUAL");
+
                   return (
                     <tr key={p.id || i} className="hover:bg-white/[0.02] transition-colors group">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-4">
                           <div className="w-12 h-12 rounded-lg overflow-hidden bg-white/5 border border-white/10 shrink-0 flex items-center justify-center relative">
+                            {isInstagramProduct && (
+                              <div className="absolute top-0.5 right-0.5 w-4 h-4 bg-black/60 rounded-full flex items-center justify-center border border-white/10 shadow-sm z-10 animate-fadeIn" title="Imported from Instagram">
+                                <svg className="w-2.5 h-2.5 text-pink-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                  <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+                                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                                  <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+                                </svg>
+                              </div>
+                            )}
                             {(() => {
                               const mainMediaUrl = p.media_url || p.gallery?.[0]?.media_url;
                               if (!mainMediaUrl) {
@@ -344,7 +359,17 @@ export default function CatalogPage() {
                             })()}
                           </div>
                           <div>
-                            <p className="text-sm font-bold text-white mb-1">{titleText}</p>
+                            <p className="text-sm font-bold text-white mb-1 flex items-center gap-1.5">
+                              {titleText}
+                              {isInstagramProduct && (
+                                <svg className="w-3.5 h-3.5 text-pink-500 shrink-0 animate-fadeIn" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                  <title>Imported from Instagram</title>
+                                  <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+                                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                                  <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+                                </svg>
+                              )}
+                            </p>
                             <p className="text-[10px] text-gray-400">
                               SKU: {skuCode} • Updated {formatUpdatedTime(p.updated_at)}
                             </p>

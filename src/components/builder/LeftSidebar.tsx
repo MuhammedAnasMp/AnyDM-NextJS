@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { MessageSquare, Mail, History, ShoppingBag, X } from 'lucide-react';
+import { MessageSquare, Mail, History, ShoppingBag, Trophy, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 
@@ -25,15 +25,7 @@ const TEMPLATE_CATEGORIES = [
       UserComment.ReplyAndPlainTextDM,
       UserComment.QuickReplyPills,
       UserComment.FollowersOnlyDiscountCode,
-      UserComment.ClassicRandomGiveaway,
-      UserComment.MostEngagedFanWins,
-      UserComment.AIRankedBestComment,
-      UserComment.FlashGiveaway,
-      UserComment.Top3MultiWinner,
-      UserComment.SpinWheelGamification,
-      UserComment.WeightedHybridRandom,
       UserComment.TwoHourFlashSale,
-      UserComment.CommentMarathon,
     ]
   },
   {
@@ -46,8 +38,6 @@ const TEMPLATE_CATEGORIES = [
     Components: [
       UserDM.ButtonTemplate,
       UserDM.WelcomeAutoReply,
-      UserDM.DMCatalogCarousel,
-      UserDM.DMEntryPrivateGiveaway,
     ]
   },
   {
@@ -59,12 +49,11 @@ const TEMPLATE_CATEGORIES = [
     glowClass: 'border-[#F472B6]/40 bg-[#F472B6]/5 shadow-[0_0_15px_rgba(244,114,182,0.15)]',
     Components: [
       UserReplyStory.StoryReplyPlainDM,
-      UserReplyStory.StoryReplyProductCarousel,
     ]
   },
   {
-    id: 'user_enquiry',
-    title: 'User Enquiry',
+    id: 'ecommerce',
+    title: 'E-commerce',
     emoji: '🛍️',
     icon: ShoppingBag,
     colorClass: 'text-[#34D399]',
@@ -72,6 +61,28 @@ const TEMPLATE_CATEGORIES = [
     Components: [
       UserEnquiry.ProductCarouselDM,
       UserEnquiry.SpecificReelProductInquiry,
+      UserDM.DMCatalogCarousel,
+      UserReplyStory.StoryReplyProductCarousel,
+    ]
+  },
+  {
+    id: 'gamification',
+    title: 'Gamification',
+    emoji: '🏆',
+    icon: Trophy,
+    colorClass: 'text-[#FAC775]',
+    glowClass: 'border-[#FAC775]/40 bg-[#FAC775]/5 shadow-[0_0_15px_rgba(250,199,117,0.15)]',
+    hidden: true,
+    Components: [
+      UserComment.ClassicRandomGiveaway,
+      UserComment.MostEngagedFanWins,
+      UserComment.AIRankedBestComment,
+      UserComment.FlashGiveaway,
+      UserComment.Top3MultiWinner,
+      UserComment.SpinWheelGamification,
+      UserComment.WeightedHybridRandom,
+      UserComment.CommentMarathon,
+      UserDM.DMEntryPrivateGiveaway,
     ]
   }
 ];
@@ -90,7 +101,7 @@ export function LeftSidebar() {
       <div className="flex h-full shrink-0 z-20">
         {/* 4-Icon Vertical Rail representing the categories */}
         <div className="w-16 h-full bg-[#161616] border-r border-[#2d2d2d] flex flex-col items-center py-6 gap-5 shadow-2xl relative select-none">
-          {TEMPLATE_CATEGORIES.map(category => {
+          {TEMPLATE_CATEGORIES.filter(c => !c.hidden).map(category => {
             const isActive = activeCategory === category.id;
             const Icon = category.icon;
             return (

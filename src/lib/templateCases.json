@@ -1,161 +1,1332 @@
 {
   "1": {
-    "target": { "mode": "every", "media_type": "reel_or_post" },
-    "condition": { "match_type": "contains", "keywords": ["price", "how much", "cost", "buy", "order", "link"], "follower_gate": false },
+    "target": {
+      "mode": "every",
+      "media_type": "reel_or_post",
+      "campaign_id": "summer-sale-2026",
+      "priority": 50,
+      "stop_on_match": true,
+      "status": "active",
+      "deduplication": true,
+      "deduplication_window_seconds": 86400,
+      "deduplication_unique_per": [
+        "user_id",
+        "rule_id"
+      ]
+    },
+    "condition": {
+      "match_type": "contains",
+      "keywords": [
+        "price",
+        "how much",
+        "cost",
+        "buy",
+        "order",
+        "link"
+      ],
+      "follower_gate": false,
+      "follower_gate_messages": []
+    },
     "actions": [
-      { "action_type": "reply_comment", "message_mode": "random", "messages": ["Check your DMs 👇", "Sent you the details 📩"], "rate_limit": { "scope": "post", "limit": 5, "window_seconds": 60 } },
-      { "action_type": "send_dm", "dm_format": "text", "message_mode": "random", "messages": ["Hey! 👋 Here are the details..."], "rate_limit": { "scope": "user", "limit": 1, "window_seconds": 86400 } }
+      {
+        "action_type": "reply_comment",
+        "message_mode": "random",
+        "messages": [
+          "Check your DMs 👇",
+          "Sent you the details 📩",
+          "Info is on its way 🚀"
+        ],
+        "rate_limit_scope": "post",
+        "rate_limit_limit": 5,
+        "rate_limit_window_seconds": 60,
+        "retry": 1,
+        "retry_delay_seconds": 10,
+        "fallback_action": "None",
+        "fallback_messages": []
+      },
+      {
+        "action_type": "send_dm",
+        "dm_format": "text",
+        "message_mode": "random",
+        "messages": [
+          "Hey! 👋 Here are the details:\n💰 Price: $49.99\n🔗 Order: https://shop.example.com",
+          "Hi! 😊 Here's what you asked for:\n💰 $49.99\n🛒 https://shop.example.com"
+        ],
+        "rate_limit_scope": "user",
+        "rate_limit_limit": 1,
+        "rate_limit_window_seconds": 86400,
+        "retry": 2,
+        "retry_delay_seconds": 30,
+        "fallback_action": "reply_comment",
+        "fallback_messages": [
+          "We tried to DM you but couldn't — please send us a message directly!"
+        ],
+        "url_allowlist": [
+          "shop.example.com"
+        ]
+      }
     ]
   },
   "2": {
-    "target": { "mode": "selected", "media_type": "reel_or_post" },
-    "condition": { "match_type": "contains", "keywords": ["size", "available", "stock", "fit", "sizing"], "follower_gate": false },
+    "target": {
+      "mode": "selected",
+      "media_type": "reel_or_post",
+      "media_ids": [
+        "17846368219941196"
+      ],
+      "campaign_id": "summer-sale-2026",
+      "priority": 60,
+      "stop_on_match": true,
+      "status": "active",
+      "deduplication": true,
+      "deduplication_window_seconds": 86400,
+      "deduplication_unique_per": [
+        "user_id",
+        "media_id"
+      ]
+    },
+    "condition": {
+      "match_type": "contains",
+      "keywords": [
+        "size",
+        "available",
+        "stock",
+        "fit",
+        "sizing"
+      ],
+      "follower_gate": false,
+      "follower_gate_messages": []
+    },
     "actions": [
-      { "action_type": "reply_comment", "message_mode": "fixed", "messages": ["Check your DMs — we'll help you pick your size! 📩"] },
-      { "action_type": "send_dm", "dm_format": "quick_reply", "message_mode": "fixed", "messages": ["Hey! What size are you looking for? 👇"], "extra": "Pills: XS · S · M · L · XL" }
+      {
+        "action_type": "reply_comment",
+        "message_mode": "fixed",
+        "messages": [
+          "Check your DMs — we'll help you pick your size! 📩"
+        ],
+        "rate_limit_scope": "post",
+        "rate_limit_limit": 5,
+        "rate_limit_window_seconds": 60,
+        "retry": 1,
+        "retry_delay_seconds": 10,
+        "fallback_action": "None",
+        "fallback_messages": []
+      },
+      {
+        "action_type": "send_dm",
+        "dm_format": "quick_reply",
+        "message_mode": "fixed",
+        "messages": [
+          "Hey! What size are you looking for? 👇"
+        ],
+        "quick_reply_text": "Pick your size:",
+        "quick_replies_titles": [
+          "XS",
+          "S",
+          "M",
+          "L",
+          "XL"
+        ],
+        "rate_limit_scope": "user",
+        "rate_limit_limit": 1,
+        "rate_limit_window_seconds": 86400,
+        "retry": 2,
+        "retry_delay_seconds": 30,
+        "fallback_action": "reply_comment",
+        "fallback_messages": [
+          "Sorry! Please DM us directly to ask about sizing 🙏"
+        ],
+        "url_allowlist": []
+      }
     ]
   },
   "3": {
-    "target": { "mode": "selected", "media_type": "reel_or_post" },
-    "condition": { "match_type": "contains", "keywords": ["bag", "details", "info", "buy", "price", "link", "order"], "follower_gate": false },
+    "target": {
+      "mode": "selected",
+      "media_type": "reel_or_post",
+      "media_ids": [
+        "17859462831293802"
+      ],
+      "campaign_id": "summer-sale-2026",
+      "priority": 30,
+      "stop_on_match": true,
+      "status": "active",
+      "deduplication": true,
+      "deduplication_window_seconds": 86400,
+      "deduplication_unique_per": [
+        "user_id",
+        "media_id"
+      ]
+    },
+    "condition": {
+      "match_type": "contains",
+      "keywords": [
+        "bag",
+        "details",
+        "info",
+        "buy",
+        "price",
+        "link",
+        "order"
+      ],
+      "follower_gate": false,
+      "follower_gate_messages": []
+    },
     "actions": [
-      { "action_type": "reply_comment", "message_mode": "random", "messages": ["Sent you all the details! 📩"] },
-      { "action_type": "send_dm", "dm_format": "generic_template", "message_mode": "fixed", "messages": ["Here's the product you asked about 👇"], "extra": "Card: Summer Tote Bag" }
+      {
+        "action_type": "reply_comment",
+        "message_mode": "random",
+        "messages": [
+          "Sent you all the details! 📩",
+          "Check your inbox 👇",
+          "Info is in your DMs! 🎒"
+        ],
+        "rate_limit_scope": "post",
+        "rate_limit_limit": 5,
+        "rate_limit_window_seconds": 60,
+        "retry": 1,
+        "retry_delay_seconds": 10,
+        "fallback_action": "None",
+        "fallback_messages": []
+      },
+      {
+        "action_type": "send_dm",
+        "dm_format": "generic_template",
+        "message_mode": "fixed",
+        "messages": [
+          "Here's the product you asked about 👇"
+        ],
+        "generic_template_elements_json": "[{\n  \"title\": \"Summer Tote Bag\",\n  \"subtitle\": \"Premium leather. 3 colors. Limited stock.\",\n  \"image_url\": \"https://cdn.pixabay.com/photo/2020/04/02/07/35/cat-4993829_960_720.jpg\",\n  \"default_action\": { \"type\": \"web_url\", \"url\": \"https://shop.example.com/summer-bag\" },\n  \"buttons\": [\n    { \"type\": \"web_url\",  \"title\": \"🛒 Buy Now\", \"url\": \"https://shop.example.com/summer-bag\" },\n    { \"type\": \"postback\", \"title\": \"💬 Ask a Question\", \"payload\": \"ASK_PRODUCT_QUESTION\" }\n  ]\n}]",
+        "linked_product_id": 42,
+        "rate_limit_scope": "user",
+        "rate_limit_limit": 1,
+        "rate_limit_window_seconds": 86400,
+        "retry": 2,
+        "retry_delay_seconds": 60,
+        "fallback_action": "send_dm",
+        "fallback_messages": [
+          "Here's our product link: https://shop.example.com/summer-bag"
+        ],
+        "url_allowlist": [
+          "shop.example.com",
+          "cdn.shop.example.com"
+        ]
+      }
     ]
   },
   "4": {
-    "target": { "mode": "every", "media_type": "dm" },
-    "condition": { "match_type": "contains", "keywords": ["hi", "hello", "hey", "start", "menu", "help"], "follower_gate": false },
+    "target": {
+      "mode": "every",
+      "media_type": null,
+      "campaign_id": null,
+      "priority": 90,
+      "stop_on_match": false,
+      "status": "active",
+      "deduplication": true,
+      "deduplication_window_seconds": 86400,
+      "deduplication_unique_per": [
+        "user_id",
+        "rule_id"
+      ]
+    },
+    "condition": {
+      "match_type": "contains",
+      "keywords": [
+        "hi",
+        "hello",
+        "hey",
+        "start",
+        "menu",
+        "help"
+      ],
+      "follower_gate": false,
+      "follower_gate_messages": []
+    },
     "actions": [
-      { "action_type": "send_dm", "dm_format": "button_template", "message_mode": "fixed", "messages": ["Welcome! 👋 How can we help you today?"], "extra": "Buttons: Shop Now, Track Order, Contact Us" }
+      {
+        "action_type": "send_dm",
+        "dm_format": "button_template",
+        "message_mode": "fixed",
+        "messages": [
+          "Welcome! 👋 How can we help you today?"
+        ],
+        "button_template_text": "What would you like to do?",
+        "button_template_buttons_json": "[\n  { \"type\": \"web_url\",  \"title\": \"🛍️ Shop Now\",    \"url\": \"https://shop.example.com\" },\n  { \"type\": \"web_url\",  \"title\": \"📦 Track Order\", \"url\": \"https://shop.example.com/track\" },\n  { \"type\": \"postback\", \"title\": \"💬 Contact Us\",  \"payload\": \"CONTACT_SUPPORT\" }\n]",
+        "rate_limit_scope": "user",
+        "rate_limit_limit": 1,
+        "rate_limit_window_seconds": 86400,
+        "retry": 2,
+        "retry_delay_seconds": 30,
+        "fallback_action": "send_dm",
+        "fallback_messages": [
+          "Welcome! Visit us at https://shop.example.com 🛍️"
+        ],
+        "url_allowlist": [
+          "shop.example.com"
+        ]
+      }
     ]
   },
   "5": {
-    "target": { "mode": "selected", "media_type": "story" },
-    "condition": { "match_type": "contains", "keywords": ["link", "buy", "want", "how", "price", "info"], "follower_gate": false },
+    "target": {
+      "mode": "selected",
+      "media_type": "story",
+      "media_ids": [
+        "17846368000001234"
+      ],
+      "campaign_id": "summer-sale-2026",
+      "priority": 40,
+      "stop_on_match": true,
+      "status": "active",
+      "deduplication": true,
+      "deduplication_window_seconds": 3600,
+      "deduplication_unique_per": [
+        "user_id",
+        "media_id"
+      ],
+      "start_at": "2026-06-10T00:00:00Z",
+      "end_at": "2026-06-11T00:00:00Z"
+    },
+    "condition": {
+      "match_type": "contains",
+      "keywords": [
+        "link",
+        "buy",
+        "want",
+        "how",
+        "price",
+        "info"
+      ],
+      "follower_gate": false,
+      "follower_gate_messages": []
+    },
     "actions": [
-      { "action_type": "send_dm", "dm_format": "text", "message_mode": "random", "messages": ["🔥 Flash sale link 👇\nhttps://shop.example.com/flash-sale"] }
+      {
+        "action_type": "send_dm",
+        "dm_format": "text",
+        "message_mode": "random",
+        "messages": [
+          "🔥 Flash sale link 👇\nhttps://shop.example.com/flash-sale\n\nEnds in 24h ⏰",
+          "Thanks for your reply! 😊 Here's your exclusive link:\nhttps://shop.example.com/flash-sale"
+        ],
+        "rate_limit_scope": "user",
+        "rate_limit_limit": 1,
+        "rate_limit_window_seconds": 3600,
+        "retry": 3,
+        "retry_delay_seconds": 60,
+        "fallback_action": "None",
+        "fallback_messages": [],
+        "url_allowlist": [
+          "shop.example.com"
+        ]
+      }
     ]
   },
   "6": {
-    "target": { "mode": "selected", "media_type": "story" },
-    "condition": { "match_type": "any", "keywords": [], "follower_gate": true, "gate_msgs": ["Follow us first to get exclusive product details! 🙌"] },
+    "target": {
+      "mode": "selected",
+      "media_type": "story",
+      "media_ids": [
+        "17846368000009999"
+      ],
+      "campaign_id": null,
+      "priority": 20,
+      "stop_on_match": true,
+      "status": "active",
+      "deduplication": true,
+      "deduplication_window_seconds": 86400,
+      "deduplication_unique_per": [
+        "user_id",
+        "media_id"
+      ]
+    },
+    "condition": {
+      "match_type": "any",
+      "keywords": [],
+      "follower_gate": true,
+      "follower_gate_messages": [
+        "Follow us first to get exclusive product details! 🙌",
+        "Exclusive deals for followers only — hit follow and reply again! 💙"
+      ]
+    },
     "actions": [
-      { "action_type": "send_dm", "dm_format": "generic_template", "message_mode": "fixed", "messages": ["Here's the product from our story 👇"], "extra": "Card: Limited Edition Sneakers" }
+      {
+        "action_type": "send_dm",
+        "dm_format": "generic_template",
+        "message_mode": "fixed",
+        "messages": [
+          "Here's the product from our story 👇"
+        ],
+        "generic_template_elements_json": "[{\n  \"title\": \"Limited Edition Sneakers\",\n  \"subtitle\": \"Only 50 pairs left. Ships worldwide.\",\n  \"image_url\": \"https://cdn.shop.example.com/sneakers.jpg\",\n  \"buttons\": [\n    { \"type\": \"web_url\", \"title\": \"🛒 Order Now\", \"url\": \"https://shop.example.com/sneakers\" }\n  ]\n}]",
+        "rate_limit_scope": "user",
+        "rate_limit_limit": 1,
+        "rate_limit_window_seconds": 86400,
+        "retry": 2,
+        "retry_delay_seconds": 30,
+        "fallback_action": "send_dm",
+        "fallback_messages": [
+          "Here's our sneakers page: https://shop.example.com/sneakers 👟"
+        ],
+        "url_allowlist": [
+          "shop.example.com",
+          "cdn.shop.example.com"
+        ]
+      }
     ]
   },
   "7": {
-    "target": { "mode": "every", "media_type": "dm" },
-    "condition": { "match_type": "any", "keywords": [], "follower_gate": false },
+    "target": {
+      "mode": "every",
+      "media_type": null,
+      "campaign_id": null,
+      "priority": 100,
+      "stop_on_match": false,
+      "status": "active",
+      "deduplication": true,
+      "deduplication_window_seconds": 86400,
+      "deduplication_unique_per": [
+        "user_id",
+        "rule_id"
+      ]
+    },
+    "condition": {
+      "match_type": "any",
+      "keywords": [],
+      "follower_gate": false,
+      "follower_gate_messages": []
+    },
     "actions": [
-      { "action_type": "send_dm", "dm_format": "text", "message_mode": "random", "messages": ["Hey! 👋 Welcome to our store. How can we help you?"] }
+      {
+        "action_type": "send_dm",
+        "dm_format": "text",
+        "message_mode": "random",
+        "messages": [
+          "Hey! 👋 Welcome to our store. How can we help you?",
+          "Hi there! 😊 Thanks for reaching out. We'll be right with you!",
+          "Hello! 🌟 What can we do for you today?"
+        ],
+        "rate_limit_scope": "user",
+        "rate_limit_limit": 1,
+        "rate_limit_window_seconds": 86400,
+        "retry": 2,
+        "retry_delay_seconds": 60,
+        "fallback_action": "None",
+        "fallback_messages": [],
+        "url_allowlist": []
+      }
     ]
   },
   "8": {
-    "target": { "mode": "every", "media_type": "dm" },
-    "condition": { "match_type": "contains", "keywords": ["catalog", "collection", "products", "items", "what do you sell", "shop"], "follower_gate": false },
+    "target": {
+      "mode": "every",
+      "media_type": null,
+      "campaign_id": null,
+      "priority": 40,
+      "stop_on_match": true,
+      "status": "active",
+      "deduplication": true,
+      "deduplication_window_seconds": 43200,
+      "deduplication_unique_per": [
+        "user_id",
+        "rule_id"
+      ]
+    },
+    "condition": {
+      "match_type": "contains",
+      "keywords": [
+        "catalog",
+        "collection",
+        "products",
+        "items",
+        "what do you sell",
+        "shop"
+      ],
+      "follower_gate": false,
+      "follower_gate_messages": []
+    },
     "actions": [
-      { "action_type": "send_dm", "dm_format": "generic_template", "message_mode": "fixed", "messages": ["Here's our latest collection 🛍️"], "extra": "3 cards: Summer Collection, Winter Essentials, Accessories" }
+      {
+        "action_type": "send_dm",
+        "dm_format": "generic_template",
+        "message_mode": "fixed",
+        "messages": [
+          "Here's our latest collection 🛍️"
+        ],
+        "generic_template_elements_json": "[\n  {\n    \"title\": \"Summer Collection 2026\",\n    \"subtitle\": \"Dresses, tops, and accessories\",\n    \"image_url\": \"https://cdn.shop.example.com/summer.jpg\",\n    \"buttons\": [{ \"type\": \"web_url\", \"title\": \"View Collection\", \"url\": \"https://shop.example.com/summer\" }]\n  },\n  {\n    \"title\": \"Winter Essentials\",\n    \"subtitle\": \"Coats, boots, and scarves\",\n    \"image_url\": \"https://cdn.shop.example.com/winter.jpg\",\n    \"buttons\": [{ \"type\": \"web_url\", \"title\": \"View Collection\", \"url\": \"https://shop.example.com/winter\" }]\n  },\n  {\n    \"title\": \"Accessories\",\n    \"subtitle\": \"Bags, hats, and jewelry\",\n    \"image_url\": \"https://cdn.shop.example.com/accessories.jpg\",\n    \"buttons\": [{ \"type\": \"web_url\", \"title\": \"View Collection\", \"url\": \"https://shop.example.com/accessories\" }]\n  }\n]",
+        "rate_limit_scope": "user",
+        "rate_limit_limit": 1,
+        "rate_limit_window_seconds": 43200,
+        "retry": 2,
+        "retry_delay_seconds": 30,
+        "fallback_action": "send_dm",
+        "fallback_messages": [
+          "Check our full collection at https://shop.example.com 🛍️"
+        ],
+        "url_allowlist": [
+          "shop.example.com",
+          "cdn.shop.example.com"
+        ]
+      }
     ]
   },
   "9": {
-    "target": { "mode": "every", "media_type": "reel_or_post" },
-    "condition": { "match_type": "contains", "keywords": ["code", "discount", "coupon", "offer", "deal", "promo"], "follower_gate": true, "gate_msgs": ["Follow us first to unlock your exclusive discount 🔐"] },
+    "target": {
+      "mode": "every",
+      "media_type": "reel_or_post",
+      "campaign_id": "summer-sale-2026",
+      "priority": 10,
+      "stop_on_match": true,
+      "status": "active",
+      "deduplication": true,
+      "deduplication_window_seconds": 86400,
+      "deduplication_unique_per": [
+        "user_id",
+        "rule_id"
+      ]
+    },
+    "condition": {
+      "match_type": "contains",
+      "keywords": [
+        "code",
+        "discount",
+        "coupon",
+        "offer",
+        "deal",
+        "promo"
+      ],
+      "follower_gate": true,
+      "follower_gate_messages": [
+        "Follow us first to unlock your exclusive discount 🔐",
+        "This deal is for our followers only! Hit follow then comment again 💙"
+      ]
+    },
     "actions": [
-      { "action_type": "reply_comment", "message_mode": "random", "messages": ["Your code is in your DMs! 🎁"] },
-      { "action_type": "send_dm", "dm_format": "text", "message_mode": "fixed", "messages": ["🎉 FOLLOWER20 — Save 20% on your next order! 🔗 Valid 48 hours"] }
+      {
+        "action_type": "reply_comment",
+        "message_mode": "random",
+        "messages": [
+          "Your code is in your DMs! 🎁",
+          "Sent your exclusive discount code 📩"
+        ],
+        "rate_limit_scope": "post",
+        "rate_limit_limit": 5,
+        "rate_limit_window_seconds": 60,
+        "retry": 1,
+        "retry_delay_seconds": 10,
+        "fallback_action": "None",
+        "fallback_messages": []
+      },
+      {
+        "action_type": "send_dm",
+        "dm_format": "text",
+        "message_mode": "fixed",
+        "messages": [
+          "🎉 Here's your exclusive discount code:\n\n🏷️ FOLLOWER20\n💰 Save 20% on your next order!\n🔗 https://shop.example.com\n\n⏰ Valid for 48 hours only"
+        ],
+        "rate_limit_scope": "user",
+        "rate_limit_limit": 1,
+        "rate_limit_window_seconds": 86400,
+        "retry": 2,
+        "retry_delay_seconds": 30,
+        "fallback_action": "reply_comment",
+        "fallback_messages": [
+          "We couldn't DM you. Please send us a message to get your discount code! 💙"
+        ],
+        "url_allowlist": [
+          "shop.example.com"
+        ]
+      }
     ]
   },
   "10": {
-    "target": { "mode": "selected", "media_type": "reel_or_post" },
-    "condition": { "match_type": "contains", "keywords": ["win", "enter", "yes", "i want", "pick me"], "follower_gate": true, "gate_msgs": ["You must follow us to enter the giveaway! 🙌"] },
+    "target": {
+      "mode": "selected",
+      "media_type": "reel_or_post",
+      "media_ids": [
+        "17846368219941999"
+      ],
+      "campaign_id": null,
+      "priority": 1,
+      "stop_on_match": true,
+      "status": "active",
+      "deduplication": true,
+      "deduplication_window_seconds": 604800,
+      "deduplication_unique_per": [
+        "user_id",
+        "media_id"
+      ]
+    },
+    "condition": {
+      "match_type": "contains",
+      "keywords": [
+        "win",
+        "enter",
+        "yes",
+        "i want",
+        "pick me"
+      ],
+      "follower_gate": true,
+      "follower_gate_messages": [
+        "You must follow us to enter the giveaway! 🙌"
+      ]
+    },
     "actions": [
-      { "action_type": "reply_comment", "message_mode": "random", "messages": ["You're entered! 🎉 Winner announced June 17th"] }
+      {
+        "action_type": "reply_comment",
+        "message_mode": "random",
+        "messages": [
+          "You're entered! 🎉 Winner announced June 17th",
+          "Good luck! 🍀 Draw is on June 17th"
+        ],
+        "rate_limit_scope": "post",
+        "rate_limit_limit": 10,
+        "rate_limit_window_seconds": 60,
+        "retry": 1,
+        "retry_delay_seconds": 10,
+        "fallback_action": "None",
+        "fallback_messages": []
+      }
     ],
     "giveaway": {
-      "method": "random", "winners": 1, "anti_fraud": { "age_days": 7, "followers": 0 }, "rewards": [{ "type": "physical", "val": "iPhone 15 Pro", "qty": 1 }]
+      "selection_method": "random",
+      "winner_count": 1,
+      "evaluation_window_seconds": 172800,
+      "finalize_at": "2026-06-17T18:00:00Z",
+      "data_snapshot_at": "2026-06-17T17:00:00Z",
+      "re_evaluation_allowed": false,
+      "re_evaluation_max": 0,
+      "anti_fraud_enabled": true,
+      "min_account_age_days": 7,
+      "min_followers": 0,
+      "block_duplicate_ips": false,
+      "block_private_accounts": false,
+      "gamification_enabled": false,
+      "spin_wheel_enabled": false,
+      "reward_delivery_methods": [
+        "direct_dm",
+        "public_post_announcement"
+      ],
+      "winner_messages": [
+        "🎉 CONGRATULATIONS! You've been selected as our winner!\n\nPrize: iPhone 15 Pro 📱\n\nPlease reply with your shipping details to claim your prize within 48 hours."
+      ],
+      "rewards": [
+        {
+          "reward_type": "physical",
+          "value": "iPhone 15 Pro",
+          "quantity": 1
+        }
+      ]
     }
   },
   "11": {
-    "target": { "mode": "selected", "media_type": "reel_or_post" },
-    "condition": { "match_type": "any", "keywords": [], "follower_gate": true, "gate_msgs": ["Follow us first to qualify! 🙌"] },
+    "target": {
+      "mode": "selected",
+      "media_type": "reel_or_post",
+      "media_ids": [
+        "17846368219942000"
+      ],
+      "campaign_id": null,
+      "priority": 1,
+      "stop_on_match": true,
+      "status": "active",
+      "deduplication": false,
+      "deduplication_window_seconds": 0,
+      "deduplication_unique_per": []
+    },
+    "condition": {
+      "match_type": "any",
+      "keywords": [],
+      "follower_gate": true,
+      "follower_gate_messages": [
+        "Follow us first to qualify! 🙌"
+      ]
+    },
     "actions": [
-      { "action_type": "reply_comment", "message_mode": "random", "messages": ["Your engagement is counted! 💯 Most active fan wins June 25th"] }
+      {
+        "action_type": "reply_comment",
+        "message_mode": "random",
+        "messages": [
+          "Your engagement is counted! 💯 Most active fan wins June 25th"
+        ],
+        "rate_limit_scope": "post",
+        "rate_limit_limit": 5,
+        "rate_limit_window_seconds": 60,
+        "retry": 1,
+        "retry_delay_seconds": 10,
+        "fallback_action": "None",
+        "fallback_messages": []
+      }
     ],
     "giveaway": {
-       "method": "most_engaged", "winners": 1, "anti_fraud": { "age_days": 30, "followers": 10 }, "rewards": [{ "type": "discount", "val": "50% off entire order", "qty": 1 }]
+      "selection_method": "most_engaged",
+      "winner_count": 1,
+      "scoring_weights_json": "{\"engagement\": 0.5, \"likes_on_comment\": 0.3, \"replies\": 0.2}",
+      "evaluation_window_seconds": 432000,
+      "finalize_at": "2026-06-25T20:00:00Z",
+      "data_snapshot_at": "2026-06-25T18:00:00Z",
+      "re_evaluation_allowed": false,
+      "re_evaluation_max": 0,
+      "anti_fraud_enabled": true,
+      "min_account_age_days": 30,
+      "min_followers": 10,
+      "block_duplicate_ips": false,
+      "block_private_accounts": false,
+      "gamification_enabled": false,
+      "spin_wheel_enabled": false,
+      "reward_delivery_methods": [
+        "direct_dm",
+        "instagram_story"
+      ],
+      "rewards": [
+        {
+          "reward_type": "discount",
+          "value": "50% off entire order",
+          "quantity": 1
+        }
+      ]
     }
   },
   "12": {
-    "target": { "mode": "selected", "media_type": "reel_or_post" },
-    "condition": { "match_type": "any", "keywords": [], "follower_gate": true, "gate_msgs": ["Follow us to enter! 💙"] },
+    "target": {
+      "mode": "selected",
+      "media_type": "reel_or_post",
+      "media_ids": [
+        "17846368219942001"
+      ],
+      "campaign_id": null,
+      "priority": 1,
+      "stop_on_match": true,
+      "status": "active",
+      "deduplication": true,
+      "deduplication_window_seconds": 604800,
+      "deduplication_unique_per": [
+        "user_id",
+        "media_id"
+      ]
+    },
+    "condition": {
+      "match_type": "any",
+      "keywords": [],
+      "follower_gate": true,
+      "follower_gate_messages": [
+        "Follow us to enter! 💙"
+      ]
+    },
     "actions": [],
     "giveaway": {
-       "method": "ai_ranked", "winners": 1, "anti_fraud": { "age_days": 60, "followers": 20 }, "rewards": [{ "type": "physical", "val": "Mystery Gift Box", "qty": 1 }]
+      "selection_method": "ai_ranked",
+      "winner_count": 1,
+      "ai_model": "engagement_ranker_v1",
+      "ai_factors": [
+        "comment_relevance",
+        "intent_quality",
+        "authenticity_score",
+        "engagement_history"
+      ],
+      "evaluation_window_seconds": 345600,
+      "finalize_at": "2026-07-05T20:00:00Z",
+      "data_snapshot_at": "2026-07-05T18:00:00Z",
+      "re_evaluation_allowed": true,
+      "re_evaluation_max": 1,
+      "anti_fraud_enabled": true,
+      "min_account_age_days": 60,
+      "min_followers": 20,
+      "block_duplicate_ips": true,
+      "block_private_accounts": false,
+      "gamification_enabled": false,
+      "spin_wheel_enabled": false,
+      "reward_delivery_methods": [
+        "direct_dm"
+      ],
+      "rewards": [
+        {
+          "reward_type": "physical",
+          "value": "Mystery Gift Box",
+          "quantity": 1
+        }
+      ]
     }
   },
   "13": {
-    "target": { "mode": "selected", "media_type": "reel_or_post" },
-    "condition": { "match_type": "equals", "keywords": ["i want it", "mine", "claim"], "follower_gate": true, "gate_msgs": ["Follow us to be eligible! ⚡"] },
-    "actions": [{ "action_type": "reply_comment", "message_mode": "fixed", "messages": ["⚡ You might be the one! Winner announced NOW!"] }],
+    "target": {
+      "mode": "selected",
+      "media_type": "reel_or_post",
+      "media_ids": [
+        "17846368219942002"
+      ],
+      "campaign_id": null,
+      "priority": 1,
+      "stop_on_match": true,
+      "status": "active",
+      "deduplication": true,
+      "deduplication_window_seconds": 3600,
+      "deduplication_unique_per": [
+        "user_id",
+        "media_id"
+      ]
+    },
+    "condition": {
+      "match_type": "equals",
+      "keywords": [
+        "i want it",
+        "mine",
+        "claim"
+      ],
+      "follower_gate": true,
+      "follower_gate_messages": [
+        "Follow us to be eligible! ⚡"
+      ]
+    },
+    "actions": [
+      {
+        "action_type": "reply_comment",
+        "message_mode": "fixed",
+        "messages": [
+          "⚡ You might be the one! Winner announced NOW!"
+        ],
+        "rate_limit_scope": "post",
+        "rate_limit_limit": 20,
+        "rate_limit_window_seconds": 60,
+        "retry": 1,
+        "retry_delay_seconds": 5,
+        "fallback_action": "None",
+        "fallback_messages": []
+      }
+    ],
     "giveaway": {
-       "method": "first_come_first_serve", "winners": 1, "anti_fraud": { "age_days": 14, "followers": 0 }, "rewards": [{ "type": "discount", "val": "100% off (Free product)", "qty": 1 }]
+      "selection_method": "first_come_first_serve",
+      "winner_count": 1,
+      "evaluation_window_seconds": 3600,
+      "finalize_at": "2026-07-10T13:00:00Z",
+      "data_snapshot_at": null,
+      "re_evaluation_allowed": false,
+      "re_evaluation_max": 0,
+      "anti_fraud_enabled": true,
+      "min_account_age_days": 14,
+      "min_followers": 0,
+      "block_duplicate_ips": false,
+      "block_private_accounts": false,
+      "gamification_enabled": false,
+      "spin_wheel_enabled": false,
+      "reward_delivery_methods": [
+        "direct_dm"
+      ],
+      "rewards": [
+        {
+          "reward_type": "discount",
+          "value": "100% off (Free product)",
+          "quantity": 1
+        }
+      ]
     }
   },
   "14": {
-    "target": { "mode": "selected", "media_type": "reel_or_post" },
-    "condition": { "match_type": "any", "keywords": [], "follower_gate": true, "gate_msgs": ["Follow us first! 💙"] },
+    "target": {
+      "mode": "selected",
+      "media_type": "reel_or_post",
+      "media_ids": [
+        "17846368219942003"
+      ],
+      "campaign_id": null,
+      "priority": 1,
+      "stop_on_match": true,
+      "status": "active",
+      "deduplication": true,
+      "deduplication_window_seconds": 604800,
+      "deduplication_unique_per": [
+        "user_id",
+        "media_id"
+      ]
+    },
+    "condition": {
+      "match_type": "any",
+      "keywords": [],
+      "follower_gate": true,
+      "follower_gate_messages": [
+        "Follow us first! 💙"
+      ]
+    },
     "actions": [],
     "giveaway": {
-       "method": "ai_ranked", "winners": 3, "anti_fraud": { "age_days": 30, "followers": 10 }, "rewards": [{ "type": "physical", "val": "1st Prize: MacBook Air", "qty": 1 }]
+      "selection_method": "ai_ranked",
+      "winner_count": 3,
+      "ai_model": "engagement_ranker_v1",
+      "ai_factors": [
+        "comment_relevance",
+        "intent_quality",
+        "authenticity_score"
+      ],
+      "evaluation_window_seconds": 432000,
+      "finalize_at": "2026-07-20T20:00:00Z",
+      "data_snapshot_at": "2026-07-20T18:00:00Z",
+      "re_evaluation_allowed": false,
+      "re_evaluation_max": 0,
+      "anti_fraud_enabled": true,
+      "min_account_age_days": 30,
+      "min_followers": 10,
+      "block_duplicate_ips": true,
+      "block_private_accounts": false,
+      "gamification_enabled": false,
+      "spin_wheel_enabled": false,
+      "reward_delivery_methods": [
+        "direct_dm",
+        "public_post_announcement"
+      ],
+      "rewards": [
+        {
+          "reward_type": "physical",
+          "value": "1st Prize: MacBook Air",
+          "quantity": 1
+        },
+        {
+          "reward_type": "physical",
+          "value": "2nd Prize: AirPods Pro",
+          "quantity": 1
+        },
+        {
+          "reward_type": "discount",
+          "value": "3rd Prize: 50% off coupon",
+          "quantity": 1
+        }
+      ]
     }
   },
   "15": {
-    "target": { "mode": "selected", "media_type": "reel_or_post" },
-    "condition": { "match_type": "contains", "keywords": ["spin", "enter", "yes", "i want"], "follower_gate": true, "gate_msgs": ["Follow us to join the spin wheel! 🎰"] },
-    "actions": [{ "action_type": "reply_comment", "message_mode": "random", "messages": ["You're in! 🎰 Check your DMs for your spin link!"] }],
+    "target": {
+      "mode": "selected",
+      "media_type": "reel_or_post",
+      "media_ids": [
+        "17846368219942004"
+      ],
+      "campaign_id": null,
+      "priority": 1,
+      "stop_on_match": true,
+      "status": "active",
+      "deduplication": true,
+      "deduplication_window_seconds": 604800,
+      "deduplication_unique_per": [
+        "user_id",
+        "media_id"
+      ]
+    },
+    "condition": {
+      "match_type": "contains",
+      "keywords": [
+        "spin",
+        "enter",
+        "yes",
+        "i want"
+      ],
+      "follower_gate": true,
+      "follower_gate_messages": [
+        "Follow us to join the spin wheel! 🎰"
+      ]
+    },
+    "actions": [
+      {
+        "action_type": "reply_comment",
+        "message_mode": "random",
+        "messages": [
+          "You're in! 🎰 Check your DMs for your spin link!"
+        ],
+        "rate_limit_scope": "post",
+        "rate_limit_limit": 10,
+        "rate_limit_window_seconds": 60,
+        "retry": 1,
+        "retry_delay_seconds": 10,
+        "fallback_action": "None",
+        "fallback_messages": []
+      }
+    ],
     "giveaway": {
-       "method": "random", "winners": 100, "gamification": "spin_wheel", "anti_fraud": { "age_days": 14, "followers": 0 }, "rewards": [{ "type": "discount", "val": "10% off", "qty": 50 }]
+      "selection_method": "random",
+      "winner_count": 100,
+      "evaluation_window_seconds": 604800,
+      "finalize_at": "2026-08-07T20:00:00Z",
+      "data_snapshot_at": null,
+      "re_evaluation_allowed": false,
+      "re_evaluation_max": 0,
+      "anti_fraud_enabled": true,
+      "min_account_age_days": 14,
+      "min_followers": 0,
+      "block_duplicate_ips": true,
+      "block_private_accounts": false,
+      "gamification_enabled": true,
+      "spin_wheel_enabled": true,
+      "spin_wheel_base_url": "https://yourdomain.com/spin",
+      "spin_wheel_single_use": true,
+      "spin_wheel_url_mode": "signed_token",
+      "spin_token_expiry_hours": 48,
+      "reward_delivery_methods": [
+        "direct_dm"
+      ],
+      "winner_messages": [
+        "🎰 You've been selected! Click your unique spin link:\n\n🔗 {{spin_wheel_url}}\n\n⚠️ One-time use only. Expires in 48 hours!"
+      ],
+      "rewards": [
+        {
+          "reward_type": "discount",
+          "value": "10% off",
+          "quantity": 50
+        },
+        {
+          "reward_type": "discount",
+          "value": "25% off",
+          "quantity": 30
+        },
+        {
+          "reward_type": "physical",
+          "value": "Free product",
+          "quantity": 15
+        },
+        {
+          "reward_type": "mystery",
+          "value": "Mystery box",
+          "quantity": 5
+        }
+      ]
     }
   },
   "16": {
-    "target": { "mode": "every", "media_type": "dm" },
-    "condition": { "match_type": "equals", "keywords": ["join", "enter", "win", "giveaway"], "follower_gate": false },
-    "actions": [{ "action_type": "send_dm", "dm_format": "text", "message_mode": "random", "messages": ["🎉 You're officially entered! Winner announced August 15th."] }],
+    "target": {
+      "mode": "every",
+      "media_type": null,
+      "campaign_id": null,
+      "priority": 1,
+      "stop_on_match": true,
+      "status": "active",
+      "deduplication": true,
+      "deduplication_window_seconds": 604800,
+      "deduplication_unique_per": [
+        "user_id",
+        "rule_id"
+      ]
+    },
+    "condition": {
+      "match_type": "equals",
+      "keywords": [
+        "join",
+        "enter",
+        "win",
+        "giveaway"
+      ],
+      "follower_gate": false,
+      "follower_gate_messages": []
+    },
+    "actions": [
+      {
+        "action_type": "send_dm",
+        "dm_format": "text",
+        "message_mode": "random",
+        "messages": [
+          "🎉 You're officially entered!\n\nWinner announced August 15th. Good luck! 🍀",
+          "✅ Entry confirmed! We'll DM you if you win on August 15th 📩"
+        ],
+        "rate_limit_scope": "user",
+        "rate_limit_limit": 1,
+        "rate_limit_window_seconds": 604800,
+        "retry": 2,
+        "retry_delay_seconds": 60,
+        "fallback_action": "None",
+        "fallback_messages": [],
+        "url_allowlist": []
+      }
+    ],
     "giveaway": {
-       "method": "random", "winners": 1, "anti_fraud": { "age_days": 30, "followers": 0 }, "rewards": [{ "type": "physical", "val": "Luxury Skincare Set", "qty": 1 }]
+      "selection_method": "random",
+      "winner_count": 1,
+      "evaluation_window_seconds": 432000,
+      "finalize_at": "2026-08-15T18:00:00Z",
+      "data_snapshot_at": "2026-08-15T16:00:00Z",
+      "re_evaluation_allowed": false,
+      "re_evaluation_max": 0,
+      "anti_fraud_enabled": true,
+      "min_account_age_days": 30,
+      "min_followers": 0,
+      "block_duplicate_ips": true,
+      "block_private_accounts": false,
+      "gamification_enabled": false,
+      "spin_wheel_enabled": false,
+      "reward_delivery_methods": [
+        "direct_dm"
+      ],
+      "rewards": [
+        {
+          "reward_type": "physical",
+          "value": "Luxury Skincare Set",
+          "quantity": 1
+        }
+      ]
     }
   },
   "17": {
-    "target": { "mode": "selected", "media_type": "reel_or_post" },
-    "condition": { "match_type": "any", "keywords": [], "follower_gate": true, "gate_msgs": ["Follow first to qualify! 🙌"] },
+    "target": {
+      "mode": "selected",
+      "media_type": "reel_or_post",
+      "media_ids": [
+        "17846368219942005"
+      ],
+      "campaign_id": null,
+      "priority": 1,
+      "stop_on_match": true,
+      "status": "active",
+      "deduplication": true,
+      "deduplication_window_seconds": 604800,
+      "deduplication_unique_per": [
+        "user_id",
+        "media_id"
+      ]
+    },
+    "condition": {
+      "match_type": "any",
+      "keywords": [],
+      "follower_gate": true,
+      "follower_gate_messages": [
+        "Follow first to qualify! 🙌"
+      ]
+    },
     "actions": [],
     "giveaway": {
-       "method": "weighted_random", "winners": 2, "anti_fraud": { "age_days": 14, "followers": 5 }, "rewards": [{ "type": "discount", "val": "30% off coupon", "qty": 2 }]
+      "selection_method": "weighted_random",
+      "winner_count": 2,
+      "scoring_weights_json": "{\"engagement_score\": 0.6, \"comment_quality\": 0.4}",
+      "evaluation_window_seconds": 518400,
+      "finalize_at": "2026-09-07T20:00:00Z",
+      "data_snapshot_at": "2026-09-07T18:00:00Z",
+      "re_evaluation_allowed": false,
+      "re_evaluation_max": 0,
+      "anti_fraud_enabled": true,
+      "min_account_age_days": 14,
+      "min_followers": 5,
+      "block_duplicate_ips": false,
+      "block_private_accounts": false,
+      "gamification_enabled": false,
+      "spin_wheel_enabled": false,
+      "reward_delivery_methods": [
+        "direct_dm",
+        "instagram_story"
+      ],
+      "rewards": [
+        {
+          "reward_type": "discount",
+          "value": "30% off coupon",
+          "quantity": 2
+        }
+      ]
     }
   },
   "18": {
-    "target": { "mode": "every", "media_type": "reel_or_post" },
-    "condition": { "match_type": "contains", "keywords": ["sale", "flash", "now", "buy", "deal", "code"], "follower_gate": false },
+    "target": {
+      "mode": "every",
+      "media_type": "reel_or_post",
+      "campaign_id": "summer-sale-2026",
+      "priority": 5,
+      "stop_on_match": true,
+      "status": "active",
+      "deduplication": true,
+      "deduplication_window_seconds": 7200,
+      "deduplication_unique_per": [
+        "user_id",
+        "rule_id"
+      ],
+      "start_at": "2026-07-04T14:00:00Z",
+      "end_at": "2026-07-04T16:00:00Z"
+    },
+    "condition": {
+      "match_type": "contains",
+      "keywords": [
+        "sale",
+        "flash",
+        "now",
+        "buy",
+        "deal",
+        "code"
+      ],
+      "follower_gate": false,
+      "follower_gate_messages": []
+    },
     "actions": [
-      { "action_type": "reply_comment", "message_mode": "fixed", "messages": ["⚡ Check your DMs for your flash sale code!"] },
-      { "action_type": "send_dm", "dm_format": "button_template", "message_mode": "fixed", "messages": ["⚡ FLASH SALE — 2 Hours Only!"], "extra": "Button: Shop Now (url) · Code FLASH40" }
+      {
+        "action_type": "reply_comment",
+        "message_mode": "fixed",
+        "messages": [
+          "⚡ Check your DMs for your flash sale code!"
+        ],
+        "rate_limit_scope": "post",
+        "rate_limit_limit": 20,
+        "rate_limit_window_seconds": 60,
+        "retry": 1,
+        "retry_delay_seconds": 5,
+        "fallback_action": "None",
+        "fallback_messages": []
+      },
+      {
+        "action_type": "send_dm",
+        "dm_format": "button_template",
+        "message_mode": "fixed",
+        "messages": [
+          "⚡ FLASH SALE — 2 Hours Only!"
+        ],
+        "button_template_text": "Use code FLASH40 for 40% off — expires 4PM!",
+        "button_template_buttons_json": "[\n  { \"type\": \"web_url\", \"title\": \"🛍️ Shop Now\", \"url\": \"https://shop.example.com/flash-sale\" }\n]",
+        "rate_limit_scope": "user",
+        "rate_limit_limit": 1,
+        "rate_limit_window_seconds": 7200,
+        "retry": 2,
+        "retry_delay_seconds": 30,
+        "fallback_action": "send_dm",
+        "fallback_messages": [
+          "⚡ Use FLASH40 for 40% off at https://shop.example.com (valid until 4PM)"
+        ],
+        "url_allowlist": [
+          "shop.example.com"
+        ]
+      }
     ]
   },
   "19": {
-    "target": { "mode": "selected", "media_type": "reel_or_post" },
-    "condition": { "match_type": "contains", "keywords": ["shoes", "price", "size", "available", "shipping", "buy", "link", "cost", "colors"], "follower_gate": false },
+    "target": {
+      "mode": "selected",
+      "media_type": "reel_or_post",
+      "media_ids": [
+        "17846368219942010"
+      ],
+      "campaign_id": null,
+      "priority": 20,
+      "stop_on_match": true,
+      "status": "active",
+      "deduplication": true,
+      "deduplication_window_seconds": 86400,
+      "deduplication_unique_per": [
+        "user_id",
+        "media_id"
+      ]
+    },
+    "condition": {
+      "match_type": "contains",
+      "keywords": [
+        "shoes",
+        "price",
+        "size",
+        "available",
+        "shipping",
+        "buy",
+        "link",
+        "cost",
+        "colors"
+      ],
+      "follower_gate": false,
+      "follower_gate_messages": []
+    },
     "actions": [
-      { "action_type": "reply_comment", "message_mode": "random", "messages": ["Sent you all the details! 📩", "Check your DMs for price and sizes 👇"], "rate_limit": { "scope": "post", "limit": 5, "window_seconds": 60 } },
-      { "action_type": "send_dm", "dm_format": "generic_template", "message_mode": "fixed", "messages": ["Here are the shoes from our latest reel 👟"], "extra": "Card: Air Runner Pro — $89" }
+      {
+        "action_type": "reply_comment",
+        "message_mode": "random",
+        "messages": [
+          "Sent you all the details! 📩",
+          "Check your DMs for price and sizes 👇"
+        ],
+        "rate_limit_scope": "post",
+        "rate_limit_limit": 5,
+        "rate_limit_window_seconds": 60,
+        "retry": 1,
+        "retry_delay_seconds": 10,
+        "fallback_action": "None",
+        "fallback_messages": []
+      },
+      {
+        "action_type": "send_dm",
+        "dm_format": "generic_template",
+        "message_mode": "fixed",
+        "messages": [
+          "Here are the shoes from our latest reel 👟"
+        ],
+        "generic_template_elements_json": "[{\n  \"title\": \"Air Runner Pro — White/Black\",\n  \"subtitle\": \"Sizes 36–46. Free shipping on orders over $100.\",\n  \"image_url\": \"https://cdn.shop.example.com/shoes-white.jpg\",\n  \"buttons\": [\n    { \"type\": \"web_url\",  \"title\": \"🛒 Buy Now — $89\", \"url\": \"https://shop.example.com/air-runner-pro\" },\n    { \"type\": \"postback\", \"title\": \"📏 Check My Size\",  \"payload\": \"CHECK_SIZE_SHOES\" }\n  ]\n}]",
+        "linked_product_id": 99,
+        "rate_limit_scope": "user",
+        "rate_limit_limit": 1,
+        "rate_limit_window_seconds": 86400,
+        "retry": 2,
+        "retry_delay_seconds": 30,
+        "fallback_action": "send_dm",
+        "fallback_messages": [
+          "Air Runner Pro — $89. Order here: https://shop.example.com/air-runner-pro 👟"
+        ],
+        "url_allowlist": [
+          "shop.example.com",
+          "cdn.shop.example.com"
+        ]
+      }
     ]
   },
   "20": {
-    "target": { "mode": "selected", "media_type": "reel_or_post" },
-    "condition": { "match_type": "any", "keywords": [], "follower_gate": true, "gate_msgs": ["Follow us to enter! 💙"] },
-    "actions": [{ "action_type": "reply_comment", "message_mode": "random", "messages": ["Keep commenting! Most active commenter wins 🔥"] }],
+    "target": {
+      "mode": "selected",
+      "media_type": "reel_or_post",
+      "media_ids": [
+        "17846368219942006"
+      ],
+      "campaign_id": null,
+      "priority": 1,
+      "stop_on_match": true,
+      "status": "active",
+      "deduplication": false,
+      "deduplication_window_seconds": 0,
+      "deduplication_unique_per": []
+    },
+    "condition": {
+      "match_type": "any",
+      "keywords": [],
+      "follower_gate": true,
+      "follower_gate_messages": [
+        "Follow us to enter! 💙"
+      ]
+    },
+    "actions": [
+      {
+        "action_type": "reply_comment",
+        "message_mode": "random",
+        "messages": [
+          "Keep commenting! Most active commenter wins 🔥",
+          "Every comment builds your score! 💯",
+          "You're in the running! 📊"
+        ],
+        "rate_limit_scope": "post",
+        "rate_limit_limit": 30,
+        "rate_limit_window_seconds": 60,
+        "retry": 1,
+        "retry_delay_seconds": 5,
+        "fallback_action": "None",
+        "fallback_messages": []
+      }
+    ],
     "giveaway": {
-       "method": "most_comment_activity", "winners": 1, "anti_fraud": { "age_days": 30, "followers": 0 }, "rewards": [{ "type": "physical", "val": "Shopping Voucher $200", "qty": 1 }]
+      "selection_method": "most_comment_activity",
+      "winner_count": 1,
+      "scoring_weights_json": "{\"total_comments\": true, \"comment_frequency\": true}",
+      "evaluation_window_seconds": 432000,
+      "finalize_at": "2026-09-15T20:00:00Z",
+      "data_snapshot_at": "2026-09-15T18:00:00Z",
+      "re_evaluation_allowed": false,
+      "re_evaluation_max": 0,
+      "anti_fraud_enabled": true,
+      "min_account_age_days": 30,
+      "min_followers": 0,
+      "block_duplicate_ips": false,
+      "block_private_accounts": false,
+      "gamification_enabled": false,
+      "spin_wheel_enabled": false,
+      "reward_delivery_methods": [
+        "direct_dm",
+        "public_post_announcement"
+      ],
+      "rewards": [
+        {
+          "reward_type": "physical",
+          "value": "Shopping Voucher $200",
+          "quantity": 1
+        }
+      ]
     }
   }
 }

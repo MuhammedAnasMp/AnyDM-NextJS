@@ -60,7 +60,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
   // Mapping to determine which category we are in
   const getCategory = () => {
     if (pathname.startsWith("/dashboard/products")) return "Products";
-    if (pathname.startsWith("/dashboard/builder") || pathname.startsWith("/dashboard/automation")) return "Automations";
+    if (pathname.startsWith("/dashboard/automations") || pathname.startsWith("/dashboard/automation")) return "Automations";
     if (pathname.startsWith("/dashboard/inbox")) return "Inbox";
     if (pathname.startsWith("/dashboard/games")) return "Games";
     if (pathname.startsWith("/dashboard/settings")) return "Settings";
@@ -73,12 +73,12 @@ export default function Header({ onMenuClick }: HeaderProps) {
   // Dynamic Automations Navigation items:
   const automationsSubNav = createdAutomations.length > 0
     ? [
-        { name: "Visual Builder", href: "/dashboard/builder" },
+        { name: "Visual Builder", href: "/dashboard/automations" },
         { name: createdAutomations[0].name, href: `/dashboard/automation?id=${createdAutomations[0].id}` },
         { name: "Browse Templates", href: "/dashboard/automation" }
       ]
     : [
-        { name: "Visual Builder", href: "/dashboard/builder" },
+        { name: "Visual Builder", href: "/dashboard/automations" },
         { name: "Create Automation", href: "/dashboard/automation" }
       ];
 
@@ -93,6 +93,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
       { name: "Catalog", href: "/dashboard/products/catalog" },
       { name: "Media Sync", href: "/dashboard/products/sync" },
       { name: "DM Replies", href: "/dashboard/products/replies" },
+      { name: "Website", href: "/dashboard/products/website" },
     ],
     Automations: automationsSubNav,
     Inbox: [

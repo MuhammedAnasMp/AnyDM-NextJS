@@ -14,6 +14,7 @@ const initialState: FlowState = {
   nodes: [],
   edges: [],
   selectedNodeId: null,
+  mediaPicker: null,
 };
 
 const MAX_HISTORY = 50;
@@ -43,6 +44,10 @@ export const flowSlice = createSlice({
         future: [],
         lastEdit: null,
       };
+    },
+    updateFlowName: (state, action: PayloadAction<string>) => {
+      saveToPast(state);
+      state.name = action.payload;
     },
     addNode: (state, action: PayloadAction<{ type: NodeType; position: { x: number; y: number }; data?: Record<string, unknown>; ruleType?: string }>) => {
       saveToPast(state);
@@ -104,6 +109,19 @@ export const flowSlice = createSlice({
         state.selectedNodeRect = action.payload.rect || null;
       }
     },
+    openMediaPicker: (state, action: PayloadAction<{ nodeId: string; fieldKey: string; resourceType: 'media' | 'story' }>) => {
+      state.mediaPicker = {
+        isOpen: true,
+        nodeId: action.payload.nodeId,
+        fieldKey: action.payload.fieldKey,
+        resourceType: action.payload.resourceType,
+      };
+    },
+    closeMediaPicker: (state) => {
+      if (state.mediaPicker) {
+        state.mediaPicker.isOpen = false;
+      }
+    },
     addDefaultFlowTemplate: (state, action: PayloadAction<{ ruleType: string, name: string, templateId?: string }>) => {
       saveToPast(state);
       state.nodes = [];
@@ -129,19 +147,21 @@ export const flowSlice = createSlice({
       const tId = `node-t-${Date.now()}`;
       const cId = `node-c-${Date.now()}`;
       
-      state.nodes.push({ id: tId, type: 'trigger', position: { x: 100, y: 150 }, data: caseData.target, ruleType });
-      state.nodes.push({ id: cId, type: 'condition', position: { x: 550, y: 150 }, data: caseData.condition, ruleType });
+      state.nodes.push({ id: tId, type: 'trigger', position: { x: 100, y: 150 }, data: caseData.target, ruleType, templateId: tid });
+      state.nodes.push({ id: cId, type: 'condition', position: { x: 550, y: 150 }, data: caseData.condition, ruleType, templateId: tid });
       state.edges.push({ id: `edge-${Date.now()}-1`, source: tId, target: cId });
       
       if (caseData.giveaway) {
          const gId = `node-g-${Date.now()}`;
-         state.nodes.push({ id: gId, type: 'giveaway_config', position: { x: 1000, y: 50 }, data: caseData.giveaway, ruleType });
+         state.nodes.push({ id: gId, type: 'giveaway_config', position: { x: 1000, y: 50 }, data: caseData.giveaway, ruleType, templateId: tid });
          state.edges.push({ id: `edge-${Date.now()}-2`, source: cId, target: gId });
          
          if (caseData.giveaway.rewards) {
-           const rId = `node-r-${Date.now()}`;
-           state.nodes.push({ id: rId, type: 'reward', position: { x: 1450, y: 50 }, data: caseData.giveaway.rewards[0], ruleType });
-           state.edges.push({ id: `edge-${Date.now()}-3`, source: gId, target: rId });
+           caseData.giveaway.rewards.forEach((rew, idx) => {
+             const rId = `node-r-${Date.now()}-${idx}`;
+             state.nodes.push({ id: rId, type: 'reward', position: { x: 1450, y: 50 + (idx * 160) }, data: rew, ruleType, templateId: tid });
+             state.edges.push({ id: `edge-${Date.now()}-reward-${idx}`, source: gId, target: rId });
+           });
          }
       }
       
@@ -149,7 +169,7 @@ export const flowSlice = createSlice({
          caseData.actions.forEach((act, i) => {
             const aId = `node-a-${Date.now()}-${i}`;
             // Offset vertically for multiple actions
-            state.nodes.push({ id: aId, type: 'action', position: { x: 1000, y: caseData.giveaway ? 300 + (i * 200) : 150 + (i * 200) }, data: { ...act, is_placeholder: true }, ruleType });
+            state.nodes.push({ id: aId, type: 'action', position: { x: 1000, y: caseData.giveaway ? 300 + (i * 200) : 150 + (i * 200) }, data: { ...act, is_placeholder: true }, ruleType, templateId: tid });
             state.edges.push({ id: `edge-${Date.now()}-act-${i}`, source: cId, target: aId });
          });
       }
@@ -201,6 +221,7 @@ export const flowSlice = createSlice({
 
 export const { 
   setFlow, 
+  updateFlowName,
   addNode, 
   updateNodePosition, 
   updateNodeData, 
@@ -208,6 +229,8 @@ export const {
   addEdge, 
   removeEdge, 
   selectNode, 
+  openMediaPicker,
+  closeMediaPicker,
   addDefaultFlowTemplate,
   undo,
   redo

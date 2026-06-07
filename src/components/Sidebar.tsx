@@ -13,7 +13,8 @@ import {
   Package, 
   MessageSquare, 
   Settings, 
-  X
+  X,
+  Video
 } from "lucide-react";
 
 interface SidebarProps {
@@ -27,7 +28,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const appUser = useSelector((state: RootState) => state.auth.user);
 
   const getActiveTab = () => {
-    if (pathname.startsWith("/dashboard/builder") || pathname.startsWith("/dashboard/automation")) return "Automations";
+    if (pathname.startsWith("/dashboard/automations") || pathname.startsWith("/dashboard/automation")) return "Automations";
+    if (pathname.startsWith("/dashboard/videos")) return "Videos";
     if (pathname === "/dashboard" || pathname.startsWith("/dashboard/analytics") || pathname.startsWith("/dashboard/revenue")) return "Dashboard";
     if (pathname.startsWith("/dashboard/products")) return "Products";
     if (pathname.startsWith("/dashboard/inbox")) return "Inbox";
@@ -40,7 +42,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const menuItems = [
     { name: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
-    { name: "Automations", icon: Zap, href: "/dashboard/builder" },
+    { name: "Automations", icon: Zap, href: "/dashboard/automations" },
+    { name: "Videos", icon: Video, href: "/dashboard/videos" },
     { name: "Games", icon: Gamepad2, href: "/dashboard/games/spin" },
     { name: "Products", icon: Package, href: "/dashboard/products/catalog" },
     { name: "Inbox", icon: MessageSquare, href: "/dashboard/inbox" },

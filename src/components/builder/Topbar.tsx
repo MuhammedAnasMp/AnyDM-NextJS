@@ -3,8 +3,8 @@
 import * as React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store';
-import { undo, redo } from '@/store/slices/flowSlice';
-import { Undo, Redo } from 'lucide-react';
+import { undo, redo, selectNode } from '@/store/slices/flowSlice';
+import { Undo, Redo, Settings } from 'lucide-react';
 
 export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () => void, showPreview: boolean }) {
   const flow = useSelector((state: RootState) => state.flow);
@@ -84,6 +84,13 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
             {showPreview ? "Hide Preview" : "Show Preview"}
           </span>
           <span className="text-sm font-medium text-on-surface-variant hover:text-white cursor-pointer transition-colors">Save Draft</span>
+          <button 
+            onClick={() => dispatch(selectNode({ id: 'global' }))}
+            className="h-10 px-4 rounded-full bg-[#1a1a1a] text-white border border-white/5 font-semibold text-sm hover:bg-white/10 transition-colors flex items-center gap-2"
+          >
+            <Settings className="w-4 h-4 text-[#8FE3FF]" />
+            Global Settings
+          </button>
           <button className="h-10 px-6 rounded-full bg-white text-black font-semibold text-sm hover:bg-white/90 transition-colors">
             Set Live
           </button>

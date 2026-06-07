@@ -43,7 +43,7 @@ export default function AutomationPage() {
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 w-full">
           <Link 
-            href="/dashboard/builder"
+            href="/dashboard/automations"
             className="flex-1 py-3 px-6 bg-white hover:bg-neutral-200 text-black rounded-xl text-xs font-bold shadow-lg transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer"
           >
             <span>Try Workflow Builder</span>

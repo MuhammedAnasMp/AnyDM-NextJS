@@ -27,7 +27,7 @@ function DashboardLayoutContent({
   const pathname = usePathname();
   const dispatch = useDispatch();
 
-  const isBuilder = pathname === "/dashboard/builder" || pathname.startsWith("/dashboard/builder");
+  const isBuilder = pathname === "/dashboard/automations" || pathname.startsWith("/dashboard/automations");
 
   useEffect(() => {
     const handleOpenSidebar = () => setIsSidebarOpen(true);

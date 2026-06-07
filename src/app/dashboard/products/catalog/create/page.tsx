@@ -84,6 +84,8 @@ export default function ProductCreatePage() {
 
   // Source Type
   const [productSource, setProductSource] = useState<"instagram" | "manual">("manual");
+  const [sourceId, setSourceId] = useState<string | null>(null);
+  const [instagramPermalink, setInstagramPermalink] = useState<string | null>(null);
 
   // Variant States
   const [variants, setVariants] = useState<string[]>(["Black", "Olive", "S", "M", "L", "XL"]);
@@ -126,6 +128,7 @@ export default function ProductCreatePage() {
       loadProductForEditing();
     } else if (sourceParam === "instagram" && mediaUrlParam) {
       setProductSource("instagram");
+      setSourceId(mediaIdParam);
 
       if (captionParam) {
         setDescription(captionParam);
@@ -139,6 +142,9 @@ export default function ProductCreatePage() {
         const stored = sessionStorage.getItem("instagram_selected_media");
         if (stored) {
           storedMedia = JSON.parse(stored);
+          if (storedMedia.permalink) {
+            setInstagramPermalink(storedMedia.permalink);
+          }
           setTimeout(() => sessionStorage.removeItem("instagram_selected_media"), 500);
         }
       } catch (e) { /* ignore parse error */ }
@@ -203,6 +209,8 @@ export default function ProductCreatePage() {
       setNegotiable(product.negotiable || false);
       setStatus(product.status || "PUBLISHED");
       setProductSource(product.source === "instagram" ? "instagram" : "manual");
+      setSourceId(product.source_id || null);
+      setInstagramPermalink(product.instagram_permalink || null);
 
       if (product.gallery && product.gallery.length > 0) {
         setMediaList(product.gallery.map((g: any, i: number) => {
@@ -574,6 +582,9 @@ export default function ProductCreatePage() {
       media_url: mainMedia.url,
       media_type: mainMedia.type,
       source: productSource,
+      source_id: sourceId || mediaIdParam || null,
+      media_id: sourceId || mediaIdParam || null,
+      instagram_permalink: instagramPermalink || null,
       cloudinary_metadata: mainMedia.cloudinary_metadata || null,
       gallery: mediaList.map((item, idx) => ({
         media_url: item.url,

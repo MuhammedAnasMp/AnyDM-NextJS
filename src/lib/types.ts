@@ -3,8 +3,8 @@ export type NodeType = 'trigger' | 'condition' | 'action' | 'giveaway_config' | 
 export interface NodeFieldDefinition {
   name: string;
   label: string;
-  type: 'select' | 'text' | 'keywords' | 'switch' | 'number' | 'datetime' | 'resource_picker' | 'message_list';
-  resourceType?: 'media' | 'products' | 'templates' | 'campaigns' | 'giveaways' | 'discount_codes';
+  type: 'select' | 'text' | 'keywords' | 'switch' | 'number' | 'datetime' | 'resource_picker' | 'message_list' | 'textarea';
+  resourceType?: 'media' | 'story' | 'products' | 'templates' | 'campaigns' | 'giveaways' | 'discount_codes';
   options?: { label: string; value: string | number | boolean }[];
   validation?: { required?: boolean; min?: number; max?: number };
   dependsOn?: { field: string; value: any };
@@ -27,6 +27,7 @@ export interface FlowNode {
   position: { x: number; y: number };
   data: Record<string, any>;
   ruleType?: string; // Links back to the specific Manifest
+  templateId?: string; // Links back to the specific template case
 }
 
 export interface FlowEdge {
@@ -42,6 +43,12 @@ export interface FlowState {
   edges: FlowEdge[];
   selectedNodeId: string | null;
   selectedNodeRect?: { top: number; left: number; width: number; height: number } | null;
+  mediaPicker?: {
+    isOpen: boolean;
+    nodeId: string;
+    fieldKey: string;
+    resourceType: 'media' | 'story';
+  } | null;
   past?: { name: string; nodes: FlowNode[]; edges: FlowEdge[] }[];
   future?: { name: string; nodes: FlowNode[]; edges: FlowEdge[] }[];
   lastEdit?: { id: string; key: string } | null;
