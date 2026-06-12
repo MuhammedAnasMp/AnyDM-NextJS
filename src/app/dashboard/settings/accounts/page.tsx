@@ -51,54 +51,48 @@ const GoogleIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-const ProviderRow = ({ icon, title, subtitle, isConnected, onAction, actionText, inlineContent, children }: any) => (
-  <div className="flex flex-col border-b border-white/5 last:border-0">
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between p-5 gap-4">
-      {(!inlineContent || isConnected) && (
-        <div className="flex items-center gap-4 min-w-[200px]">
-          <div className="w-11 h-11 rounded-lg bg-white/5 flex items-center justify-center border border-white/10 shadow-sm">
-            {icon}
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-bold text-white tracking-tight">{title}</h3>
-              {isConnected && (
-                <span className="bg-emerald-500/10 text-emerald-400 text-[9px] font-bold uppercase px-2 py-0.5 rounded-full tracking-wider">
-                  Linked
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-[#c4c7c8]/60 mt-0.5">{subtitle}</p>
-          </div>
+const ProviderCard = ({ icon, title, subtitle, isConnected, onAction, actionText, children }: any) => (
+  <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-white/10 hover:bg-white/[0.04] transition-all duration-300 flex flex-col gap-4 relative">
+    <div className="flex items-start gap-4">
+      <div className="w-11 h-11 rounded-xl bg-white/5 flex items-center justify-center border border-white/10 shrink-0 shadow-inner text-white">
+        {icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <h3 className="text-sm font-bold text-white tracking-tight leading-none">{title}</h3>
+          {isConnected && (
+            <span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[8px] font-bold uppercase px-2 py-0.5 rounded-full tracking-wider leading-none">
+              Linked
+            </span>
+          )}
         </div>
-      )}
-
-      <div className="flex flex-1 items-center justify-end gap-3">
-        {inlineContent}
-        {onAction && (
-          <button
-            onClick={onAction}
-            className={cn(
-              "flex items-center justify-center gap-2 w-32 py-2 rounded-lg text-xs font-bold transition-all active:scale-[0.98] shrink-0 border cursor-pointer shadow-sm",
-              (actionText === "Cancel" || isConnected)
-                ? "text-red-400 border-red-500/20 bg-red-500/5 hover:bg-red-500/10"
-                : "bg-white/5 text-white hover:bg-white/10 border-white/10 hover:border-white/20"
-            )}
-          >
-            {actionText === "Cancel" ? (
-              <X className="w-3.5 h-3.5" />
-            ) : isConnected ? (
-              <Link2Off className="w-3.5 h-3.5" />
-            ) : (
-              <Link2 className="w-3.5 h-3.5" />
-            )}
-            <span>{actionText || (isConnected ? "Disconnect" : "Connect")}</span>
-          </button>
-        )}
+        <p className="text-xs text-[#c4c7c8]/60 mt-2 leading-relaxed break-all">{subtitle}</p>
       </div>
     </div>
+
+    {onAction && (
+      <button
+        onClick={onAction}
+        className={cn(
+          "flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-xs font-bold transition-all active:scale-[0.98] border cursor-pointer shadow-sm mt-auto",
+          (actionText === "Cancel" || isConnected)
+            ? "text-red-400 border-red-500/20 bg-red-500/5 hover:bg-red-500/10"
+            : "bg-white/5 text-white hover:bg-white/10 border-white/10 hover:border-white/20"
+        )}
+      >
+        {actionText === "Cancel" ? (
+          <X className="w-3.5 h-3.5" />
+        ) : isConnected ? (
+          <Link2Off className="w-3.5 h-3.5" />
+        ) : (
+          <Link2 className="w-3.5 h-3.5" />
+        )}
+        <span>{actionText || (isConnected ? "Disconnect" : "Connect")}</span>
+      </button>
+    )}
+
     {children && (
-      <div className="px-5 pb-5 md:hidden">
+      <div className="w-full">
         {children}
       </div>
     )}
@@ -106,58 +100,66 @@ const ProviderRow = ({ icon, title, subtitle, isConnected, onAction, actionText,
 );
 
 const InstagramRow = ({ account, isPrimary, onRemove, onToggleEnabled, onToggleLogin, onSetPrimary }: any) => (
-  <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 mb-2 last:mb-0 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all duration-300 group">
-    <div className="flex items-center space-x-3 mb-3 sm:mb-0">
+  <div className={cn(
+    "flex flex-col sm:flex-row sm:items-center justify-between p-5 mb-3 last:mb-0 rounded-2xl bg-white/[0.02] border transition-all duration-300 group",
+    isPrimary
+      ? "border-[#8FE3FF]/30 bg-[#8FE3FF]/5 shadow-[0_0_20px_rgba(143,227,255,0.05)]"
+      : "border-white/5 hover:border-white/10 hover:bg-white/[0.04]"
+  )}>
+    <div className="flex items-center space-x-4 mb-4 sm:mb-0">
       <div
         className="relative cursor-pointer select-none"
         onClick={() => !isPrimary && onSetPrimary(account.id)}
       >
-        <div className="w-10 h-10 rounded-full overflow-hidden shadow-sm transition-all group-hover:scale-105">
+        <div className={cn(
+          "w-12 h-12 rounded-full overflow-hidden shadow-md transition-all duration-300 group-hover:scale-105 p-0.5 bg-zinc-800",
+          isPrimary && "ring-2 ring-[#8FE3FF]/50 ring-offset-2 ring-offset-[#131313]"
+        )}>
           <img
             src={account.profile_picture_url || "https://i.pravatar.cc/150?u=ig"}
             alt={account.username}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover rounded-full"
           />
         </div>
-        <div className="absolute -bottom-1 -right-1 bg-[#131313] rounded-full p-0.5 shadow-sm">
+        <div className="absolute -bottom-1 -right-1 bg-[#131313] rounded-full p-1 shadow-md">
           <div className="insta-gradient p-0.5 rounded-full text-white">
             <InstagramIcon className="w-2.5 h-2.5" />
           </div>
         </div>
         {isPrimary && (
-          <div className="absolute -top-1 -left-1 bg-white text-black p-1 rounded-full shadow-lg z-10 ring-2 ring-[#131313]">
+          <div className="absolute -top-1.5 -left-1.5 bg-[#8FE3FF] text-[#131313] p-1 rounded-full shadow-lg z-10 border border-[#131313]">
             <Star className="w-2.5 h-2.5 fill-current" />
           </div>
         )}
       </div>
       <div>
-        <div className="flex items-center space-x-2">
-          <span className="text-sm font-bold text-white">@{account.username}</span>
+        <div className="flex items-center space-x-2.5">
+          <span className="text-sm font-bold text-white group-hover:text-[#8FE3FF] transition-colors">@{account.username}</span>
           {account.is_enabled ? (
-            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold uppercase tracking-wider">
+            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[9px] font-bold uppercase tracking-wider border border-emerald-500/10">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               Active
             </span>
           ) : (
-            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-red-500/10 text-red-400 text-[10px] font-bold uppercase tracking-wider">
+            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 text-[9px] font-bold uppercase tracking-wider border border-red-500/10">
               <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
-              Disabled
+              Paused
             </span>
           )}
         </div>
-        <span className="text-xs text-[#c4c7c8]/60 truncate max-w-[180px] block mt-0.5">{account.full_name || "Instagram Business Account"}</span>
+        <span className="text-xs text-[#c4c7c8]/60 truncate max-w-[220px] block mt-1">{account.full_name || "Instagram Business Account"}</span>
       </div>
     </div>
 
-    <div className="flex items-center space-x-3">
-      <div className="flex items-center space-x-1 sm:space-x-1.5">
+    <div className="flex items-center space-x-4">
+      <div className="flex items-center space-x-1 sm:space-x-2">
         <button
           onClick={() => onToggleEnabled(account.id, !account.is_enabled)}
           className={cn(
-            "flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer",
+            "flex items-center justify-center p-2 text-xs font-bold rounded-xl transition-all cursor-pointer .border",
             account.is_enabled
-              ? "text-amber-500 hover:bg-amber-500/10"
-              : "text-emerald-400 hover:bg-emerald-500/10"
+              ? "text-amber-400 border-amber-500/10 hover:bg-amber-500/10"
+              : "text-emerald-400 border-emerald-500/10 hover:bg-emerald-500/10"
           )}
           title={account.is_enabled ? "Pause Automations" : "Resume Automations"}
         >
@@ -165,7 +167,7 @@ const InstagramRow = ({ account, isPrimary, onRemove, onToggleEnabled, onToggleL
         </button>
         <button
           onClick={() => onRemove(account.id)}
-          className="flex items-center gap-2 px-2.5 py-1.5 text-xs font-bold text-red-400 hover:bg-red-500/10 rounded-lg transition-all cursor-pointer"
+          className="flex items-center justify-center p-2 text-xs font-bold text-red-400 .border border-red-500/10 hover:bg-red-500/10 rounded-xl transition-all cursor-pointer"
           title="Delete Account"
         >
           <Trash2 className="w-4 h-4" />
@@ -175,7 +177,7 @@ const InstagramRow = ({ account, isPrimary, onRemove, onToggleEnabled, onToggleL
       <button
         onClick={() => onToggleLogin(account.id, !account.used_for_login)}
         className={cn(
-          "flex items-center justify-center gap-2 w-32 py-2 rounded-lg text-xs font-bold transition-all active:scale-[0.98] border cursor-pointer shadow-sm",
+          "flex items-center justify-center gap-2 w-32 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-[0.98] border cursor-pointer shadow-sm",
           account.used_for_login
             ? "text-red-400 border-red-500/20 bg-red-500/5 hover:bg-red-500/10"
             : "bg-white/5 text-white hover:bg-white/10 border-white/10 hover:border-white/20"
@@ -470,7 +472,7 @@ function AccountsContent() {
   if (!mounted) return null;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto space-y-6">
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-6">
         <div className="flex items-center gap-4">
@@ -495,7 +497,7 @@ function AccountsContent() {
                 className="text-xl font-bold text-white bg-transparent border-b border-white/20 focus:border-white focus:outline-none py-0.5"
               />
             ) : (
-              <h1 
+              <h1
                 onClick={() => {
                   setTempName(appUser?.display_name || "");
                   setIsEditingName(true);
@@ -512,8 +514,8 @@ function AccountsContent() {
             </p>
           </div>
         </div>
-        
-        <button 
+
+        <button
           onClick={handleAddInstagram}
           disabled={isInstagramLinking}
           className="insta-gradient text-white px-4 py-2.5 rounded-lg font-bold flex items-center gap-2 shadow-lg hover:shadow-xl hover:scale-[1.01] active:scale-95 transition-all text-xs cursor-pointer disabled:opacity-50"
@@ -536,8 +538,8 @@ function AccountsContent() {
               <span>Connected Accounts</span>
             </h3>
 
-            <div className="space-y-4">
-              <ProviderRow
+            <div className="flex flex-col gap-4">
+              <ProviderCard
                 icon={<GoogleIcon className="w-5 h-5" />}
                 title="Google Account"
                 subtitle={hasGoogle ? "Connected securely via Google" : "One-click secure login"}
@@ -545,65 +547,40 @@ function AccountsContent() {
                 onAction={hasGoogle ? undefined : handleGoogleLink}
               />
 
-              <ProviderRow
+              <ProviderCard
                 icon={<Mail className="w-5 h-5 text-[#c4c7c8]" />}
                 title="Email & Password"
                 subtitle={firebaseUser?.email || "Connect an email address"}
                 isConnected={hasPassword}
                 onAction={hasPassword ? undefined : handleEmailLink}
                 actionText={isLinkingEmail ? "Cancel" : "Connect"}
-                inlineContent={isLinkingEmail && !hasPassword && (
-                  <div className="hidden md:flex flex-col gap-2 w-full mt-2">
-                    <input
-                      type="email"
-                      value={emailToLink}
-                      onChange={(e) => setEmailToLink(e.target.value)}
-                      placeholder="Enter account email"
-                      className="w-full bg-[#1c1b1b] border border-white/10 rounded-lg py-1.5 px-3 text-xs text-white focus:outline-none focus:border-white/30"
-                    />
-                    <input
-                      type="password"
-                      value={passwordToLink}
-                      onChange={(e) => setPasswordToLink(e.target.value)}
-                      placeholder="Create a strong password"
-                      className="w-full bg-[#1c1b1b] border border-white/10 rounded-lg py-1.5 px-3 text-xs text-white focus:outline-none focus:border-white/30"
-                    />
-                    <button
-                      onClick={handleConfirmEmailLink}
-                      disabled={isLinkingLoading}
-                      className="w-full bg-white text-black rounded-lg py-1.5 text-xs font-bold hover:bg-[#eaeaea] transition-all cursor-pointer disabled:opacity-50"
-                    >
-                      {isLinkingLoading ? "Connecting..." : "Link account"}
-                    </button>
-                  </div>
-                )}
               >
                 {isLinkingEmail && !hasPassword && (
-                  <div className="md:hidden flex flex-col gap-2 w-full mt-2">
+                  <div className="flex flex-col gap-2 w-full mt-2">
                     <input
                       type="email"
                       value={emailToLink}
                       onChange={(e) => setEmailToLink(e.target.value)}
                       placeholder="Enter account email"
-                      className="w-full bg-[#1c1b1b] border border-white/10 rounded-lg py-1.5 px-3 text-xs text-white focus:outline-none focus:border-white/30"
+                      className="w-full bg-[#1c1b1b] border border-white/10 rounded-xl py-2 px-3 text-xs text-white focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20 transition-all"
                     />
                     <input
                       type="password"
                       value={passwordToLink}
                       onChange={(e) => setPasswordToLink(e.target.value)}
                       placeholder="Create a strong password"
-                      className="w-full bg-[#1c1b1b] border border-white/10 rounded-lg py-1.5 px-3 text-xs text-white focus:outline-none focus:border-white/30"
+                      className="w-full bg-[#1c1b1b] border border-white/10 rounded-xl py-2 px-3 text-xs text-white focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20 transition-all"
                     />
                     <button
                       onClick={handleConfirmEmailLink}
                       disabled={isLinkingLoading}
-                      className="w-full bg-white text-black rounded-lg py-1.5 text-xs font-bold hover:bg-[#eaeaea] transition-all cursor-pointer disabled:opacity-50"
+                      className="w-full bg-white text-black rounded-xl py-2 text-xs font-bold hover:bg-[#eaeaea] transition-all cursor-pointer disabled:opacity-50"
                     >
                       {isLinkingLoading ? "Connecting..." : "Link account"}
                     </button>
                   </div>
                 )}
-              </ProviderRow>
+              </ProviderCard>
             </div>
           </div>
 

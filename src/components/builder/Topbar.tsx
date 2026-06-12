@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store';
 import { undo, redo, selectNode } from '@/store/slices/flowSlice';
-import { Undo, Redo, Settings } from 'lucide-react';
+import { Undo, Redo, Settings, Eye, EyeOff } from 'lucide-react';
 
 export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () => void, showPreview: boolean }) {
   const flow = useSelector((state: RootState) => state.flow);
@@ -80,9 +80,17 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
             </button>
           </div>
 
-          <span className="text-sm font-medium text-on-surface-variant hover:text-white cursor-pointer transition-colors" onClick={onTogglePreview}>
-            {showPreview ? "Hide Preview" : "Show Preview"}
-          </span>
+          <button
+            onClick={onTogglePreview}
+            className={`h-10 px-4 rounded-full border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              showPreview
+                ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/20 shadow-sm'
+                : 'bg-[#181818] border-white/10 text-on-surface-variant hover:text-white hover:border-white/20'
+            }`}
+          >
+            {showPreview ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+            <span>{showPreview ? 'Hide Preview' : 'Show Preview'}</span>
+          </button>
           <span className="text-sm font-medium text-on-surface-variant hover:text-white cursor-pointer transition-colors">Save Draft</span>
           <button 
             onClick={() => dispatch(selectNode({ id: 'global' }))}

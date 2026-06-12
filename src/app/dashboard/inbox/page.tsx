@@ -36,28 +36,27 @@ export default function InboxPage() {
   ];
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 5 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
       className="flex-1 flex overflow-hidden -mx-4 md:-mx-8 -my-4 md:-my-8 h-[calc(100vh-112px)]"
     >
       {/* Left Pane: Conversation List */}
-      <section 
+      <section
         className={`w-full lg:w-[340px] border-r border-white/10 flex flex-col bg-[#131313]/60 backdrop-blur-sm shrink-0
           ${showChatOnMobile ? "hidden lg:flex" : "flex"}`}
       >
         {/* Filter Tabs */}
         <div className="p-4 flex gap-2 overflow-x-auto border-b border-white/5 no-scrollbar">
           {["All", "Unread", "Automation", "Manual"].map((f) => (
-            <button 
+            <button
               key={f}
               onClick={() => setActiveFilter(f)}
-              className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase transition-all duration-200 shrink-0 ${
-                activeFilter === f 
-                  ? "bg-white text-black" 
+              className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase transition-all duration-200 shrink-0 ${activeFilter === f
+                  ? "bg-white text-black"
                   : "bg-white/5 text-on-surface-variant border border-white/5 hover:bg-white/10"
-              }`}
+                }`}
             >
               {f}
             </button>
@@ -67,14 +66,13 @@ export default function InboxPage() {
         {/* Conversation list scroll area */}
         <div className="flex-1 overflow-y-auto divide-y divide-white/5">
           {conversations.map((item, idx) => (
-            <div 
-              key={idx} 
+            <div
+              key={idx}
               onClick={() => setShowChatOnMobile(true)}
-              className={`p-4 flex gap-3 cursor-pointer transition-all duration-200 ${
-                item.active 
-                  ? "bg-white/5 border-l-4 border-white" 
+              className={`p-4 flex gap-3 cursor-pointer transition-all duration-200 ${item.active
+                  ? "bg-white/5 border-l-4 border-white"
                   : "hover:bg-white/[0.03]"
-              }`}
+                }`}
             >
               <div className="relative shrink-0">
                 <img className="w-10 h-10 rounded-full border border-white/10" src={item.avatar} alt={item.name} />
@@ -105,7 +103,7 @@ export default function InboxPage() {
       </section>
 
       {/* Center Pane: Chat Conversation View */}
-      <section 
+      <section
         className={`flex-grow flex flex-col bg-[#131313]/20 relative overflow-hidden
           ${showChatOnMobile ? "flex" : "hidden lg:flex"}`}
       >
@@ -113,7 +111,7 @@ export default function InboxPage() {
         <div className="px-4 md:px-6 py-4 border-b border-white/10 flex items-center justify-between bg-surface/20 shrink-0">
           <div className="flex items-center gap-3">
             {/* Back Button (Mobile Only) */}
-            <button 
+            <button
               onClick={() => setShowChatOnMobile(false)}
               className="lg:hidden p-1 rounded-lg text-on-surface-variant hover:text-white transition-colors"
             >
@@ -121,9 +119,9 @@ export default function InboxPage() {
             </button>
 
             <div className="relative">
-              <img 
-                alt="Jordan Lee" 
-                className="w-8 h-8 md:w-10 md:h-10 rounded-full border border-white/10" 
+              <img
+                alt="Jordan Lee"
+                className="w-8 h-8 md:w-10 md:h-10 rounded-full border border-white/10"
                 src="https://lh3.googleusercontent.com/aida-public/AB6AXuBxYVMrzh_WbCH1SbSjCdclTsByYW8Slg1PBUwC2G-Kl-3SAH2aJ1QLnlci4D-MtELxjSYch3PqjLX09QJzWa9PmBl7KIQ_pty6NBwVXzS1kmFODZCUkDO7xQrPhvuLCqu8STZdhcGWBuitJxktUeo1Ayt5O9Nh1ckVLaf8fc1sWyOHgUlYf7AxkOH20fKKayBRyij8X9YleEvrxPmgvkWTmi66duuOS1BWTGXI5DWGd156q9OV44yCg5UV6HkareHTafflmzv-2u8"
               />
               <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-[#131313]"></span>
@@ -159,9 +157,9 @@ export default function InboxPage() {
 
           {/* User message */}
           <div className="flex gap-3 max-w-[85%] sm:max-w-[80%]">
-            <img 
-              alt="Jordan" 
-              className="w-7 h-7 md:w-8 h-8 rounded-full shrink-0 self-end border border-white/10" 
+            <img
+              alt="Jordan"
+              className="w-7 h-7 md:w-8 h-8 rounded-full shrink-0 self-end border border-white/10"
               src="https://lh3.googleusercontent.com/aida-public/AB6AXuBxYVMrzh_WbCH1SbSjCdclTsByYW8Slg1PBUwC2G-Kl-3SAH2aJ1QLnlci4D-MtELxjSYch3PqjLX09QJzWa9PmBl7KIQ_pty6NBwVXzS1kmFODZCUkDO7xQrPhvuLCqu8STZdhcGWBuitJxktUeo1Ayt5O9Nh1ckVLaf8fc1sWyOHgUlYf7AxkOH20fKKayBRyij8X9YleEvrxPmgvkWTmi66duuOS1BWTGXI5DWGd156q9OV44yCg5UV6HkareHTafflmzv-2u8"
             />
             <div className="glass-pane p-3.5 rounded-2xl rounded-bl-none text-xs text-[#e5e2e1] leading-relaxed">
@@ -208,10 +206,10 @@ export default function InboxPage() {
             <button className="p-1.5 md:p-2 text-on-surface-variant hover:text-white transition-colors">
               <span className="material-symbols-outlined text-base md:text-lg">sentiment_satisfied</span>
             </button>
-            <input 
-              className="flex-1 bg-transparent border-none focus:ring-0 text-xs text-white placeholder-white/20 outline-none" 
-              placeholder="Type a message or '/' for commands..." 
-              type="text" 
+            <input
+              className="flex-1 bg-transparent border-none focus:ring-0 text-xs text-white placeholder-white/20 outline-none"
+              placeholder="Type a message or '/' for commands..."
+              type="text"
             />
             <button className="w-8 h-8 bg-white text-black rounded-lg flex items-center justify-center hover:scale-95 transition-transform shrink-0">
               <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>send</span>
@@ -225,9 +223,9 @@ export default function InboxPage() {
         <div className="flex flex-col items-center text-center">
           <div className="relative mb-3">
             <div className="w-20 h-20 rounded-full border border-white/10 p-1">
-              <img 
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuC4lxX09SgWsm0gdwTNPsY4o7DTQhFTSjxRas1oFIgi0GxkwkInX3PypDYDjSAySK4SnWWJQ5VRKUoLFb-BqGHqjX8ROOFI2OSE-rG7JSoS7g0M1gMW6ikqUJOBlQfbfHbW51PuSRgl77uRBGmurfBwwxFYg0Ux4y2UsrqQTun2d_CSpYyZAv3MSV6DuBa4M7e1sfrURFSEgONEf_rmh5nge6dbDh_38FPDVrWiFOi1E0ORTVfFrcci9QiAuP6PabAqGETiaPoyX34" 
-                alt="Sarah Jenkins" 
+              <img
+                src="https://lh3.googleusercontent.com/aida-public/AB6AXuC4lxX09SgWsm0gdwTNPsY4o7DTQhFTSjxRas1oFIgi0GxkwkInX3PypDYDjSAySK4SnWWJQ5VRKUoLFb-BqGHqjX8ROOFI2OSE-rG7JSoS7g0M1gMW6ikqUJOBlQfbfHbW51PuSRgl77uRBGmurfBwwxFYg0Ux4y2UsrqQTun2d_CSpYyZAv3MSV6DuBa4M7e1sfrURFSEgONEf_rmh5nge6dbDh_38FPDVrWiFOi1E0ORTVfFrcci9QiAuP6PabAqGETiaPoyX34"
+                alt="Sarah Jenkins"
                 className="w-full h-full rounded-full object-cover shadow-2xl"
               />
             </div>

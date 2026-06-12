@@ -8,6 +8,7 @@ import { CanvasNode, CanvasEdges } from './CanvasNode';
 import { NodeType, FlowState } from '@/lib/types';
 import { Xwrapper, useXarrow } from 'react-xarrows';
 import { CanvasContext } from './CanvasContext';
+import { Minus, Plus } from 'lucide-react';
 
 // Initial dummy data matching the screenshot
 const screenshotFlow: FlowState = {
@@ -30,14 +31,14 @@ const screenshotFlow: FlowState = {
     {
       id: 'n_action1',
       type: 'action',
-      position: { x: 800, y: 80 },
-      data: { isPrimary: false, action_label: "ACTION 1" }
+      position: { x: 900, y: 80 },
+      data: { isPrimary: false, action_label: "ACTION 1", is_placeholder: true }
     },
     {
       id: 'n_action2',
       type: 'action',
-      position: { x: 800, y: 280 },
-      data: { isPrimary: true, action_label: "PRIMARY ACTION" }
+      position: { x: 900, y: 280 },
+      data: { isPrimary: true, action_label: "PRIMARY ACTION", is_placeholder: true }
     }
   ],
   edges: [
@@ -109,6 +110,31 @@ export function Canvas() {
     return () => container.removeEventListener('wheel', handleWheel);
   }, [pan, scale, dispatch, flow.selectedNodeId]);
 
+  const zoomToScale = (newScale: number) => {
+    const targetScale = Math.min(Math.max(0.2, newScale), 2);
+    const container = containerRef.current;
+    if (!container) {
+      setScale(targetScale);
+      return;
+    }
+
+    const rect = container.getBoundingClientRect();
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+
+    const ratio = 1 - targetScale / scale;
+
+    const newX = pan.x + (centerX - pan.x) * ratio;
+    const newY = pan.y + (centerY - pan.y) * ratio;
+
+    setPan({ x: newX, y: newY });
+    setScale(targetScale);
+
+    if (flow.selectedNodeId) {
+      dispatch(selectNode(null));
+    }
+  };
+
   const handlePointerDown = (e: React.PointerEvent) => {
     if (e.button === 1 || (e.button === 0 && (e.target as HTMLElement).classList.contains('canvas-container'))) {
       setIsPanning(true);
@@ -177,6 +203,69 @@ export function Canvas() {
           ))}
           <CanvasEdges />
         </Xwrapper>
+
+        {/* Zoom Controls Overlay */}
+        <div 
+          className="absolute bottom-6 left-6 z-30 flex items-center gap-3 bg-[#161622]/90 backdrop-blur-md border border-white/10 rounded-xl px-4 py-2.5 shadow-2xl select-none"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Zoom Out Button */}
+          <button
+            type="button"
+            onClick={() => zoomToScale(scale - 0.1)}
+            disabled={scale <= 0.2}
+            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 active:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer transition-all shrink-0"
+            title="Zoom Out"
+          >
+            <Minus className="w-4 h-4" />
+          </button>
+
+          {/* Zoom Slider */}
+          <div className="flex items-center">
+            <input
+              type="range"
+              min="0.2"
+              max="2"
+              step="0.05"
+              value={scale}
+              onChange={(e) => zoomToScale(parseFloat(e.target.value))}
+              className="w-24 h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-white hover:accent-zinc-200 transition-all"
+              style={{
+                background: `linear-gradient(to right, #ffffff 0%, #ffffff ${((scale - 0.2) / 1.8) * 100}%, #27272a ${((scale - 0.2) / 1.8) * 100}%, #27272a 100%)`
+              }}
+            />
+          </div>
+
+          {/* Zoom In Button */}
+          <button
+            type="button"
+            onClick={() => zoomToScale(scale + 0.1)}
+            disabled={scale >= 2}
+            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 active:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer transition-all shrink-0"
+            title="Zoom In"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+
+          {/* Divider */}
+          <div className="w-[1px] h-4 bg-white/10 mx-1 shrink-0" />
+
+          {/* Reset / Zoom Level Button */}
+          <button
+            type="button"
+            onClick={() => {
+              setScale(1);
+              setPan({ x: 0, y: 0 });
+              if (flow.selectedNodeId) {
+                dispatch(selectNode(null));
+              }
+            }}
+            className="px-2 py-1 rounded-lg text-xs font-bold text-zinc-300 hover:text-white hover:bg-white/5 active:bg-white/10 cursor-pointer transition-all shrink-0 font-mono"
+            title="Reset Zoom & Pan"
+          >
+            {Math.round(scale * 100)}%
+          </button>
+        </div>
       </div>
     </CanvasContext.Provider>
   );

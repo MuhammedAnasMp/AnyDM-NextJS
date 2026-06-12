@@ -16,6 +16,25 @@ import { closeMediaPicker, updateNodeData, selectNode } from "@/store/slices/flo
 export default function BuilderPage() {
   const dispatch = useDispatch();
   const [showPreview, setShowPreview] = useState(true);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("showPreview");
+    if (saved !== null) {
+      setShowPreview(saved === "true");
+    }
+  }, []);
+
+  const handleTogglePreview = () => {
+    const nextVal = !showPreview;
+    setShowPreview(nextVal);
+    localStorage.setItem("showPreview", String(nextVal));
+  };
+
+  const handleClosePreview = () => {
+    setShowPreview(false);
+    localStorage.setItem("showPreview", "false");
+  };
+
   const [activeEditNodeId, setActiveEditNodeId] = useState<string | null>(null);
   const selectedNodeId = useSelector((state: RootState) => state.flow.selectedNodeId);
   const mediaPicker = useSelector((state: RootState) => state.flow.mediaPicker);
@@ -59,7 +78,7 @@ export default function BuilderPage() {
   return (
     <div className="flex flex-col h-full w-full overflow-hidden relative z-10">
       <Topbar 
-        onTogglePreview={() => setShowPreview(!showPreview)} 
+        onTogglePreview={handleTogglePreview} 
         showPreview={showPreview}
       />
       <div className="flex flex-1 overflow-hidden relative">
@@ -69,7 +88,7 @@ export default function BuilderPage() {
           {selectedNodeId && <RightSidebar />}
         </AnimatePresence>
         <AnimatePresence>
-          {showPreview && <LivePreview onClose={() => setShowPreview(false)} />}
+          {showPreview && <LivePreview onClose={handleClosePreview} />}
         </AnimatePresence>
       </div>
 

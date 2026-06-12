@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
 import { authService } from "@/lib/services/auth.service";
+import { auth } from "@/lib/firebase";
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -22,6 +23,15 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [firebaseUser, setFirebaseUser] = useState<any>(null);
+
+  useEffect(() => {
+    if (!auth) return;
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setFirebaseUser(user);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const accountMenuRef = useRef<HTMLDivElement>(null);
   const profileMenuRef = useRef<HTMLDivElement>(null);
@@ -120,7 +130,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
   ) || instagramAccounts[0];
 
   const userDisplayName = appUser?.display_name || appUser?.first_name || "User";
-  const userPhoto = appUser?.photo_url || "https://picsum.photos/seed/elena/100/100";
+  const googlePhoto = firebaseUser?.providerData?.find((p: any) => p.providerId === "google.com")?.photoURL || firebaseUser?.photoURL;
+  const userPhoto = googlePhoto || appUser?.photo_url || "https://picsum.photos/seed/elena/100/100";
 
   return (
     <div className="sticky top-0 z-40 w-full flex flex-col bg-[#131313] border-b border-white/5 shrink-0 text-white">

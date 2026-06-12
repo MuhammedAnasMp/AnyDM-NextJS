@@ -4,6 +4,9 @@ import * as React from 'react';
 import { MessageSquare, Mail, History, ShoppingBag, Trophy, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/store';
+import { getCategoryForTemplate } from './TemplateItem';
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/Tooltip';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -90,6 +93,15 @@ const TEMPLATE_CATEGORIES = [
 export function LeftSidebar() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
+  const nodes = useSelector((state: RootState) => state.flow.nodes);
+  const selectedTemplateId = React.useMemo(() => {
+    return nodes.find(n => n.templateId)?.templateId || null;
+  }, [nodes]);
+
+  const selectedCategory = React.useMemo(() => {
+    return getCategoryForTemplate(selectedTemplateId);
+  }, [selectedTemplateId]);
+
   const toggleCategory = (id: string) => {
     setActiveCategory(prev => (prev === id ? null : id));
   };
@@ -103,6 +115,8 @@ export function LeftSidebar() {
         <div className="w-16 h-full bg-[#161616] border-r border-[#2d2d2d] flex flex-col items-center py-6 gap-5 shadow-2xl relative select-none">
           {TEMPLATE_CATEGORIES.filter(c => !c.hidden).map(category => {
             const isActive = activeCategory === category.id;
+            const isSelected = selectedCategory === category.id;
+            const isActiveOrSelected = isActive || isSelected;
             const Icon = category.icon;
             return (
               <Tooltip key={category.id} delayDuration={150}>
@@ -111,10 +125,10 @@ export function LeftSidebar() {
                     onClick={() => toggleCategory(category.id)}
                     className={cn(
                       "w-11 h-11 rounded-xl flex items-center justify-center border border-white/5 bg-transparent text-white/60 hover:text-white hover:bg-white/5 transition-all duration-300 relative group",
-                      isActive && cn("text-white border-white/10 scale-105", category.glowClass)
+                      isActiveOrSelected && cn("text-white border-white/10 scale-105", category.glowClass)
                     )}
                   >
-                    <Icon className={cn("w-5 h-5 transition-transform duration-300 group-hover:scale-110", isActive && category.colorClass)} />
+                    <Icon className={cn("w-5 h-5 transition-transform duration-300 group-hover:scale-110", isActiveOrSelected && category.colorClass)} />
                     {isActive && (
                       <div className={cn("absolute right-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-l-full bg-current", category.colorClass)} />
                     )}
@@ -157,7 +171,15 @@ export function LeftSidebar() {
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto px-3 space-y-1.5 pb-10 scrollbar-thin scrollbar-thumb-white/5">
+              <div 
+                onClickCapture={() => {
+                  // Hide the template selection panel after a template is chosen
+                  setTimeout(() => {
+                    setActiveCategory(null);
+                  }, 150);
+                }}
+                className="flex-1 overflow-y-auto px-3 space-y-1.5 pb-10 scrollbar-thin scrollbar-thumb-white/5"
+              >
                 {activeCategoryData.Components.map((Component, i) => (
                   <Component key={i} />
                 ))}
@@ -169,3 +191,4 @@ export function LeftSidebar() {
     </TooltipProvider>
   );
 }
+

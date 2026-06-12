@@ -16,6 +16,7 @@ export function AIRankedBestComment() {
       title="AI-Ranked Best Comment"
       desc="AI evaluated winner"
       icon={Brain}
+      templateId="12"
       onClick={() => dispatch(addDefaultFlowTemplate({ ruleType: 'giveaway_comment', name: 'AI-Ranked Best Comment', templateId: '12' }))}
     />
   );
@@ -28,6 +29,7 @@ export function ClassicRandomGiveaway() {
       title="Classic Random Giveaway"
       desc="Random winner from comments"
       icon={Gift}
+      templateId="10"
       onClick={() => dispatch(addDefaultFlowTemplate({ ruleType: 'giveaway_comment', name: 'Classic Random Giveaway', templateId: '10' }))}
     />
   );
@@ -40,6 +42,7 @@ export function CommentMarathon() {
       title="Comment Marathon"
       desc="Most active wins"
       icon={TrendingUp}
+      templateId="20"
       onClick={() => dispatch(addDefaultFlowTemplate({ ruleType: 'giveaway_comment', name: 'Comment Marathon', templateId: '20' }))}
     />
   );
@@ -52,6 +55,7 @@ export function FlashGiveaway() {
       title="Flash Giveaway"
       desc="First commenter wins"
       icon={Zap}
+      templateId="13"
       onClick={() => dispatch(addDefaultFlowTemplate({ ruleType: 'giveaway_comment', name: 'Flash Giveaway', templateId: '13' }))}
     />
   );
@@ -64,6 +68,7 @@ export function FollowersOnlyDiscountCode() {
       title="Followers-Only Discount Code"
       desc="Follower gate for comments"
       icon={Lock}
+      templateId="9"
       onClick={() => dispatch(addDefaultFlowTemplate({ ruleType: 'comment_automation', name: 'Followers-Only Discount Code', templateId: '9' }))}
     />
   );
@@ -76,6 +81,7 @@ export function MostEngagedFanWins() {
       title="Most Engaged Fan Wins"
       desc="Engagement ranking"
       icon={TrendingUp}
+      templateId="11"
       onClick={() => dispatch(addDefaultFlowTemplate({ ruleType: 'giveaway_comment', name: 'Most Engaged Fan Wins', templateId: '11' }))}
     />
   );
@@ -88,6 +94,7 @@ export function QuickReplyPills() {
       title="Quick Reply Pills"
       desc="Size Picker"
       icon={MousePointerClick}
+      templateId="2"
       onClick={() => dispatch(addDefaultFlowTemplate({ ruleType: 'comment_automation', name: 'Quick Reply Pills', templateId: '2' }))}
     />
   );
@@ -100,6 +107,7 @@ export function ReplyAndPlainTextDM() {
       title="Reply + Plain Text DM"
       desc="Comment → Reply + DM"
       icon={MessageSquare}
+      templateId="1"
       onClick={() => dispatch(addDefaultFlowTemplate({ ruleType: 'comment_automation', name: 'Reply + Plain Text DM', templateId: '1' }))}
     />
   );
@@ -112,6 +120,7 @@ export function SpinWheelGamification() {
       title="Spin Wheel Gamification"
       desc="Everyone gets a spin code"
       icon={PieChart}
+      templateId="15"
       onClick={() => dispatch(addDefaultFlowTemplate({ ruleType: 'giveaway_comment', name: 'Spin Wheel Gamification', templateId: '15' }))}
     />
   );
@@ -124,6 +133,7 @@ export function Top3MultiWinner() {
       title="Top 3 Multi-Winner"
       desc="Ranked campaign"
       icon={Trophy}
+      templateId="14"
       onClick={() => dispatch(addDefaultFlowTemplate({ ruleType: 'giveaway_comment', name: 'Top 3 Multi-Winner', templateId: '14' }))}
     />
   );
@@ -136,6 +146,7 @@ export function TwoHourFlashSale() {
       title="2-Hour Flash Sale"
       desc="Time limited commenting"
       icon={Timer}
+      templateId="18"
       onClick={() => dispatch(addDefaultFlowTemplate({ ruleType: 'comment_automation', name: '2-Hour Flash Sale', templateId: '18' }))}
     />
   );
@@ -148,7 +159,9 @@ export function WeightedHybridRandom() {
       title="Weighted Hybrid Random"
       desc="Score-influenced draw"
       icon={Star}
+      templateId="17"
       onClick={() => dispatch(addDefaultFlowTemplate({ ruleType: 'giveaway_comment', name: 'Weighted Hybrid Random', templateId: '17' }))}
     />
   );
 }
+

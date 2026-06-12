@@ -12,6 +12,7 @@ export function StoryReplyPlainDM() {
       title="Story Reply → Plain DM"
       desc="Flash Sale Link"
       icon={History}
+      templateId="5"
       onClick={() => dispatch(addDefaultFlowTemplate({ ruleType: 'story_automation', name: 'Story Reply → Plain DM', templateId: '5' }))}
     />
   );
@@ -24,7 +25,9 @@ export function StoryReplyProductCarousel() {
       title="Story Reply Product Carousel"
       desc="With Follower Gate"
       icon={ShoppingBag}
+      templateId="6"
       onClick={() => dispatch(addDefaultFlowTemplate({ ruleType: 'product_inquiry_story', name: 'Story Reply Product Carousel', templateId: '6' }))}
     />
   );
 }
+

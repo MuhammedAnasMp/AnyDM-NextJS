@@ -609,8 +609,13 @@ export default function ProductCreatePage() {
       setTimeout(() => {
         router.push("/dashboard/products/catalog");
       }, 1000);
-    } catch (err) {
-      console.warn("Backend API unreachable. Storing product changes locally.");
+    } catch (err: any) {
+      if (err.response && err.response.status === 400 && err.response.data && err.response.data.source_id) {
+        showToast(err.response.data.source_id, "error");
+        setLoading(false);
+        return;
+      }
+      console.warn("Backend API unreachable or threw another error. Storing product changes locally.");
       updateLocalStorage(submitStatus, productPayload);
       showToast(isEditing ? "Product updated locally!" : "Product created locally!", "success");
 

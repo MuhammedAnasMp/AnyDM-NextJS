@@ -1,11 +1,12 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
 import { cn } from "@/lib/utils";
+import { auth } from "@/lib/firebase";
 import { 
   LayoutDashboard, 
   Zap, 
@@ -26,6 +27,16 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
 
   const appUser = useSelector((state: RootState) => state.auth.user);
+
+  const [firebaseUser, setFirebaseUser] = useState<any>(null);
+
+  useEffect(() => {
+    if (!auth) return;
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setFirebaseUser(user);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const getActiveTab = () => {
     if (pathname.startsWith("/dashboard/automations") || pathname.startsWith("/dashboard/automation")) return "Automations";
@@ -51,7 +62,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   ];
 
   const userDisplayName = appUser?.display_name || appUser?.first_name || "Alex Rivera";
-  const userPhoto = appUser?.photo_url || "https://picsum.photos/seed/elena/100/100";
+  const googlePhoto = firebaseUser?.providerData?.find((p: any) => p.providerId === "google.com")?.photoURL || firebaseUser?.photoURL;
+  const userPhoto = googlePhoto || appUser?.photo_url || "https://picsum.photos/seed/elena/100/100";
   const accountType = appUser?.plan === "pro" ? "Creator Pro" : "Basic Creator";
 
   return (

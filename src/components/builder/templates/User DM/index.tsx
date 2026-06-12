@@ -12,6 +12,7 @@ export function ButtonTemplate() {
       title="Button Template"
       desc="Menu Navigation in DM"
       icon={Menu}
+      templateId="4"
       onClick={() => dispatch(addDefaultFlowTemplate({ ruleType: 'dm_automation', name: 'Button Template', templateId: '4' }))}
     />
   );
@@ -24,6 +25,7 @@ export function DMCatalogCarousel() {
       title='DM "catalog" Carousel'
       desc="Multi-product Carousel"
       icon={Grid}
+      templateId="8"
       onClick={() => dispatch(addDefaultFlowTemplate({ ruleType: 'product_inquiry_dm', name: 'DM "catalog" Carousel', templateId: '8' }))}
     />
   );
@@ -36,6 +38,7 @@ export function DMEntryPrivateGiveaway() {
       title="DM-Entry Private Giveaway"
       desc="Send keyword to enter"
       icon={Lock}
+      templateId="16"
       onClick={() => dispatch(addDefaultFlowTemplate({ ruleType: 'giveaway_dm', name: 'DM-Entry Private Giveaway', templateId: '16' }))}
     />
   );
@@ -48,7 +51,9 @@ export function WelcomeAutoReply() {
       title="Welcome Auto Reply"
       desc="Any DM triggers welcome"
       icon={Hand}
+      templateId="7"
       onClick={() => dispatch(addDefaultFlowTemplate({ ruleType: 'dm_automation', name: 'Welcome Auto Reply', templateId: '7' }))}
     />
   );
 }
+

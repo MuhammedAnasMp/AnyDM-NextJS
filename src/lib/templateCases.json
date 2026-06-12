@@ -1241,7 +1241,7 @@
         "messages": [
           "Here are the shoes from our latest reel 👟"
         ],
-        "generic_template_elements_json": "[{\n  \"title\": \"Air Runner Pro — White/Black\",\n  \"subtitle\": \"Sizes 36–46. Free shipping on orders over $100.\",\n  \"image_url\": \"https://cdn.shop.example.com/shoes-white.jpg\",\n  \"buttons\": [\n    { \"type\": \"web_url\",  \"title\": \"🛒 Buy Now — $89\", \"url\": \"https://shop.example.com/air-runner-pro\" },\n    { \"type\": \"postback\", \"title\": \"📏 Check My Size\",  \"payload\": \"CHECK_SIZE_SHOES\" }\n  ]\n}]",
+        "generic_template_elements_json": "[{\n  \"title\": \"Air Runner Pro — White/Black\",\n  \"subtitle\": \"Sizes 36–46. Free shipping on orders over $100.\",\n  \"image_url\": \"https://cdn.pixabay.com/photo/2020/04/02/07/35/cat-4993829_960_720.jpg\",\n  \"buttons\": [\n    { \"type\": \"web_url\",  \"title\": \"🛒 Buy Now — $89\", \"url\": \"https://shop.example.com/air-runner-pro\" },\n    { \"type\": \"postback\", \"title\": \"📏 Check My Size\",  \"payload\": \"CHECK_SIZE_SHOES\" }\n  ]\n}]",
         "linked_product_id": 99,
         "rate_limit_scope": "user",
         "rate_limit_limit": 1,
