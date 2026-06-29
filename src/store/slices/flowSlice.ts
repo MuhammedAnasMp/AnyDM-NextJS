@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { FlowState, FlowNode, NodeType } from '@/lib/types';
+import { FlowState, FlowNode, FlowEdge, NodeType } from '@/lib/types';
 import templateCases from '@/lib/templateCases.json';
 
 const generateId = () => {
@@ -31,6 +31,127 @@ const saveToPast = (state: FlowState) => {
     }
     state.future = [];
     state.lastEdit = null;
+};
+
+const syncLinkedNodes = (state: FlowState, nodeId: string) => {
+    const node = state.nodes.find(n => n.id === nodeId);
+    if (!node || node.type !== 'action') return;
+
+    const format = node.data?.dm_format;
+    const activeEvents: { payload: string; label: string }[] = [];
+
+    if (format === 'quick_reply') {
+        const titles: string[] = node.data?.quick_replies_titles || [];
+        titles.forEach((title) => {
+            const payload = `QR_${title.toUpperCase().replace(/\s+/g, '_')}`;
+            activeEvents.push({ payload, label: title });
+        });
+    } else if (format === 'button_template') {
+        let buttons: any[] = [];
+        const btnsJson = node.data?.button_template_buttons_json;
+        if (typeof btnsJson === 'string' && btnsJson.trim()) {
+            try {
+                buttons = JSON.parse(btnsJson);
+            } catch (e) {}
+        } else if (Array.isArray(btnsJson)) {
+            buttons = btnsJson;
+        }
+        buttons.forEach((btn: any) => {
+            if (btn.type === 'postback') {
+                const payload = btn.payload || `BTN_${btn.title?.toUpperCase().replace(/\s+/g, '_')}`;
+                activeEvents.push({ payload, label: btn.title || payload });
+            }
+        });
+    } else if (format === 'generic_template') {
+        let elements: any[] = [];
+        const elemsJson = node.data?.generic_template_elements_json;
+        if (typeof elemsJson === 'string' && elemsJson.trim()) {
+            try {
+                elements = JSON.parse(elemsJson);
+            } catch (e) {}
+        } else if (Array.isArray(elemsJson)) {
+            elements = elemsJson;
+        }
+        const seenPayloads = new Set<string>();
+        elements.forEach((el: any) => {
+            (el.buttons || []).forEach((btn: any) => {
+                if (btn.type === 'postback') {
+                    const payload = btn.payload || `CARD_${btn.title?.toUpperCase().replace(/\s+/g, '_')}`;
+                    if (!seenPayloads.has(payload)) {
+                        seenPayloads.add(payload);
+                        activeEvents.push({ payload, label: btn.title || payload });
+                    }
+                }
+            });
+        });
+    }
+
+    // Get current connected reply nodes for this node (via labeled edges)
+    const connectedEdges = state.edges.filter(e => e.source === nodeId && e.label);
+
+    // 1. Remove orphaned nodes (downstream nodes whose parent event is no longer in activeEvents)
+    connectedEdges.forEach(edge => {
+        const childNode = state.nodes.find(n => n.id === edge.target);
+        const parentEvent = childNode?.data?.parent_event;
+        const stillActive = activeEvents.some(ae => ae.payload === parentEvent);
+        if (!stillActive) {
+            // Delete the child node
+            state.nodes = state.nodes.filter(n => n.id !== edge.target);
+            // Delete the edge
+            state.edges = state.edges.filter(e => e.id !== edge.id);
+        }
+    });
+
+    // Update connected edges list after deletion
+    const remainingEdges = state.edges.filter(e => e.source === nodeId && e.label);
+
+    // 2. Add missing nodes for new activeEvents
+    activeEvents.forEach((ae, idx) => {
+        const hasNode = remainingEdges.some(e => {
+            const child = state.nodes.find(n => n.id === e.target);
+            return child?.data?.parent_event === ae.payload;
+        });
+
+        if (!hasNode) {
+            const newNodeId = `node-reply-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`;
+            const newNode: FlowNode = {
+                id: newNodeId,
+                type: 'action',
+                position: {
+                    x: node.position.x + 450,
+                    y: node.position.y + idx * 220,
+                },
+                data: {
+                    action_type: 'send_dm',
+                    is_placeholder: true,
+                    parent_event: ae.payload,
+                    parent_label: ae.label,
+                },
+            };
+            state.nodes.push(newNode);
+            state.edges.push({
+                id: `edge-reply-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
+                source: nodeId,
+                target: newNodeId,
+                label: ae.label,
+            });
+        } else {
+            // Update edge label if the button/pill text changed
+            const edge = remainingEdges.find(e => {
+                const child = state.nodes.find(n => n.id === e.target);
+                return child?.data?.parent_event === ae.payload;
+            });
+            if (edge) {
+                if (edge.label !== ae.label) {
+                    edge.label = ae.label;
+                }
+                const childNode = state.nodes.find(n => n.id === edge.target);
+                if (childNode && childNode.data.parent_label !== ae.label) {
+                    childNode.data.parent_label = ae.label;
+                }
+            }
+        }
+    });
 };
 
 export const flowSlice = createSlice({
@@ -76,8 +197,79 @@ export const flowSlice = createSlice({
             const node = state.nodes.find(n => n.id === id);
             if (node) {
                 node.data = { ...node.data, [key]: value };
+                syncLinkedNodes(state, id);
             }
         },
+        // Atomically change DM format and wipe ALL stale format-specific fields + remove linked reply nodes
+        setDMFormat: (state, action: PayloadAction<{ id: string; format: string }>) => {
+            saveToPast(state);
+            state.lastEdit = null;
+            const { id, format } = action.payload;
+            const node = state.nodes.find(n => n.id === id);
+            if (node) {
+                // 1. Find all labeled edges from this node (these point to linked reply nodes)
+                const linkedEdges = state.edges.filter(e => e.source === id && e.label);
+                const linkedNodeIds = linkedEdges.map(e => e.target);
+
+                // 2. Cascade-remove linked reply nodes and their downstream edges
+                if (linkedNodeIds.length > 0) {
+                    state.nodes = state.nodes.filter(n => !linkedNodeIds.includes(n.id));
+                    state.edges = state.edges.filter(
+                        e => !linkedNodeIds.includes(e.source) && !linkedNodeIds.includes(e.target)
+                    );
+                }
+
+                // 3. Strip every format-specific key so the new wireframe is blank
+                const {
+                    dm_format: _df,
+                    is_placeholder: _ip,
+                    action_type,
+                    parent_event,
+                    rate_limit_limit,
+                    rate_limit_window_seconds,
+                    ...nonFormatKeys
+                } = node.data;
+                void nonFormatKeys; // intentionally unused — cleared
+                node.data = {
+                    action_type: action_type ?? 'send_dm',
+                    parent_event,
+                    rate_limit_limit,
+                    rate_limit_window_seconds,
+                    dm_format: format,
+                    is_placeholder: false,
+                };
+                syncLinkedNodes(state, id);
+            }
+        },
+
+        // Reset a node back to placeholder and cascade-remove linked reply nodes
+        resetToPlaceholder: (state, action: PayloadAction<string>) => {
+            saveToPast(state);
+            state.lastEdit = null;
+            const id = action.payload;
+            const node = state.nodes.find(n => n.id === id);
+            if (node) {
+                // Remove all linked reply nodes (those connected via labeled edges)
+                const linkedEdges = state.edges.filter(e => e.source === id && e.label);
+                const linkedNodeIds = linkedEdges.map(e => e.target);
+                if (linkedNodeIds.length > 0) {
+                    state.nodes = state.nodes.filter(n => !linkedNodeIds.includes(n.id));
+                    state.edges = state.edges.filter(
+                        e => !linkedNodeIds.includes(e.source) && !linkedNodeIds.includes(e.target)
+                    );
+                }
+                // Reset node data — keep only non-format fields
+                node.data = {
+                    action_type: node.data.action_type ?? 'send_dm',
+                    parent_event: node.data.parent_event,
+                    rate_limit_limit: node.data.rate_limit_limit,
+                    rate_limit_window_seconds: node.data.rate_limit_window_seconds,
+                    is_placeholder: true,
+                };
+                syncLinkedNodes(state, id);
+            }
+        },
+
         removeNode: (state, action: PayloadAction<string>) => {
             saveToPast(state);
             state.nodes = state.nodes.filter(n => n.id !== action.payload);
@@ -87,7 +279,7 @@ export const flowSlice = createSlice({
                 state.selectedNodeRect = null;
             }
         },
-        addEdge: (state, action: PayloadAction<{ source: string; target: string }>) => {
+        addEdge: (state, action: PayloadAction<{ source: string; target: string; label?: string }>) => {
             // Prevent duplicates
             const exists = state.edges.find(e => e.source === action.payload.source && e.target === action.payload.target);
             if (!exists) {
@@ -174,6 +366,49 @@ export const flowSlice = createSlice({
                 });
             }
         },
+        // Add a linked DM reply node for a postback button/pill
+        addLinkedDMNode: (state, action: PayloadAction<{
+            sourceNodeId: string;
+            parentEventPayload: string;
+            parentEventLabel: string;
+            offsetX?: number;
+            offsetY?: number;
+        }>) => {
+            saveToPast(state);
+            const { sourceNodeId, parentEventPayload, parentEventLabel, offsetX = 450, offsetY = 0 } = action.payload;
+            const sourceNode = state.nodes.find(n => n.id === sourceNodeId);
+            if (!sourceNode) return;
+
+            // Check if a linked node for this event already exists
+            const alreadyLinked = state.nodes.find(
+                n => n.data?.parent_event === parentEventPayload && state.edges.some(e => e.source === sourceNodeId && e.target === n.id)
+            );
+            if (alreadyLinked) return;
+
+            const newNodeId = `node-reply-${Date.now()}`;
+            // Stack reply nodes vertically based on how many already exist from this source
+            const existingReplies = state.edges.filter(e => e.source === sourceNodeId && e.label).length;
+            const newNode: FlowNode = {
+                id: newNodeId,
+                type: 'action',
+                position: {
+                    x: sourceNode.position.x + offsetX,
+                    y: sourceNode.position.y + existingReplies * 220 + offsetY,
+                },
+                data: {
+                    action_type: 'send_dm',
+                    is_placeholder: true,
+                    parent_event: parentEventPayload,
+                },
+            };
+            state.nodes.push(newNode);
+            state.edges.push({
+                id: `edge-reply-${Date.now()}`,
+                source: sourceNodeId,
+                target: newNodeId,
+                label: parentEventLabel,
+            });
+        },
         undo: (state) => {
             state.lastEdit = null;
             if (state.past && state.past.length > 0) {
@@ -232,6 +467,9 @@ export const {
     openMediaPicker,
     closeMediaPicker,
     addDefaultFlowTemplate,
+    addLinkedDMNode,
+    setDMFormat,
+    resetToPlaceholder,
     undo,
     redo
 } = flowSlice.actions;

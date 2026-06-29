@@ -12,7 +12,16 @@ import { auth, googleProvider } from '../firebase';
 import { store } from '@/store';
 import { setUser, clearAuth, setInstagramAccounts, setTokens, setHydrating, setFetchingAccounts } from '@/store/slices/authSlice';
 
-const API_URL = `https://${process.env.NEXT_PUBLIC_API_URL}/api`;
+const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+const hasProtocol = rawApiUrl.startsWith('http://') || rawApiUrl.startsWith('https://');
+const isLocal = rawApiUrl.includes('localhost') || 
+                rawApiUrl.includes('127.0.0.1') || 
+                rawApiUrl.startsWith('192.168.') || 
+                rawApiUrl.startsWith('10.') || 
+                rawApiUrl.startsWith('172.');
+
+const protocol = hasProtocol ? '' : (isLocal ? 'http://' : 'https://');
+const API_URL = `${protocol}${rawApiUrl}/api`;
 
 if (typeof window !== 'undefined') {
     axios.defaults.headers.common['ngrok-skip-browser-warning'] = 'true';

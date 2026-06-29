@@ -73,9 +73,16 @@ export function InstagramMediaPicker({ open, onClose, onSelect, selectedIds = []
             permalink: item.permalink,
             caption: item.caption
           }));
-          setMedia(prev => url ? [...prev, ...formatted] : formatted);
+          
+          setMedia(prev => {
+            if (!url) return formatted;
+            const existingIds = new Set(prev.map(item => item.id));
+            const newItems = formatted.filter((item: any) => !existingIds.has(item.id));
+            return [...prev, ...newItems];
+          });
 
-          if (response.data.paging?.cursors?.after) {
+          // Only attempt pagination if we received at least 10 items (standard page size is 20+)
+          if (formatted.length >= 10 && response.data.paging?.cursors?.after) {
             setNextUrl(`https://graph.instagram.com/dummy?after=${response.data.paging.cursors.after}`);
           } else {
             setNextUrl(null);
@@ -100,8 +107,18 @@ export function InstagramMediaPicker({ open, onClose, onSelect, selectedIds = []
       const data = await response.json();
 
       if (data.data) {
-        setMedia(prev => url ? [...prev, ...data.data] : data.data);
-        setNextUrl(data.paging?.next || null);
+        setMedia(prev => {
+          if (!url) return data.data;
+          const existingIds = new Set(prev.map(item => item.id));
+          const newItems = data.data.filter((item: any) => !existingIds.has(item.id));
+          return [...prev, ...newItems];
+        });
+        // Only attempt pagination if we received at least 10 items (standard page size is 20+)
+        if (data.data.length >= 10 && data.paging?.next) {
+          setNextUrl(data.paging.next);
+        } else {
+          setNextUrl(null);
+        }
       } else if (data.error) {
         setError(data.error.message || 'Failed to fetch media');
       }

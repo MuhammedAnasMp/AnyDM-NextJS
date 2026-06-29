@@ -227,7 +227,11 @@ export function RightSidebar() {
             {isGlobal ? 'Global Settings' : `${selectedNode?.type} Settings`}
           </h3>
         </div>
-        <button onClick={() => dispatch(selectNode(null))} className="p-1 rounded-md hover:bg-white/10 text-on-surface-variant transition-colors">
+        <button 
+          onClick={() => dispatch(selectNode(null))} 
+          onPointerDown={(e) => e.stopPropagation()}
+          className="p-1 rounded-md hover:bg-white/10 text-on-surface-variant transition-colors"
+        >
           <X className="h-4 w-4" />
         </button>
       </div>
@@ -293,96 +297,6 @@ export function RightSidebar() {
                   </Select>
                 </div>
 
-                <div className="border-t border-white/5 pt-4">
-                  <label className="flex items-center gap-2 cursor-pointer select-none text-xs font-semibold text-[#8FE3FF]">
-                    <input 
-                      type="checkbox" 
-                      checked={showAdvanced} 
-                      onChange={(e) => setShowAdvanced(e.target.checked)}
-                      className="rounded bg-surface-container border border-white/10 text-[#8FE3FF] focus:ring-0 focus:ring-offset-0"
-                    />
-                    <span>Show Advanced Settings</span>
-                  </label>
-                </div>
-
-                {showAdvanced && (
-                  <div className="space-y-4 pt-2 border-t border-white/5 animate-fadeIn">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-white">Execution Rules</h4>
-                    <Input
-                      type="number"
-                      label="Priority (1-100)"
-                      value={triggerNode.data.priority !== undefined ? triggerNode.data.priority : 50}
-                      onChange={(e) => handleGlobalTriggerUpdate('priority', Number(e.target.value))}
-                      placeholder="e.g. 50"
-                    />
-                    <Switch
-                      label="Stop evaluating on match"
-                      checked={triggerNode.data.stop_on_match !== false}
-                      onChange={(v) => handleGlobalTriggerUpdate('stop_on_match', v)}
-                    />
-
-                    <div className="border-t border-white/5 pt-4 space-y-4">
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-white">Deduplication</h4>
-                      <Switch
-                        label="Enable Deduplication"
-                        checked={triggerNode.data.deduplication !== false}
-                        onChange={(v) => handleGlobalTriggerUpdate('deduplication', v)}
-                      />
-                      {triggerNode.data.deduplication !== false && (
-                        <>
-                          <Input
-                            type="number"
-                            label="Deduplication Window (Seconds)"
-                            value={triggerNode.data.deduplication_window_seconds ?? 86400}
-                            onChange={(e) => handleGlobalTriggerUpdate('deduplication_window_seconds', Number(e.target.value))}
-                          />
-                          <div className="space-y-2">
-                            <label className="text-label-sm text-on-surface-variant uppercase tracking-wider">Unique Per</label>
-                            <div className="flex flex-wrap gap-2">
-                              {(triggerNode.data.deduplication_unique_per || []).map((val: string, idx: number) => (
-                                <span key={idx} className="flex items-center gap-1 px-2 py-1 bg-surface-container-highest rounded-md text-xs border border-white/10">
-                                  {val}
-                                  <X className="h-3 w-3 cursor-pointer opacity-50 hover:opacity-100" onClick={() => {
-                                    const newVals = [...triggerNode.data.deduplication_unique_per];
-                                    newVals.splice(idx, 1);
-                                    handleGlobalTriggerUpdate('deduplication_unique_per', newVals);
-                                  }} />
-                                </span>
-                              ))}
-                            </div>
-                            <Input 
-                              placeholder="Type scope (e.g. user_id) and press Enter" 
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' && e.currentTarget.value) {
-                                  handleGlobalTriggerUpdate('deduplication_unique_per', [...(triggerNode.data.deduplication_unique_per || []), e.currentTarget.value]);
-                                  e.currentTarget.value = '';
-                                }
-                              }} 
-                            />
-                          </div>
-                        </>
-                      )}
-                    </div>
-
-                    <div className="border-t border-white/5 pt-4 space-y-4">
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-white">Global Limits</h4>
-                      <Input
-                        type="number"
-                        label="Rate Limit Count"
-                        value={triggerNode.data.global_rate_limit_limit || ''}
-                        onChange={(e) => handleGlobalTriggerUpdate('global_rate_limit_limit', e.target.value ? Number(e.target.value) : null)}
-                        placeholder="e.g. 2000"
-                      />
-                      <Input
-                        type="number"
-                        label="Rate Limit Window (Seconds)"
-                        value={triggerNode.data.global_rate_limit_window_seconds || ''}
-                        onChange={(e) => handleGlobalTriggerUpdate('global_rate_limit_window_seconds', e.target.value ? Number(e.target.value) : null)}
-                        placeholder="e.g. 86400 (24 hours)"
-                      />
-                    </div>
-                  </div>
-                )}
               </>
             ) : (
               <p className="text-xs text-on-surface-variant italic">Add a Trigger node to set campaign details and rate limit options.</p>
@@ -495,6 +409,10 @@ export function RightSidebar() {
                         onChange={(e) => {
                           const newVal = e.target.value;
                           handleUpdate(def.name, newVal);
+                          if (def.name === 'match_type' && newVal === 'any' && selectedNode) {
+                            dispatch(updateNodeData({ id: selectedNode.id, key: 'keywords', value: [] }));
+                            dispatch(updateNodeData({ id: selectedNode.id, key: 'keywords_equals', value: [] }));
+                          }
                           if (def.name === 'target_mode' && newVal === 'selected' && selectedNode) {
                             const isStory = selectedNode.ruleType?.includes('story');
                             const endpoint = isStory ? '/accounts/instagram/stories/' : '/accounts/instagram/media-list/';

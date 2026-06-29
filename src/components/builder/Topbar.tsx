@@ -3,15 +3,62 @@
 import * as React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store';
-import { undo, redo, selectNode } from '@/store/slices/flowSlice';
-import { Undo, Redo, Settings, Eye, EyeOff } from 'lucide-react';
+import { undo, redo, selectNode, setFlow } from '@/store/slices/flowSlice';
+import { Undo, Redo, Settings, Eye, EyeOff, Loader2 } from 'lucide-react';
+import api from '@/lib/services/api.service';
+import { useRouter } from 'next/navigation';
+import Toast from '../Toast';
 
 export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () => void, showPreview: boolean }) {
   const flow = useSelector((state: RootState) => state.flow);
   const dispatch = useDispatch();
+  const router = useRouter();
+
+  const [isSaving, setIsSaving] = React.useState(false);
+  const [toast, setToast] = React.useState<{ message: string; type: 'success' | 'error' | 'info'; visible: boolean }>({
+    message: '',
+    type: 'info',
+    visible: false
+  });
 
   const canUndo = (flow.past && flow.past.length > 0) || false;
   const canRedo = (flow.future && flow.future.length > 0) || false;
+
+  const handleSave = async (status: 'draft' | 'active') => {
+    if (isSaving) return;
+    setIsSaving(true);
+    setToast({ message: `Saving automation as ${status}...`, type: 'info', visible: true });
+    try {
+      const isIntegerId = /^\d+$/.test(String(flow.id));
+      const payload = {
+        id: isIntegerId ? parseInt(String(flow.id), 10) : null,
+        name: flow.name,
+        status: status,
+        nodes: flow.nodes,
+        edges: flow.edges
+      };
+
+      const response = await api.post('/automations/', payload);
+      if (response.data && response.data.success) {
+        dispatch(setFlow({
+          ...flow,
+          id: String(response.data.id),
+        }));
+        setToast({ message: `Successfully saved as ${status}! Redirecting...`, type: 'success', visible: true });
+        setTimeout(() => {
+          router.push('/dashboard/automation');
+        }, 1200);
+      } else {
+        setToast({ message: "Failed to save. Invalid response.", type: 'error', visible: true });
+      }
+    } catch (error: any) {
+      console.error("Error saving automation:", error);
+      const errMsg = error.response?.data?.error || "Failed to save automation. Please try again.";
+      setToast({ message: errMsg, type: 'error', visible: true });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -91,7 +138,13 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
             {showPreview ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
             <span>{showPreview ? 'Hide Preview' : 'Show Preview'}</span>
           </button>
-          <span className="text-sm font-medium text-on-surface-variant hover:text-white cursor-pointer transition-colors">Save Draft</span>
+          <button
+            onClick={() => handleSave('draft')}
+            disabled={isSaving}
+            className="text-sm font-medium text-on-surface-variant hover:text-white cursor-pointer transition-colors bg-transparent border-0 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Save Draft
+          </button>
           <button 
             onClick={() => dispatch(selectNode({ id: 'global' }))}
             className="h-10 px-4 rounded-full bg-[#1a1a1a] text-white border border-white/5 font-semibold text-sm hover:bg-white/10 transition-colors flex items-center gap-2"
@@ -99,11 +152,23 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
             <Settings className="w-4 h-4 text-[#8FE3FF]" />
             Global Settings
           </button>
-          <button className="h-10 px-6 rounded-full bg-white text-black font-semibold text-sm hover:bg-white/90 transition-colors">
+          <button
+            onClick={() => handleSave('active')}
+            disabled={isSaving}
+            className="h-10 px-6 rounded-full bg-white text-black font-semibold text-sm hover:bg-white/90 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
             Set Live
           </button>
         </div>
       </div>
+
+      <Toast 
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.visible}
+        onClose={() => setToast(prev => ({ ...prev, visible: false }))}
+      />
     </div>
   );
 }

@@ -101,7 +101,6 @@ export default function Header({ onMenuClick }: HeaderProps) {
     ],
     Products: [
       { name: "Catalog", href: "/dashboard/products/catalog" },
-      { name: "Media Sync", href: "/dashboard/products/sync" },
       { name: "DM Replies", href: "/dashboard/products/replies" },
       { name: "Website", href: "/dashboard/products/website" },
     ],

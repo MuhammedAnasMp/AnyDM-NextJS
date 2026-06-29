@@ -15,7 +15,7 @@ const DEFAULT_PRODUCTS = [
     title: "HyperBoost Running Core",
     sku: "HYP-CR-001",
     price: 89.00,
-    currency: "USD",
+    currency: "₹",
     category: "Apparel",
     stock: 120,
     negotiable: true,
@@ -30,7 +30,7 @@ const DEFAULT_PRODUCTS = [
     title: "Serene Quartz Minimalist",
     sku: "SER-QTZ-44",
     price: 145.00,
-    currency: "USD",
+    currency: "₹",
     category: "Accessories",
     stock: 45,
     negotiable: false,
@@ -45,7 +45,7 @@ const DEFAULT_PRODUCTS = [
     title: "Acoustic Pro Gen-2",
     sku: "AC-PRO-G2",
     price: 199.00,
-    currency: "USD",
+    currency: "₹",
     category: "Electronics",
     stock: 8,
     negotiable: false,
@@ -150,11 +150,11 @@ export default function CatalogPage() {
 
   // Filter products by status & search query
   const filteredProducts = products.filter(p => {
-    const matchesSearch = p.title?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          p.sku?.toLowerCase().includes(searchQuery.toLowerCase());
-    
+    const matchesSearch = p.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.sku?.toLowerCase().includes(searchQuery.toLowerCase());
+
     if (!matchesSearch) return false;
-    
+
     if (selectedFilter === "All") return true;
     if (selectedFilter === "Published") return p.status?.toUpperCase() === "PUBLISHED";
     if (selectedFilter === "Drafts") return p.status?.toUpperCase() === "DRAFT";
@@ -174,7 +174,7 @@ export default function CatalogPage() {
   ];
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
@@ -187,7 +187,7 @@ export default function CatalogPage() {
           <p className="text-sm text-on-surface-variant opacity-70 mt-1">Manage and track your AI-synced ecommerce inventory.</p>
         </div>
         <div className="flex gap-2 text-xs">
-          <button 
+          <button
             onClick={() => router.push("/dashboard/products/catalog?import=instagram")}
             className="glass-pane px-4 py-2 rounded-lg flex items-center gap-2 font-medium hover:bg-white/10 transition-all text-white border border-white/10"
           >
@@ -196,14 +196,17 @@ export default function CatalogPage() {
               <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
               <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
             </svg>
-            <span>Import Instagram</span>
+            <span>Create from Instagram</span>
           </button>
-          <button 
+          <span className="flex justify-center items-center">
+            or
+          </span>
+          <button
             onClick={() => router.push("/dashboard/products/catalog/create")}
             className="bg-white text-black px-4 py-2 rounded-lg flex items-center gap-2 font-bold hover:bg-[#eaeaea] active:scale-95 transition-all"
           >
             <span className="material-symbols-outlined text-sm font-bold">add</span>
-            <span>Create Product</span>
+            <span>Create Normal Product</span>
           </button>
         </div>
       </div>
@@ -234,14 +237,13 @@ export default function CatalogPage() {
           <div className="h-6 w-[1px] bg-white/10"></div>
           <div className="flex gap-1 bg-white/5 p-1 rounded-lg">
             {["All", "Published", "Drafts"].map((filter) => (
-              <button 
+              <button
                 key={filter}
                 onClick={() => setSelectedFilter(filter)}
-                className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
-                  selectedFilter === filter 
-                    ? "bg-white/10 text-white font-bold" 
-                    : "text-gray-400 hover:text-white"
-                }`}
+                className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${selectedFilter === filter
+                  ? "bg-white/10 text-white font-bold"
+                  : "text-gray-400 hover:text-white"
+                  }`}
               >
                 {filter === "All" ? "All Products" : filter}
               </button>
@@ -252,12 +254,12 @@ export default function CatalogPage() {
         <div className="flex items-center gap-3">
           <div className="relative group">
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">search</span>
-            <input 
+            <input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-white/5 border border-white/5 rounded-lg pl-9 py-2 pr-4 text-xs w-64 focus:ring-1 focus:ring-white/20 transition-all text-white placeholder:text-gray-500 outline-none" 
-              placeholder="Search products..." 
-              type="text" 
+              className="bg-white/5 border border-white/5 rounded-lg pl-9 py-2 pr-4 text-xs w-64 focus:ring-1 focus:ring-white/20 transition-all text-white placeholder:text-gray-500 outline-none"
+              placeholder="Search products..."
+              type="text"
             />
           </div>
         </div>
@@ -314,10 +316,10 @@ export default function CatalogPage() {
                   const titleText = p.title || p.name || "Untitled Product";
                   const skuCode = p.sku || (titleText.substring(0, 3).toUpperCase() + "-" + String(p.id).substring(0, 4).toUpperCase());
 
-                  const isInstagramProduct = p.source === "instagram" || 
-                    p.source_type === "REEL" || 
-                    p.source_type === "POST" || 
-                    !!p.instagram_permalink || 
+                  const isInstagramProduct = p.source === "instagram" ||
+                    p.source_type === "REEL" ||
+                    p.source_type === "POST" ||
+                    !!p.instagram_permalink ||
                     (p.source_id && p.source_type !== "MANUAL");
 
                   return (
@@ -339,7 +341,7 @@ export default function CatalogPage() {
                               if (!mainMediaUrl) {
                                 return <span className="material-symbols-outlined text-xl opacity-40">image</span>;
                               }
-                              
+
                               const isMainVideo =
                                 p.gallery?.find((g: any) => g.media_url === mainMediaUrl)?.media_type === "VIDEO" ||
                                 p.gallery?.[0]?.media_type === "VIDEO" ||
@@ -387,11 +389,10 @@ export default function CatalogPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase border ${
-                          p.status?.toUpperCase() === "PUBLISHED" 
-                            ? "bg-green-500/10 text-green-400 border-green-500/20" 
-                            : "bg-white/10 text-gray-400 border-white/5"
-                        }`}>
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase border ${p.status?.toUpperCase() === "PUBLISHED"
+                          ? "bg-green-500/10 text-green-400 border-green-500/20"
+                          : "bg-white/10 text-gray-400 border-white/5"
+                          }`}>
                           {p.status?.toUpperCase() === "PUBLISHED" && (
                             <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
                           )}
@@ -400,16 +401,16 @@ export default function CatalogPage() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button 
+                          <button
                             onClick={() => router.push(`/dashboard/products/catalog/create?edit=${p.id}`)}
-                            className="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors" 
+                            className="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors"
                             title="Edit"
                           >
                             <span className="material-symbols-outlined text-lg">edit</span>
                           </button>
-                          <button 
+                          <button
                             onClick={(e) => handleDeleteProduct(p.id, e)}
-                            className="p-2 hover:bg-white/10 rounded-lg text-red-400 hover:text-red-300 transition-colors" 
+                            className="p-2 hover:bg-white/10 rounded-lg text-red-400 hover:text-red-300 transition-colors"
                             title="Delete"
                           >
                             <span className="material-symbols-outlined text-lg">delete</span>
@@ -442,12 +443,12 @@ export default function CatalogPage() {
       </div>
 
       {/* Instagram Selector Modal */}
-      <InstagramImportModal 
-        isOpen={isImportOpen} 
+      <InstagramImportModal
+        isOpen={isImportOpen}
         onClose={() => {
           router.push("/dashboard/products/catalog");
           loadProducts();
-        }} 
+        }}
       />
 
       {/* Toast notifications */}

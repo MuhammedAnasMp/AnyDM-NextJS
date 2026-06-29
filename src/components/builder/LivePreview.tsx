@@ -104,7 +104,7 @@ export function LivePreview({ onClose }: { onClose: () => void }) {
         className="flex items-center justify-between p-4 px-5 shrink-0 border-b border-white/5 bg-[#161616] rounded-t-2xl cursor-grab active:cursor-grabbing select-none"
       >
         <h3 className="text-xs font-bold text-white tracking-wider uppercase select-none pointer-events-none">Live Path Walkthrough</h3>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5" onPointerDown={(e) => e.stopPropagation()}>
           <button 
             type="button"
             onClick={handleReset} 

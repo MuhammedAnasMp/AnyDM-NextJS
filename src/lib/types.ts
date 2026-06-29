@@ -34,6 +34,7 @@ export interface FlowEdge {
   id: string;
   source: string;
   target: string;
+  label?: string; // Button/pill title for postback event edges
 }
 
 export interface FlowState {

@@ -11,11 +11,15 @@ import DMContentEditor from "@/components/builder/DMContentEditor";
 import { AnimatePresence } from "framer-motion";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/store";
-import { closeMediaPicker, updateNodeData, selectNode } from "@/store/slices/flowSlice";
+import { closeMediaPicker, updateNodeData, selectNode, setFlow } from "@/store/slices/flowSlice";
+import { useSearchParams } from "next/navigation";
+import api from "@/lib/services/api.service";
 
 export default function BuilderPage() {
   const dispatch = useDispatch();
   const [showPreview, setShowPreview] = useState(true);
+  const searchParams = useSearchParams();
+  const flowId = searchParams.get('id');
 
   useEffect(() => {
     const saved = localStorage.getItem("showPreview");
@@ -23,6 +27,38 @@ export default function BuilderPage() {
       setShowPreview(saved === "true");
     }
   }, []);
+
+  useEffect(() => {
+    if (flowId) {
+      const loadFlow = async () => {
+        try {
+          const res = await api.get(`/automations/${flowId}/`);
+          if (res.data && res.data.visual_data) {
+            dispatch(setFlow({
+              id: res.data.id,
+              name: res.data.name,
+              nodes: res.data.visual_data.nodes || [],
+              edges: res.data.visual_data.edges || [],
+              selectedNodeId: null,
+              mediaPicker: null
+            }));
+          }
+        } catch (err) {
+          console.error("Error loading automation:", err);
+        }
+      };
+      loadFlow();
+    } else {
+      dispatch(setFlow({
+        id: `node-f-${Date.now()}`,
+        name: 'New Automation Flow',
+        nodes: [],
+        edges: [],
+        selectedNodeId: null,
+        mediaPicker: null
+      }));
+    }
+  }, [flowId, dispatch]);
 
   const handleTogglePreview = () => {
     const nextVal = !showPreview;

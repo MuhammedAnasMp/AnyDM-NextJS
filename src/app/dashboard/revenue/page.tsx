@@ -7,7 +7,7 @@ export default function RevenuePage() {
   const chartPoints = [20, 35, 25, 45, 55, 40, 60, 75, 70, 90, 85, 95];
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
@@ -50,7 +50,7 @@ export default function RevenuePage() {
         <div className="flex justify-between items-start mb-6">
           <div>
             <h3 className="text-base font-bold text-white">Annual Sales Trajectory</h3>
-            <p className="text-xs text-on-surface-variant/70 mt-0.5">Calculated in USD ($)</p>
+            <p className="text-xs text-on-surface-variant/70 mt-0.5">Calculated in INR (₹)</p>
           </div>
           <div className="flex gap-2">
             <span className="px-2 py-1 bg-white/5 border border-white/10 rounded text-[10px] text-white">2026</span>
@@ -62,20 +62,20 @@ export default function RevenuePage() {
           <svg className="w-full h-full" viewBox="0 0 600 200" preserveAspectRatio="none">
             <defs>
               <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="rgba(255,255,255,0.15)"/>
-                <stop offset="100%" stopColor="rgba(255,255,255,0)"/>
+                <stop offset="0%" stopColor="rgba(255,255,255,0.15)" />
+                <stop offset="100%" stopColor="rgba(255,255,255,0)" />
               </linearGradient>
             </defs>
             {/* Area Path */}
-            <path 
-              d={`M 0 200 ${chartPoints.map((pt, idx) => `L ${(idx * 600) / 11} ${200 - pt}`).join(" ")} L 600 200 Z`} 
+            <path
+              d={`M 0 200 ${chartPoints.map((pt, idx) => `L ${(idx * 600) / 11} ${200 - pt}`).join(" ")} L 600 200 Z`}
               fill="url(#chartGradient)"
             />
             {/* Line Path */}
-            <path 
-              d={chartPoints.map((pt, idx) => `${idx === 0 ? "M" : "L"} ${(idx * 600) / 11} ${200 - pt}`).join(" ")} 
-              fill="none" 
-              stroke="white" 
+            <path
+              d={chartPoints.map((pt, idx) => `${idx === 0 ? "M" : "L"} ${(idx * 600) / 11} ${200 - pt}`).join(" ")}
+              fill="none"
+              stroke="white"
               strokeWidth="2"
               className="chart-glow"
             />

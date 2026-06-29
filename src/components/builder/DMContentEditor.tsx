@@ -18,32 +18,32 @@ const DEFAULT_PRODUCTS = [
   {
     id: "p_1",
     title: "HyperBoost Running Core",
-    price: 89.00,
-    currency: "USD",
+    price: 7499.00,
+    currency: "INR",
     description: "Hyper-responsive cushioning for ultimate running performance.",
-    media_url: "https://lh3.googleusercontent.com/aida-public/AB6AXuCp-lfo7IxC9Z5DkrJfEBY9prWBgF0Nraoa6TmtKPmY_PB4X6ompLv0r0FyRcyQV3Y7DL7dZ7QfCH8fmEBZ2xH_4791sWQi62XmCov1y89uvfbYEprthQFSJOyMmHylytZK6pPwtpbT24TVRlfH2rtROIriZ-_kdxixpTK1p26z04l3mJnPfn0S8AVS_zwfmqL6EoLMKOwiR-Iakj84qGedem6nbddsPRoii7KttJy0apq3mY4kxyaBO-6gsZMSZNVipVciRTsTuYM"
+    media_url: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=300&h=300"
   },
   {
     id: "p_2",
     title: "Serene Quartz Minimalist",
-    price: 145.00,
-    currency: "USD",
+    price: 12499.00,
+    currency: "INR",
     description: "Minimalist quartz watch with serene design aesthetics.",
-    media_url: "https://lh3.googleusercontent.com/aida-public/AB6AXuAsesPxVBpHJ7XEF6tg78St4xAph3PREaxRqKWCS12plW7-4Pa_qE92IDDJnvUdDFdjX-omDrM8QXM3mOCiDo_nn_sIJCEfxPOMKFZyVaS_oiYsw6pVh7h128phIqZe4JTWvM8xiC6eImDHQG4s6Pc6YwfCLlEIX4tcrN9OeBbIZM8937DX_TCXc0H1A-9xiXWWU2EMMnl8gwtjzFBCfQWtmzRrKv4BDic0xDUqen_Co_AaQamWvUbQXrzQvajonSpWp2ZEUNWUl88"
+    media_url: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=300&h=300"
   },
   {
     id: "p_3",
     title: "Acoustic Pro Gen-2",
-    price: 199.00,
-    currency: "USD",
+    price: 16499.00,
+    currency: "INR",
     description: "Next-gen acoustic headphones with passive noise cancelling.",
-    media_url: "https://lh3.googleusercontent.com/aida-public/AB6AXuCVsNaqvbiMCFl-eWS6BqN_WsaGyM8KlXz3TH0Q2VzLPXTCjRViD-j0ELNiAx8UW0rQ2xlo04t7bn2Y0xLqusFrB8h-jWEVyYc4Z4iaQCGvGsDDS7TXQXEIbLm5ofv5LypfpueOP4q6D0XWJzoc2lGtNNhHDaCx2XCQC41ed61mlPN7nLa0D7mqjJptirVd7z6ojMU2ygvTcHAIK9gQpY76riPuXGXTFoqYdZeA0ziKHf266WZY6DfdXUDjTv1-YSr_dFYolRkJ1V8"
+    media_url: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=300&h=300"
   }
 ];
 
 // --- Types ---
 type ButtonItem = {
-  type: "web_url" | "postback";
+  type: "web_url" | "postback" | "product";
   title: string;
   url?: string;
   payload?: string;
@@ -86,9 +86,21 @@ function CustomSelect({
 }: CustomSelectProps) {
   const isOpen = openDropdownId === dropdownId;
   const selectedOption = options.find(o => o.value === value) || options[0];
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpenDropdownId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [isOpen, setOpenDropdownId]);
 
   return (
-    <div className="space-y-1.5 relative w-full">
+    <div ref={containerRef} className="space-y-1.5 relative w-full">
       {label && (
         <label className="text-label-sm text-on-surface-variant uppercase tracking-wider block font-semibold mb-1">
           {label}
@@ -105,32 +117,25 @@ function CustomSelect({
         </button>
 
         {isOpen && (
-          <>
-            {/* Overlay click catcher */}
-            <div
-              className="fixed inset-0 z-40"
-              onClick={() => setOpenDropdownId(null)}
-            />
-            <div className="absolute top-full left-0 right-0 mt-1 bg-surface-container-high/95 backdrop-blur-md border border-white/10 rounded-md shadow-2xl z-50 overflow-hidden py-1 animate-fadeIn">
-              {options.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => {
-                    onChange(opt.value);
-                    setOpenDropdownId(null);
-                  }}
-                  className={cn(
-                    "w-full px-4 py-2.5 text-xs text-left font-medium transition-all flex items-center justify-between hover:bg-white/5",
-                    value === opt.value ? "text-white bg-white/10" : "text-zinc-400 hover:text-white"
-                  )}
-                >
-                  <span>{opt.label}</span>
-                  {value === opt.value && <Check className="w-3.5 h-3.5 text-white" />}
-                </button>
-              ))}
-            </div>
-          </>
+          <div className="absolute top-full left-0 right-0 mt-1 bg-surface-container-high/95 backdrop-blur-md border border-white/10 rounded-md shadow-2xl z-50 overflow-hidden py-1 animate-fadeIn">
+            {options.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                  onChange(opt.value);
+                  setOpenDropdownId(null);
+                }}
+                className={cn(
+                  "w-full px-4 py-2.5 text-xs text-left font-medium transition-all flex items-center justify-between hover:bg-white/5",
+                  value === opt.value ? "text-white bg-white/10" : "text-zinc-400 hover:text-white"
+                )}
+              >
+                <span>{opt.label}</span>
+                {value === opt.value && <Check className="w-3.5 h-3.5 text-white" />}
+              </button>
+            ))}
+          </div>
         )}
       </div>
     </div>
@@ -168,6 +173,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
   const [textMessages, setTextMessages] = React.useState<string[]>(['']);
   const [mounted, setMounted] = React.useState(false);
   const [openDropdownId, setOpenDropdownId] = React.useState<string | null>(null);
+  const [validationError, setValidationError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     setMounted(true);
@@ -183,19 +189,31 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
   // Button Template States
   const [buttonTemplateText, setButtonTemplateText] = React.useState('');
   const [buttonTemplateButtons, setButtonTemplateButtons] = React.useState<ButtonItem[]>([]);
+  const [activeButtonTemplateButtonIndex, setActiveButtonTemplateButtonIndex] = React.useState(0);
+  const normalizedActiveButtonTemplateButtonIndex = Math.min(activeButtonTemplateButtonIndex, Math.max(0, buttonTemplateButtons.length - 1));
 
   // Generic Template (Carousel) States
   const [carouselElements, setCarouselElements] = React.useState<GenericElement[]>([]);
   const [activeCardIndex, setActiveCardIndex] = React.useState(0);
+  const [activeButtonIndex, setActiveButtonIndex] = React.useState(0);
   const [isDraggingCarousel, setIsDraggingCarousel] = React.useState(false);
   const dragStartRef = React.useRef<{ x: number; scrollLeft: number; time: number }>({ x: 0, scrollLeft: 0, time: 0 });
   const carouselScrollRef = React.useRef<HTMLDivElement>(null);
+  const isProgrammaticScrollRef = React.useRef(false);
+
+  React.useEffect(() => {
+    setActiveButtonIndex(0);
+  }, [activeCardIndex]);
+
+  const cardButtons = carouselElements[activeCardIndex]?.buttons || [];
+  const normalizedActiveButtonIndex = Math.min(activeButtonIndex, Math.max(0, cardButtons.length - 1));
 
   const maxButtonsCount = React.useMemo(() => {
     return Math.max(...carouselElements.map(elem => elem.buttons?.length || 0), 0);
   }, [carouselElements]);
 
   const handleCarouselScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (isProgrammaticScrollRef.current) return;
     if (isDraggingCarousel) return; // ignore scroll state updates while dragging
     const container = e.currentTarget;
     const scrollLeft = container.scrollLeft;
@@ -229,19 +247,19 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
     const handleMouseUp = (upEvent: MouseEvent) => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
-      
+
       setIsDraggingCarousel(false);
 
       const x = upEvent.pageX;
       const startX = dragStartRef.current.x;
       const deltaX = x - startX;
       const deltaTime = Date.now() - dragStartRef.current.time;
-      
+
       const cardWidth = 190 + 10; // card width + gap
       const currentScroll = container.scrollLeft;
-      
+
       let targetIndex = activeCardIndex;
-      
+
       // If swipe was fast or far enough, slide to adjacent card
       if (Math.abs(deltaX) > 40 && deltaTime < 300) {
         if (deltaX < 0) {
@@ -254,7 +272,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
         targetIndex = Math.round(currentScroll / cardWidth);
         targetIndex = Math.max(0, Math.min(carouselElements.length - 1, targetIndex));
       }
-      
+
       container.scrollTo({
         left: targetIndex * cardWidth,
         behavior: 'smooth'
@@ -267,6 +285,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
   };
 
   const scrollToCard = (idx: number) => {
+    isProgrammaticScrollRef.current = true;
     setActiveCardIndex(idx);
     if (carouselScrollRef.current) {
       const cardWidth = 190 + 10; // card width + gap
@@ -275,6 +294,9 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
         behavior: 'smooth'
       });
     }
+    setTimeout(() => {
+      isProgrammaticScrollRef.current = false;
+    }, 400);
   };
 
   // Cloudinary/Upload Status States
@@ -518,7 +540,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
           : (mediaDetail?.caption ? mediaDetail.caption : 'Premium quality item.');
 
         const priceText = prod
-          ? `${prod.price} ${prod.currency || 'USD'}`
+          ? `${prod.price} ${prod.currency || '₹'}`
           : '';
 
         return {
@@ -598,6 +620,44 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
 
   // --- Save Handler ---
   const handleSave = () => {
+    // Validate URLs (must start with https://)
+    if (dmFormat === 'button_template') {
+      for (const btn of buttonTemplateButtons) {
+        if (btn.type === 'web_url' && btn.url) {
+          const trimmed = btn.url.trim();
+          if (!trimmed.startsWith('https://')) {
+            setValidationError('All button URLs must start with https://');
+            return;
+          }
+        }
+      }
+    } else if (dmFormat === 'generic_template') {
+      for (let i = 0; i < carouselElements.length; i++) {
+        const elem = carouselElements[i];
+        if (elem.default_action?.url) {
+          const trimmed = elem.default_action.url.trim();
+          if (!trimmed.startsWith('https://')) {
+            setValidationError(`Card ${i + 1} default action URL must start with https://`);
+            return;
+          }
+        }
+        if (elem.buttons) {
+          for (const btn of elem.buttons) {
+            if (btn.type === 'web_url' && btn.url) {
+              const trimmed = btn.url.trim();
+              if (!trimmed.startsWith('https://')) {
+                setValidationError(`Card ${i + 1} button URL "${btn.title}" must start with https://`);
+                return;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Clear validation error if valid
+    setValidationError(null);
+
     // Save settings fields
     if (isEcommerceTemplate) {
       dispatch(updateNodeData({ id: nodeId, key: 'dm_format', value: dmFormat }));
@@ -755,11 +815,14 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
   // Action Buttons
   const addButton = () => {
     if (buttonTemplateButtons.length >= 3) return;
+    const newIdx = buttonTemplateButtons.length;
     setButtonTemplateButtons([...buttonTemplateButtons, { type: 'web_url', title: 'New Button', url: 'https://' }]);
+    setActiveButtonTemplateButtonIndex(newIdx);
   };
 
   const removeButton = (idx: number) => {
     setButtonTemplateButtons(buttonTemplateButtons.filter((_, i) => i !== idx));
+    setActiveButtonTemplateButtonIndex(prev => Math.max(0, prev - 1));
   };
 
   const updateButton = (idx: number, field: keyof ButtonItem, val: string) => {
@@ -767,7 +830,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
     copy[idx] = { ...copy[idx], [field]: val } as ButtonItem;
     // reset conditional values
     if (field === 'type') {
-      if (val === 'web_url') {
+      if (val === 'web_url' || val === 'product') {
         copy[idx].payload = undefined;
         copy[idx].url = 'https://';
       } else {
@@ -781,6 +844,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
   // Carousel Cards
   const addCarouselCard = () => {
     if (carouselElements.length >= 10) return;
+    const newIdx = carouselElements.length;
     setCarouselElements([...carouselElements, {
       title: 'New Product Item',
       subtitle: 'Premium catalog description.',
@@ -788,13 +852,14 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
       default_action: { type: 'web_url', url: 'https://' },
       buttons: [{ type: 'web_url', title: '🛒 Shop Now', url: 'https://' }]
     }]);
-    setActiveCardIndex(carouselElements.length);
+    scrollToCard(newIdx);
   };
 
   const removeCarouselCard = (idx: number) => {
     if (carouselElements.length <= 1) return;
     setCarouselElements(carouselElements.filter((_, i) => i !== idx));
-    setActiveCardIndex(prev => Math.max(0, prev - 1));
+    const nextIdx = Math.max(0, idx - 1);
+    scrollToCard(nextIdx);
   };
 
   const updateCarouselField = (cardIdx: number, key: keyof GenericElement, val: any) => {
@@ -809,7 +874,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
     const btns = [...(card.buttons || [])];
     btns[btnIdx] = { ...btns[btnIdx], [field]: val } as ButtonItem;
     if (field === 'type') {
-      if (val === 'web_url') {
+      if (val === 'web_url' || val === 'product') {
         btns[btnIdx].payload = undefined;
         btns[btnIdx].url = 'https://';
       } else {
@@ -884,6 +949,13 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
           </div>
         </div>
 
+        {validationError && (
+          <div className="px-8 py-3 bg-red-500/10 border-b border-red-500/20 flex items-center gap-2 text-red-400 text-xs font-semibold animate-in fade-in slide-in-from-top-2 duration-200 shrink-0">
+            <Info className="w-4 h-4 text-red-400 shrink-0" />
+            <span>{validationError}</span>
+          </div>
+        )}
+
         {/* Modal Body: Split Panel */}
         <div className="flex-1 min-h-0 flex flex-col lg:flex-row">
 
@@ -898,7 +970,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
               <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-20 h-5 bg-black rounded-full z-30 pointer-events-none" />
 
               {/* Inner Screen Content Wrapper */}
-              <div 
+              <div
                 className="h-full w-full flex flex-col pt-0 relative z-10 bg-black rounded-[36px] overflow-hidden"
                 style={{ clipPath: 'inset(0 round 36px)' }}
               >
@@ -923,7 +995,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                 </div>
 
                 {/* Instagram App Header Mock */}
-                <div 
+                <div
                   className="pt-8 h-20 border-b border-white/5 px-4 flex items-center gap-3 bg-black/40 backdrop-blur-md shrink-0 rounded-t-[36px]"
                   style={{ clipPath: 'inset(0 round 36px 36px 0 0)' }}
                 >
@@ -1019,15 +1091,31 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                             {buttonTemplateText || 'What would you like to do?'}
                           </div>
                           <div className="flex flex-col divide-y divide-white/5 bg-[#1c1c1c]">
-                            {buttonTemplateButtons.map((btn, bi) => (
-                              <button
-                                key={bi}
-                                type="button"
-                                className="w-full py-2.5 text-[10px] font-bold text-[#3797F0] hover:bg-white/5 text-center transition-colors cursor-pointer"
-                              >
-                                {btn.title || 'Button'}
-                              </button>
-                            ))}
+                            {buttonTemplateButtons.map((btn, bi) => {
+                              let displayTitle = btn.title || 'Button';
+                              const matchedProduct = products.find(p => {
+                                const username = activeAccount?.username || appUser?.username || 'shop';
+                                const prodUrl = `product/${p.id}`;
+                                return btn.url?.includes(prodUrl);
+                              });
+                              if (displayTitle.includes('{{price}}')) {
+                                const priceStr = matchedProduct ? `₹${matchedProduct.price}` : '₹7,499';
+                                displayTitle = displayTitle.replace('{{price}}', priceStr);
+                              }
+                              if (displayTitle.includes('{{name}}')) {
+                                const nameStr = matchedProduct ? (matchedProduct.title || matchedProduct.name) : 'Product';
+                                displayTitle = displayTitle.replace('{{name}}', nameStr);
+                              }
+                              return (
+                                <button
+                                  key={bi}
+                                  type="button"
+                                  className="w-full py-2.5 text-[10px] font-bold text-[#3797F0] hover:bg-white/5 text-center transition-colors cursor-pointer"
+                                >
+                                  {displayTitle}
+                                </button>
+                              );
+                            })}
                           </div>
                         </div>
                       )}
@@ -1061,20 +1149,68 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                   )}
                                 </div>
                                 <div className="p-2.5 flex flex-col bg-[#121212] justify-center min-h-[45px] shrink-0 border-b border-white/5">
-                                  <span className="text-[10px] font-bold text-white truncate">{elem.title || 'Welcome!'}</span>
-                                  <span className="text-[8px] text-zinc-400 mt-0.5 line-clamp-2 leading-tight">{elem.subtitle || 'Card Description'}</span>
+                                  {(() => {
+                                    let displayTitle = elem.title || 'Welcome!';
+                                    let displaySubtitle = elem.subtitle || 'Card Description';
+                                    const matchedProduct = products.find(p => {
+                                      const username = activeAccount?.username || appUser?.username || 'shop';
+                                      const prodUrl = `product/${p.id}`;
+                                      return elem.default_action?.url?.includes(prodUrl);
+                                    });
+
+                                    if (displayTitle.includes('{{price}}')) {
+                                      const priceStr = matchedProduct ? `₹${matchedProduct.price}` : '₹7,499';
+                                      displayTitle = displayTitle.replace('{{price}}', priceStr);
+                                    }
+                                    if (displayTitle.includes('{{name}}')) {
+                                      const nameStr = matchedProduct ? (matchedProduct.title || matchedProduct.name) : 'Product';
+                                      displayTitle = displayTitle.replace('{{name}}', nameStr);
+                                    }
+
+                                    if (displaySubtitle.includes('{{price}}')) {
+                                      const priceStr = matchedProduct ? `₹${matchedProduct.price}` : '₹7,499';
+                                      displaySubtitle = displaySubtitle.replace('{{price}}', priceStr);
+                                    }
+                                    if (displaySubtitle.includes('{{name}}')) {
+                                      const nameStr = matchedProduct ? (matchedProduct.title || matchedProduct.name) : 'Product';
+                                      displaySubtitle = displaySubtitle.replace('{{name}}', nameStr);
+                                    }
+
+                                    return (
+                                      <>
+                                        <span className="text-[10px] font-bold text-white truncate">{displayTitle}</span>
+                                        <span className="text-[8px] text-zinc-400 mt-0.5 line-clamp-2 leading-tight">{displaySubtitle}</span>
+                                      </>
+                                    );
+                                  })()}
                                 </div>
                                 {maxButtonsCount > 0 && (
                                   <div className="flex flex-col divide-y divide-white/5 bg-[#1c1c1c] shrink-0">
-                                    {(elem.buttons || []).map((btn, bi) => (
-                                      <button
-                                        key={bi}
-                                        type="button"
-                                        className="w-full py-1.5 text-[9px] font-bold text-[#3797F0] hover:bg-white/5 text-center transition-colors"
-                                      >
-                                        {btn.title || 'Button'}
-                                      </button>
-                                    ))}
+                                    {(elem.buttons || []).map((btn, bi) => {
+                                      let displayTitle = btn.title || 'Button';
+                                      const matchedProduct = products.find(p => {
+                                        const username = activeAccount?.username || appUser?.username || 'shop';
+                                        const prodUrl = `product/${p.id}`;
+                                        return btn.url?.includes(prodUrl);
+                                      });
+                                      if (displayTitle.includes('{{price}}')) {
+                                        const priceStr = matchedProduct ? `₹${matchedProduct.price}` : '₹7,499';
+                                        displayTitle = displayTitle.replace('{{price}}', priceStr);
+                                      }
+                                      if (displayTitle.includes('{{name}}')) {
+                                        const nameStr = matchedProduct ? (matchedProduct.title || matchedProduct.name) : 'Product';
+                                        displayTitle = displayTitle.replace('{{name}}', nameStr);
+                                      }
+                                      return (
+                                        <button
+                                          key={bi}
+                                          type="button"
+                                          className="w-full py-1.5 text-[9px] font-bold text-[#3797F0] hover:bg-white/5 text-center transition-colors"
+                                        >
+                                          {displayTitle}
+                                        </button>
+                                      );
+                                    })}
                                     {/* Dummy spacer buttons to equalize card height */}
                                     {Array.from({ length: maxButtonsCount - (elem.buttons?.length || 0) }).map((_, di) => (
                                       <div
@@ -1234,38 +1370,6 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                   </div>
                 </div>
 
-                {/* Rate limits box */}
-                <div className="p-5 rounded-2xl bg-white/5 border border-white/10 border-dashed space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Info className="w-4 h-4 text-zinc-400" />
-                    <h4 className="font-sora text-[11px] font-bold text-white uppercase tracking-wider">Rate Limit Intelligence</h4>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Rate Limit Count */}
-                    <div className="space-y-1.5">
-                      <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block">Count</label>
-                      <input
-                        type="number"
-                        value={rateLimitCount}
-                        onChange={(e) => setRateLimitCount(Math.max(1, Number(e.target.value)))}
-                        className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:border-white/50 focus:ring-0 font-semibold"
-                        placeholder="e.g. 1"
-                      />
-                    </div>
-
-                    {/* Rate Limit Window */}
-                    <div className="space-y-1.5">
-                      <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block">Window (Seconds)</label>
-                      <input
-                        type="number"
-                        value={rateLimitWindow}
-                        onChange={(e) => setRateLimitWindow(Math.max(1, Number(e.target.value)))}
-                        className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:border-white/50 focus:ring-0 font-semibold"
-                        placeholder="e.g. 86400"
-                      />
-                    </div>
-                  </div>
-                </div>
               </div>
             )}
 
@@ -1387,172 +1491,83 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                 </div>
 
                 <div className="space-y-4">
-                  <div className="flex justify-between items-center pb-2 border-b border-white/10">
-                    <div>
-                      <h3 className="font-sora text-xs font-semibold text-zinc-400 tracking-wider uppercase">Buttons List ({buttonTemplateButtons.length}/3)</h3>
-                      <p className="text-[10px] text-zinc-500 mt-1 font-medium">Add up to 3 link or postback buttons inside the card.</p>
-                    </div>
+                  <div className="flex justify-between items-center">
+                    <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider block">Card Buttons ({buttonTemplateButtons.length}/3)</label>
                     {buttonTemplateButtons.length < 3 && (
                       <button
+                        type="button"
                         onClick={addButton}
-                        className="py-2 px-4 bg-white/10 hover:bg-white/15 text-white text-xs font-bold rounded-xl border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer"
+                        className="py-1.5 px-3 bg-white/10 hover:bg-white/15 text-white text-[10px] font-bold rounded-xl border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer"
                       >
-                        <Plus className="w-3.5 h-3.5" /> Add Button
+                        <Plus className="w-3.5 h-3.5" /> Add Card Button
                       </button>
                     )}
                   </div>
 
+                  {/* Button Tabs */}
+                  {buttonTemplateButtons.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-2 border-b border-white/10 pb-3">
+                      {buttonTemplateButtons.map((btn, idx) => {
+                        const isSelected = idx === normalizedActiveButtonTemplateButtonIndex;
+                        return (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setActiveButtonTemplateButtonIndex(idx)}
+                            className={cn(
+                              "px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border",
+                              isSelected
+                                ? "bg-white text-black border-white shadow-lg"
+                                : "bg-white/5 text-zinc-400 border-white/10 hover:bg-white/10 hover:text-white"
+                            )}
+                          >
+                            <span>Button {idx + 1}{btn.title ? `: ${btn.title}` : ''}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
                   <div className="space-y-4">
-                    {buttonTemplateButtons.map((btn, idx) => (
-                      <div key={idx} className="bg-white/5 p-5 rounded-2xl border border-white/10 flex flex-col gap-4 relative animate-fadeIn">
-                        <span className="absolute top-4 right-4 w-6 h-6 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-[10px] font-bold text-zinc-400">
-                          {idx + 1}
-                        </span>
+                    {buttonTemplateButtons.map((btn, idx) => {
+                      if (idx !== normalizedActiveButtonTemplateButtonIndex) return null;
+                      return (
+                        <div key={idx} className="bg-white/5 p-5 rounded-2xl border border-white/10 flex flex-col gap-4 relative animate-fadeIn">
+                          <span className="absolute top-4 right-4 w-6 h-6 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-[10px] font-bold text-zinc-400">
+                            {idx + 1}
+                          </span>
 
-                        <div className="flex-1 w-full space-y-4 pr-8">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block mb-1.5">Button Title</label>
-                              <input
-                                type="text"
-                                value={btn.title}
-                                onChange={(e) => updateButton(idx, 'title', e.target.value)}
-                                maxLength={20}
-                                placeholder="e.g. Visit Shop"
-                                className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-white/50"
-                              />
+                          <div className="flex-1 w-full space-y-4 pr-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block mb-1.5">Button Title</label>
+                                <input
+                                  type="text"
+                                  value={btn.title}
+                                  onChange={(e) => updateButton(idx, 'title', e.target.value)}
+                                  maxLength={20}
+                                  placeholder="e.g. Visit Shop"
+                                  className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-white/50"
+                                />
+                              </div>
+                              <div>
+                                <CustomSelect
+                                  label="Button Type"
+                                  value={btn.type}
+                                  onChange={(val) => updateButton(idx, 'type', val)}
+                                  options={[
+                                    { value: 'web_url', label: 'Web URL Link' },
+                                    { value: 'postback', label: 'Trigger Chat Event' },
+                                    { value: 'product', label: 'Link Product' }
+                                  ]}
+                                  dropdownId={`btn-type-${idx}`}
+                                  openDropdownId={openDropdownId}
+                                  setOpenDropdownId={setOpenDropdownId}
+                                />
+                              </div>
                             </div>
-                            <div>
-                              <CustomSelect
-                                label="Button Type"
-                                value={btn.type}
-                                onChange={(val) => updateButton(idx, 'type', val)}
-                                options={[
-                                  { value: 'web_url', label: 'Web URL Link' },
-                                  { value: 'postback', label: 'Trigger Chat Event' }
-                                ]}
-                                dropdownId={`btn-type-${idx}`}
-                                openDropdownId={openDropdownId}
-                                setOpenDropdownId={setOpenDropdownId}
-                              />
-                            </div>
-                          </div>
 
-                          {btn.type === 'web_url' ? (
-                            <div className="space-y-4">
-                              {isEcommerceTemplate && (
-                                <div className="space-y-2">
-                                  {/* Show Products Toggle */}
-                                  <button
-                                    type="button"
-                                    onClick={() => toggleProductPicker(`btn-${idx}`)}
-                                    className={cn(
-                                      "flex items-center gap-2 w-full py-2.5 px-4 rounded-xl border transition-all cursor-pointer text-left",
-                                      showProductPicker[`btn-${idx}`]
-                                        ? "bg-white/10 border-white/20 text-white"
-                                        : "bg-[#1c1b1b]/40 border-white/10 text-zinc-400 hover:bg-white/5 hover:text-white"
-                                    )}
-                                  >
-                                    <ShoppingBag className="w-4 h-4 shrink-0" />
-                                    <span className="font-sora text-[10px] font-bold uppercase tracking-wider flex-1">Link catalog product</span>
-                                    <div className={cn(
-                                      "w-10 h-5 rounded-full relative transition-all duration-200 shrink-0",
-                                      showProductPicker[`btn-${idx}`] ? "bg-white" : "bg-white/10"
-                                    )}>
-                                      <div className={cn(
-                                        "absolute top-[2px] w-4 h-4 rounded-full shadow transition-all duration-200",
-                                        showProductPicker[`btn-${idx}`] ? "left-[22px] bg-[#131313]" : "left-[2px] bg-white"
-                                      )} />
-                                    </div>
-                                  </button>
-
-                                  {showProductPicker[`btn-${idx}`] && (
-                                    <div className="animate-fadeIn">
-                                      <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider block mb-2">
-                                        Select Catalog Product
-                                      </label>
-                                      <div className="max-h-48 overflow-y-auto border border-white/10 rounded-xl bg-zinc-950 divide-y divide-white/5 p-2 space-y-1">
-                                        {products.length === 0 ? (
-                                          <div className="text-[10px] text-zinc-500 italic p-3 text-center">
-                                            No products found in catalog.
-                                          </div>
-                                        ) : (
-                                          products.map(p => {
-                                            const username = activeAccount?.username || appUser?.username || 'shop';
-                                            const prodUrl = typeof window !== 'undefined'
-                                              ? `${window.location.origin}/${username}/product/${p.id}`
-                                              : `https://anydm.com/${username}/product/${p.id}`;
-                                            const isSelected = btn.url === prodUrl;
-
-                                            // Find main media URL (primary image/video thumbnail)
-                                            const mediaUrl = p.media_url || p.main_media_url || p.thumbnail_url || p.gallery?.[0]?.thumbnail_url || p.gallery?.[0]?.media_url || p.image || p.thumbnail;
-
-                                            const isVideo =
-                                              p.gallery?.find((g: any) => g.media_url === mediaUrl)?.media_type === "VIDEO" ||
-                                              p.gallery?.[0]?.media_type === "VIDEO" ||
-                                              (typeof mediaUrl === "string" && (
-                                                /\.(mp4|webm|ogg|mov|avi)/i.test(mediaUrl) ||
-                                                mediaUrl.includes("video")
-                                              ));
-
-                                            const thumbUrl = p.gallery?.find((g: any) => g.media_url === mediaUrl)?.thumbnail_url || p.gallery?.[0]?.thumbnail_url || p.thumbnail_url || p.thumbnail;
-
-                                            return (
-                                              <div
-                                                key={p.id}
-                                                onClick={() => {
-                                                  if (isSelected) {
-                                                    updateButton(idx, 'url', '');
-                                                  } else {
-                                                    updateButton(idx, 'url', prodUrl);
-                                                  }
-                                                }}
-                                                className={cn(
-                                                  "flex items-center gap-3 p-2 rounded-xl cursor-pointer transition-all hover:bg-white/5 border text-left",
-                                                  isSelected ? "border-white/30 bg-white/10" : "border-transparent"
-                                                )}
-                                              >
-                                                {/* Visual Thumbnail */}
-                                                <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-white/10 overflow-hidden flex items-center justify-center shrink-0">
-                                                  {mediaUrl ? (
-                                                    isVideo && !thumbUrl ? (
-                                                      <video src={mediaUrl} className="w-full h-full object-cover" preload="metadata" muted playsInline />
-                                                    ) : (
-                                                      <img src={thumbUrl || mediaUrl} alt="" className="w-full h-full object-cover animate-fadeIn" />
-                                                    )
-                                                  ) : (
-                                                    <Paperclip className="w-4 h-4 text-zinc-600" />
-                                                  )}
-                                                </div>
-
-                                                {/* Text Details */}
-                                                <div className="flex-1 min-w-0">
-                                                  <div className="flex justify-between items-start gap-1">
-                                                    <span className="text-[11px] font-bold text-zinc-200 truncate">{p.title || p.name}</span>
-                                                    <span className="text-[10px] font-black text-white shrink-0">{p.price} {p.currency}</span>
-                                                  </div>
-                                                  <p className="text-[9px] text-zinc-500 line-clamp-1 mt-0.5 leading-snug">
-                                                    {p.description || "No description available."}
-                                                  </p>
-                                                </div>
-
-                                                {/* Selection Radio */}
-                                                <div className={cn(
-                                                  "w-4 h-4 rounded-full border flex items-center justify-center shrink-0",
-                                                  isSelected ? "border-white bg-white text-black" : "border-zinc-700"
-                                                )}>
-                                                  {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
-                                                </div>
-                                              </div>
-                                            );
-                                          })
-                                        )}
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-
+                            {btn.type === 'web_url' && (
                               <div>
                                 <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block mb-1.5">Web Link URL</label>
                                 <div className="flex items-center bg-[#1c1b1b]/60 border border-white/10 rounded-xl px-3 text-xs">
@@ -1566,29 +1581,131 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                   />
                                 </div>
                               </div>
-                            </div>
-                          ) : (
-                            <div>
-                              <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block mb-1.5">Event Payload ID (Secret Key)</label>
-                              <input
-                                type="text"
-                                value={btn.payload || ''}
-                                onChange={(e) => updateButton(idx, 'payload', e.target.value)}
-                                placeholder="e.g. TRIGGER_FLOW"
-                                className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-white/50"
-                              />
-                            </div>
-                          )}
-                        </div>
+                            )}
 
-                        <button
-                          onClick={() => removeButton(idx)}
-                          className="absolute bottom-4 right-4 p-2.5 rounded-xl text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-all cursor-pointer"
-                        >
-                          <Trash2 className="w-4.5 h-4.5" />
-                        </button>
-                      </div>
-                    ))}
+                            {btn.type === 'product' && (
+                              <div className="space-y-2 animate-fadeIn">
+                                <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider block mb-2">
+                                  Select Catalog Product
+                                </label>
+                                <div className="max-h-48 overflow-y-auto border border-white/10 rounded-xl bg-zinc-950 divide-y divide-white/5 p-2 space-y-1">
+                                  {products.length === 0 ? (
+                                    <div className="text-[10px] text-zinc-500 italic p-3 text-center">
+                                      No products found in catalog.
+                                    </div>
+                                  ) : (
+                                    products.map(p => {
+                                      const username = activeAccount?.username || appUser?.username || 'shop';
+                                      const prodUrl = typeof window !== 'undefined'
+                                        ? `${window.location.origin}/${username}/product/${p.id}`
+                                        : `https://anydm.com/${username}/product/${p.id}`;
+                                      const isSelected = btn.url === prodUrl;
+
+                                      const mediaUrl = p.media_url || p.main_media_url || p.thumbnail_url || p.gallery?.[0]?.thumbnail_url || p.gallery?.[0]?.media_url || p.image || p.thumbnail;
+                                      const isVideo =
+                                        p.gallery?.find((g: any) => g.media_url === mediaUrl)?.media_type === "VIDEO" ||
+                                        p.gallery?.[0]?.media_type === "VIDEO" ||
+                                        (typeof mediaUrl === "string" && (
+                                          /\.(mp4|webm|ogg|mov|avi)/i.test(mediaUrl) ||
+                                          mediaUrl.includes("video")
+                                        ));
+                                      const thumbUrl = p.gallery?.find((g: any) => g.media_url === mediaUrl)?.thumbnail_url || p.gallery?.[0]?.thumbnail_url || p.thumbnail_url || p.thumbnail;
+
+                                      return (
+                                        <div
+                                          key={p.id}
+                                          onClick={() => {
+                                            if (isSelected) {
+                                              updateButton(idx, 'url', '');
+                                            } else {
+                                              // Update both url and title atomically to avoid state batching race conditions
+                                              const copy = [...buttonTemplateButtons];
+                                              let newTitle = btn.title || '🛒 Buy';
+                                              // Auto-add {{name}} and {{price}} placeholders
+                                              if (!newTitle.includes('{{name}}') && !newTitle.includes('{{price}}')) {
+                                                newTitle = `{{name}} {{price}}`;
+                                              } else {
+                                                if (!newTitle.includes('{{name}}')) {
+                                                  newTitle = `{{name}} ${newTitle}`;
+                                                }
+                                                if (!newTitle.includes('{{price}}')) {
+                                                  newTitle = `${newTitle} {{price}}`;
+                                                }
+                                              }
+                                              // Truncate to 20 chars if needed
+                                              if (newTitle.length > 20) {
+                                                newTitle = `{{name}} {{price}}`;
+                                              }
+                                              copy[idx] = {
+                                                ...copy[idx],
+                                                url: prodUrl,
+                                                title: newTitle
+                                              };
+                                              setButtonTemplateButtons(copy);
+                                            }
+                                          }}
+                                          className={cn(
+                                            "flex items-center gap-3 p-2 rounded-xl cursor-pointer transition-all hover:bg-white/5 border text-left",
+                                            isSelected ? "border-white/30 bg-white/10" : "border-transparent"
+                                          )}
+                                        >
+                                          <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-white/10 overflow-hidden flex items-center justify-center shrink-0">
+                                            {mediaUrl ? (
+                                              isVideo && !thumbUrl ? (
+                                                <video src={mediaUrl} className="w-full h-full object-cover" preload="metadata" muted playsInline />
+                                              ) : (
+                                                <img src={thumbUrl || mediaUrl} alt="" className="w-full h-full object-cover animate-fadeIn" />
+                                              )
+                                            ) : (
+                                              <Paperclip className="w-4 h-4 text-zinc-600" />
+                                            )}
+                                          </div>
+                                          <div className="flex-1 min-w-0">
+                                            <div className="flex justify-between items-start gap-1">
+                                              <span className="text-[11px] font-bold text-zinc-200 truncate">{p.title || p.name}</span>
+                                              <span className="text-[10px] font-black text-white shrink-0">{p.price} {p.currency}</span>
+                                            </div>
+                                            <p className="text-[9px] text-zinc-500 line-clamp-1 mt-0.5 leading-snug">
+                                              {p.description || "No description available."}
+                                            </p>
+                                          </div>
+                                          <div className={cn(
+                                            "w-4 h-4 rounded-full border flex items-center justify-center shrink-0",
+                                            isSelected ? "border-white bg-white text-black" : "border-zinc-700"
+                                          )}>
+                                            {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                                          </div>
+                                        </div>
+                                      );
+                                    })
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
+                            {btn.type === 'postback' && (
+                              <div>
+                                <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block mb-1.5">Event Payload ID (Secret Key)</label>
+                                <input
+                                  type="text"
+                                  value={btn.payload || ''}
+                                  onChange={(e) => updateButton(idx, 'payload', e.target.value)}
+                                  placeholder="e.g. TRIGGER_FLOW"
+                                  className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-white/50"
+                                />
+                              </div>
+                            )}
+                          </div>
+
+                          <button
+                            onClick={() => removeButton(idx)}
+                            className="absolute bottom-4 right-4 p-2.5 rounded-xl text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-all cursor-pointer"
+                          >
+                            <Trash2 className="w-4.5 h-4.5" />
+                          </button>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               </div>
@@ -1621,7 +1738,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                       <div key={idx} className="relative">
                         <button
                           onClick={() => {
-                            setActiveCardIndex(idx);
+                            scrollToCard(idx);
                           }}
                           className={cn(
                             "px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 border",
@@ -1656,7 +1773,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                     </div>
 
                     {/* Image URL & Cloudinary Upload */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4">
                       <div className="space-y-2">
                         <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block">Image Asset</label>
                         <input
@@ -1697,20 +1814,6 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                             </>
                           )}
                         </button>
-                      </div>
-
-                      <div className="space-y-2 flex flex-col justify-end">
-                        <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block">Or Paste Image URL</label>
-                        <div className="flex items-center bg-[#1c1b1b]/60 border border-white/10 rounded-xl px-3 text-xs">
-                          <LinkIcon className="w-4 h-4 text-zinc-500 mr-2.5 shrink-0" />
-                          <input
-                            type="text"
-                            value={carouselElements[activeCardIndex].image_url || ''}
-                            onChange={(e) => updateCarouselField(activeCardIndex, 'image_url', e.target.value)}
-                            placeholder="https://..."
-                            className="w-full bg-transparent border-none py-3 text-xs text-white focus:outline-none"
-                          />
-                        </div>
                       </div>
                     </div>
 
@@ -1769,114 +1872,187 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                             </div>
                           </button>
 
-                          {showProductPicker['carousel-default'] && (
-                            <div className="animate-fadeIn">
-                              <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider block mb-2">
-                                Select Catalog Product
-                              </label>
-                              <div className="max-h-48 overflow-y-auto border border-white/10 rounded-xl bg-zinc-950 divide-y divide-white/5 p-2 space-y-1 mb-2">
-                                {products.length === 0 ? (
-                                  <div className="text-[10px] text-zinc-500 italic p-3 text-center">
-                                    No products found in catalog.
+                          {showProductPicker['carousel-default'] && (() => {
+                            const selectedDefaultProduct = carouselElements[activeCardIndex].default_action?.url
+                              ? products.find(p => carouselElements[activeCardIndex].default_action?.url?.endsWith(`/product/${p.id}`))
+                              : null;
+
+                            return (
+                              <div className="animate-fadeIn">
+                                <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider block mb-2">
+                                  Select Catalog Product
+                                </label>
+                                {selectedDefaultProduct ? (
+                                  <div className="relative bg-white/5 border border-white/20 rounded-xl p-3 flex items-center gap-3 animate-fadeIn mb-3">
+                                    <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-white/10 overflow-hidden flex items-center justify-center shrink-0">
+                                      {(() => {
+                                        const mediaUrl = selectedDefaultProduct.media_url || selectedDefaultProduct.main_media_url || selectedDefaultProduct.thumbnail_url || selectedDefaultProduct.gallery?.[0]?.thumbnail_url || selectedDefaultProduct.gallery?.[0]?.media_url || selectedDefaultProduct.image || selectedDefaultProduct.thumbnail;
+                                        const isVideo =
+                                          selectedDefaultProduct.gallery?.find((g: any) => g.media_url === mediaUrl)?.media_type === "VIDEO" ||
+                                          selectedDefaultProduct.gallery?.[0]?.media_type === "VIDEO" ||
+                                          (typeof mediaUrl === "string" && (
+                                            /\.(mp4|webm|ogg|mov|avi)/i.test(mediaUrl) ||
+                                            mediaUrl.includes("video")
+                                          ));
+                                        const thumbUrl = selectedDefaultProduct.gallery?.find((g: any) => g.media_url === mediaUrl)?.thumbnail_url || selectedDefaultProduct.gallery?.[0]?.thumbnail_url || selectedDefaultProduct.thumbnail_url || selectedDefaultProduct.thumbnail;
+
+                                        return mediaUrl ? (
+                                          isVideo && !thumbUrl ? (
+                                            <video src={mediaUrl} className="w-full h-full object-cover" preload="metadata" muted playsInline />
+                                          ) : (
+                                            <img src={thumbUrl || mediaUrl} alt="" className="w-full h-full object-cover" />
+                                          )
+                                        ) : (
+                                          <Paperclip className="w-4 h-4 text-zinc-600" />
+                                        );
+                                      })()}
+                                    </div>
+                                    <div className="flex-1 min-w-0 pr-8">
+                                      <div className="flex justify-between items-start gap-1">
+                                        <span className="text-[11px] font-bold text-white truncate">{selectedDefaultProduct.title || selectedDefaultProduct.name}</span>
+                                        <span className="text-[10px] font-black text-white shrink-0">{selectedDefaultProduct.price} {selectedDefaultProduct.currency}</span>
+                                      </div>
+                                      <p className="text-[9px] text-zinc-400 line-clamp-1 mt-0.5 leading-snug">
+                                        {selectedDefaultProduct.description || "No description available."}
+                                      </p>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setCarouselElements(prev => {
+                                          const copy = [...prev];
+                                          const card = { ...copy[activeCardIndex] };
+                                          card.default_action = { type: 'web_url', url: '' };
+                                          copy[activeCardIndex] = card;
+                                          return copy;
+                                        });
+                                      }}
+                                      className="absolute top-1/2 -translate-y-1/2 right-3 p-1.5 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-red-500/10 cursor-pointer transition-all shrink-0"
+                                      title="Remove product link"
+                                    >
+                                      <X className="w-4 h-4" />
+                                    </button>
                                   </div>
                                 ) : (
-                                  products.map(p => {
-                                    const username = activeAccount?.username || appUser?.username || 'shop';
-                                    const prodUrl = typeof window !== 'undefined'
-                                      ? `${window.location.origin}/${username}/product/${p.id}`
-                                      : `https://anydm.com/${username}/product/${p.id}`;
-                                    const isSelected = carouselElements[activeCardIndex].default_action?.url === prodUrl;
-
-                                    // Find main media URL (primary image/video thumbnail)
-                                    const mediaUrl = p.media_url || p.main_media_url || p.thumbnail_url || p.gallery?.[0]?.thumbnail_url || p.gallery?.[0]?.media_url || p.image || p.thumbnail;
-                                    const isVideo =
-                                      p.gallery?.find((g: any) => g.media_url === mediaUrl)?.media_type === "VIDEO" ||
-                                      p.gallery?.[0]?.media_type === "VIDEO" ||
-                                      (typeof mediaUrl === "string" && (
-                                        /\.(mp4|webm|ogg|mov|avi)/i.test(mediaUrl) ||
-                                        mediaUrl.includes("video")
-                                      ));
-                                    const thumbUrl = p.gallery?.find((g: any) => g.media_url === mediaUrl)?.thumbnail_url || p.gallery?.[0]?.thumbnail_url || p.thumbnail_url || p.thumbnail;
-
-                                    return (
-                                      <div
-                                        key={p.id}
-                                        onClick={() => {
-                                          if (isSelected) {
-                                            updateCarouselField(activeCardIndex, 'default_action', { type: 'web_url', url: '' });
-                                          } else {
-                                            const cardImage = (isVideo ? (thumbUrl || mediaUrl) : mediaUrl) || '';
-                                            setCarouselElements(prev => {
-                                              const copy = [...prev];
-                                              const card = { ...copy[activeCardIndex] };
-                                              card.default_action = { type: 'web_url', url: prodUrl };
-                                              card.image_url = cardImage;
-                                              card.title = p.title || p.name || '';
-                                              card.subtitle = p.description || '';
-                                              // Set first button URL to product URL
-                                              if (card.buttons && card.buttons.length > 0) {
-                                                const btns = [...card.buttons];
-                                                btns[0] = { ...btns[0], url: prodUrl };
-                                                card.buttons = btns;
-                                              }
-                                              copy[activeCardIndex] = card;
-                                              return copy;
-                                            });
-                                          }
-                                        }}
-                                        className={cn(
-                                          "flex items-center gap-3 p-2 rounded-xl cursor-pointer transition-all hover:bg-white/5 border text-left",
-                                          isSelected ? "border-white/30 bg-white/10" : "border-transparent"
-                                        )}
-                                      >
-                                        {/* Visual Thumbnail */}
-                                        <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-white/10 overflow-hidden flex items-center justify-center shrink-0">
-                                          {mediaUrl ? (
-                                            isVideo && !thumbUrl ? (
-                                              <video src={mediaUrl} className="w-full h-full object-cover" preload="metadata" muted playsInline />
-                                            ) : (
-                                              <img src={thumbUrl || mediaUrl} alt="" className="w-full h-full object-cover animate-fadeIn" />
-                                            )
-                                          ) : (
-                                            <Paperclip className="w-4 h-4 text-zinc-600" />
-                                          )}
-                                        </div>
-
-                                        {/* Text Details */}
-                                        <div className="flex-1 min-w-0">
-                                          <div className="flex justify-between items-start gap-1">
-                                            <span className="text-[11px] font-bold text-zinc-200 truncate">{p.title || p.name}</span>
-                                            <span className="text-[10px] font-black text-white shrink-0">{p.price} {p.currency}</span>
-                                          </div>
-                                          <p className="text-[9px] text-zinc-500 line-clamp-1 mt-0.5 leading-snug">
-                                            {p.description || "No description available."}
-                                          </p>
-                                        </div>
-
-                                        {/* Selection Radio */}
-                                        <div className={cn(
-                                          "w-4 h-4 rounded-full border flex items-center justify-center shrink-0",
-                                          isSelected ? "border-white bg-white text-black" : "border-zinc-700"
-                                        )}>
-                                          {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
-                                        </div>
+                                  <div className="max-h-48 overflow-y-auto border border-white/10 rounded-xl bg-zinc-950 divide-y divide-white/5 p-2 space-y-1 mb-2">
+                                    {products.length === 0 ? (
+                                      <div className="text-[10px] text-zinc-500 italic p-3 text-center">
+                                        No products found in catalog.
                                       </div>
-                                    );
-                                  })
+                                    ) : (
+                                      products.map(p => {
+                                        const username = activeAccount?.username || appUser?.username || 'shop';
+                                        const prodUrl = typeof window !== 'undefined'
+                                          ? `${window.location.origin}/${username}/product/${p.id}`
+                                          : `https://anydm.com/${username}/product/${p.id}`;
+                                        const isSelected = carouselElements[activeCardIndex].default_action?.url === prodUrl;
+
+                                        const mediaUrl = p.media_url || p.main_media_url || p.thumbnail_url || p.gallery?.[0]?.thumbnail_url || p.gallery?.[0]?.media_url || p.image || p.thumbnail;
+                                        const isVideo =
+                                          p.gallery?.find((g: any) => g.media_url === mediaUrl)?.media_type === "VIDEO" ||
+                                          p.gallery?.[0]?.media_type === "VIDEO" ||
+                                          (typeof mediaUrl === "string" && (
+                                            /\.(mp4|webm|ogg|mov|avi)/i.test(mediaUrl) ||
+                                            mediaUrl.includes("video")
+                                          ));
+                                        const thumbUrl = p.gallery?.find((g: any) => g.media_url === mediaUrl)?.thumbnail_url || p.gallery?.[0]?.thumbnail_url || p.thumbnail_url || p.thumbnail;
+
+                                        return (
+                                          <div
+                                            key={p.id}
+                                            onClick={() => {
+                                              if (isSelected) {
+                                                setCarouselElements(prev => {
+                                                  const copy = [...prev];
+                                                  const card = { ...copy[activeCardIndex] };
+                                                  card.default_action = { type: 'web_url', url: '' };
+                                                  copy[activeCardIndex] = card;
+                                                  return copy;
+                                                });
+                                              } else {
+                                                const cardImage = (isVideo ? (thumbUrl || mediaUrl) : mediaUrl) || '';
+                                                setCarouselElements(prev => {
+                                                  const copy = [...prev];
+                                                  const card = { ...copy[activeCardIndex] };
+                                                  card.default_action = { type: 'web_url', url: prodUrl };
+                                                  card.image_url = cardImage;
+                                                  card.title = '{{name}}';
+                                                  card.subtitle = '{{price}}';
+                                                  if (card.buttons && card.buttons.length > 0) {
+                                                    const btns = [...card.buttons];
+                                                    btns[0] = {
+                                                      ...btns[0],
+                                                      url: prodUrl,
+                                                      type: 'product',
+                                                      title: '{{name}} {{price}}'
+                                                    };
+                                                    card.buttons = btns;
+                                                  }
+                                                  copy[activeCardIndex] = card;
+                                                  return copy;
+                                                });
+                                              }
+                                            }}
+                                            className={cn(
+                                              "flex items-center gap-3 p-2 rounded-xl cursor-pointer transition-all hover:bg-white/5 border text-left",
+                                              isSelected ? "border-white/30 bg-white/10" : "border-transparent"
+                                            )}
+                                          >
+                                            <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-white/10 overflow-hidden flex items-center justify-center shrink-0">
+                                              {mediaUrl ? (
+                                                isVideo && !thumbUrl ? (
+                                                  <video src={mediaUrl} className="w-full h-full object-cover" preload="metadata" muted playsInline />
+                                                ) : (
+                                                  <img src={thumbUrl || mediaUrl} alt="" className="w-full h-full object-cover animate-fadeIn" />
+                                                )
+                                              ) : (
+                                                <Paperclip className="w-4 h-4 text-zinc-600" />
+                                              )}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                              <div className="flex justify-between items-start gap-1">
+                                                <span className="text-[11px] font-bold text-zinc-200 truncate">{p.title || p.name}</span>
+                                                <span className="text-[10px] font-black text-white shrink-0">{p.price} {p.currency}</span>
+                                              </div>
+                                              <p className="text-[9px] text-zinc-500 line-clamp-1 mt-0.5 leading-snug">
+                                                {p.description || "No description available."}
+                                              </p>
+                                            </div>
+                                            <div className={cn(
+                                              "w-4 h-4 rounded-full border flex items-center justify-center shrink-0",
+                                              isSelected ? "border-white bg-white text-black" : "border-zinc-700"
+                                            )}>
+                                              {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                                            </div>
+                                          </div>
+                                        );
+                                      })
+                                    )}
+                                  </div>
                                 )}
                               </div>
-                            </div>
-                          )}
+                            );
+                          })()}
                         </div>
                       )}
-                      <div className="flex items-center bg-[#1c1b1b]/60 border border-white/10 rounded-xl px-3 text-xs">
+                      <div className={cn(
+                        "flex items-center border rounded-xl px-3 text-xs transition-all",
+                        carouselElements[activeCardIndex].default_action?.url && products.some(p => carouselElements[activeCardIndex].default_action?.url?.endsWith(`/product/${p.id}`))
+                          ? "bg-zinc-900/50 border-white/5 opacity-50 cursor-not-allowed"
+                          : "bg-[#1c1b1b]/60 border-white/10"
+                      )}>
                         <LinkIcon className="w-4 h-4 text-zinc-500 mr-2.5 shrink-0" />
                         <input
                           type="text"
                           value={carouselElements[activeCardIndex].default_action?.url || ''}
                           onChange={(e) => updateCarouselField(activeCardIndex, 'default_action', { type: 'web_url', url: e.target.value })}
-                          placeholder="https://..."
-                          className="w-full bg-transparent border-none py-3 text-xs text-white focus:outline-none"
+                          placeholder={
+                            carouselElements[activeCardIndex].default_action?.url && products.some(p => carouselElements[activeCardIndex].default_action?.url?.endsWith(`/product/${p.id}`))
+                              ? "Locked to selected catalog product"
+                              : "https://..."
+                          }
+                          disabled={!!(carouselElements[activeCardIndex].default_action?.url && products.some(p => carouselElements[activeCardIndex].default_action?.url?.endsWith(`/product/${p.id}`)))}
+                          className="w-full bg-transparent border-none py-3 text-xs text-white focus:outline-none disabled:cursor-not-allowed"
                         />
                       </div>
                       <p className="text-[10px] text-zinc-500 font-medium">The URL redirected to when the user taps on the card cover image itself.</p>
@@ -1888,7 +2064,11 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                         <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider block">Card Buttons ({(carouselElements[activeCardIndex].buttons || []).length}/3)</label>
                         {(carouselElements[activeCardIndex].buttons || []).length < 3 && (
                           <button
-                            onClick={() => addCarouselButton(activeCardIndex)}
+                            type="button"
+                            onClick={() => {
+                              addCarouselButton(activeCardIndex);
+                              setActiveButtonIndex((carouselElements[activeCardIndex].buttons || []).length);
+                            }}
                             className="py-1.5 px-3 bg-white/10 hover:bg-white/15 text-white text-[10px] font-bold rounded-xl border border-white/10 transition-all flex items-center gap-1 cursor-pointer"
                           >
                             <Plus className="w-3.5 h-3.5" /> Add Card Button
@@ -1896,184 +2076,282 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                         )}
                       </div>
 
+                      {/* Button Tabs */}
+                      {(carouselElements[activeCardIndex].buttons || []).length > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-2 border-b border-white/10 pb-3">
+                          {(carouselElements[activeCardIndex].buttons || []).map((btn, bi) => {
+                            const isSelected = bi === normalizedActiveButtonIndex;
+                            return (
+                              <button
+                                key={bi}
+                                type="button"
+                                onClick={() => setActiveButtonIndex(bi)}
+                                className={cn(
+                                  "px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border",
+                                  isSelected
+                                    ? "bg-white text-black border-white shadow-lg"
+                                    : "bg-white/5 text-zinc-400 border-white/10 hover:bg-white/10 hover:text-white"
+                                )}
+                              >
+                                <span>Button {bi + 1}{btn.title ? `: ${btn.title.includes('{{name}}') || btn.title.includes('{{price}}') ? 'Product Link' : btn.title}` : ''}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+
                       <div className="space-y-4">
-                        {(carouselElements[activeCardIndex].buttons || []).map((btn, bi) => (
-                          <div key={bi} className="bg-white/5 p-4 rounded-2xl border border-white/10 flex flex-col gap-4 relative animate-fadeIn">
-                            <span className="absolute top-4 right-4 w-5 h-5 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-[10px] font-bold text-zinc-400">
-                              {bi + 1}
-                            </span>
+                        {(carouselElements[activeCardIndex].buttons || []).map((btn, bi) => {
+                          if (bi !== normalizedActiveButtonIndex) return null;
+                          const isDefaultActionProductSelected = !!(carouselElements[activeCardIndex].default_action?.url && products.some(p => carouselElements[activeCardIndex].default_action?.url?.endsWith(`/product/${p.id}`)));
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 w-full pr-8">
-                              <div>
-                                <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider block mb-1.5">Button Title</label>
-                                <input
-                                  type="text"
-                                  value={btn.title}
-                                  onChange={(e) => updateCarouselButton(activeCardIndex, bi, 'title', e.target.value)}
-                                  maxLength={20}
-                                  placeholder="e.g. Order Now"
-                                  className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none"
-                                />
-                              </div>
-                              <div>
-                                <CustomSelect
-                                  label="Button Type"
-                                  value={btn.type}
-                                  onChange={(val) => updateCarouselButton(activeCardIndex, bi, 'type', val)}
-                                  options={[
-                                    { value: 'web_url', label: 'Web URL Link' },
-                                    { value: 'postback', label: 'Trigger Chat Event' }
-                                  ]}
-                                  dropdownId={`carousel-btn-type-${activeCardIndex}-${bi}`}
-                                  openDropdownId={openDropdownId}
-                                  setOpenDropdownId={setOpenDropdownId}
-                                />
-                              </div>
+                          return (
+                            <div key={bi} className="bg-white/5 p-4 rounded-2xl border border-white/10 flex flex-col gap-4 relative animate-fadeIn">
+                              <span className="absolute top-4 right-4 w-5 h-5 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-[10px] font-bold text-zinc-400">
+                                {bi + 1}
+                              </span>
 
-                              <div className="md:col-span-2">
-                                {btn.type === 'web_url' ? (
-                                  <div className="space-y-4">
-                                    {isEcommerceTemplate && (
-                                      <div className="space-y-2">
-                                        {/* Show Products Toggle */}
-                                        <button
-                                          type="button"
-                                          onClick={() => toggleProductPicker(`carousel-${activeCardIndex}-${bi}`)}
-                                          className={cn(
-                                            "flex items-center gap-2 w-full py-2.5 px-4 rounded-xl border transition-all cursor-pointer text-left",
-                                            showProductPicker[`carousel-${activeCardIndex}-${bi}`]
-                                              ? "bg-white/10 border-white/20 text-white"
-                                              : "bg-[#1c1b1b]/40 border-white/10 text-zinc-400 hover:bg-white/5 hover:text-white"
-                                          )}
-                                        >
-                                          <ShoppingBag className="w-4 h-4 shrink-0" />
-                                          <span className="font-sora text-[10px] font-bold uppercase tracking-wider flex-1">Link catalog product</span>
-                                          <div className={cn(
-                                            "w-10 h-5 rounded-full relative transition-all duration-200 shrink-0",
-                                            showProductPicker[`carousel-${activeCardIndex}-${bi}`] ? "bg-white" : "bg-white/10"
-                                          )}>
-                                            <div className={cn(
-                                              "absolute top-[2px] w-4 h-4 rounded-full shadow transition-all duration-200",
-                                              showProductPicker[`carousel-${activeCardIndex}-${bi}`] ? "left-[22px] bg-[#131313]" : "left-[2px] bg-white"
-                                            )} />
-                                          </div>
-                                        </button>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 w-full pr-8">
+                                <div>
+                                  <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider block mb-1.5">Button Title</label>
+                                  <input
+                                    type="text"
+                                    value={btn.title}
+                                    onChange={(e) => updateCarouselButton(activeCardIndex, bi, 'title', e.target.value)}
+                                    maxLength={20}
+                                    placeholder="e.g. Order Now"
+                                    disabled={bi === 0 && isDefaultActionProductSelected}
+                                    className={cn(
+                                      "w-full bg-[#1c1b1b]/60 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none",
+                                      (bi === 0 && isDefaultActionProductSelected) && "opacity-50 cursor-not-allowed"
+                                    )}
+                                  />
+                                </div>
+                                <div>
+                                  {bi === 0 && isDefaultActionProductSelected ? (
+                                    <div className="space-y-1.5 w-full">
+                                      <label className="text-label-sm text-zinc-400 uppercase tracking-wider block font-semibold mb-1">
+                                        Button Type
+                                      </label>
+                                      <div className="w-full bg-[#1c1b1b]/30 border border-white/5 rounded-md px-4 py-2.5 text-xs text-zinc-400 font-medium flex items-center justify-between opacity-70 cursor-not-allowed">
+                                        <span>Link Product (Synced)</span>
+                                        <Info className="w-3.5 h-3.5 text-zinc-500" />
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <CustomSelect
+                                      label="Button Type"
+                                      value={btn.type}
+                                      onChange={(val) => updateCarouselButton(activeCardIndex, bi, 'type', val)}
+                                      options={[
+                                        { value: 'web_url', label: 'Web URL Link' },
+                                        { value: 'postback', label: 'Trigger Chat Event' },
+                                        { value: 'product', label: 'Link Product' }
+                                      ]}
+                                      dropdownId={`carousel-btn-type-${activeCardIndex}-${bi}`}
+                                      openDropdownId={openDropdownId}
+                                      setOpenDropdownId={setOpenDropdownId}
+                                    />
+                                  )}
+                                </div>
 
-                                        {showProductPicker[`carousel-${activeCardIndex}-${bi}`] && (
-                                          <div className="animate-fadeIn">
-                                            <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider block mb-2">
-                                              Select Catalog Product
-                                            </label>
-                                            <div className="max-h-48 overflow-y-auto border border-white/10 rounded-xl bg-zinc-950 divide-y divide-white/5 p-2 space-y-1 mb-2">
-                                              {products.length === 0 ? (
-                                                <div className="text-[10px] text-zinc-500 italic p-3 text-center">
-                                                  No products found in catalog.
-                                                </div>
-                                              ) : (
-                                                products.map(p => {
-                                                  const username = activeAccount?.username || appUser?.username || 'shop';
-                                                  const prodUrl = typeof window !== 'undefined'
-                                                    ? `${window.location.origin}/${username}/product/${p.id}`
-                                                    : `https://anydm.com/${username}/product/${p.id}`;
-                                                  const isSelected = btn.url === prodUrl;
+                                <div className="md:col-span-2">
+                                  {btn.type === 'web_url' && (
+                                    <div>
+                                      <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block mb-1.5">Web Link URL</label>
+                                      <div className="flex items-center bg-[#1c1b1b]/60 border border-white/10 rounded-xl px-3 text-xs">
+                                        <LinkIcon className="w-4 h-4 text-zinc-500 mr-2.5 shrink-0" />
+                                        <input
+                                          type="text"
+                                          value={btn.url || ''}
+                                          onChange={(e) => updateCarouselButton(activeCardIndex, bi, 'url', e.target.value)}
+                                          placeholder="https://..."
+                                          className="w-full bg-transparent border-none py-3 text-xs text-white focus:outline-none font-medium"
+                                        />
+                                      </div>
+                                    </div>
+                                  )}
 
-                                                  // Find main media URL (primary image/video thumbnail)
-                                                  const mediaUrl = p.media_url || p.main_media_url || p.thumbnail_url || p.gallery?.[0]?.thumbnail_url || p.gallery?.[0]?.media_url || p.image || p.thumbnail;
-                                                  const isVideo =
-                                                    p.gallery?.find((g: any) => g.media_url === mediaUrl)?.media_type === "VIDEO" ||
-                                                    p.gallery?.[0]?.media_type === "VIDEO" ||
-                                                    (typeof mediaUrl === "string" && (
-                                                      /\.(mp4|webm|ogg|mov|avi)/i.test(mediaUrl) ||
-                                                      mediaUrl.includes("video")
-                                                    ));
-                                                  const thumbUrl = p.gallery?.find((g: any) => g.media_url === mediaUrl)?.thumbnail_url || p.gallery?.[0]?.thumbnail_url || p.thumbnail_url || p.thumbnail;
+                                  {btn.type === 'product' && (() => {
+                                    const username = activeAccount?.username || appUser?.username || 'shop';
+                                    const selectedProduct = btn.url ? products.find(p => {
+                                      return btn.url!.endsWith(`/product/${p.id}`);
+                                    }) : null;
 
-                                                  return (
-                                                    <div
-                                                      key={p.id}
-                                                      onClick={() => {
-                                                        if (isSelected) {
-                                                          updateCarouselButton(activeCardIndex, bi, 'url', '');
-                                                        } else {
-                                                          updateCarouselButton(activeCardIndex, bi, 'url', prodUrl);
-                                                        }
-                                                      }}
-                                                      className={cn(
-                                                        "flex items-center gap-3 p-2 rounded-xl cursor-pointer transition-all hover:bg-white/5 border text-left",
-                                                        isSelected ? "border-white/30 bg-white/10" : "border-transparent"
-                                                      )}
-                                                    >
-                                                      {/* Visual Thumbnail */}
-                                                      <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-white/10 overflow-hidden flex items-center justify-center shrink-0">
-                                                        {mediaUrl ? (
-                                                          isVideo && !thumbUrl ? (
-                                                            <video src={mediaUrl} className="w-full h-full object-cover" preload="metadata" muted playsInline />
-                                                          ) : (
-                                                            <img src={thumbUrl || mediaUrl} alt="" className="w-full h-full object-cover animate-fadeIn" />
-                                                          )
-                                                        ) : (
-                                                          <Paperclip className="w-4 h-4 text-zinc-600" />
-                                                        )}
-                                                      </div>
+                                    return (
+                                      <div className="space-y-2 animate-fadeIn text-left">
+                                        <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider block mb-1">
+                                          Select Catalog Product
+                                        </label>
+                                        {selectedProduct ? (
+                                          <div className="relative bg-white/5 border border-white/20 rounded-xl p-3 flex items-center gap-3 animate-fadeIn">
+                                            <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-white/10 overflow-hidden flex items-center justify-center shrink-0">
+                                              {(() => {
+                                                const mediaUrl = selectedProduct.media_url || selectedProduct.main_media_url || selectedProduct.thumbnail_url || selectedProduct.gallery?.[0]?.thumbnail_url || selectedProduct.gallery?.[0]?.media_url || selectedProduct.image || selectedProduct.thumbnail;
+                                                const isVideo =
+                                                  selectedProduct.gallery?.find((g: any) => g.media_url === mediaUrl)?.media_type === "VIDEO" ||
+                                                  selectedProduct.gallery?.[0]?.media_type === "VIDEO" ||
+                                                  (typeof mediaUrl === "string" && (
+                                                    /\.(mp4|webm|ogg|mov|avi)/i.test(mediaUrl) ||
+                                                    mediaUrl.includes("video")
+                                                  ));
+                                                const thumbUrl = selectedProduct.gallery?.find((g: any) => g.media_url === mediaUrl)?.thumbnail_url || selectedProduct.gallery?.[0]?.thumbnail_url || selectedProduct.thumbnail_url || selectedProduct.thumbnail;
 
-                                                      {/* Text Details */}
-                                                      <div className="flex-1 min-w-0">
-                                                        <div className="flex justify-between items-start gap-1">
-                                                          <span className="text-[11px] font-bold text-zinc-200 truncate">{p.title || p.name}</span>
-                                                          <span className="text-[10px] font-black text-white shrink-0">{p.price} {p.currency}</span>
-                                                        </div>
-                                                        <p className="text-[9px] text-zinc-500 line-clamp-1 mt-0.5 leading-snug">
-                                                          {p.description || "No description available."}
-                                                        </p>
-                                                      </div>
-
-                                                      {/* Selection Radio */}
-                                                      <div className={cn(
-                                                        "w-4 h-4 rounded-full border flex items-center justify-center shrink-0",
-                                                        isSelected ? "border-white bg-white text-black" : "border-zinc-700"
-                                                      )}>
-                                                        {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
-                                                      </div>
-                                                    </div>
-                                                  );
-                                                })
-                                              )}
+                                                return mediaUrl ? (
+                                                  isVideo && !thumbUrl ? (
+                                                    <video src={mediaUrl} className="w-full h-full object-cover" preload="metadata" muted playsInline />
+                                                  ) : (
+                                                    <img src={thumbUrl || mediaUrl} alt="" className="w-full h-full object-cover" />
+                                                  )
+                                                ) : (
+                                                  <Paperclip className="w-4 h-4 text-zinc-600" />
+                                                );
+                                              })()}
                                             </div>
+                                            <div className="flex-1 min-w-0 pr-8">
+                                              <div className="flex justify-between items-start gap-1">
+                                                <span className="text-[11px] font-bold text-white truncate">{selectedProduct.title || selectedProduct.name}</span>
+                                                <span className="text-[10px] font-black text-white shrink-0">{selectedProduct.price} {selectedProduct.currency}</span>
+                                              </div>
+                                              <p className="text-[9px] text-zinc-400 line-clamp-1 mt-0.5 leading-snug">
+                                                {selectedProduct.description || "No description available."}
+                                              </p>
+                                            </div>
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                const copy = [...carouselElements];
+                                                const card = { ...copy[activeCardIndex] };
+                                                const btns = [...(card.buttons || [])];
+                                                btns[bi] = { ...btns[bi], url: '' };
+                                                card.buttons = btns;
+                                                copy[activeCardIndex] = card;
+                                                setCarouselElements(copy);
+                                              }}
+                                              className="absolute top-1/2 -translate-y-1/2 right-3 p-1.5 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-red-500/10 cursor-pointer transition-all shrink-0"
+                                              title="Remove product link"
+                                            >
+                                              <X className="w-4 h-4" />
+                                            </button>
+                                          </div>
+                                        ) : (
+                                          <div className="max-h-48 overflow-y-auto border border-white/10 rounded-xl bg-zinc-950 divide-y divide-white/5 p-2 space-y-1">
+                                            {products.length === 0 ? (
+                                              <div className="text-[10px] text-zinc-500 italic p-3 text-center">
+                                                No products found in catalog.
+                                              </div>
+                                            ) : (
+                                              products.map(p => {
+                                                const prodUrl = typeof window !== 'undefined'
+                                                  ? `${window.location.origin}/${username}/product/${p.id}`
+                                                  : `https://anydm.com/${username}/product/${p.id}`;
+                                                const isSelected = btn.url === prodUrl;
+
+                                                const mediaUrl = p.media_url || p.main_media_url || p.thumbnail_url || p.gallery?.[0]?.thumbnail_url || p.gallery?.[0]?.media_url || p.image || p.thumbnail;
+                                                const isVideo =
+                                                  p.gallery?.find((g: any) => g.media_url === mediaUrl)?.media_type === "VIDEO" ||
+                                                  p.gallery?.[0]?.media_type === "VIDEO" ||
+                                                  (typeof mediaUrl === "string" && (
+                                                    /\.(mp4|webm|ogg|mov|avi)/i.test(mediaUrl) ||
+                                                    mediaUrl.includes("video")
+                                                  ));
+                                                const thumbUrl = p.gallery?.find((g: any) => g.media_url === mediaUrl)?.thumbnail_url || p.gallery?.[0]?.thumbnail_url || p.thumbnail_url || p.thumbnail;
+
+                                                return (
+                                                  <div
+                                                    key={p.id}
+                                                    onClick={() => {
+                                                      if (isSelected) {
+                                                        const copy = [...carouselElements];
+                                                        const card = { ...copy[activeCardIndex] };
+                                                        const btns = [...(card.buttons || [])];
+                                                        btns[bi] = { ...btns[bi], url: '' };
+                                                        card.buttons = btns;
+                                                        copy[activeCardIndex] = card;
+                                                        setCarouselElements(copy);
+                                                      } else {
+                                                        const copy = [...carouselElements];
+                                                        const card = { ...copy[activeCardIndex] };
+                                                        const btns = [...(card.buttons || [])];
+                                                        let newTitle = btn.title || '🛒 Shop';
+                                                        if (!newTitle.includes('{{name}}') && !newTitle.includes('{{price}}')) {
+                                                          newTitle = `{{name}} {{price}}`;
+                                                        }
+                                                        btns[bi] = {
+                                                          ...btns[bi],
+                                                          url: prodUrl,
+                                                          title: newTitle
+                                                        };
+                                                        card.buttons = btns;
+                                                        copy[activeCardIndex] = card;
+                                                        setCarouselElements(copy);
+                                                      }
+                                                    }}
+                                                    className={cn(
+                                                      "flex items-center gap-3 p-2 rounded-xl cursor-pointer transition-all hover:bg-white/5 border text-left",
+                                                      isSelected ? "border-white/30 bg-white/10" : "border-transparent"
+                                                    )}
+                                                  >
+                                                    <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-white/10 overflow-hidden flex items-center justify-center shrink-0">
+                                                      {mediaUrl ? (
+                                                        isVideo && !thumbUrl ? (
+                                                          <video src={mediaUrl} className="w-full h-full object-cover" preload="metadata" muted playsInline />
+                                                        ) : (
+                                                          <img src={thumbUrl || mediaUrl} alt="" className="w-full h-full object-cover animate-fadeIn" />
+                                                        )
+                                                      ) : (
+                                                        <Paperclip className="w-4 h-4 text-zinc-600" />
+                                                      )}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                      <div className="flex justify-between items-start gap-1">
+                                                        <span className="text-[11px] font-bold text-zinc-200 truncate">{p.title || p.name}</span>
+                                                        <span className="text-[10px] font-black text-white shrink-0">{p.price} {p.currency}</span>
+                                                      </div>
+                                                      <p className="text-[9px] text-zinc-500 line-clamp-1 mt-0.5 leading-snug">
+                                                        {p.description || "No description available."}
+                                                      </p>
+                                                    </div>
+                                                    <div className={cn(
+                                                      "w-4 h-4 rounded-full border flex items-center justify-center shrink-0",
+                                                      isSelected ? "border-white bg-white text-black" : "border-zinc-700"
+                                                    )}>
+                                                      {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                                                    </div>
+                                                  </div>
+                                                );
+                                              })
+                                            )}
                                           </div>
                                         )}
                                       </div>
-                                    )}
-                                    <input
-                                      type="text"
-                                      value={btn.url || ''}
-                                      onChange={(e) => updateCarouselButton(activeCardIndex, bi, 'url', e.target.value)}
-                                      placeholder="https://..."
-                                      className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-white/50"
-                                    />
-                                  </div>
-                                ) : (
-                                  <div>
-                                    <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider block mb-1.5">Event Payload ID</label>
-                                    <input
-                                      type="text"
-                                      value={btn.payload || ''}
-                                      onChange={(e) => updateCarouselButton(activeCardIndex, bi, 'payload', e.target.value)}
-                                      placeholder="e.g. TRIGGER_FLOW"
-                                      className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-white/50"
-                                    />
-                                  </div>
-                                )}
-                              </div>
-                            </div>
+                                    );
+                                  })()}
 
-                            <button
-                              onClick={() => removeCarouselButton(activeCardIndex, bi)}
-                              className="absolute bottom-4 right-4 p-2.5 rounded-xl text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-all cursor-pointer"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ))}
+                                  {btn.type === 'postback' && (
+                                    <div>
+                                      <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider block mb-1.5">Event Payload ID</label>
+                                      <input
+                                        type="text"
+                                        value={btn.payload || ''}
+                                        onChange={(e) => updateCarouselButton(activeCardIndex, bi, 'payload', e.target.value)}
+                                        placeholder="e.g. TRIGGER_FLOW"
+                                        className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-white/50"
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              <button
+                                onClick={() => removeCarouselButton(activeCardIndex, bi)}
+                                className="absolute bottom-4 right-4 p-2.5 rounded-xl text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-all cursor-pointer"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>

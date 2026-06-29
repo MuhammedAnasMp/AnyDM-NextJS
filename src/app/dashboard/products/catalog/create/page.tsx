@@ -58,7 +58,7 @@ export default function ProductCreatePage() {
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [originalPrice, setOriginalPrice] = useState("");
-  const [currency, setCurrency] = useState("USD");
+  const [currency, setCurrency] = useState("₹");
   const [category, setCategory] = useState("Apparel");
   const [stock, setStock] = useState("10");
   const [location, setLocation] = useState("");
@@ -149,31 +149,17 @@ export default function ProductCreatePage() {
         }
       } catch (e) { /* ignore parse error */ }
 
-      // Handle Carousel vs Single Media
-      if (
-        mediaTypeParam === "CAROUSEL_ALBUM" &&
-        storedMedia?.children?.data &&
-        storedMedia.children.data.length > 0
-      ) {
-        const carouselItems: MediaItem[] = storedMedia.children.data.map((child: any, index: number) => ({
-          id: `${child.id}_${Date.now()}_${index}`,
-          url: child.media_url || child.thumbnail_url,
-          thumbnail_url: child.thumbnail_url || undefined,
-          type: (child.media_type === "VIDEO" ? "VIDEO" : "IMAGE") as "IMAGE" | "VIDEO",
-          isMain: index === 0
-        }));
-        setMediaList(carouselItems);
-        showToast(`Imported ${carouselItems.length} media items from carousel!`, "success");
+      // Trigger Cloudinary upload immediately
+      if (storedMedia) {
+        handleImportInstagramMedia(storedMedia);
       } else {
-        const resolvedThumbnail = thumbnailUrlParam || storedMedia?.thumbnail_url || undefined;
-        setMediaList([{
-          id: `${mediaIdParam || "ig_imported"}_${Date.now()}`,
-          url: mediaUrlParam,
-          thumbnail_url: resolvedThumbnail,
-          type: (mediaTypeParam === "VIDEO" ? "VIDEO" : "IMAGE") as "IMAGE" | "VIDEO",
-          isMain: true
-        }]);
-        showToast("Instagram media imported successfully!", "success");
+        handleImportInstagramMedia({
+          id: mediaIdParam,
+          media_url: mediaUrlParam,
+          thumbnail_url: thumbnailUrlParam,
+          media_type: mediaTypeParam,
+          caption: captionParam
+        });
       }
     }
   }, [editId, sourceParam]);
@@ -202,7 +188,7 @@ export default function ProductCreatePage() {
       setDescription(product.description || "");
       setPrice(product.price ? product.price.toString() : "");
       setOriginalPrice(product.original_price ? product.original_price.toString() : "");
-      setCurrency(product.currency || "USD");
+      setCurrency(product.currency || "₹");
       setCategory(product.category || "Apparel");
       setStock(product.stock ? product.stock.toString() : "10");
       setLocation(product.location || "");
@@ -277,7 +263,7 @@ export default function ProductCreatePage() {
     const files = e.target.files;
     if (files && files.length > 0) {
       performRealCloudinaryUpload(files[0]);
-      e.target.value = ""; 
+      e.target.value = "";
     }
   };
 
@@ -431,7 +417,7 @@ export default function ProductCreatePage() {
     return data.secure_url;
   };
 
-  const handleImportInstagramMedia = async (item: any) => {
+  async function handleImportInstagramMedia(item: any) {
     setUploading(true);
     setUploadProgress(0);
     try {
@@ -463,7 +449,7 @@ export default function ProductCreatePage() {
           const isVideo = asset.media_type === "VIDEO";
           const fileExt = isVideo ? "mp4" : "jpg";
           const filename = `${asset.id}.${fileExt}`;
-          
+
           const secureUrl = await uploadBlobToCDN(blob, filename);
 
           let thumbnailUrl = undefined;
@@ -479,18 +465,13 @@ export default function ProductCreatePage() {
           });
         } catch (err) {
           console.error(`Failed to upload Instagram asset ${asset.id} to Cloudinary:`, err);
-          let thumbnailUrl = undefined;
-          if (asset.media_type === "VIDEO") {
-            thumbnailUrl = asset.thumbnail_url || asset.url.replace(/\.[^/.]+$/, ".jpg");
-          }
-          uploadedAssets.push({
-            id: asset.id,
-            url: asset.url,
-            thumbnail_url: thumbnailUrl,
-            type: asset.media_type === "VIDEO" ? "VIDEO" : "IMAGE"
-          });
+          // Do not fall back to raw Instagram URL
         }
         setUploadProgress(Math.round(((i + 1) / total) * 100));
+      }
+
+      if (uploadedAssets.length === 0) {
+        throw new Error("Could not upload any Instagram media to Cloudinary.");
       }
 
       setMediaList((prev) => {
@@ -512,15 +493,15 @@ export default function ProductCreatePage() {
         }
       }
 
-      showToast("Instagram media assets added successfully!", "success");
-    } catch (e) {
+      showToast("Instagram media assets uploaded to Cloudinary successfully!", "success");
+    } catch (e: any) {
       console.error("Asset import error:", e);
-      showToast("Failed to process Instagram assets", "error");
+      showToast(e.message || "Failed to upload Instagram assets to Cloudinary", "error");
     } finally {
       setUploading(false);
       setUploadProgress(100);
     }
-  };
+  }
 
   const handleAddCategory = () => {
     if (newCategory.trim() && !categories.includes(newCategory.trim())) {
@@ -632,7 +613,7 @@ export default function ProductCreatePage() {
     let productsList = cached ? JSON.parse(cached) : [];
 
     if (isEditing) {
-      productsList = productsList.map((p: any) => 
+      productsList = productsList.map((p: any) =>
         String(p.id) === String(editId) ? { ...p, ...productPayload, id: editId } : p
       );
     } else {
@@ -646,7 +627,7 @@ export default function ProductCreatePage() {
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       className="max-w-6xl mx-auto text-white pb-16 space-y-6"
@@ -659,19 +640,35 @@ export default function ProductCreatePage() {
             <span className="material-symbols-outlined text-[14px]">chevron_right</span>
             <span className="text-white">{isEditing ? "Edit Product" : "Create Product"}</span>
           </nav>
-          <h2 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+          <h2 className="text-2xl font-bold tracking-tight text-white flex items-center gap-3">
             {isEditing ? `Edit: ${title || "Product"}` : "Create New Product"}
             {!isEditing && productSource === "instagram" && <Sparkles className="w-5 h-5 text-pink-500 animate-pulse" />}
+            {isEditing && instagramPermalink && (
+              <a
+                href={instagramPermalink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1 bg-pink-500/10 border border-pink-500/25 rounded-full text-xs font-bold text-pink-400 hover:bg-pink-500/20 hover:text-pink-300 transition-all active:scale-[0.97]"
+              >
+                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                  <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+                </svg>
+                <span>View Instagram Post</span>
+                <span className="material-symbols-outlined text-[13px]">open_in_new</span>
+              </a>
+            )}
           </h2>
         </div>
         <div className="flex gap-2 text-xs">
-          <button 
+          <button
             onClick={() => router.push("/dashboard/products/catalog")}
             className="px-4 py-2 rounded-lg border border-white/10 text-white font-semibold hover:bg-white/5 transition-all"
           >
             Discard
           </button>
-          <button 
+          <button
             disabled={loading}
             onClick={() => handleSave(status)}
             className="px-4 py-2 rounded-lg bg-white text-black font-bold hover:bg-[#eaeaea] transition-all disabled:opacity-50"
@@ -690,7 +687,7 @@ export default function ProductCreatePage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Column: Primary Details */}
           <div className="lg:col-span-8 space-y-6">
-            
+
             {/* Media Assets Section */}
             <section className="glass-pane rounded-xl p-6 border border-white/10 space-y-4">
               <div className="flex justify-between items-center">
@@ -699,7 +696,18 @@ export default function ProductCreatePage() {
                   <p className="text-[11px] text-gray-500 mt-0.5">Click any image to set it as cover. The first image will be cover by default.</p>
                 </div>
                 <div className="flex gap-2">
-                  <button 
+                  {isEditing && instagramPermalink && (
+                    <a
+                      href={instagramPermalink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-pink-400 bg-pink-500/10 border border-pink-500/20 hover:bg-pink-500/20 px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs font-bold transition-all"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">visibility</span>
+                      <span>View Instagram Source</span>
+                    </a>
+                  )}
+                  <button
                     type="button"
                     onClick={() => setShowInstagramModal(true)}
                     className="text-white bg-white/5 border border-white/10 hover:bg-white/10 px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs font-bold transition-all"
@@ -711,7 +719,7 @@ export default function ProductCreatePage() {
                     </svg>
                     <span>Import Instagram Media</span>
                   </button>
-                  <button 
+                  <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     className="text-white bg-white/5 border border-white/10 hover:bg-white/10 px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs font-bold transition-all"
@@ -719,17 +727,17 @@ export default function ProductCreatePage() {
                     <Plus className="w-3.5 h-3.5" /> Add Asset
                   </button>
                 </div>
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  onChange={handleFileChange} 
-                  className="hidden" 
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  className="hidden"
                   accept="image/*,video/*"
                 />
               </div>
 
               {/* Drag and Drop upload area */}
-              <div 
+              <div
                 onDragEnter={handleDrag}
                 onDragOver={handleDrag}
                 onDragLeave={handleDrag}
@@ -764,7 +772,7 @@ export default function ProductCreatePage() {
               {mediaList.length > 0 && (
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                   {mediaList.map((item, i) => (
-                    <div 
+                    <div
                       key={item.id}
                       onClick={() => setMainMedia(item.id)}
                       className={cn(
@@ -772,29 +780,29 @@ export default function ProductCreatePage() {
                         item.isMain ? "border-white scale-[0.98]" : "border-white/10 hover:border-white/20"
                       )}
                     >
-                      <img 
-                        src={item.thumbnail_url || item.url} 
-                        className="w-full h-full object-cover" 
-                        alt="Product visual" 
+                      <img
+                        src={item.thumbnail_url || item.url}
+                        className="w-full h-full object-cover"
+                        alt="Product visual"
                         onError={(e) => {
                           (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBmaWxsPSIjMWYyOTM3Ij48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIi8+PC9zdmc+';
                         }}
                       />
                       <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                        <button 
+                        <button
                           onClick={(e) => removeMediaItem(item.id, e)}
                           className="p-1 bg-black/60 hover:bg-black/90 text-red-500 rounded-md border border-white/10"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
-                      
+
                       {item.isMain && (
                         <div className="absolute bottom-1.5 left-1.5 bg-white text-black text-[9px] font-bold uppercase px-1.5 py-0.5 rounded shadow">
                           Cover
                         </div>
                       )}
-                      
+
                       <div className="absolute top-1.5 left-1.5 bg-black/50 backdrop-blur-md p-1 rounded border border-white/10 shadow-sm flex items-center justify-center">
                         {item.type === "VIDEO" ? <VideoIcon className="w-3 h-3 text-white" /> : <ImageIcon className="w-3 h-3 text-white" />}
                       </div>
@@ -809,14 +817,14 @@ export default function ProductCreatePage() {
               <div>
                 <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400">Core Details</h3>
               </div>
-              
+
               <div className="space-y-4">
                 <div>
                   <label className="text-xs text-gray-400 block mb-1.5 uppercase tracking-wider font-bold">Product Title</label>
-                  <input 
+                  <input
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    type="text" 
+                    type="text"
                     placeholder="Enter product title..."
                     className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2.5 text-sm focus:border-white/30 focus:ring-0 outline-none transition-all text-white placeholder:text-gray-600"
                   />
@@ -827,10 +835,10 @@ export default function ProductCreatePage() {
                     <label className="text-xs text-gray-400 block mb-1.5 uppercase tracking-wider font-bold">Price</label>
                     <div className="relative">
                       <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
-                      <input 
+                      <input
                         value={price}
                         onChange={(e) => setPrice(e.target.value)}
-                        type="text" 
+                        type="text"
                         placeholder="0.00"
                         className="w-full bg-black/20 border border-white/10 rounded-lg pl-8 pr-4 py-2.5 text-sm focus:border-white/30 focus:ring-0 outline-none transition-all text-white placeholder:text-gray-600"
                       />
@@ -841,10 +849,10 @@ export default function ProductCreatePage() {
                     <label className="text-xs text-gray-400 block mb-1.5 uppercase tracking-wider font-bold">Compare at Price (Original)</label>
                     <div className="relative">
                       <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
-                      <input 
+                      <input
                         value={originalPrice}
                         onChange={(e) => setOriginalPrice(e.target.value)}
-                        type="text" 
+                        type="text"
                         placeholder="0.00"
                         className="w-full bg-black/20 border border-white/10 rounded-lg pl-8 pr-4 py-2.5 text-sm focus:border-white/30 focus:ring-0 outline-none transition-all text-white placeholder:text-gray-600"
                       />
@@ -855,8 +863,8 @@ export default function ProductCreatePage() {
                 <div className="flex items-center justify-between py-1 bg-black/10 px-4 rounded-lg border border-white/5">
                   <span className="text-xs font-semibold text-gray-300">Allow Price Negotiation</span>
                   <label className="relative flex items-center cursor-pointer my-2">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       checked={negotiable}
                       onChange={(e) => setNegotiable(e.target.checked)}
                       className="sr-only peer"
@@ -867,7 +875,7 @@ export default function ProductCreatePage() {
 
                 <div>
                   <label className="text-xs text-gray-400 block mb-1.5 uppercase tracking-wider font-bold">Description</label>
-                  <textarea 
+                  <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="Enter rich descriptions..."
@@ -880,7 +888,7 @@ export default function ProductCreatePage() {
 
           {/* Right Column: Sidebar Metadata */}
           <div className="lg:col-span-4 space-y-6">
-            
+
             {/* Social Context Card */}
             {productSource === "instagram" && (
               <section className="glass-pane rounded-xl p-5 border border-white/10 space-y-3 relative overflow-hidden">
@@ -894,20 +902,20 @@ export default function ProductCreatePage() {
                     <span>INSTAGRAM POST</span>
                   </div>
                 </div>
-                
+
                 <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400">Social Context</h3>
-                
+
                 <div className="rounded-lg overflow-hidden border border-white/5 bg-white/5 group relative aspect-video mt-2">
-                  <img 
-                    className="w-full h-full object-cover opacity-80" 
-                    src={mediaUrlParam || (mediaList[0]?.url)} 
-                    alt="Instagram Post visual" 
+                  <img
+                    className="w-full h-full object-cover opacity-80"
+                    src={mediaUrlParam || (mediaList[0]?.url)}
+                    alt="Instagram Post visual"
                   />
                   <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent flex items-center justify-between text-[10px]">
                     <span className="font-bold text-white flex items-center gap-1">
-                      <img 
-                        src={activeAccount?.profile_picture_url || "https://picsum.photos/seed/elena/100/100"} 
-                        className="w-4 h-4 rounded-full object-cover border border-white/20" 
+                      <img
+                        src={activeAccount?.profile_picture_url || "https://picsum.photos/seed/elena/100/100"}
+                        className="w-4 h-4 rounded-full object-cover border border-white/20"
                         alt="Profile avatar"
                       />
                       @{activeAccount?.username || "instagram_feed"}
@@ -921,9 +929,9 @@ export default function ProductCreatePage() {
                   </p>
                 )}
                 {mediaIdParam && (
-                  <a 
+                  <a
                     href={`https://instagram.com/p/${mediaIdParam}`}
-                    target="_blank" 
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center justify-center gap-1.5 w-full py-1.5 border border-white/10 rounded-lg text-xs font-bold text-white hover:bg-white/5 transition-all mt-2"
                   >
@@ -937,11 +945,11 @@ export default function ProductCreatePage() {
             {/* Inventory Management Card */}
             <section className="glass-pane rounded-xl p-5 border border-white/10 space-y-4">
               <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400">Inventory & Details</h3>
-              
+
               <div className="space-y-3.5">
                 <div>
                   <label className="text-[10px] text-gray-500 uppercase tracking-widest font-bold block mb-1">Status</label>
-                  <select 
+                  <select
                     value={status}
                     onChange={(e) => setStatus(e.target.value as any)}
                     className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-xs focus:border-white/30 focus:ring-0 outline-none text-white cursor-pointer"
@@ -955,7 +963,7 @@ export default function ProductCreatePage() {
                   <label className="text-[10px] text-gray-500 uppercase tracking-widest font-bold block mb-1">Category</label>
                   {!isAddingCategory ? (
                     <div className="flex gap-2">
-                      <select 
+                      <select
                         value={category}
                         onChange={(e) => setCategory(e.target.value)}
                         className="flex-1 bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-xs focus:border-white/30 focus:ring-0 outline-none text-white cursor-pointer"
@@ -964,7 +972,7 @@ export default function ProductCreatePage() {
                           <option key={cat} value={cat} className="bg-[#1c1b1b] text-white">{cat}</option>
                         ))}
                       </select>
-                      <button 
+                      <button
                         onClick={() => setIsAddingCategory(true)}
                         className="p-2 border border-white/10 rounded-lg bg-white/5 text-gray-400 hover:text-white transition-colors"
                       >
@@ -973,20 +981,20 @@ export default function ProductCreatePage() {
                     </div>
                   ) : (
                     <div className="flex gap-2">
-                      <input 
+                      <input
                         value={newCategory}
                         onChange={(e) => setNewCategory(e.target.value)}
                         placeholder="Add category..."
                         type="text"
                         className="flex-1 bg-black/20 border border-white/10 rounded-lg px-3 py-1.5 text-xs focus:border-white/30 focus:ring-0 outline-none text-white"
                       />
-                      <button 
+                      <button
                         onClick={handleAddCategory}
                         className="p-1.5 bg-white text-black rounded-lg hover:bg-[#eaeaea]"
                       >
                         <Check className="w-3.5 h-3.5" />
                       </button>
-                      <button 
+                      <button
                         onClick={() => setIsAddingCategory(false)}
                         className="p-1.5 border border-white/10 text-gray-400 rounded-lg hover:text-white"
                       >
@@ -998,10 +1006,10 @@ export default function ProductCreatePage() {
 
                 <div>
                   <label className="text-[10px] text-gray-500 uppercase tracking-widest font-bold block mb-1">Stock Quantity</label>
-                  <input 
+                  <input
                     value={stock}
                     onChange={(e) => setStock(e.target.value)}
-                    type="number" 
+                    type="number"
                     placeholder="10"
                     className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-xs focus:border-white/30 focus:ring-0 outline-none text-white placeholder:text-gray-600"
                   />
@@ -1009,10 +1017,10 @@ export default function ProductCreatePage() {
 
                 <div>
                   <label className="text-[10px] text-gray-500 uppercase tracking-widest font-bold block mb-1">Physical Location</label>
-                  <input 
+                  <input
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
-                    type="text" 
+                    type="text"
                     placeholder="e.g. Mumbai, IN"
                     className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-xs focus:border-white/30 focus:ring-0 outline-none text-white placeholder:text-gray-600"
                   />
@@ -1024,12 +1032,12 @@ export default function ProductCreatePage() {
                 <label className="text-[10px] text-gray-500 uppercase tracking-widest font-bold block">Active Variants</label>
                 <div className="flex flex-wrap gap-1.5">
                   {variants.map(v => (
-                    <span 
+                    <span
                       key={v}
                       className="px-2.5 py-0.5 bg-white/5 rounded-full text-[10px] font-semibold border border-white/10 flex items-center gap-1 group text-gray-300"
                     >
                       {v}
-                      <button 
+                      <button
                         onClick={() => handleRemoveVariant(v)}
                         className="p-0.5 text-gray-500 hover:text-white hover:bg-white/5 rounded-full"
                       >
@@ -1038,16 +1046,16 @@ export default function ProductCreatePage() {
                     </span>
                   ))}
                 </div>
-                
+
                 <div className="flex gap-2 pt-1">
-                  <input 
+                  <input
                     value={newVariant}
                     onChange={(e) => setNewVariant(e.target.value)}
                     placeholder="New variant (e.g. Red, XL)..."
                     type="text"
                     className="flex-1 bg-black/20 border border-white/10 rounded-lg px-3 py-1.5 text-xs focus:border-white/30 focus:ring-0 outline-none text-white"
                   />
-                  <button 
+                  <button
                     onClick={handleAddVariant}
                     className="px-3 bg-white text-black font-bold text-xs rounded-lg hover:bg-[#eaeaea]"
                   >
@@ -1061,7 +1069,7 @@ export default function ProductCreatePage() {
             <section className="glass-pane rounded-xl p-5 border border-white/10 space-y-4">
               <div className="flex justify-between items-center">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400">Technical Details</h3>
-                <button 
+                <button
                   onClick={() => setMetadata([...metadata, { key: "", value: "" }])}
                   className="text-white bg-white/5 hover:bg-white/10 px-2.5 py-1 rounded border border-white/10 text-[10px] font-bold"
                 >
@@ -1072,7 +1080,7 @@ export default function ProductCreatePage() {
               <div className="space-y-2">
                 {metadata.map((item, i) => (
                   <div key={i} className="flex gap-2 items-center">
-                    <input 
+                    <input
                       value={item.key}
                       onChange={(e) => {
                         const updated = [...metadata];
@@ -1082,7 +1090,7 @@ export default function ProductCreatePage() {
                       placeholder="Specification (e.g. Size)"
                       className="flex-1 bg-black/20 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white"
                     />
-                    <input 
+                    <input
                       value={item.value}
                       onChange={(e) => {
                         const updated = [...metadata];
@@ -1092,7 +1100,7 @@ export default function ProductCreatePage() {
                       placeholder="Value (e.g. 10x20 inches)"
                       className="flex-1 bg-black/20 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white"
                     />
-                    <button 
+                    <button
                       onClick={() => setMetadata(metadata.filter((_, idx) => idx !== i))}
                       className="p-1.5 border border-white/10 hover:bg-white/5 text-red-500 rounded-lg"
                     >
@@ -1110,14 +1118,14 @@ export default function ProductCreatePage() {
       )}
 
       {/* Instagram Selector Modal */}
-      <InstagramImportModal 
+      <InstagramImportModal
         isOpen={showInstagramModal}
         onClose={() => setShowInstagramModal(false)}
         onSelectImport={handleImportInstagramMedia}
       />
 
       {/* Toast Messages */}
-      <Toast 
+      <Toast
         message={toastMessage}
         type={toastType}
         isVisible={toastVisible}

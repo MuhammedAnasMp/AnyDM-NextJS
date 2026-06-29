@@ -43,8 +43,6 @@ const ACTION_FIELDS = (hasReplyComment: boolean): NodeFieldDefinition[] => [
       { label: 'Attachments', value: 'attachment' }
     ], dependsOn: { field: 'action_type', value: 'send_dm' }
   },
-  { name: 'rate_limit_limit', label: 'Rate Limit Count', type: 'number', placeholder: '1' },
-  { name: 'rate_limit_window_seconds', label: 'Rate Limit Window (Seconds)', type: 'number', placeholder: '86400' },
   { name: 'quick_reply_text', label: 'Quick Reply Text Header', type: 'text', placeholder: 'Pick size:', dependsOn: { field: 'dm_format', value: 'quick_reply' } },
   { name: 'quick_replies_titles', label: 'Quick Reply Pill Titles', type: 'keywords', placeholder: 'XS, S, M', dependsOn: { field: 'dm_format', value: 'quick_reply' } },
   { name: 'button_template_text', label: 'Button Header Text', type: 'text', placeholder: 'What do you want to do?', dependsOn: { field: 'dm_format', value: 'button_template' } },

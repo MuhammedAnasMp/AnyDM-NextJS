@@ -108,6 +108,13 @@ export function CanvasNode({ id }: { id: string }) {
             }
             CustomIcon = Send;
             customTitle = 'Send Direct Message';
+
+            // Special theming for Trigger Event Reply nodes
+            if (node.data?.parent_event) {
+                customPill = 'EVENT REPLY';
+                customPillColor = 'bg-[#8FE3FF] text-[#0a3240] leading-none font-bold';
+                customTitle = `Reply: ${node.data.parent_label || 'Event'}`;
+            }
         } else if (node.data?.action_type === 'reply_story') {
             customPill = 'REPLY STORY';
             CustomIcon = MessageSquare;
@@ -326,6 +333,8 @@ export function CanvasNode({ id }: { id: string }) {
         }
     }
 
+    const isEventReply = node.type === 'action' && !!node.data?.parent_event;
+
     return (
         <motion.div
             id={node.id}
@@ -363,8 +372,13 @@ export function CanvasNode({ id }: { id: string }) {
             }}
             className={cn(
                 "absolute flex flex-col w-[320px] rounded-[1.25rem] border-[1px] cursor-pointer shadow-2xl pointer-events-auto transition-colors",
-                "backdrop-blur-[20px] bg-[#1c1b1b]/60 border-white/10",
-                isSelected ? "ring-2 ring-white/20 border-white/30" : "hover:border-white/20 hover:bg-[#1c1b1b]/70"
+                "backdrop-blur-[20px] bg-[#1c1b1b]/60",
+                isEventReply 
+                    ? "border-[#8FE3FF]/20 hover:border-[#8FE3FF]/40" 
+                    : "border-white/10 hover:border-white/20",
+                isSelected 
+                    ? (isEventReply ? "ring-2 ring-[#8FE3FF]/20 border-[#8FE3FF]/40" : "ring-2 ring-white/20 border-white/30") 
+                    : "hover:bg-[#1c1b1b]/70"
             )}
         >
             {node.type === 'action' && (
@@ -385,10 +399,15 @@ export function CanvasNode({ id }: { id: string }) {
                 </button>
             )}
             {/* Overlapping Pill */}
-            <div className="absolute -top-3 left-4 flex">
+            <div className="absolute -top-3 left-4 flex gap-2">
                 <span className={cn("px-3 py-1.5 rounded-full text-[10px] tracking-widest leading-none outline outline-[#131313] outline-[4px]", customPillColor)}>
                     {customPill}
                 </span>
+                {node.data?.parent_event && (
+                    <span className="px-3 py-1.5 rounded-full text-[9px] font-black bg-[#8FE3FF]/15 border border-[#8FE3FF]/30 text-[#8FE3FF] outline outline-[#131313] outline-[4px] uppercase tracking-wider">
+                        Event: {node.data?.parent_label || 'Trigger'}
+                    </span>
+                )}
             </div>
 
             <div className="p-5 pt-8">
@@ -457,16 +476,22 @@ export function CanvasNode({ id }: { id: string }) {
                                 </span>
                             </div>
                             <p className="text-xs text-[#e5e2e1] leading-relaxed">
-                                Keywords: {(() => {
-                                    const kws = node.data?.match_type === 'equals' ? node.data?.keywords_equals : node.data?.keywords;
-                                    return kws?.length > 0 ? (
-                                        <span className="font-mono text-[10px] bg-[#222] px-1.5 py-0.5 rounded-sm line-clamp-2 mt-1 block">
-                                            [{kws.join(', ')}]
-                                        </span>
-                                    ) : (
-                                        <span className="italic text-xs text-[#c4c7c8]">— any comment —</span>
-                                    );
-                                })()}
+                                {node.data?.match_type === 'any' ? (
+                                    <span className="italic text-xs text-[#c4c7c8]">— any message —</span>
+                                ) : (
+                                    <>
+                                        Keywords: {(() => {
+                                            const kws = node.data?.match_type === 'equals' ? node.data?.keywords_equals : node.data?.keywords;
+                                            return kws?.length > 0 ? (
+                                                <span className="font-mono text-[10px] bg-[#222] px-1.5 py-0.5 rounded-sm line-clamp-2 mt-1 block">
+                                                    [{kws.join(', ')}]
+                                                </span>
+                                            ) : (
+                                                <span className="italic text-xs text-[#c4c7c8]">— any message —</span>
+                                            );
+                                        })()}
+                                    </>
+                                )}
                             </p>
                         </div>
 
@@ -846,16 +871,23 @@ export function CanvasEdges() {
                     key={edge.id}
                     start={edge.source}
                     end={edge.target}
-                    color="#666"
+                    color={edge.label ? '#8FE3FF' : '#666'}
                     strokeWidth={2 * scale}
                     path="smooth"
                     showHead={true}
                     headSize={4}
-                    headColor="#8e9192"
+                    headColor={edge.label ? '#8FE3FF' : '#8e9192'}
                     headShape="arrow1"
                     curveness={0.5}
                     startAnchor="right"
                     endAnchor="left"
+                    labels={edge.label ? {
+                        middle: (
+                            <div className="px-2.5 py-1 rounded-lg bg-[#161622] border border-[#8FE3FF]/30 text-[#8FE3FF] text-[10px] font-bold whitespace-nowrap backdrop-blur-sm shadow-2xl">
+                                {edge.label}
+                            </div>
+                        )
+                    } : undefined}
                 />
             ))}
             {selectedNodeId && selectedNodeId !== 'global' && (
