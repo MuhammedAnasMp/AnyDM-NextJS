@@ -24,7 +24,7 @@ interface InstagramMediaPickerProps {
 }
 
 const INSTAGRAM_TOKEN = 'IGAAUrAi9uIGRBZAFlQVjFrNHNLWlhmTUl4eTl2ZADFFZA2k4TjNlSmJvUXpqY0pWT0RGSDN5YWphUFMxRG5ZAR2lkT3JJSm1PNm0waE9CcHB2SFJBSGhySjRneGNjRlpqZAW9RaWZAiUU11OVRwNmxXb2p6cEVJVE9mU0hZAS2xuNlJ4dwZDZD';
-const INSTAGRAM_USER_ID = '24907175292313781';
+const INSTAGRAM_USER_ID = '27078812251731733';
 
 const InstagramIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -73,7 +73,7 @@ export function InstagramMediaPicker({ open, onClose, onSelect, selectedIds = []
             permalink: item.permalink,
             caption: item.caption
           }));
-          
+
           setMedia(prev => {
             if (!url) return formatted;
             const existingIds = new Set(prev.map(item => item.id));
@@ -144,8 +144,10 @@ export function InstagramMediaPicker({ open, onClose, onSelect, selectedIds = []
   }, [open, fetchMedia]);
 
   useEffect(() => {
-    setCurrentSelected(new Set(selectedIds));
-  }, [selectedIds, open]);
+    if (open) {
+      setCurrentSelected(new Set(selectedIds));
+    }
+  }, [open]);
 
   const lastElementRef = useCallback((node: HTMLDivElement) => {
     if (loading) return;

@@ -6,8 +6,72 @@ import { useSelector } from "react-redux";
 import { RootState } from "@/store";
 import api from "@/lib/services/api.service";
 import { cn } from "@/lib/utils";
+import { useSearchParams } from "next/navigation";
+
+const PlayableVideoAttachment = ({ url }: { url: string }) => {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  const handlePlayClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        videoRef.current.play();
+        setIsPlaying(true);
+      }
+    }
+  };
+
+  return (
+    <div className="relative group w-full h-full">
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block hover:opacity-95 transition-opacity relative"
+      >
+        <video
+          ref={videoRef}
+          src={url}
+          loop
+          muted
+          playsInline
+          className="w-full h-auto max-h-56 object-cover"
+        />
+        {!isPlaying && (
+          <div 
+            onClick={handlePlayClick}
+            className="absolute inset-0 flex items-center justify-center bg-black/25 hover:bg-black/35 transition-all cursor-pointer"
+          >
+            <div className="w-10 h-10 rounded-full bg-black/60 border border-white/10 flex items-center justify-center text-white shadow-lg hover:scale-105 transition-transform">
+              <span className="material-symbols-outlined text-2xl">play_arrow</span>
+            </div>
+          </div>
+        )}
+        {isPlaying && (
+          <div 
+            onClick={handlePlayClick}
+            className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 border border-white/10 flex items-center justify-center text-white cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <span className="material-symbols-outlined text-sm">pause</span>
+          </div>
+        )}
+      </a>
+    </div>
+  );
+};
 
 export default function InboxPage() {
+  const searchParams = useSearchParams();
+  const recipientIdParam = searchParams.get("recipient_id");
+  const usernameParam = searchParams.get("username");
+  const nameParam = searchParams.get("name");
+  const avatarParam = searchParams.get("avatar");
+
   const [activeFilter, setActiveFilter] = useState("Primary");
   const [showChatOnMobile, setShowChatOnMobile] = useState(false);
   const [conversations, setConversations] = useState<any[]>([]);
@@ -16,6 +80,21 @@ export default function InboxPage() {
   const [businessInfo, setBusinessInfo] = useState<{ username: string; id: string } | null>(null);
   const [enquiries, setEnquiries] = useState<any[]>([]);
   const [loadingEnquiries, setLoadingEnquiries] = useState(false);
+  const [globalAIOn, setGlobalAIOn] = useState(false);
+
+  useEffect(() => {
+    const fetchGlobalAIStatus = async () => {
+      try {
+        const res = await api.get("/crm/ai-settings/");
+        if (res.data) {
+          setGlobalAIOn(res.data.is_ai_mode_on);
+        }
+      } catch (err) {
+        console.error("Error loading global AI status:", err);
+      }
+    };
+    fetchGlobalAIStatus();
+  }, []);
 
   // Outbound sending states
   const [inputText, setInputText] = useState("");
@@ -77,6 +156,39 @@ export default function InboxPage() {
     fetchProducts();
   }, []);
 
+  useEffect(() => {
+    if (recipientIdParam && conversations.length > 0) {
+      const existing = conversations.find((c: any) => c.recipient_id === recipientIdParam);
+      if (existing) {
+        if (!selectedConversation || selectedConversation.recipient_id !== recipientIdParam) {
+          setSelectedConversation(existing);
+        }
+      } else {
+        const decodedAvatar = avatarParam ? decodeURIComponent(avatarParam) : "";
+        const tempConv = {
+          id: `temp_${recipientIdParam}`,
+          name: usernameParam || nameParam || "Instagram User",
+          recipient_id: recipientIdParam,
+          time: "Now",
+          text: "No messages yet",
+          avatar: decodedAvatar || `https://ui-avatars.com/api/?name=${usernameParam || 'User'}&background=random&color=fff`,
+          badge: 0,
+          status: "Active",
+          is_within_24h_window: true
+        };
+
+        setConversations(prev => {
+          if (prev.some((c: any) => c.recipient_id === recipientIdParam)) return prev;
+          return [tempConv, ...prev];
+        });
+
+        if (!selectedConversation || selectedConversation.recipient_id !== recipientIdParam) {
+          setSelectedConversation(tempConv);
+        }
+      }
+    }
+  }, [recipientIdParam, usernameParam, nameParam, avatarParam, conversations.length]);
+
 
   const instagramAccounts = useSelector((state: RootState) => state.auth.instagramAccounts);
   const appUser = useSelector((state: RootState) => state.auth.user);
@@ -84,15 +196,33 @@ export default function InboxPage() {
     (acc: any) => acc.id === appUser?.active_instagram_account_id
   ) || instagramAccounts[0];
 
+  const prevAccountUsernameRef = useRef<string | undefined>(undefined);
+
   useEffect(() => {
-    setSelectedConversation(null); // Close the current chat when switching accounts
+    if (prevAccountUsernameRef.current && prevAccountUsernameRef.current !== activeAccount?.username) {
+      setSelectedConversation(null); // Close the current chat when switching accounts
+    }
+    prevAccountUsernameRef.current = activeAccount?.username;
     fetchConversations();
   }, [activeAccount?.username]);
 
-  const fetchConversations = async () => {
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchConversations(true);
+      if (selectedConversationIdRef.current) {
+        fetchMessages(selectedConversationIdRef.current, null, true);
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchConversations = async (silent = false) => {
     try {
-      setLoading(true);
-      const res = await api.get("/crm/conversations/");
+      if (!silent) setLoading(true);
+      const res = await api.get("/crm/conversations/", {
+        headers: { "x-bypass-cache": "true" }
+      });
 
       const busUsername = res.data.business_username;
       const busId = res.data.business_id;
@@ -144,23 +274,29 @@ export default function InboxPage() {
             badge: 0,
             status: "Active",
             updated_time: c.updated_time,
-            is_within_24h_window: c.is_within_24h_window
+            is_within_24h_window: c.is_within_24h_window,
+            is_ai_enabled: c.is_ai_enabled !== false
           };
         });
 
         // Sort by updated_time descending (newest messages first)
         mapped.sort((a: any, b: any) => new Date(b.updated_time || 0).getTime() - new Date(a.updated_time || 0).getTime());
 
+        if (selectedConversationIdRef.current?.startsWith("temp_")) {
+          const tempConv = selectedConversation;
+          const realConv = mapped.find((c: any) => c.recipient_id === tempConv.recipient_id);
+          if (realConv) {
+            setSelectedConversation(realConv);
+          }
+        }
+
         setConversations(mapped);
-        setSelectedConversation(null); // Keep chat closed on account change
       } else {
         setConversations([]);
-        setSelectedConversation(null);
       }
     } catch (err) {
       console.error("Error fetching conversations:", err);
       setConversations([]);
-      setSelectedConversation(null);
     } finally {
       setLoading(false);
     }
@@ -212,7 +348,14 @@ export default function InboxPage() {
     }
   }, [messages]);
 
-  const fetchMessages = async (conversationId: string, cursor: string | null = null) => {
+  const fetchMessages = async (conversationId: string, cursor: string | null = null, silent = false) => {
+    if (conversationId.startsWith("temp_")) {
+      setMessages([]);
+      setNextCursor(null);
+      setHasMore(false);
+      setLoadingMessages(false);
+      return;
+    }
     const lockKey = `${conversationId}-${cursor || 'initial'}`;
     if (activeRequestsRef.current[lockKey]) {
       return;
@@ -220,7 +363,7 @@ export default function InboxPage() {
     activeRequestsRef.current[lockKey] = true;
 
     try {
-      if (!cursor) {
+      if (!cursor && !silent) {
         if (!chatCache[conversationId]) {
           setLoadingMessages(true);
         }
@@ -230,7 +373,9 @@ export default function InboxPage() {
         ? `/crm/conversations/${conversationId}/messages/?after=${cursor}`
         : `/crm/conversations/${conversationId}/messages/`;
 
-      const res = await api.get(url);
+      const res = await api.get(url, {
+        headers: { "x-bypass-cache": "true" }
+      });
       if (res.data.messages) {
         const mapped = res.data.messages.map((m: any) => {
           const isSelf = businessInfo?.username
@@ -266,7 +411,7 @@ export default function InboxPage() {
           const existingMessages = cursor && prevCache[conversationId] ? prevCache[conversationId].messages : [];
           const combined = cursor ? [...mapped, ...existingMessages] : mapped;
           const seen = new Set();
-          const unique = combined.filter((msg) => {
+          const unique = combined.filter((msg: any) => {
             const key = msg.id || `${msg.created_time}-${msg.text}`;
             if (seen.has(key)) return false;
             seen.add(key);
@@ -308,7 +453,7 @@ export default function InboxPage() {
           // Client-side 24h window check fallback
           const lastMessage = mapped[mapped.length - 1];
           const isLastMessageFromCustomer = lastMessage && !lastMessage.isSelf;
-          const hasInboundIn24h = mapped.some(m => {
+          const hasInboundIn24h = mapped.some((m: any) => {
             if (m.isSelf) return false;
             if (!m.created_time) return false;
             const diffMs = new Date().getTime() - new Date(m.created_time).getTime();
@@ -381,9 +526,29 @@ export default function InboxPage() {
         recipient_id: selectedConversation.recipient_id,
         message: messagePayload
       };
-      await api.post(`/crm/conversations/${selectedConversation.id}/send/`, payload);
-      // Refresh messages to show the new message
-      fetchMessages(selectedConversation.id);
+      
+      const isTemp = selectedConversation.id.startsWith("temp_");
+      const url = isTemp
+        ? `/crm/conversations/new/send/`
+        : `/crm/conversations/${selectedConversation.id}/send/`;
+
+      const res = await api.post(url, payload);
+      
+      const localMsg = {
+        id: res.data.message_id || `local_${Date.now()}`,
+        sender: "You",
+        text: messagePayload.text || "[Template Message]",
+        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        isSelf: true,
+        isAi: false,
+        avatar: `https://ui-avatars.com/api/?name=Admin&background=000&color=fff`,
+        created_time: new Date().toISOString(),
+        attachments: messagePayload.attachment ? { data: [messagePayload.attachment] } : null
+      };
+
+      setMessages((prev) => [...prev, localMsg]);
+
+      await fetchConversations();
     } catch (err) {
       console.error("Error sending message:", err);
       alert("Failed to send message.");
@@ -607,9 +772,41 @@ export default function InboxPage() {
               expand_more
             </span>
           </div>
-          <button className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 transition-all">
-            <span className="material-symbols-outlined text-lg">edit_square</span>
-          </button>
+          <div className="flex gap-2">
+            <button 
+              onClick={() => {
+                fetchConversations();
+                if (selectedConversation) {
+                  fetchMessages(selectedConversation.id);
+                }
+              }}
+              disabled={loading}
+              className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Refresh conversations"
+            >
+              <span className={`material-symbols-outlined text-base ${loading ? 'animate-spin' : ''}`}>refresh</span>
+            </button>
+            <button className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 transition-all">
+              <span className="material-symbols-outlined text-lg">edit_square</span>
+            </button>
+          </div>
+        </div>
+
+        {/* AI Support Status Banner Hint */}
+        <div className="px-6 py-2.5 bg-white/[0.01] border-b border-white/5 flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <span className={`material-symbols-outlined text-[14px] ${globalAIOn ? "text-[#B6B2FF] animate-pulse" : "text-white/30"}`}>
+              psychology
+            </span>
+            <span className="text-[9px] font-bold text-white/50 uppercase tracking-wider">
+              AI Autopilot
+            </span>
+          </div>
+          <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
+            globalAIOn ? "text-[#B6B2FF] bg-[#B6B2FF]/10 border border-[#B6B2FF]/10" : "text-white/40 bg-white/5 border border-white/5"
+          }`}>
+            {globalAIOn ? "ON" : "OFF"}
+          </span>
         </div>
 
         {/* Instagram Tabs */}
@@ -699,7 +896,12 @@ export default function InboxPage() {
                   </div>
                   <div className="flex-grow min-w-0">
                     <div className="flex justify-between items-baseline mb-0.5">
-                      <h3 className="font-semibold text-xs text-white truncate">{item.name}</h3>
+                      <div className="flex items-center gap-1 min-w-0">
+                        <h3 className="font-semibold text-xs text-white truncate">{item.name}</h3>
+                        {globalAIOn && item.is_ai_enabled !== false && (
+                          <span className="material-symbols-outlined text-[13px] text-[#B6B2FF] shrink-0 animate-pulse" title="AI Support Active">psychology</span>
+                        )}
+                      </div>
                       <span className="text-[9px] text-white/30 font-medium shrink-0">{item.time}</span>
                     </div>
                     <p className={cn(
@@ -757,7 +959,39 @@ export default function InboxPage() {
                 </div>
               </div>
               
-              <div className="flex gap-2 text-white">
+              <div className="flex gap-2 items-center text-white">
+                {/* Specific Chat AI Toggle */}
+                {globalAIOn && (
+                  <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 px-2.5 py-1 rounded-lg mr-1 text-[9px] font-bold text-white/70">
+                    <span className="material-symbols-outlined text-[13px] text-[#B6B2FF] shrink-0">psychology</span>
+                    <span className="uppercase tracking-wider">AI Mode</span>
+                    <input
+                      type="checkbox"
+                      checked={selectedConversation.is_ai_enabled !== false}
+                      onChange={async (e) => {
+                        const updatedVal = e.target.checked;
+                        setSelectedConversation(prev => prev ? { ...prev, is_ai_enabled: updatedVal } : null);
+                        setConversations(prev => prev.map(c => c.id === selectedConversation.id ? { ...c, is_ai_enabled: updatedVal } : c));
+                        try {
+                          const recipientId = selectedConversation.recipient_id;
+                          await api.post(`/crm/customers/${recipientId}/toggle-ai/`, { is_ai_enabled: updatedVal });
+                        } catch (err) {
+                          console.error("Failed to toggle AI mode for customer:", err);
+                        }
+                      }}
+                      className="w-7 h-4 bg-white/10 rounded-full accent-white cursor-pointer ml-1"
+                    />
+                  </div>
+                )}
+
+                <button 
+                  onClick={() => fetchMessages(selectedConversation.id)}
+                  disabled={loadingMessages}
+                  className="w-8 h-8 rounded-lg bg-white/5 border border-white/5 hover:border-white/10 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Refresh chat messages"
+                >
+                  <span className={`material-symbols-outlined text-lg ${loadingMessages ? 'animate-spin' : ''}`}>refresh</span>
+                </button>
                 <button className="w-8 h-8 rounded-lg bg-white/5 border border-white/5 hover:border-white/10 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-all">
                   <span className="material-symbols-outlined text-lg">call</span>
                 </button>
@@ -896,6 +1130,7 @@ export default function InboxPage() {
                                       src={att.image_data.preview_url || att.image_data.url}
                                       alt="Instagram Attachment"
                                       className="w-full h-auto max-h-56 object-cover"
+                                      referrerPolicy="no-referrer"
                                     />
                                   </a>
                                 </div>
@@ -909,11 +1144,7 @@ export default function InboxPage() {
                                   key={aIdx}
                                   className="bg-white/[0.02] border border-white/10 rounded-2xl overflow-hidden max-w-xs shrink-0 shadow-lg text-left snap-start"
                                 >
-                                  <video
-                                    src={att.video_data.url}
-                                    controls
-                                    className="w-full h-auto max-h-56 object-cover"
-                                  />
+                                  <PlayableVideoAttachment url={att.video_data.url} />
                                 </div>
                               );
                             }

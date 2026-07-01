@@ -32,13 +32,13 @@ const screenshotFlow: FlowState = {
       id: 'n_action1',
       type: 'action',
       position: { x: 900, y: 80 },
-      data: { isPrimary: false, action_label: "ACTION 1", is_placeholder: true }
+      data: { isPrimary: false, action_label: "ACTION 1", is_placeholder: true, action_type: 'reply_comment' }
     },
     {
       id: 'n_action2',
       type: 'action',
       position: { x: 900, y: 280 },
-      data: { isPrimary: true, action_label: "PRIMARY ACTION", is_placeholder: true }
+      data: { isPrimary: true, action_label: "PRIMARY ACTION", is_placeholder: true, action_type: 'send_dm' }
     }
   ],
   edges: [

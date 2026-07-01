@@ -3,10 +3,10 @@
 import * as React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store';
-import { updateNodePosition, selectNode, updateNodeData, removeNode } from '@/store/slices/flowSlice';
+import { updateNodePosition, selectNode, updateNodeData, removeNode, resetToPlaceholder } from '@/store/slices/flowSlice';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { MessageSquare, Filter, Send, AtSign, Plus, Trophy, Gift, Sparkles, Clock, ChevronDown, Paperclip, X } from 'lucide-react';
+import { MessageSquare, Filter, Send, AtSign, Plus, Trophy, Gift, Sparkles, Clock, ChevronDown, Paperclip, X, Film, Headphones, Share2, Heart, Image as ImageIcon } from 'lucide-react';
 import Xarrow, { useXarrow } from 'react-xarrows';
 import { useCanvas } from './CanvasContext';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/Tooltip';
@@ -82,7 +82,7 @@ export function CanvasNode({ id }: { id: string }) {
     const incomingEdge = edges.find(e => e.target === node.id);
     const parentNode = incomingEdge ? nodes.find(n => n.id === incomingEdge.source) : null;
     const isParentCondition = parentNode?.type === 'condition';
-    
+
     let actionCount = 0;
     if (isParentCondition && parentNode) {
         const siblingEdges = edges.filter(e => e.source === parentNode.id);
@@ -132,7 +132,7 @@ export function CanvasNode({ id }: { id: string }) {
 
     if (node.type === 'action' && node.data?.is_placeholder) {
         const isSendDM = node.data.action_type === 'send_dm';
-        
+
         // ONLY ONE output wireframe -> show direct card (bypass placeholder rendering)
         if (actionCount <= 1) {
             if (isSendDM) {
@@ -237,9 +237,19 @@ export function CanvasNode({ id }: { id: string }) {
                     animate={{ x: node.position.x * scale + pan.x, y: node.position.y * scale + pan.y, scale }}
                     transition={{ duration: 0 }}
                     style={{ transformOrigin: '0 0', zIndex: isSelected ? 20 : 1 }}
-                    className="absolute flex items-center gap-2 z-20 pointer-events-auto"
+                    className="absolute flex items-center gap-2 z-20 pointer-events-auto animate-fadeIn"
                     ref={isSendDM ? formatMenuRef : undefined}
                 >
+                    {/* Wireframe type label before the plus icon */}
+                    <span className={cn(
+                        "text-[9px] font-extrabold px-2.5 py-1 rounded-md uppercase tracking-wider border backdrop-blur-md shadow-lg select-none shrink-0",
+                        isSendDM
+                            ? "bg-[#B5D4F4]/15 border-[#B5D4F4]/30 text-[#89bdf0]"
+                            : "bg-[#CECBF6]/15 border-[#CECBF6]/30 text-[#9b94e3]"
+                    )}>
+                        {isSendDM ? "Reply DM" : "Reply Comment"}
+                    </span>
+
                     <TooltipProvider>
                         <Tooltip delayDuration={300}>
                             <TooltipTrigger asChild>
@@ -373,11 +383,11 @@ export function CanvasNode({ id }: { id: string }) {
             className={cn(
                 "absolute flex flex-col w-[320px] rounded-[1.25rem] border-[1px] cursor-pointer shadow-2xl pointer-events-auto transition-colors",
                 "backdrop-blur-[20px] bg-[#1c1b1b]/60",
-                isEventReply 
-                    ? "border-[#8FE3FF]/20 hover:border-[#8FE3FF]/40" 
+                isEventReply
+                    ? "border-[#8FE3FF]/20 hover:border-[#8FE3FF]/40"
                     : "border-white/10 hover:border-white/20",
-                isSelected 
-                    ? (isEventReply ? "ring-2 ring-[#8FE3FF]/20 border-[#8FE3FF]/40" : "ring-2 ring-white/20 border-white/30") 
+                isSelected
+                    ? (isEventReply ? "ring-2 ring-[#8FE3FF]/20 border-[#8FE3FF]/40" : "ring-2 ring-white/20 border-white/30")
                     : "hover:bg-[#1c1b1b]/70"
             )}
         >
@@ -386,8 +396,7 @@ export function CanvasNode({ id }: { id: string }) {
                     type="button"
                     onClick={(e) => {
                         e.stopPropagation();
-                        dispatch(updateNodeData({ id: node.id, key: 'is_placeholder', value: true }));
-                        dispatch(updateNodeData({ id: node.id, key: 'dm_format', value: undefined }));
+                        dispatch(resetToPlaceholder(node.id));
                         setTimeout(() => {
                             window.dispatchEvent(new CustomEvent('update-xarrow'));
                         }, 50);
@@ -666,9 +675,13 @@ export function CanvasNode({ id }: { id: string }) {
                                         <span className="text-[11px] font-bold text-white truncate text-left">{firstElem.title || 'Slide Title'}</span>
                                         <span className="text-[9px] text-zinc-400 mt-0.5 truncate text-left">{firstElem.subtitle || 'Slide Description'}</span>
                                     </div>
-                                    {firstElem.buttons?.[0] && (
-                                        <div className="py-2 text-[10px] text-[#3797F0] font-bold text-center bg-zinc-950/20">
-                                            {firstElem.buttons[0].title}
+                                    {firstElem.buttons && firstElem.buttons.length > 0 && (
+                                        <div className="flex flex-col divide-y divide-white/5 bg-zinc-950/20">
+                                            {firstElem.buttons.map((btn: any, bi: number) => (
+                                                <span key={bi} className="py-2 text-[10px] text-[#3797F0] font-bold text-center">
+                                                    {btn.title || 'Button'}
+                                                </span>
+                                            ))}
                                         </div>
                                     )}
                                 </div>
@@ -696,12 +709,40 @@ export function CanvasNode({ id }: { id: string }) {
 
                                     {attachList.length > 0 ? (
                                         <div className="flex flex-wrap gap-1.5 mt-1">
-                                            {attachList.slice(0, 4).map((url: string, index: number) => {
-                                                const isImage = url.match(/\.(jpeg|jpg|gif|png|webp)/i);
+                                            {attachList.slice(0, 4).map((item: any, index: number) => {
+                                                let type = 'image';
+                                                let url = '';
+                                                let isSticker = false;
+                                                let isMediaShare = false;
+                                                
+                                                if (typeof item === 'string') {
+                                                    url = item;
+                                                    if (item.match(/\.(mp4|mov|avi|webm)/i)) {
+                                                        type = 'video';
+                                                    } else if (item.match(/\.(mp3|m4a|wav|ogg|aac)/i)) {
+                                                        type = 'audio';
+                                                    }
+                                                } else if (item && typeof item === 'object') {
+                                                    type = item.type || 'image';
+                                                    url = item.url || '';
+                                                    isSticker = type === 'sticker';
+                                                    isMediaShare = type === 'MEDIA_SHARE';
+                                                }
+
+                                                const isImage = type === 'image' && url;
+
                                                 return (
                                                     <div key={index} className="w-10 h-10 rounded-lg bg-zinc-900 border border-white/10 overflow-hidden flex items-center justify-center shrink-0">
                                                         {isImage ? (
                                                             <img src={url} alt="" className="w-full h-full object-cover" />
+                                                        ) : type === 'video' ? (
+                                                            <Film className="w-4 h-4 text-[#8FE3FF]" />
+                                                        ) : type === 'audio' ? (
+                                                            <Headphones className="w-4 h-4 text-[#CECBF6]" />
+                                                        ) : isSticker ? (
+                                                            <Heart className="w-4 h-4 text-red-500 fill-red-500" />
+                                                        ) : isMediaShare ? (
+                                                            <Share2 className="w-4 h-4 text-emerald-400" />
                                                         ) : (
                                                             <Paperclip className="w-4 h-4 text-zinc-400" />
                                                         )}
@@ -861,6 +902,7 @@ export function CanvasNode({ id }: { id: string }) {
 // Ensure smooth curving
 export function CanvasEdges() {
     const edges = useSelector((state: RootState) => state.flow.edges);
+    const nodes = useSelector((state: RootState) => state.flow.nodes);
     const selectedNodeId = useSelector((state: RootState) => state.flow.selectedNodeId);
     const { scale } = useCanvas();
 

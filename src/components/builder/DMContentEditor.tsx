@@ -8,10 +8,12 @@ import { updateNodeData } from '@/store/slices/flowSlice';
 import {
   X, Plus, Trash2, Edit2, Upload, Link as LinkIcon,
   Sparkles, Check, ChevronLeft, ChevronRight, MessageSquare, Info,
-  Paperclip, ShoppingBag, Mic, Image as ImageIcon, Smile
+  Paperclip, ShoppingBag, Mic, Image as ImageIcon, Heart, Film, Headphones, Share2,
+  Smile
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import api from '@/lib/services/api.service';
+import { InstagramMediaPicker } from './InstagramMediaPicker';
 
 // --- Fallback Products ---
 const DEFAULT_PRODUCTS = [
@@ -73,6 +75,9 @@ interface CustomSelectProps {
   dropdownId: string;
   openDropdownId: string | null;
   setOpenDropdownId: (id: string | null) => void;
+  disabled?: boolean;
+  labelClassName?: string;
+
 }
 
 function CustomSelect({
@@ -82,7 +87,9 @@ function CustomSelect({
   onChange,
   dropdownId,
   openDropdownId,
-  setOpenDropdownId
+  setOpenDropdownId,
+  disabled,
+  labelClassName
 }: CustomSelectProps) {
   const isOpen = openDropdownId === dropdownId;
   const selectedOption = options.find(o => o.value === value) || options[0];
@@ -102,7 +109,12 @@ function CustomSelect({
   return (
     <div ref={containerRef} className="space-y-1.5 relative w-full">
       {label && (
-        <label className="text-label-sm text-on-surface-variant uppercase tracking-wider block font-semibold mb-1">
+        <label
+          className={cn(
+            "text-label-sm text-on-surface-variant .uppercase tracking-wider block font-semibold mb-1",
+            labelClassName
+          )}
+        >
           {label}
         </label>
       )}
@@ -141,7 +153,6 @@ function CustomSelect({
     </div>
   );
 }
-
 export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProps) {
   const dispatch = useDispatch();
 
@@ -305,16 +316,49 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Attachments States
-  const [attachments, setAttachments] = React.useState<string[]>([]);
+  type AttachmentItem = {
+    type: 'image' | 'video' | 'audio' | 'sticker' | 'MEDIA_SHARE' | 'file';
+    url?: string;
+    media_id?: string;
+    sticker_id?: string;
+  };
+  const [mediaDetailsCache, setMediaDetailsCache] = React.useState<Record<string, { media_url: string; media_type: string; thumbnail_url?: string }>>({});
+  const [playingAudioIndex, setPlayingAudioIndex] = React.useState<number | null>(null);
+  const [playingVideoIndex, setPlayingVideoIndex] = React.useState<number | null>(null);
+  const [activeAudio, setActiveAudio] = React.useState<HTMLAudioElement | null>(null);
+  const chatThreadRef = React.useRef<HTMLDivElement>(null);
+
+  const [attachments, setAttachments] = React.useState<AttachmentItem[]>([]);
+  const [selectedAttachmentType, setSelectedAttachmentType] = React.useState<'image' | 'video' | 'audio' | 'sticker' | 'MEDIA_SHARE' | 'file'>('image');
+  const [customStickerId, setCustomStickerId] = React.useState<string>('');
+  const [customMediaId, setCustomMediaId] = React.useState<string>('');
+  const [showMediaPicker, setShowMediaPicker] = React.useState(false);
   const [uploadingFiles, setUploadingFiles] = React.useState<{ id: string; name: string; progress: number }[]>([]);
   const attachmentFileInputRef = React.useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    return () => {
+      if (activeAudio) {
+        activeAudio.pause();
+      }
+    };
+  }, [activeAudio]);
+
+  React.useEffect(() => {
+    if (chatThreadRef.current) {
+      chatThreadRef.current.scrollTop = chatThreadRef.current.scrollHeight;
+    }
+  }, [attachments, textMessages, quickReplyText, buttonTemplateText, format]);
 
   // Products and E-commerce States
   const [products, setProducts] = React.useState<any[]>([]);
   const [showProductPicker, setShowProductPicker] = React.useState<Record<string, boolean>>({});
   const isEcommerceTemplate = React.useMemo(() => {
-    return !!(node?.ruleType && node.ruleType.includes('product_inquiry'));
-  }, [node]);
+    const hasInquiryType = (rt?: string) => !!(rt && rt.includes('product_inquiry'));
+    if (hasInquiryType(node?.ruleType)) return true;
+    const triggerNode = nodes.find(n => n.type === 'trigger');
+    return hasInquiryType(triggerNode?.ruleType);
+  }, [node, nodes]);
 
   const toggleProductPicker = React.useCallback((key: string) => {
     setShowProductPicker(prev => ({ ...prev, [key]: !prev[key] }));
@@ -322,6 +366,10 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
 
   const lastGeneratedBtnKeyRef = React.useRef<string>('');
   const lastGeneratedCarouselKeyRef = React.useRef<string>('');
+  // True once the node sync effect has loaded carousel data (even as a fallback default).
+  // Prevents auto-gen from overwriting user-configured carousel when products load asynchronously.
+  const carouselLoadedFromNodeRef = React.useRef<boolean>(false);
+
 
   React.useEffect(() => {
     const fetchProducts = async () => {
@@ -438,34 +486,93 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
     }
   }, [isEcommerceTemplate, format, products, selectedMediaIds, selectedMediaDetails, activeAccount, appUser, buttonTemplateButtons, nodeId]);
 
+  // Keep a ref to current carouselElements so we can read them in the effect without adding them as a dependency
+  const carouselElementsRef = React.useRef(carouselElements);
+  React.useEffect(() => {
+    carouselElementsRef.current = carouselElements;
+  }, [carouselElements]);
+
   // Hook to auto-generate dynamic generic template (carousel) cards based on selected media count (max 10)
   React.useEffect(() => {
-    if (!isEcommerceTemplate || format !== 'generic_template' || products.length === 0) return;
+    console.group('[Carousel AutoGen] Effect triggered');
+    console.log('isEcommerceTemplate:', isEcommerceTemplate);
+    console.log('format:', format);
+    console.log('products.length:', products.length);
+    console.log('selectedMediaIds:', selectedMediaIds);
+    console.log('node.data?.generic_template_elements_json:', node?.data?.generic_template_elements_json);
+
+    if (!isEcommerceTemplate || format !== 'generic_template' || products.length === 0) {
+      console.log('[Carousel AutoGen] Skipping - conditions not met');
+      console.groupEnd();
+      return;
+    }
+
+    if (carouselLoadedFromNodeRef.current) {
+      console.log('[Carousel AutoGen] 🚫 Skipping - carousel already loaded from node (preserving saved/default content)');
+      console.groupEnd();
+      return;
+    }
+
+    // If node already has explicitly saved carousel data, never auto-overwrite it
+    const savedElements = node?.data?.generic_template_elements_json;
+    const hasSavedCarousel = savedElements && (
+      (typeof savedElements === 'string' && savedElements.trim().length > 2) ||
+      (Array.isArray(savedElements) && savedElements.length > 0)
+    );
+    if (hasSavedCarousel) {
+      console.log('[Carousel AutoGen] 🚫 Skipping - node has saved carousel data, preserving it');
+      console.groupEnd();
+      return;
+    }
 
     const mediaKey = [...selectedMediaIds].sort().join(',');
     const currentKey = `${nodeId}:carousel:${mediaKey}`;
-    if (lastGeneratedCarouselKeyRef.current === currentKey) return;
+    console.log('currentKey:', currentKey, '| lastKey:', lastGeneratedCarouselKeyRef.current);
+    if (lastGeneratedCarouselKeyRef.current === currentKey) {
+      console.log('[Carousel AutoGen] Skipping - same key, already generated');
+      console.groupEnd();
+      return;
+    }
 
     lastGeneratedCarouselKeyRef.current = currentKey;
 
     const username = activeAccount?.username || appUser?.username || 'shop';
+    const current = carouselElementsRef.current;
 
-    const isDefaultCarousel = carouselElements.length === 0 ||
-      (carouselElements.length === 1 &&
-        (carouselElements[0].title === 'Welcome Product' ||
-          carouselElements[0].title === 'New Product Item' ||
-          carouselElements[0].title === 'Welcome!' ||
-          carouselElements[0].title === 'Summer Tote Bag' ||
-          carouselElements[0].title === 'Product Item' ||
-          carouselElements[0].image_url === 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRN2z0ERwXQUqH29urPuzWueLXKhJAY6SMyAA&s' ||
-          carouselElements[0].image_url === '' ||
-          carouselElements[0].default_action?.url === 'https://shop.example.com' ||
-          carouselElements[0].default_action?.url === 'https://' ||
-          carouselElements[0].default_action?.url === '' ||
-          (carouselElements[0].default_action?.url || '').includes('shop.example.com') ||
-          (carouselElements[0].default_action?.url || '').includes('example.com')));
+    const firstImg = current[0]?.image_url || '';
+    const DEFAULT_PIXABAY = 'https://cdn.pixabay.com/photo/2020/04/02/07/35/cat-4993829_960_720.jpg';
+    const DEFAULT_THUMB = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRN2z0ERwXQUqH29urPuzWueLXKhJAY6SMyAA&s';
+
+    // A "custom image" is any URL that is NOT empty and NOT one of our known placeholder defaults
+    const isCustomImage = firstImg &&
+      firstImg !== DEFAULT_PIXABAY &&
+      firstImg !== DEFAULT_THUMB;
+
+    const isDefaultCarousel = !isCustomImage && (
+      current.length === 0 ||
+      (current.length === 1 &&
+        (current[0].title === 'Welcome Product' ||
+          current[0].title === 'New Product Item' ||
+          current[0].title === 'Welcome!' ||
+          current[0].title === 'Summer Tote Bag' ||
+          current[0].title === 'Product Item' ||
+          current[0].image_url === '' ||
+          current[0].image_url === DEFAULT_PIXABAY ||
+          current[0].image_url === DEFAULT_THUMB ||
+          current[0].default_action?.url === 'https://shop.example.com' ||
+          current[0].default_action?.url === 'https://' ||
+          current[0].default_action?.url === '' ||
+          (current[0].default_action?.url || '').includes('shop.example.com') ||
+          (current[0].default_action?.url || '').includes('example.com')))
+    );
+
+    console.log('[Carousel AutoGen] firstImg:', firstImg);
+    console.log('[Carousel AutoGen] isCustomImage:', isCustomImage);
+    console.log('[Carousel AutoGen] isDefaultCarousel:', isDefaultCarousel);
+    console.log('[Carousel AutoGen] current carouselElements:', JSON.parse(JSON.stringify(current)));
 
     if (isDefaultCarousel) {
+      console.log('[Carousel AutoGen] ✅ Proceeding to generate cards...');
       const numCards = selectedMediaIds.length > 0 ? Math.min(10, selectedMediaIds.length) : 1;
 
       const extractShortcode = (url: string) => {
@@ -498,7 +605,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
           });
         }
 
-        if (!prod && !mediaId && idx === 0) {
+        if (!prod && !mediaId && idx === 0 && showProductPicker[`carousel-product-${idx}`]) {
           prod = products[0];
         }
 
@@ -561,9 +668,14 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
         };
       });
 
+      console.log('[Carousel AutoGen] Generated cards:', dynamicCards);
       setCarouselElements(dynamicCards);
+    } else {
+      console.log('[Carousel AutoGen] 🚫 Skipping overwrite - custom image or non-default content detected');
     }
-  }, [isEcommerceTemplate, format, products, selectedMediaIds, selectedMediaDetails, activeAccount, appUser, carouselElements, nodeId]);
+    console.groupEnd();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEcommerceTemplate, format, products, selectedMediaIds, selectedMediaDetails, activeAccount, appUser, nodeId, showProductPicker]);
 
   // Sync state on node load
   React.useEffect(() => {
@@ -604,53 +716,194 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
       elems = [{
         title: 'Welcome Product',
         subtitle: 'Premium quality slider description.',
-        image_url: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRN2z0ERwXQUqH29urPuzWueLXKhJAY6SMyAA&s',
+        image_url: 'https://cdn.pixabay.com/photo/2020/04/02/07/35/cat-4993829_960_720.jpg',
         default_action: { type: 'web_url', url: 'https://shop.example.com' },
         buttons: [{ type: 'web_url', title: '🛒 Buy Now', url: 'https://shop.example.com' }]
       }];
     }
     setCarouselElements(elems);
     setActiveCardIndex(0);
+    // Mark carousel as loaded from node so auto-gen does not overwrite it
+    carouselLoadedFromNodeRef.current = true;
+    console.log('[CarouselLoad] Set from node. elemsJson was:', node.data?.generic_template_elements_json, '| elems:', elems);
+
+    // Initialize picker states for each card based on whether it has a linked product URL
+    const initialPickerStates: Record<string, boolean> = {};
+    elems.forEach((elem, idx) => {
+      const url = elem.default_action?.url || '';
+      if (url.includes('/product/')) {
+        initialPickerStates[`carousel-product-${idx}`] = true;
+      }
+    });
+    setShowProductPicker(prev => ({ ...prev, ...initialPickerStates }));
 
     // Load Attachments data
-    setAttachments(node.data?.attachments || []);
+    const rawAttachments = node.data?.attachments || [];
+    const normalizedAttachments: AttachmentItem[] = rawAttachments.map((item: any) => {
+      if (typeof item === 'string') {
+        let type: 'image' | 'video' | 'audio' = 'image';
+        if (item.match(/\.(mp4|mov|avi|webm)/i)) {
+          type = 'video';
+        } else if (item.match(/\.(mp3|m4a|wav|ogg|aac)/i)) {
+          type = 'audio';
+        }
+        return { type, url: item };
+      }
+      return item;
+    });
+    setAttachments(normalizedAttachments);
   }, [node]);
 
   if (!node || !mounted) return null;
 
   // --- Save Handler ---
   const handleSave = () => {
-    // Validate URLs (must start with https://)
+    // 1. Text Format Validation
+    if (dmFormat === 'text') {
+      if (textMessages.length === 0 || textMessages.every(msg => !msg.trim())) {
+        setValidationError('At least one non-empty text message is required.');
+        return;
+      }
+      for (let i = 0; i < textMessages.length; i++) {
+        if (!textMessages[i].trim()) {
+          setValidationError(`Message ${i + 1} cannot be empty.`);
+          return;
+        }
+      }
+    }
+
+    // 2. Quick Reply Validation
+    if (dmFormat === 'quick_reply') {
+      if (!quickReplyText.trim()) {
+        setValidationError('Quick reply text is required.');
+        return;
+      }
+      if (quickRepliesTitles.length === 0) {
+        setValidationError('At least one quick reply option is required.');
+        return;
+      }
+      for (let i = 0; i < quickRepliesTitles.length; i++) {
+        if (!quickRepliesTitles[i].trim()) {
+          setValidationError(`Quick reply option ${i + 1} cannot be empty.`);
+          return;
+        }
+      }
+    }
+
+    // 3. Button Template Validation
     if (dmFormat === 'button_template') {
-      for (const btn of buttonTemplateButtons) {
-        if (btn.type === 'web_url' && btn.url) {
-          const trimmed = btn.url.trim();
-          if (!trimmed.startsWith('https://')) {
-            setValidationError('All button URLs must start with https://');
+      if (!buttonTemplateText.trim()) {
+        setValidationError('Button template text is required.');
+        return;
+      }
+      if (buttonTemplateButtons.length === 0) {
+        setValidationError('At least one button is required for Button Template.');
+        return;
+      }
+      for (let i = 0; i < buttonTemplateButtons.length; i++) {
+        const btn = buttonTemplateButtons[i];
+        if (!btn.title.trim()) {
+          setValidationError(`Button ${i + 1} title is required.`);
+          return;
+        }
+        if (btn.type === 'web_url' || btn.type === 'product') {
+          if (!btn.url || btn.url.trim() === '' || btn.url.trim() === 'https://') {
+            setValidationError(`Button ${i + 1} ("${btn.title}") URL is required.`);
             return;
+          }
+          // TODO
+          // if (!btn.url.trim().startsWith('https://')) {
+          //   setValidationError(`Button ${i + 1} ("${btn.title}") URL must start with https://`);
+          //   return;
+          // }
+        }
+      }
+    }
+
+    // 4. Carousel (Generic Template) Validation
+    if (dmFormat === 'generic_template') {
+      if (carouselElements.length === 0) {
+        setValidationError('At least one card is required for Carousel.');
+        return;
+      }
+      for (let i = 0; i < carouselElements.length; i++) {
+        const elem = carouselElements[i];
+
+        // 1. Image Asset Validation
+        if (!elem.image_url || !elem.image_url.trim()) {
+          setValidationError(`Card ${i + 1} Image Asset is required.`);
+          return;
+        }
+
+        // 2. Default Click Action Web URL Validation
+        if (!elem.default_action?.url || elem.default_action.url.trim() === '' || elem.default_action.url.trim() === 'https://') {
+          if (showProductPicker[`carousel-product-${i}`]) {
+            setValidationError(`Card ${i + 1} must have a selected catalog product.`);
+          } else {
+            setValidationError(`Card ${i + 1} Default Click Action Web URL is required.`);
+          }
+          return;
+        }
+        // TODO
+        // if (!elem.default_action.url.trim().startsWith('https://')) {
+        //   setValidationError(`Card ${i + 1} default action URL must start with https://`);
+        //   return;
+        // }
+
+        // 3. Card Title Validation
+        if (!elem.title || !elem.title.trim()) {
+          setValidationError(`Card ${i + 1} Title is required.`);
+          return;
+        }
+
+        // 4. Card Subtitle / Description Validation
+        if (!elem.subtitle || !elem.subtitle.trim()) {
+          setValidationError(`Card ${i + 1} Card Subtitle / Description is required.`);
+          return;
+        }
+
+        if (elem.buttons) {
+          for (let j = 0; j < elem.buttons.length; j++) {
+            const btn = elem.buttons[j];
+            if (!btn.title || !btn.title.trim()) {
+              setValidationError(`Card ${i + 1} Button ${j + 1} title is required.`);
+              return;
+            }
+            if (btn.type === 'web_url' || btn.type === 'product') {
+              if (!btn.url || btn.url.trim() === '' || btn.url.trim() === 'https://') {
+                setValidationError(`Card ${i + 1} Button ${j + 1} ("${btn.title}") URL is required.`);
+                return;
+              }
+              // TODO
+              // if (!btn.url.trim().startsWith('https://')) {
+              //   setValidationError(`Card ${i + 1} Button ${j + 1} ("${btn.title}") URL must start with https://`);
+              //   return;
+              // }
+            }
           }
         }
       }
-    } else if (dmFormat === 'generic_template') {
-      for (let i = 0; i < carouselElements.length; i++) {
-        const elem = carouselElements[i];
-        if (elem.default_action?.url) {
-          const trimmed = elem.default_action.url.trim();
-          if (!trimmed.startsWith('https://')) {
-            setValidationError(`Card ${i + 1} default action URL must start with https://`);
-            return;
-          }
+    }
+
+    // 5. Attachment Validation
+    if (dmFormat === 'attachment') {
+      if (attachments.length === 0) {
+        setValidationError('At least one attachment is required.');
+        return;
+      }
+      for (let i = 0; i < attachments.length; i++) {
+        const att = attachments[i];
+        if (att.type === 'sticker' && !att.sticker_id?.trim()) {
+          setValidationError(`Attachment ${i + 1} (Sticker) is missing its sticker type/ID.`);
+          return;
         }
-        if (elem.buttons) {
-          for (const btn of elem.buttons) {
-            if (btn.type === 'web_url' && btn.url) {
-              const trimmed = btn.url.trim();
-              if (!trimmed.startsWith('https://')) {
-                setValidationError(`Card ${i + 1} button URL "${btn.title}" must start with https://`);
-                return;
-              }
-            }
-          }
+        if (att.type === 'MEDIA_SHARE' && !att.media_id?.trim()) {
+          setValidationError(`Attachment ${i + 1} (Media Share) is missing its Instagram Media ID.`);
+          return;
+        }
+        if (['image', 'video', 'audio'].includes(att.type) && !att.url?.trim()) {
+          setValidationError(`Attachment ${i + 1} (${att.type}) is missing its file URL.`);
+          return;
         }
       }
     }
@@ -682,6 +935,28 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
     } else if (dmFormat === 'attachment') {
       dispatch(updateNodeData({ id: nodeId, key: 'attachments', value: attachments }));
       dispatch(updateNodeData({ id: nodeId, key: 'messages', value: [`Sent ${attachments.length} attachment${attachments.length === 1 ? '' : 's'}`] }));
+    }
+    onClose();
+  };
+
+  // Save current state to Redux without validation (used by Cancel to preserve in-progress edits)
+  const handleCancel = () => {
+    dispatch(updateNodeData({ id: nodeId, key: 'dm_format', value: dmFormat }));
+    dispatch(updateNodeData({ id: nodeId, key: 'rate_limit_limit', value: rateLimitCount }));
+    dispatch(updateNodeData({ id: nodeId, key: 'rate_limit_window_seconds', value: rateLimitWindow }));
+    dispatch(updateNodeData({ id: nodeId, key: 'detailed', value: detailedCardView }));
+    if (dmFormat === 'text') {
+      dispatch(updateNodeData({ id: nodeId, key: 'messages', value: textMessages }));
+    } else if (dmFormat === 'quick_reply') {
+      dispatch(updateNodeData({ id: nodeId, key: 'quick_reply_text', value: quickReplyText }));
+      dispatch(updateNodeData({ id: nodeId, key: 'quick_replies_titles', value: quickRepliesTitles }));
+    } else if (dmFormat === 'button_template') {
+      dispatch(updateNodeData({ id: nodeId, key: 'button_template_text', value: buttonTemplateText }));
+      dispatch(updateNodeData({ id: nodeId, key: 'button_template_buttons_json', value: JSON.stringify(buttonTemplateButtons) }));
+    } else if (dmFormat === 'generic_template') {
+      dispatch(updateNodeData({ id: nodeId, key: 'generic_template_elements_json', value: JSON.stringify(carouselElements) }));
+    } else if (dmFormat === 'attachment') {
+      dispatch(updateNodeData({ id: nodeId, key: 'attachments', value: attachments }));
     }
     onClose();
   };
@@ -744,8 +1019,62 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
     if (!files || files.length === 0) return;
 
     const fileList = Array.from(files);
+    const validFiles: File[] = [];
 
-    fileList.forEach(file => {
+    for (const file of fileList) {
+      const ext = file.name.split('.').pop()?.toLowerCase() || '';
+      let detectedType: 'image' | 'video' | 'audio' | 'file' | null = null;
+      let maxSize = 0;
+      let allowedExtsStr = '';
+
+      if (selectedAttachmentType === 'image') {
+        if (['png', 'jpeg', 'jpg'].includes(ext)) {
+          detectedType = 'image';
+          maxSize = 8 * 1024 * 1024; // 8MB
+        }
+        allowedExtsStr = 'PNG, JPEG';
+      } else if (selectedAttachmentType === 'video') {
+        if (['mp4', 'ogg', 'avi', 'mov', 'webm'].includes(ext)) {
+          detectedType = 'video';
+          maxSize = 25 * 1024 * 1024; // 25MB
+        }
+        allowedExtsStr = 'MP4, OGG, AVI, MOV, WEBM';
+      } else if (selectedAttachmentType === 'audio') {
+        if (['aac', 'm4a', 'wav', 'mp4'].includes(ext)) {
+          detectedType = 'audio';
+          maxSize = 25 * 1024 * 1024; // 25MB
+        }
+        allowedExtsStr = 'AAC, M4A, WAV, MP4';
+      } else if (selectedAttachmentType === 'file') {
+        if (ext === 'pdf') {
+          detectedType = 'file';
+          maxSize = 25 * 1024 * 1024; // 25MB
+        }
+        allowedExtsStr = 'PDF';
+      }
+
+      if (!detectedType) {
+        alert(`Invalid file format for ${file.name}. Only ${allowedExtsStr} files are allowed.`);
+        continue;
+      }
+
+      if (file.size > maxSize) {
+        const limitMB = maxSize / (1024 * 1024);
+        alert(`File ${file.name} exceeds the maximum size limit of ${limitMB}MB.`);
+        continue;
+      }
+
+      validFiles.push(file);
+    }
+
+    if (validFiles.length === 0) {
+      if (attachmentFileInputRef.current) {
+        attachmentFileInputRef.current.value = '';
+      }
+      return;
+    }
+
+    validFiles.forEach(file => {
       const fileId = Math.random().toString(36).substring(2, 9);
 
       setUploadingFiles(prev => [...prev, { id: fileId, name: file.name, progress: 0 }]);
@@ -773,7 +1102,18 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
           try {
             const response = JSON.parse(xhr.responseText);
             const secureUrl = response.secure_url;
-            setAttachments(prev => [...prev, secureUrl]);
+
+            let detectedType: 'image' | 'video' | 'audio' | 'file' = 'image';
+            const ext = file.name.split('.').pop()?.toLowerCase() || '';
+            if (['mp4', 'ogg', 'avi', 'mov', 'webm'].includes(ext)) {
+              detectedType = 'video';
+            } else if (['aac', 'm4a', 'wav'].includes(ext)) {
+              detectedType = 'audio';
+            } else if (ext === 'pdf') {
+              detectedType = 'file';
+            }
+
+            setAttachments(prev => [...prev, { type: detectedType, url: secureUrl }]);
           } catch (err) {
             alert(`Failed to parse upload result for ${file.name}`);
           }
@@ -835,7 +1175,9 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
         copy[idx].url = 'https://';
       } else {
         copy[idx].url = undefined;
-        copy[idx].payload = 'TRIGGER_EVENT';
+        const uniqueId = Math.random().toString(36).substring(2, 7).toUpperCase();
+        copy[idx].payload = `TRIGGER_EVENT_${uniqueId}`;
+        copy[idx].title = 'Details';
       }
     }
     setButtonTemplateButtons(copy);
@@ -848,7 +1190,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
     setCarouselElements([...carouselElements, {
       title: 'New Product Item',
       subtitle: 'Premium catalog description.',
-      image_url: '',
+      image_url: 'https://cdn.pixabay.com/photo/2020/04/02/07/35/cat-4993829_960_720.jpg',
       default_action: { type: 'web_url', url: 'https://' },
       buttons: [{ type: 'web_url', title: '🛒 Shop Now', url: 'https://' }]
     }]);
@@ -879,7 +1221,9 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
         btns[btnIdx].url = 'https://';
       } else {
         btns[btnIdx].url = undefined;
-        btns[btnIdx].payload = 'TRIGGER_EVENT';
+        const uniqueId = Math.random().toString(36).substring(2, 7).toUpperCase();
+        btns[btnIdx].payload = `TRIGGER_EVENT_${uniqueId}`;
+        btns[btnIdx].title = 'Details';
       }
     }
     card.buttons = btns;
@@ -935,7 +1279,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
           {/* Header Action Controls */}
           <div className="flex items-center gap-2.5">
             <button
-              onClick={onClose}
+              onClick={handleCancel}
               className="px-4 py-2 rounded-xl border border-white/10 text-zinc-300 font-medium text-xs hover:bg-white/5 hover:text-white transition-all active:scale-95 cursor-pointer"
             >
               Cancel
@@ -1026,7 +1370,8 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                 </div>
 
                 {/* Chat Thread Body */}
-                <div className="flex-1 overflow-y-auto p-4 flex flex-col justify-end space-y-4 scrollbar-hide bg-black">
+                <div ref={chatThreadRef} className="flex-1 overflow-y-auto p-4 flex flex-col space-y-4 scrollbar-hide bg-black">
+                  <div className="flex-1" />
 
                   {/* Simulated Customer Message Bubble (LEFT) */}
                   <div className="self-start flex items-end gap-2 max-w-[85%] shrink-0">
@@ -1038,7 +1383,10 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                       />
                     </div>
                     <div className="bg-[#262626] border border-white/5 rounded-2xl rounded-bl-none px-3.5 py-2 text-[11px] text-zinc-200">
-                      Hi! I want to buy.
+                      {format === 'quick_reply' && "which side do youhave"}
+                      {format === 'generic_template' && "send me the latest items"}
+                      {format === 'attachment' && "send me the photos and videos"}
+                      {format !== 'quick_reply' && format !== 'generic_template' && format !== 'attachment' && "Hi! I want to buy."}
                     </div>
                   </div>
 
@@ -1244,42 +1592,220 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
 
                       {/* FORMAT: Media / Attachment Preview */}
                       {format === 'attachment' && (
-                        <div className="flex flex-col gap-2 w-full items-end animate-fadeIn">
+                        <div className="flex flex-col gap-3 w-full items-end animate-fadeIn">
+                          {/* Inject CSS Animation for Audio Spectrum */}
+                          <style>{`
+                            @keyframes audioWave {
+                              0% { height: 25%; }
+                              100% { height: 100%; }
+                            }
+                          `}</style>
+
                           {attachments.length > 0 ? (
-                            attachments.length === 1 ? (
-                              <div className="w-[140px] aspect-[4/5] rounded-2xl border border-white/10 overflow-hidden bg-zinc-900 shadow-md">
-                                {attachments[0].match(/\.(jpeg|jpg|gif|png|webp)/i) ? (
-                                  <img src={attachments[0]} alt="" className="w-full h-full object-cover" />
-                                ) : (
-                                  <div className="w-full h-full flex flex-col items-center justify-center p-3 text-center bg-zinc-950">
-                                    <Paperclip className="w-6 h-6 text-white/70 mb-1.5" />
-                                    <span className="text-[8px] text-zinc-400 font-semibold truncate w-full px-1">
-                                      {attachments[0].split('/').pop() || 'File'}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                            ) : (
-                              <div className="grid grid-cols-2 gap-1.5 max-w-[210px]">
-                                {attachments.map((url, index) => {
-                                  const isImage = url.match(/\.(jpeg|jpg|gif|png|webp)/i);
-                                  return (
-                                    <div key={index} className="aspect-square w-[100px] rounded-2xl bg-zinc-900 border border-white/10 overflow-hidden relative group shadow-md">
-                                      {isImage ? (
-                                        <img src={url} alt="" className="w-full h-full object-cover" />
-                                      ) : (
-                                        <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center bg-zinc-950">
-                                          <Paperclip className="w-5 h-5 text-white mb-1" />
-                                          <span className="text-[7px] text-zinc-500 font-semibold truncate w-full px-1">
-                                            {url.split('/').pop() || 'File'}
+                            (() => {
+                              // Group consecutive images together, other types are separate
+                              const groupedPreviews: { type: string; data: any }[] = [];
+                              let currentImageGroup: any[] = [];
+
+                              attachments.forEach((att) => {
+                                if (att.type === 'image') {
+                                  currentImageGroup.push(att);
+                                } else {
+                                  if (currentImageGroup.length > 0) {
+                                    groupedPreviews.push({ type: 'images', data: currentImageGroup });
+                                    currentImageGroup = [];
+                                  }
+                                  groupedPreviews.push({ type: att.type, data: att });
+                                }
+                              });
+                              if (currentImageGroup.length > 0) {
+                                groupedPreviews.push({ type: 'images', data: currentImageGroup });
+                              }
+
+                              return (
+                                <div className="flex flex-col gap-3.5 w-full items-end">
+                                  {groupedPreviews.map((group, gIdx) => {
+                                    if (group.type === 'images') {
+                                      const isSingle = group.data.length === 1;
+                                      if (isSingle) {
+                                        return (
+                                          <div key={gIdx} className="w-[110px] aspect-[9/16] rounded-2xl border border-white/10 overflow-hidden bg-zinc-900 shadow-md">
+                                            <img src={group.data[0].url} alt="" className="w-full h-full object-cover" />
+                                          </div>
+                                        );
+                                      } else {
+                                        return (
+                                          <div key={gIdx} className="relative w-[110px] h-[195px] mr-2">
+                                            {group.data.slice(0, 3).map((img: any, index: number) => {
+                                              const rotation = index === 0 ? '-4deg' : index === 1 ? '3deg' : '0deg';
+                                              const translateX = index === 0 ? '-6px' : index === 1 ? '6px' : '0px';
+                                              const translateY = index * 4;
+                                              return (
+                                                <div
+                                                  key={index}
+                                                  className="absolute inset-0 rounded-2xl border border-white/10 overflow-hidden bg-zinc-900 shadow-md transition-all duration-300"
+                                                  style={{
+                                                    transform: `rotate(${rotation}) translate(${translateX}, ${translateY}px)`,
+                                                    zIndex: 10 - index,
+                                                    opacity: 1 - index * 0.15
+                                                  }}
+                                                >
+                                                  <img src={img.url} alt="" className="w-full h-full object-cover" />
+                                                </div>
+                                              );
+                                            })}
+                                            {group.data.length > 3 && (
+                                              <div className="absolute bottom-1.5 right-1.5 bg-black/80 backdrop-blur-sm px-1.5 py-0.5 rounded text-[8px] font-bold text-white z-[12] border border-white/10 shadow-lg">
+                                                +{group.data.length - 3}
+                                              </div>
+                                            )}
+                                          </div>
+                                        );
+                                      }
+                                    } else if (group.type === 'sticker') {
+                                      return (
+                                        <div key={gIdx} className="flex items-center justify-end w-full pr-1.5 animate-fadeIn select-none">
+                                          <span className="text-3xl filter drop-shadow-[0_4px_6px_rgba(0,0,0,0.3)] animate-pulse">
+                                            ❤️
                                           </span>
                                         </div>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            )
+                                      );
+                                    } else if (group.type === 'video') {
+                                      const isPlaying = playingVideoIndex === gIdx;
+                                      return (
+                                        <div
+                                          key={gIdx}
+                                          onClick={() => setPlayingVideoIndex(isPlaying ? null : gIdx)}
+                                          className="w-[110px] aspect-[9/16] rounded-2xl border border-white/10 overflow-hidden bg-zinc-950 shadow-md relative flex items-center justify-center group animate-fadeIn cursor-pointer"
+                                        >
+                                          {group.data.url && (
+                                            <video
+                                              key={isPlaying ? 'playing' : 'paused'}
+                                              src={group.data.url}
+                                              autoPlay={isPlaying}
+                                              loop={isPlaying}
+                                              muted
+                                              playsInline
+                                              className="absolute inset-0 w-full h-full object-cover z-0"
+                                            />
+                                          )}
+                                          {!isPlaying && (
+                                            <div className="absolute inset-0 bg-black/10 flex items-center justify-center z-10">
+                                              <div className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm border border-white/20 flex items-center justify-center group-hover:scale-110 transition-all">
+                                                {/* Play icon */}
+                                                <svg className="w-3 h-3 text-white fill-white ml-0.5" viewBox="0 0 24 24">
+                                                  <path d="M8 5v14l11-7z" />
+                                                </svg>
+                                              </div>
+                                            </div>
+                                          )}
+                                          <div className="absolute bottom-1.5 left-1.5 right-1.5 flex items-center justify-between z-20">
+                                            <span className="text-[6px] font-bold text-white/50 bg-black/45 px-1 py-0.5 rounded">VIDEO</span>
+                                            <span className="text-[6px] font-bold text-white/90">0:15</span>
+                                          </div>
+                                        </div>
+                                      );
+                                    } else if (group.type === 'audio') {
+                                      const isPlaying = playingAudioIndex === gIdx;
+
+                                      const handleAudioPlay = () => {
+                                        if (isPlaying) {
+                                          activeAudio?.pause();
+                                          setPlayingAudioIndex(null);
+                                          setActiveAudio(null);
+                                        } else {
+                                          activeAudio?.pause();
+                                          if (group.data.url) {
+                                            const audio = new Audio(group.data.url);
+                                            audio.play().catch(e => console.warn("Audio play failed:", e));
+                                            audio.onended = () => {
+                                              setPlayingAudioIndex(null);
+                                              setActiveAudio(null);
+                                            };
+                                            setActiveAudio(audio);
+                                            setPlayingAudioIndex(gIdx);
+                                          } else {
+                                            // Fallback simulation if no URL
+                                            setPlayingAudioIndex(gIdx);
+                                            setTimeout(() => {
+                                              setPlayingAudioIndex(null);
+                                            }, 8000);
+                                          }
+                                        }
+                                      };
+
+                                      return (
+                                        <div key={gIdx} className="bg-[#1c1c1c] border border-white/10 rounded-2xl rounded-br-none px-2.5 py-2 shadow-md flex items-center gap-2 w-[110px] h-[36px] animate-fadeIn shrink-0">
+                                          <button
+                                            type="button"
+                                            onClick={handleAudioPlay}
+                                            className="w-5 h-5 rounded-full bg-[#CECBF6]/20 border border-[#CECBF6]/30 flex items-center justify-center shrink-0 cursor-pointer hover:bg-[#CECBF6]/30 transition-colors"
+                                          >
+                                            {isPlaying ? (
+                                              <svg className="w-2 h-2 text-[#CECBF6] fill-[#CECBF6]" viewBox="0 0 24 24">
+                                                <rect x="4" y="4" width="4" height="16" />
+                                                <rect x="16" y="4" width="4" height="16" />
+                                              </svg>
+                                            ) : (
+                                              <svg className="w-2 h-2 text-[#CECBF6] fill-[#CECBF6] ml-0.5" viewBox="0 0 24 24">
+                                                <path d="M8 5v14l11-7z" />
+                                              </svg>
+                                            )}
+                                          </button>
+                                          <div className="flex-1 flex items-end justify-between h-2.5 gap-0.5 pt-0.5">
+                                            {[40, 70, 50, 90, 30, 80, 60, 45, 75, 35].map((val, idx) => (
+                                              <div
+                                                key={idx}
+                                                className="w-[1.2px] bg-[#CECBF6] rounded-full"
+                                                style={{
+                                                  height: `${val}%`,
+                                                  animationName: isPlaying ? 'audioWave' : 'none',
+                                                  animationDuration: '1.2s',
+                                                  animationTimingFunction: 'ease-in-out',
+                                                  animationIterationCount: 'infinite',
+                                                  animationDirection: 'alternate',
+                                                  animationDelay: `${idx * 0.1}s`
+                                                }}
+                                              />
+                                            ))}
+                                          </div>
+                                          <span className="text-[6px] font-bold text-zinc-500 shrink-0">{isPlaying ? 'Play' : '0:08'}</span>
+                                        </div>
+                                      );
+                                    } else {
+                                      // MEDIA_SHARE or other general files
+                                      const isMediaShare = group.type === 'MEDIA_SHARE';
+                                      const cached = mediaDetailsCache[group.data.media_id || ''];
+                                      const hasImage = cached?.media_url;
+
+                                      return (
+                                        <div key={gIdx} className="w-[110px] h-[195px] rounded-2xl border border-white/10 overflow-hidden bg-[#1c1c1c] shadow-lg flex flex-col shrink-0 animate-fadeIn">
+                                          {/* Top header with Instagram icon & name */}
+                                          <div className="p-1.5 bg-[#121212] flex items-center gap-1 shrink-0 border-b border-white/5">
+                                            <div className="w-3 h-3 rounded-full bg-zinc-800 flex items-center justify-center text-[5px] text-white font-bold">IG</div>
+                                            <span className="text-[6px] text-zinc-400 font-bold truncate">
+                                              {isMediaShare ? 'Instagram Post' : 'Attachment'}
+                                            </span>
+                                          </div>
+                                          {/* Media Image */}
+                                          <div className="flex-1 bg-zinc-900 relative flex items-center justify-center overflow-hidden">
+                                            {hasImage ? (
+                                              <img src={cached.media_type === 'VIDEO' ? (cached.thumbnail_url || cached.media_url) : cached.media_url} alt="" className="w-full h-full object-cover" />
+                                            ) : (
+                                              isMediaShare ? (
+                                                <Share2 className="w-4 h-4 text-emerald-400" />
+                                              ) : (
+                                                <Paperclip className="w-4 h-4 text-white/70" />
+                                              )
+                                            )}
+                                          </div>
+                                        </div>
+                                      );
+                                    }
+                                  })}
+                                </div>
+                              );
+                            })()
                           ) : (
                             <div className="bg-[#1c1c1c] border border-white/10 rounded-2xl rounded-br-none px-4 py-3 text-[11px] text-white/60 text-center italic leading-normal">
                               No attachments uploaded.
@@ -1322,56 +1848,84 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
           {/* RIGHT: Editor Fields Manager Panel */}
           <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
 
-            {/* General DM Node Settings */}
-            {isEcommerceTemplate && (
-              <div className="glass-pane p-6 rounded-2xl border border-white/10 space-y-6 shadow-xl animate-fadeIn">
-                <div className="flex items-center gap-2 pb-2 border-b border-white/15">
-                  <Sparkles className="w-4 h-4 text-white" />
-                  <h3 className="font-sora text-xs font-semibold text-white tracking-[0.1em] uppercase">Core Logic</h3>
-                </div>
+            <div className="glass-pane p-6 rounded-2xl border border-white/10 space-y-6 shadow-xl animate-fadeIn">
+              {/* <div className="flex items-center gap-2 pb-2 border-b border-white/15">
+                <Sparkles className="w-4 h-4 text-white" />
+                <h3 className="font-sora text-xs font-semibold text-white tracking-[0.1em] ">Core Logic</h3>
+              </div> */}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  {/* DM Format */}
-                  <CustomSelect
-                    label="DM Format Layout"
-                    value={dmFormat}
-                    onChange={(val) => setDmFormat(val as any)}
-                    options={[
-                      { value: 'text', label: 'Text Message' },
-                      { value: 'quick_reply', label: 'Quick Replies' },
-                      { value: 'button_template', label: 'Button Template' },
-                      { value: 'generic_template', label: 'Generic Template (Carousel)' },
-                      { value: 'attachment', label: 'Media / Attachment' }
-                    ]}
-                    dropdownId="layout"
-                    openDropdownId={openDropdownId}
-                    setOpenDropdownId={setOpenDropdownId}
-                  />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* DM Format */}
+                <CustomSelect
+                  labelClassName='font-sora text-[10px] font-bold text-zinc-400 tracking-wider  block mb-1.5'
+                  label="DM Format Layout"
+                  value={dmFormat}
+                  onChange={(val) => {
+                    const oldFormat = dmFormat;
+                    // Clear stale data for the OLD format from Redux immediately so wireframe doesn't break
+                    if (oldFormat === 'quick_reply') {
+                      dispatch(updateNodeData({ id: nodeId, key: 'quick_reply_text', value: '' }));
+                      dispatch(updateNodeData({ id: nodeId, key: 'quick_replies_titles', value: [] }));
+                    } else if (oldFormat === 'button_template') {
+                      dispatch(updateNodeData({ id: nodeId, key: 'button_template_text', value: '' }));
+                      dispatch(updateNodeData({ id: nodeId, key: 'button_template_buttons_json', value: '' }));
+                    } else if (oldFormat === 'generic_template') {
+                      dispatch(updateNodeData({ id: nodeId, key: 'generic_template_elements_json', value: '' }));
+                    } else if (oldFormat === 'text') {
+                      dispatch(updateNodeData({ id: nodeId, key: 'messages', value: [] }));
+                    } else if (oldFormat === 'attachment') {
+                      dispatch(updateNodeData({ id: nodeId, key: 'attachments', value: [] }));
+                    }
+                    // Update dm_format immediately in Redux so wireframe switches instantly
+                    dispatch(updateNodeData({ id: nodeId, key: 'dm_format', value: val }));
 
-                  {/* Detailed Card View Switch */}
-                  <div className="bg-[#1c1b1b]/40 px-4 py-3.5 rounded-xl border border-white/10 flex items-center justify-between gap-4">
+                    if (val === 'generic_template' && oldFormat !== 'generic_template') {
+                      const hasExistingCards = carouselElementsRef.current.length > 0;
+                      if (!hasExistingCards) {
+                        carouselLoadedFromNodeRef.current = false;
+                        lastGeneratedCarouselKeyRef.current = '';
+                      }
+                    }
+                    setDmFormat(val as any);
+                  }}
+                  options={[
+                    { value: 'text', label: 'Text Message' },
+                    { value: 'quick_reply', label: 'Quick Replies' },
+                    { value: 'button_template', label: 'Button Template' },
+                    { value: 'generic_template', label: 'Generic Template (Carousel)' },
+                    { value: 'attachment', label: 'Media / Attachment' }
+                  ]}
+                  dropdownId="layout"
+                  openDropdownId={openDropdownId}
+                  setOpenDropdownId={setOpenDropdownId}
+                />
+
+                {/* Detailed Card View Switch */}
+                <div >
+                  <span className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider  block mb-1.5">Display detailed settings</span>
+
+                  <div className="w-full bg-surface-container-high border border-white/5 hover:border-white/10 rounded-md px-4 py-2 text-xs text-white focus:outline-none cursor-pointer font-medium flex items-center justify-between transition-all text-left">
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="font-sora text-[11px] font-bold text-white uppercase shrink-0">Detailed Canvas Card</span>
-                      <span className="text-[10px] text-zinc-500 font-medium truncate">— Display detailed settings on canvas</span>
+                      <span className="font-sora text-[11px] font-bold text-white .uppercase shrink-0">Detailed Canvas Card</span>
                     </div>
                     <button
                       type="button"
                       onClick={() => setDetailedCardView(!detailedCardView)}
                       className={cn(
-                        "w-11 h-6 rounded-full relative transition-all duration-200 shrink-0",
+                        "w-9 h-5  rounded-full relative transition-all duration-200 shrink-0",
                         detailedCardView ? "bg-white" : "bg-white/10"
                       )}
                     >
                       <div className={cn(
-                        "absolute top-[2px] w-5 h-5 rounded-full shadow transition-all duration-200",
+                        "absolute top-[2px] w-4 h-4 rounded-full shadow transition-all duration-200",
                         detailedCardView ? "left-[18px] bg-[#131313]" : "left-[2px] bg-white"
                       )} />
                     </button>
                   </div>
                 </div>
-
               </div>
-            )}
+
+            </div>
 
             {/* Form Fields: Plain Text format */}
             {format === 'text' && (
@@ -1521,7 +2075,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                 : "bg-white/5 text-zinc-400 border-white/10 hover:bg-white/10 hover:text-white"
                             )}
                           >
-                            <span>Button {idx + 1}{btn.title ? `: ${btn.title}` : ''}</span>
+                            <span>Button {idx + 1}{btn.title ? `: ${btn.title.includes('{{name}}') || btn.title.includes('{{price}}') ? 'Product Link' : btn.title}` : ''}</span>
                           </button>
                         );
                       })}
@@ -1552,6 +2106,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                               </div>
                               <div>
                                 <CustomSelect
+                                  labelClassName='font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block mb-1.5'
                                   label="Button Type"
                                   value={btn.type}
                                   onChange={(val) => updateButton(idx, 'type', val)}
@@ -1583,118 +2138,166 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                               </div>
                             )}
 
-                            {btn.type === 'product' && (
-                              <div className="space-y-2 animate-fadeIn">
-                                <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider block mb-2">
-                                  Select Catalog Product
-                                </label>
-                                <div className="max-h-48 overflow-y-auto border border-white/10 rounded-xl bg-zinc-950 divide-y divide-white/5 p-2 space-y-1">
-                                  {products.length === 0 ? (
-                                    <div className="text-[10px] text-zinc-500 italic p-3 text-center">
-                                      No products found in catalog.
+                            {btn.type === 'product' && (() => {
+                              const username = activeAccount?.username || appUser?.username || 'shop';
+                              const selectedProduct = btn.url ? products.find(p => {
+                                return btn.url!.endsWith(`/product/${p.id}`);
+                              }) : null;
+
+                              return (
+                                <div className="space-y-2 animate-fadeIn">
+                                  <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider block mb-1">
+                                    Select Catalog Product
+                                  </label>
+                                  {selectedProduct ? (
+                                    <div className="relative bg-white/5 border border-white/20 rounded-xl p-3 flex items-center gap-3 animate-fadeIn">
+                                      <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-white/10 overflow-hidden flex items-center justify-center shrink-0">
+                                        {(() => {
+                                          const mediaUrl = selectedProduct.media_url || selectedProduct.main_media_url || selectedProduct.thumbnail_url || selectedProduct.gallery?.[0]?.thumbnail_url || selectedProduct.gallery?.[0]?.media_url || selectedProduct.image || selectedProduct.thumbnail;
+                                          const isVideo =
+                                            selectedProduct.gallery?.find((g: any) => g.media_url === mediaUrl)?.media_type === "VIDEO" ||
+                                            selectedProduct.gallery?.[0]?.media_type === "VIDEO" ||
+                                            (typeof mediaUrl === "string" && (
+                                              /\.(mp4|webm|ogg|mov|avi)/i.test(mediaUrl) ||
+                                              mediaUrl.includes("video")
+                                            ));
+                                          const thumbUrl = selectedProduct.gallery?.find((g: any) => g.media_url === mediaUrl)?.thumbnail_url || selectedProduct.gallery?.[0]?.thumbnail_url || selectedProduct.thumbnail_url || selectedProduct.thumbnail;
+
+                                          return mediaUrl ? (
+                                            isVideo && !thumbUrl ? (
+                                              <video src={mediaUrl} className="w-full h-full object-cover" preload="metadata" muted playsInline />
+                                            ) : (
+                                              <img src={thumbUrl || mediaUrl} alt="" className="w-full h-full object-cover" />
+                                            )
+                                          ) : (
+                                            <Paperclip className="w-4 h-4 text-zinc-600" />
+                                          );
+                                        })()}
+                                      </div>
+                                      <div className="flex-1 min-w-0 pr-8">
+                                        <div className="flex justify-between items-start gap-1">
+                                          <span className="text-[11px] font-bold text-white truncate">{selectedProduct.title || selectedProduct.name}</span>
+                                          <span className="text-[10px] font-black text-white shrink-0">{selectedProduct.price} {selectedProduct.currency}</span>
+                                        </div>
+                                        <p className="text-[9px] text-zinc-400 line-clamp-1 mt-0.5 leading-snug">
+                                          {selectedProduct.description || "No description available."}
+                                        </p>
+                                      </div>
+                                      <button
+                                        type="button"
+                                        onClick={() => updateButton(idx, 'url', '')}
+                                        className="absolute top-1/2 -translate-y-1/2 right-3 p-1.5 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-red-500/10 cursor-pointer transition-all shrink-0"
+                                        title="Remove product link"
+                                      >
+                                        <X className="w-4 h-4" />
+                                      </button>
                                     </div>
                                   ) : (
-                                    products.map(p => {
-                                      const username = activeAccount?.username || appUser?.username || 'shop';
-                                      const prodUrl = typeof window !== 'undefined'
-                                        ? `${window.location.origin}/${username}/product/${p.id}`
-                                        : `https://anydm.com/${username}/product/${p.id}`;
-                                      const isSelected = btn.url === prodUrl;
-
-                                      const mediaUrl = p.media_url || p.main_media_url || p.thumbnail_url || p.gallery?.[0]?.thumbnail_url || p.gallery?.[0]?.media_url || p.image || p.thumbnail;
-                                      const isVideo =
-                                        p.gallery?.find((g: any) => g.media_url === mediaUrl)?.media_type === "VIDEO" ||
-                                        p.gallery?.[0]?.media_type === "VIDEO" ||
-                                        (typeof mediaUrl === "string" && (
-                                          /\.(mp4|webm|ogg|mov|avi)/i.test(mediaUrl) ||
-                                          mediaUrl.includes("video")
-                                        ));
-                                      const thumbUrl = p.gallery?.find((g: any) => g.media_url === mediaUrl)?.thumbnail_url || p.gallery?.[0]?.thumbnail_url || p.thumbnail_url || p.thumbnail;
-
-                                      return (
-                                        <div
-                                          key={p.id}
-                                          onClick={() => {
-                                            if (isSelected) {
-                                              updateButton(idx, 'url', '');
-                                            } else {
-                                              // Update both url and title atomically to avoid state batching race conditions
-                                              const copy = [...buttonTemplateButtons];
-                                              let newTitle = btn.title || '🛒 Buy';
-                                              // Auto-add {{name}} and {{price}} placeholders
-                                              if (!newTitle.includes('{{name}}') && !newTitle.includes('{{price}}')) {
-                                                newTitle = `{{name}} {{price}}`;
-                                              } else {
-                                                if (!newTitle.includes('{{name}}')) {
-                                                  newTitle = `{{name}} ${newTitle}`;
-                                                }
-                                                if (!newTitle.includes('{{price}}')) {
-                                                  newTitle = `${newTitle} {{price}}`;
-                                                }
-                                              }
-                                              // Truncate to 20 chars if needed
-                                              if (newTitle.length > 20) {
-                                                newTitle = `{{name}} {{price}}`;
-                                              }
-                                              copy[idx] = {
-                                                ...copy[idx],
-                                                url: prodUrl,
-                                                title: newTitle
-                                              };
-                                              setButtonTemplateButtons(copy);
-                                            }
-                                          }}
-                                          className={cn(
-                                            "flex items-center gap-3 p-2 rounded-xl cursor-pointer transition-all hover:bg-white/5 border text-left",
-                                            isSelected ? "border-white/30 bg-white/10" : "border-transparent"
-                                          )}
-                                        >
-                                          <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-white/10 overflow-hidden flex items-center justify-center shrink-0">
-                                            {mediaUrl ? (
-                                              isVideo && !thumbUrl ? (
-                                                <video src={mediaUrl} className="w-full h-full object-cover" preload="metadata" muted playsInline />
-                                              ) : (
-                                                <img src={thumbUrl || mediaUrl} alt="" className="w-full h-full object-cover animate-fadeIn" />
-                                              )
-                                            ) : (
-                                              <Paperclip className="w-4 h-4 text-zinc-600" />
-                                            )}
-                                          </div>
-                                          <div className="flex-1 min-w-0">
-                                            <div className="flex justify-between items-start gap-1">
-                                              <span className="text-[11px] font-bold text-zinc-200 truncate">{p.title || p.name}</span>
-                                              <span className="text-[10px] font-black text-white shrink-0">{p.price} {p.currency}</span>
-                                            </div>
-                                            <p className="text-[9px] text-zinc-500 line-clamp-1 mt-0.5 leading-snug">
-                                              {p.description || "No description available."}
-                                            </p>
-                                          </div>
-                                          <div className={cn(
-                                            "w-4 h-4 rounded-full border flex items-center justify-center shrink-0",
-                                            isSelected ? "border-white bg-white text-black" : "border-zinc-700"
-                                          )}>
-                                            {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
-                                          </div>
+                                    <div className="max-h-48 overflow-y-auto border border-white/10 rounded-xl bg-zinc-950 divide-y divide-white/5 p-2 space-y-1">
+                                      {products.length === 0 ? (
+                                        <div className="text-[10px] text-zinc-500 italic p-3 text-center">
+                                          No products found in catalog.
                                         </div>
-                                      );
-                                    })
+                                      ) : (
+                                        products.map(p => {
+                                          const prodUrl = typeof window !== 'undefined'
+                                            ? `${window.location.origin}/${username}/product/${p.id}`
+                                            : `https://anydm.com/${username}/product/${p.id}`;
+                                          const isSelected = btn.url === prodUrl;
+
+                                          const mediaUrl = p.media_url || p.main_media_url || p.thumbnail_url || p.gallery?.[0]?.thumbnail_url || p.gallery?.[0]?.media_url || p.image || p.thumbnail;
+                                          const isVideo =
+                                            p.gallery?.find((g: any) => g.media_url === mediaUrl)?.media_type === "VIDEO" ||
+                                            p.gallery?.[0]?.media_type === "VIDEO" ||
+                                            (typeof mediaUrl === "string" && (
+                                              /\.(mp4|webm|ogg|mov|avi)/i.test(mediaUrl) ||
+                                              mediaUrl.includes("video")
+                                            ));
+                                          const thumbUrl = p.gallery?.find((g: any) => g.media_url === mediaUrl)?.thumbnail_url || p.gallery?.[0]?.thumbnail_url || p.thumbnail_url || p.thumbnail;
+
+                                          return (
+                                            <div
+                                              key={p.id}
+                                              onClick={() => {
+                                                if (isSelected) {
+                                                  updateButton(idx, 'url', '');
+                                                } else {
+                                                  const copy = [...buttonTemplateButtons];
+                                                  let newTitle = btn.title || '🛒 Buy';
+                                                  if (!newTitle.includes('{{name}}') && !newTitle.includes('{{price}}')) {
+                                                    newTitle = `{{name}} {{price}}`;
+                                                  } else {
+                                                    if (!newTitle.includes('{{name}}')) {
+                                                      newTitle = `{{name}} ${newTitle}`;
+                                                    }
+                                                    if (!newTitle.includes('{{price}}')) {
+                                                      newTitle = `${newTitle} {{price}}`;
+                                                    }
+                                                  }
+                                                  if (newTitle.length > 20) {
+                                                    newTitle = `{{name}} {{price}}`;
+                                                  }
+                                                  copy[idx] = {
+                                                    ...copy[idx],
+                                                    url: prodUrl,
+                                                    title: newTitle
+                                                  };
+                                                  setButtonTemplateButtons(copy);
+                                                }
+                                              }}
+                                              className={cn(
+                                                "flex items-center gap-3 p-2 rounded-xl cursor-pointer transition-all hover:bg-white/5 border text-left",
+                                                isSelected ? "border-white/30 bg-white/10" : "border-transparent"
+                                              )}
+                                            >
+                                              <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-white/10 overflow-hidden flex items-center justify-center shrink-0">
+                                                {mediaUrl ? (
+                                                  isVideo && !thumbUrl ? (
+                                                    <video src={mediaUrl} className="w-full h-full object-cover" preload="metadata" muted playsInline />
+                                                  ) : (
+                                                    <img src={thumbUrl || mediaUrl} alt="" className="w-full h-full object-cover animate-fadeIn" />
+                                                  )
+                                                ) : (
+                                                  <Paperclip className="w-4 h-4 text-zinc-600" />
+                                                )}
+                                              </div>
+                                              <div className="flex-1 min-w-0">
+                                                <div className="flex justify-between items-start gap-1">
+                                                  <span className="text-[11px] font-bold text-zinc-200 truncate">{p.title || p.name}</span>
+                                                  <span className="text-[10px] font-black text-white shrink-0">{p.price} {p.currency}</span>
+                                                </div>
+                                                <p className="text-[9px] text-zinc-500 line-clamp-1 mt-0.5 leading-snug">
+                                                  {p.description || "No description available."}
+                                                </p>
+                                              </div>
+                                              <div className={cn(
+                                                "w-4 h-4 rounded-full border flex items-center justify-center shrink-0",
+                                                isSelected ? "border-white bg-white text-black" : "border-zinc-700"
+                                              )}>
+                                                {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                                              </div>
+                                            </div>
+                                          );
+                                        })
+                                      )}
+                                    </div>
                                   )}
                                 </div>
+                              );
+                            })()}
+
+                            {btn.type === 'postback' && (
+                              <div className="bg-white/5 border border-[#8FE3FF]/25 text-[#8FE3FF] rounded-xl p-4 text-xs flex flex-col gap-1.5 animate-fadeIn">
+                                <p className="font-bold flex items-center gap-1.5">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-[#8FE3FF] animate-pulse"></span>
+                                  Chat Event Connected
+                                </p>
+                                <p className="text-[11px] leading-relaxed text-zinc-400">
+                                  A new flow has been created named <strong className="text-white">"{btn.title || 'New Button'}"</strong>. You can configure its reply message directly on the canvas wireframe.
+                                </p>
                               </div>
                             )}
 
-                            {btn.type === 'postback' && (
-                              <div>
-                                <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block mb-1.5">Event Payload ID (Secret Key)</label>
-                                <input
-                                  type="text"
-                                  value={btn.payload || ''}
-                                  onChange={(e) => updateButton(idx, 'payload', e.target.value)}
-                                  placeholder="e.g. TRIGGER_FLOW"
-                                  className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-white/50"
-                                />
-                              </div>
-                            )}
                           </div>
 
                           <button
@@ -1767,94 +2370,43 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
 
                 {/* Edit Fields for the Selected Card */}
                 {carouselElements[activeCardIndex] && (
-                  <div className="bg-white/5 p-6 rounded-2xl border border-white/10 space-y-6 animate-fadeIn">
+                  <div className="bg-white/5 p-6 rounded-2xl border border-white/10 space-y-4 animate-fadeIn">
                     <div className="flex justify-between items-center border-b border-white/10 pb-2.5">
                       <span className="font-sora text-xs font-semibold text-white uppercase tracking-wider">Active Card {activeCardIndex + 1} Settings</span>
                     </div>
 
-                    {/* Image URL & Cloudinary Upload */}
-                    <div className="grid grid-cols-1 gap-4">
-                      <div className="space-y-2">
-                        <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block">Image Asset</label>
-                        <input
-                          type="file"
-                          id={`card-upload-${activeCardIndex}`}
-                          onChange={(e) => handleFileUpload(e, activeCardIndex)}
-                          accept="image/*"
-                          className="hidden"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => document.getElementById(`card-upload-${activeCardIndex}`)?.click()}
-                          className="w-full h-28 border border-dashed border-white/10 hover:border-white/30 hover:bg-white/5 rounded-2xl flex flex-col items-center justify-center p-4 text-center transition-all cursor-pointer"
-                        >
-                          {uploadingMap[activeCardIndex] ? (
-                            <div className="space-y-2 w-full px-4">
-                              <span className="font-sora text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Uploading to Cloudinary...</span>
-                              <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
-                                <div className="h-full bg-white transition-all duration-150" style={{ width: `${uploadProgressMap[activeCardIndex] || 0}%` }} />
-                              </div>
-                              <span className="text-[9px] text-zinc-500">{uploadProgressMap[activeCardIndex] || 0}% complete</span>
-                            </div>
-                          ) : carouselElements[activeCardIndex].image_url ? (
-                            <div className="flex items-center gap-4 w-full text-left">
-                              <div className="w-20 h-20 rounded-xl overflow-hidden bg-zinc-900 border border-white/10 shrink-0">
-                                <img src={carouselElements[activeCardIndex].image_url} alt="" className="w-full h-full object-cover" />
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <span className="text-[11px] font-bold text-white block">Replace Image</span>
-                                <span className="text-[9px] text-zinc-500 block truncate mt-1">{carouselElements[activeCardIndex].image_url}</span>
-                              </div>
-                            </div>
-                          ) : (
-                            <>
-                              <Upload className="w-6 h-6 text-zinc-400 mb-1.5" />
-                              <span className="font-sora text-[10px] font-bold text-white uppercase tracking-wide">Upload Custom Image</span>
-                              <span className="text-[9px] text-zinc-500 mt-1">JPG, PNG to Cloudinary preset</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Title & Subtitle */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-white/10 pt-4">
-                      <div className="space-y-2">
-                        <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block">Card Title</label>
-                        <input
-                          type="text"
-                          value={carouselElements[activeCardIndex].title || ''}
-                          onChange={(e) => updateCarouselField(activeCardIndex, 'title', e.target.value)}
-                          maxLength={80}
-                          placeholder="e.g. Summer Tote Bag"
-                          className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:border-white/50"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block">Card Subtitle / Description</label>
-                        <input
-                          type="text"
-                          value={carouselElements[activeCardIndex].subtitle || ''}
-                          onChange={(e) => updateCarouselField(activeCardIndex, 'subtitle', e.target.value)}
-                          maxLength={80}
-                          placeholder="e.g. Leather. Available in 3 colors."
-                          className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:border-white/50"
-                        />
-                      </div>
-                    </div>
-
                     {/* Default action URL */}
-                    <div className="space-y-3 border-t border-white/10 pt-4">
-                      <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block">Default Click Action Web URL</label>
+                    <div className="space-y-3">
+                      {/* <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block">Default Click Action Web URL</label> */}
                       {isEcommerceTemplate && (
                         <div className="space-y-2">
                           {/* Show Products Toggle */}
                           <button
                             type="button"
-                            onClick={() => toggleProductPicker('carousel-default')}
+                            onClick={() => {
+                              const nextVal = !showProductPicker[`carousel-product-${activeCardIndex}`];
+                              setShowProductPicker(prev => ({ ...prev, [`carousel-product-${activeCardIndex}`]: nextVal }));
+                              if (!nextVal) {
+                                setCarouselElements(prev => {
+                                  const copy = [...prev];
+                                  const card = { ...copy[activeCardIndex] };
+                                  card.default_action = { type: 'web_url', url: '' };
+                                  card.image_url = '';
+                                  card.title = '';
+                                  card.subtitle = '';
+                                  if (card.buttons && card.buttons.length > 0) {
+                                    const btns = [...card.buttons];
+                                    btns[0] = { ...btns[0], url: '' };
+                                    card.buttons = btns;
+                                  }
+                                  copy[activeCardIndex] = card;
+                                  return copy;
+                                });
+                              }
+                            }}
                             className={cn(
                               "flex items-center gap-2 w-full py-2.5 px-4 rounded-xl border transition-all cursor-pointer text-left",
-                              showProductPicker['carousel-default']
+                              showProductPicker[`carousel-product-${activeCardIndex}`]
                                 ? "bg-white/10 border-white/20 text-white"
                                 : "bg-[#1c1b1b]/40 border-white/10 text-zinc-400 hover:bg-white/5 hover:text-white"
                             )}
@@ -1863,38 +2415,39 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                             <span className="font-sora text-[10px] font-bold uppercase tracking-wider flex-1">Link catalog product</span>
                             <div className={cn(
                               "w-10 h-5 rounded-full relative transition-all duration-200 shrink-0",
-                              showProductPicker['carousel-default'] ? "bg-white" : "bg-white/10"
+                              showProductPicker[`carousel-product-${activeCardIndex}`] ? "bg-white" : "bg-white/10"
                             )}>
                               <div className={cn(
                                 "absolute top-[2px] w-4 h-4 rounded-full shadow transition-all duration-200",
-                                showProductPicker['carousel-default'] ? "left-[22px] bg-[#131313]" : "left-[2px] bg-white"
+                                showProductPicker[`carousel-product-${activeCardIndex}`] ? "left-[22px] bg-[#131313]" : "left-[2px] bg-white"
                               )} />
                             </div>
                           </button>
 
-                          {showProductPicker['carousel-default'] && (() => {
-                            const selectedDefaultProduct = carouselElements[activeCardIndex].default_action?.url
-                              ? products.find(p => carouselElements[activeCardIndex].default_action?.url?.endsWith(`/product/${p.id}`))
-                              : null;
+                          {showProductPicker[`carousel-product-${activeCardIndex}`] && (() => {
+                            const defaultActionUrl = carouselElements[activeCardIndex].default_action?.url || '';
+                            const selectedProduct = defaultActionUrl ? products.find(p => {
+                              return defaultActionUrl.endsWith(`/product/${p.id}`);
+                            }) : null;
 
                             return (
                               <div className="animate-fadeIn">
                                 <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider block mb-2">
                                   Select Catalog Product
                                 </label>
-                                {selectedDefaultProduct ? (
-                                  <div className="relative bg-white/5 border border-white/20 rounded-xl p-3 flex items-center gap-3 animate-fadeIn mb-3">
+                                {selectedProduct ? (
+                                  <div className="relative bg-white/5 border border-white/20 rounded-xl p-3 flex items-center gap-3 animate-fadeIn">
                                     <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-white/10 overflow-hidden flex items-center justify-center shrink-0">
                                       {(() => {
-                                        const mediaUrl = selectedDefaultProduct.media_url || selectedDefaultProduct.main_media_url || selectedDefaultProduct.thumbnail_url || selectedDefaultProduct.gallery?.[0]?.thumbnail_url || selectedDefaultProduct.gallery?.[0]?.media_url || selectedDefaultProduct.image || selectedDefaultProduct.thumbnail;
+                                        const mediaUrl = selectedProduct.media_url || selectedProduct.main_media_url || selectedProduct.thumbnail_url || selectedProduct.gallery?.[0]?.thumbnail_url || selectedProduct.gallery?.[0]?.media_url || selectedProduct.image || selectedProduct.thumbnail;
                                         const isVideo =
-                                          selectedDefaultProduct.gallery?.find((g: any) => g.media_url === mediaUrl)?.media_type === "VIDEO" ||
-                                          selectedDefaultProduct.gallery?.[0]?.media_type === "VIDEO" ||
+                                          selectedProduct.gallery?.find((g: any) => g.media_url === mediaUrl)?.media_type === "VIDEO" ||
+                                          selectedProduct.gallery?.[0]?.media_type === "VIDEO" ||
                                           (typeof mediaUrl === "string" && (
                                             /\.(mp4|webm|ogg|mov|avi)/i.test(mediaUrl) ||
                                             mediaUrl.includes("video")
                                           ));
-                                        const thumbUrl = selectedDefaultProduct.gallery?.find((g: any) => g.media_url === mediaUrl)?.thumbnail_url || selectedDefaultProduct.gallery?.[0]?.thumbnail_url || selectedDefaultProduct.thumbnail_url || selectedDefaultProduct.thumbnail;
+                                        const thumbUrl = selectedProduct.gallery?.find((g: any) => g.media_url === mediaUrl)?.thumbnail_url || selectedProduct.gallery?.[0]?.thumbnail_url || selectedProduct.thumbnail_url || selectedProduct.thumbnail;
 
                                         return mediaUrl ? (
                                           isVideo && !thumbUrl ? (
@@ -1907,13 +2460,13 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                         );
                                       })()}
                                     </div>
-                                    <div className="flex-1 min-w-0 pr-8">
+                                    <div className="flex-1 min-w-0 pr-8 text-left">
                                       <div className="flex justify-between items-start gap-1">
-                                        <span className="text-[11px] font-bold text-white truncate">{selectedDefaultProduct.title || selectedDefaultProduct.name}</span>
-                                        <span className="text-[10px] font-black text-white shrink-0">{selectedDefaultProduct.price} {selectedDefaultProduct.currency}</span>
+                                        <span className="text-[11px] font-bold text-white truncate">{selectedProduct.title || selectedProduct.name}</span>
+                                        <span className="text-[10px] font-black text-white shrink-0">{selectedProduct.price} {selectedProduct.currency}</span>
                                       </div>
                                       <p className="text-[9px] text-zinc-400 line-clamp-1 mt-0.5 leading-snug">
-                                        {selectedDefaultProduct.description || "No description available."}
+                                        {selectedProduct.description || "No description available."}
                                       </p>
                                     </div>
                                     <button
@@ -1923,6 +2476,14 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                           const copy = [...prev];
                                           const card = { ...copy[activeCardIndex] };
                                           card.default_action = { type: 'web_url', url: '' };
+                                          card.image_url = '';
+                                          card.title = 'New Product Item';
+                                          card.subtitle = 'Premium catalog description.';
+                                          if (card.buttons && card.buttons.length > 0) {
+                                            const btns = [...card.buttons];
+                                            btns[0] = { ...btns[0], url: '' };
+                                            card.buttons = btns;
+                                          }
                                           copy[activeCardIndex] = card;
                                           return copy;
                                         });
@@ -1934,7 +2495,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                     </button>
                                   </div>
                                 ) : (
-                                  <div className="max-h-48 overflow-y-auto border border-white/10 rounded-xl bg-zinc-950 divide-y divide-white/5 p-2 space-y-1 mb-2">
+                                  <div className="max-h-48 overflow-y-auto border border-white/10 rounded-xl bg-zinc-950 divide-y divide-white/5 p-2 space-y-1">
                                     {products.length === 0 ? (
                                       <div className="text-[10px] text-zinc-500 italic p-3 text-center">
                                         No products found in catalog.
@@ -1962,13 +2523,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                             key={p.id}
                                             onClick={() => {
                                               if (isSelected) {
-                                                setCarouselElements(prev => {
-                                                  const copy = [...prev];
-                                                  const card = { ...copy[activeCardIndex] };
-                                                  card.default_action = { type: 'web_url', url: '' };
-                                                  copy[activeCardIndex] = card;
-                                                  return copy;
-                                                });
+                                                updateCarouselField(activeCardIndex, 'default_action', { type: 'web_url', url: '' });
                                               } else {
                                                 const cardImage = (isVideo ? (thumbUrl || mediaUrl) : mediaUrl) || '';
                                                 setCarouselElements(prev => {
@@ -1980,12 +2535,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                                   card.subtitle = '{{price}}';
                                                   if (card.buttons && card.buttons.length > 0) {
                                                     const btns = [...card.buttons];
-                                                    btns[0] = {
-                                                      ...btns[0],
-                                                      url: prodUrl,
-                                                      type: 'product',
-                                                      title: '{{name}} {{price}}'
-                                                    };
+                                                    btns[0] = { ...btns[0], url: prodUrl };
                                                     card.buttons = btns;
                                                   }
                                                   copy[activeCardIndex] = card;
@@ -2035,27 +2585,97 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                           })()}
                         </div>
                       )}
-                      <div className={cn(
-                        "flex items-center border rounded-xl px-3 text-xs transition-all",
-                        carouselElements[activeCardIndex].default_action?.url && products.some(p => carouselElements[activeCardIndex].default_action?.url?.endsWith(`/product/${p.id}`))
-                          ? "bg-zinc-900/50 border-white/5 opacity-50 cursor-not-allowed"
-                          : "bg-[#1c1b1b]/60 border-white/10"
-                      )}>
-                        <LinkIcon className="w-4 h-4 text-zinc-500 mr-2.5 shrink-0" />
+
+                    </div>
+                    <span className='w-full flex justify-center'>OR</span>
+                    {/* Image URL & Cloudinary Upload */}
+                    <div className="grid grid-cols-1 gap-4 .border-t border-white/10 .pt-4">
+                      <div className="space-y-2">
+                        <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block">Image Asset</label>
+                        <input
+                          type="file"
+                          id={`card-upload-${activeCardIndex}`}
+                          onChange={(e) => handleFileUpload(e, activeCardIndex)}
+                          accept="image/*"
+                          className="hidden"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => document.getElementById(`card-upload-${activeCardIndex}`)?.click()}
+                          className="w-full h-28 border border-dashed border-white/10 hover:border-white/30 hover:bg-white/5 rounded-2xl flex flex-col items-center justify-center p-4 text-center transition-all cursor-pointer"
+                        >
+                          {uploadingMap[activeCardIndex] ? (
+                            <div className="space-y-2 w-full px-4">
+                              <span className="font-sora text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Uploading to Cloudinary...</span>
+                              <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+                                <div className="h-full bg-white transition-all duration-150" style={{ width: `${uploadProgressMap[activeCardIndex] || 0}%` }} />
+                              </div>
+                              <span className="text-[9px] text-zinc-500">{uploadProgressMap[activeCardIndex] || 0}% complete</span>
+                            </div>
+                          ) : carouselElements[activeCardIndex].image_url ? (
+                            <div className="flex items-center gap-4 w-full text-left">
+                              <div className="w-20 h-20 rounded-xl overflow-hidden bg-zinc-900 border border-white/10 shrink-0">
+                                <img src={carouselElements[activeCardIndex].image_url} alt="" className="w-full h-full object-cover" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <span className="text-[11px] font-bold text-white block">Replace Image</span>
+                                <span className="text-[9px] text-zinc-500 block truncate mt-1">{carouselElements[activeCardIndex].image_url}</span>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <Upload className="w-6 h-6 text-zinc-400 mb-1.5" />
+                              <span className="font-sora text-[10px] font-bold text-white uppercase tracking-wide">Upload Custom Image</span>
+                              <span className="text-[9px] text-zinc-500 mt-1">JPG, PNG to Cloudinary preset</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    {!showProductPicker[`carousel-product-${activeCardIndex}`] && (
+                      <div className="grid grid-cols-1 gap-4 border-t border-white/10 pt-4">
+                        <div className="space-y-2.5 animate-fadeIn">
+                          <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block">Default Click Action Web URL</label>
+                          <div className="flex items-center bg-[#1c1b1b]/60 border border-white/10 rounded-xl px-3 text-xs">
+                            <LinkIcon className="w-4 h-4 text-zinc-500 mr-2.5 shrink-0" />
+                            <input
+                              type="text"
+                              value={carouselElements[activeCardIndex].default_action?.url || ''}
+                              onChange={(e) => updateCarouselField(activeCardIndex, 'default_action', { type: 'web_url', url: e.target.value })}
+                              placeholder="https://..."
+                              className="w-full bg-transparent border-none py-3 text-xs text-white focus:outline-none"
+                            />
+                          </div>
+                          <p className="text-[10px] text-zinc-500 font-medium">The URL redirected to when the user taps on the card cover image itself.</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Title & Subtitle */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-white/10 pt-4">
+                      <div className="space-y-2">
+                        <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block">Card Title</label>
                         <input
                           type="text"
-                          value={carouselElements[activeCardIndex].default_action?.url || ''}
-                          onChange={(e) => updateCarouselField(activeCardIndex, 'default_action', { type: 'web_url', url: e.target.value })}
-                          placeholder={
-                            carouselElements[activeCardIndex].default_action?.url && products.some(p => carouselElements[activeCardIndex].default_action?.url?.endsWith(`/product/${p.id}`))
-                              ? "Locked to selected catalog product"
-                              : "https://..."
-                          }
-                          disabled={!!(carouselElements[activeCardIndex].default_action?.url && products.some(p => carouselElements[activeCardIndex].default_action?.url?.endsWith(`/product/${p.id}`)))}
-                          className="w-full bg-transparent border-none py-3 text-xs text-white focus:outline-none disabled:cursor-not-allowed"
+                          value={carouselElements[activeCardIndex].title || ''}
+                          onChange={(e) => updateCarouselField(activeCardIndex, 'title', e.target.value)}
+                          maxLength={80}
+                          placeholder="e.g. Summer Tote Bag"
+                          className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:border-white/50"
                         />
                       </div>
-                      <p className="text-[10px] text-zinc-500 font-medium">The URL redirected to when the user taps on the card cover image itself.</p>
+                      <div className="space-y-2">
+                        <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block">Card Subtitle / Description</label>
+                        <input
+                          type="text"
+                          value={carouselElements[activeCardIndex].subtitle || ''}
+                          onChange={(e) => updateCarouselField(activeCardIndex, 'subtitle', e.target.value)}
+                          maxLength={80}
+                          placeholder="e.g. Leather. Available in 3 colors."
+                          className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:border-white/50"
+                        />
+                      </div>
                     </div>
 
                     {/* Card Buttons Section */}
@@ -2103,8 +2723,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                       <div className="space-y-4">
                         {(carouselElements[activeCardIndex].buttons || []).map((btn, bi) => {
                           if (bi !== normalizedActiveButtonIndex) return null;
-                          const isDefaultActionProductSelected = !!(carouselElements[activeCardIndex].default_action?.url && products.some(p => carouselElements[activeCardIndex].default_action?.url?.endsWith(`/product/${p.id}`)));
-
+                          const isFirstButtonProductLocked = bi === 0 && !!showProductPicker[`carousel-product-${activeCardIndex}`] && !!carouselElements[activeCardIndex].default_action?.url;
                           return (
                             <div key={bi} className="bg-white/5 p-4 rounded-2xl border border-white/10 flex flex-col gap-4 relative animate-fadeIn">
                               <span className="absolute top-4 right-4 w-5 h-5 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-[10px] font-bold text-zinc-400">
@@ -2120,39 +2739,25 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                     onChange={(e) => updateCarouselButton(activeCardIndex, bi, 'title', e.target.value)}
                                     maxLength={20}
                                     placeholder="e.g. Order Now"
-                                    disabled={bi === 0 && isDefaultActionProductSelected}
-                                    className={cn(
-                                      "w-full bg-[#1c1b1b]/60 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none",
-                                      (bi === 0 && isDefaultActionProductSelected) && "opacity-50 cursor-not-allowed"
-                                    )}
+                                    className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none"
                                   />
                                 </div>
                                 <div>
-                                  {bi === 0 && isDefaultActionProductSelected ? (
-                                    <div className="space-y-1.5 w-full">
-                                      <label className="text-label-sm text-zinc-400 uppercase tracking-wider block font-semibold mb-1">
-                                        Button Type
-                                      </label>
-                                      <div className="w-full bg-[#1c1b1b]/30 border border-white/5 rounded-md px-4 py-2.5 text-xs text-zinc-400 font-medium flex items-center justify-between opacity-70 cursor-not-allowed">
-                                        <span>Link Product (Synced)</span>
-                                        <Info className="w-3.5 h-3.5 text-zinc-500" />
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <CustomSelect
-                                      label="Button Type"
-                                      value={btn.type}
-                                      onChange={(val) => updateCarouselButton(activeCardIndex, bi, 'type', val)}
-                                      options={[
-                                        { value: 'web_url', label: 'Web URL Link' },
-                                        { value: 'postback', label: 'Trigger Chat Event' },
-                                        { value: 'product', label: 'Link Product' }
-                                      ]}
-                                      dropdownId={`carousel-btn-type-${activeCardIndex}-${bi}`}
-                                      openDropdownId={openDropdownId}
-                                      setOpenDropdownId={setOpenDropdownId}
-                                    />
-                                  )}
+                                  <CustomSelect
+                                    labelClassName='font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block mb-1.5'
+                                    label="Button Type"
+                                    value={btn.type}
+                                    disabled={isFirstButtonProductLocked}
+                                    onChange={(val) => updateCarouselButton(activeCardIndex, bi, 'type', val)}
+                                    options={[
+                                      { value: 'web_url', label: 'Web URL Link' },
+                                      { value: 'postback', label: 'Trigger Chat Event' },
+                                      { value: 'product', label: 'Link Product' }
+                                    ]}
+                                    dropdownId={`carousel-btn-type-${activeCardIndex}-${bi}`}
+                                    openDropdownId={openDropdownId}
+                                    setOpenDropdownId={setOpenDropdownId}
+                                  />
                                 </div>
 
                                 <div className="md:col-span-2">
@@ -2163,10 +2768,14 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                         <LinkIcon className="w-4 h-4 text-zinc-500 mr-2.5 shrink-0" />
                                         <input
                                           type="text"
+                                          disabled={isFirstButtonProductLocked}
                                           value={btn.url || ''}
                                           onChange={(e) => updateCarouselButton(activeCardIndex, bi, 'url', e.target.value)}
                                           placeholder="https://..."
-                                          className="w-full bg-transparent border-none py-3 text-xs text-white focus:outline-none font-medium"
+                                          className={cn(
+                                            "w-full bg-transparent border-none py-3 text-xs text-white focus:outline-none font-medium",
+                                            isFirstButtonProductLocked && "opacity-50 cursor-not-allowed text-zinc-500"
+                                          )}
                                         />
                                       </div>
                                     </div>
@@ -2183,7 +2792,11 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                         <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider block mb-1">
                                           Select Catalog Product
                                         </label>
-                                        {selectedProduct ? (
+                                        {isFirstButtonProductLocked ? (
+                                          <div className="p-3 rounded-xl bg-zinc-900 border border-white/5 text-[11px] text-zinc-500 italic">
+                                            🔗 Locked to card product link.
+                                          </div>
+                                        ) : selectedProduct ? (
                                           <div className="relative bg-white/5 border border-white/20 rounded-xl p-3 flex items-center gap-3 animate-fadeIn">
                                             <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-white/10 overflow-hidden flex items-center justify-center shrink-0">
                                               {(() => {
@@ -2219,15 +2832,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                             </div>
                                             <button
                                               type="button"
-                                              onClick={() => {
-                                                const copy = [...carouselElements];
-                                                const card = { ...copy[activeCardIndex] };
-                                                const btns = [...(card.buttons || [])];
-                                                btns[bi] = { ...btns[bi], url: '' };
-                                                card.buttons = btns;
-                                                copy[activeCardIndex] = card;
-                                                setCarouselElements(copy);
-                                              }}
+                                              onClick={() => updateCarouselButton(activeCardIndex, bi, 'url', '')}
                                               className="absolute top-1/2 -translate-y-1/2 right-3 p-1.5 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-red-500/10 cursor-pointer transition-all shrink-0"
                                               title="Remove product link"
                                             >
@@ -2262,19 +2867,23 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                                     key={p.id}
                                                     onClick={() => {
                                                       if (isSelected) {
-                                                        const copy = [...carouselElements];
-                                                        const card = { ...copy[activeCardIndex] };
-                                                        const btns = [...(card.buttons || [])];
-                                                        btns[bi] = { ...btns[bi], url: '' };
-                                                        card.buttons = btns;
-                                                        copy[activeCardIndex] = card;
-                                                        setCarouselElements(copy);
+                                                        updateCarouselButton(activeCardIndex, bi, 'url', '');
                                                       } else {
                                                         const copy = [...carouselElements];
                                                         const card = { ...copy[activeCardIndex] };
                                                         const btns = [...(card.buttons || [])];
                                                         let newTitle = btn.title || '🛒 Shop';
                                                         if (!newTitle.includes('{{name}}') && !newTitle.includes('{{price}}')) {
+                                                          newTitle = `{{name}} {{price}}`;
+                                                        } else {
+                                                          if (!newTitle.includes('{{name}}')) {
+                                                            newTitle = `{{name}} ${newTitle}`;
+                                                          }
+                                                          if (!newTitle.includes('{{price}}')) {
+                                                            newTitle = `${newTitle} {{price}}`;
+                                                          }
+                                                        }
+                                                        if (newTitle.length > 20) {
                                                           newTitle = `{{name}} {{price}}`;
                                                         }
                                                         btns[bi] = {
@@ -2329,15 +2938,14 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                   })()}
 
                                   {btn.type === 'postback' && (
-                                    <div>
-                                      <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider block mb-1.5">Event Payload ID</label>
-                                      <input
-                                        type="text"
-                                        value={btn.payload || ''}
-                                        onChange={(e) => updateCarouselButton(activeCardIndex, bi, 'payload', e.target.value)}
-                                        placeholder="e.g. TRIGGER_FLOW"
-                                        className="w-full bg-zinc-900 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-white/50"
-                                      />
+                                    <div className="bg-white/5 border border-[#8FE3FF]/25 text-[#8FE3FF] rounded-xl p-4 text-xs flex flex-col gap-1.5 animate-fadeIn">
+                                      <p className="font-bold flex items-center gap-1.5">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-[#8FE3FF] animate-pulse"></span>
+                                        Chat Event Connected
+                                      </p>
+                                      <p className="text-[11px] leading-relaxed text-zinc-400">
+                                        A new flow has been created named <strong className="text-white">"{btn.title || 'New Button'}"</strong>. You can configure its reply message directly on the canvas wireframe.
+                                      </p>
                                     </div>
                                   )}
                                 </div>
@@ -2362,32 +2970,153 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
             {/* Form Fields: Attachments format */}
             {format === 'attachment' && (
               <div className="space-y-6">
-                <div className="space-y-3">
-                  <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block">Upload Attachments</label>
-                  <p className="text-[11px] text-zinc-500 font-medium">Upload files, images or video clips to be sent as attachments in the Instagram DM thread.</p>
-
-                  {/* File Input */}
-                  <input
-                    type="file"
-                    ref={attachmentFileInputRef}
-                    onChange={handleAttachmentUpload}
-                    multiple
-                    className="hidden"
-                  />
-
-                  {/* Dropzone Area */}
-                  <div
-                    onClick={() => attachmentFileInputRef.current?.click()}
-                    className="border-2 border-dashed border-white/10 hover:border-white/30 hover:bg-white/5 rounded-2xl p-10 text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-4 group animate-fadeIn"
-                  >
-                    <div className="w-14 h-14 rounded-full bg-[#1c1b1b] flex items-center justify-center border border-white/10 group-hover:scale-110 transition-transform">
-                      <Upload className="w-6 h-6 text-zinc-400 group-hover:text-white" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-white">Click to upload files</p>
-                      <p className="text-[11px] text-zinc-500 mt-1">Images, PDFs, or any documents (auto-uploaded to Cloudinary)</p>
-                    </div>
+                {/* Attachment Type Selector Tabs */}
+                <div className="space-y-2">
+                  <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block">Attachment Type</label>
+                  <div className="flex flex-wrap gap-1.5 p-1 bg-zinc-950/40 rounded-xl border border-white/5">
+                    {[
+                      { value: 'image', label: 'Image', icon: ImageIcon },
+                      { value: 'video', label: 'Video', icon: Film },
+                      { value: 'audio', label: 'Audio', icon: Headphones },
+                      { value: 'file', label: 'File', icon: Paperclip },
+                      { value: 'sticker', label: 'Sticker', icon: Heart },
+                      { value: 'MEDIA_SHARE', label: 'Media Share', icon: Share2 }
+                    ].map(tab => {
+                      const IconComponent = tab.icon;
+                      const isSelected = selectedAttachmentType === tab.value;
+                      return (
+                        <button
+                          key={tab.value}
+                          type="button"
+                          onClick={() => setSelectedAttachmentType(tab.value as any)}
+                          className={cn(
+                            "flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer",
+                            isSelected
+                              ? "bg-white text-black shadow-md"
+                              : "text-zinc-400 hover:text-white hover:bg-white/5"
+                          )}
+                        >
+                          <IconComponent className={cn("w-3.5 h-3.5", tab.value === 'sticker' ? "text-red-500 fill-red-500" : "")} />
+                          {tab.label}
+                        </button>
+                      );
+                    })}
                   </div>
+                </div>
+
+                {/* Upload or Input Area based on Type */}
+                <div className="space-y-3">
+                  {['image', 'video', 'audio', 'file'].includes(selectedAttachmentType) ? (
+                    <div className="space-y-3">
+                      <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block">
+                        Upload {selectedAttachmentType.charAt(0).toUpperCase() + selectedAttachmentType.slice(1)} file
+                      </label>
+
+                      {/* File Input */}
+                      <input
+                        type="file"
+                        ref={attachmentFileInputRef}
+                        onChange={handleAttachmentUpload}
+                        multiple
+                        accept={
+                          selectedAttachmentType === 'image' ? 'image/png, image/jpeg' :
+                            selectedAttachmentType === 'video' ? 'video/mp4, video/ogg, video/avi, video/quicktime, video/webm' :
+                              selectedAttachmentType === 'audio' ? 'audio/aac, audio/x-m4a, audio/m4a, audio/wav, audio/mp4, video/mp4' :
+                                'application/pdf'
+                        }
+                        className="hidden"
+                      />
+
+                      {/* Dropzone Area */}
+                      <div
+                        onClick={() => attachmentFileInputRef.current?.click()}
+                        className="border-2 border-dashed border-white/10 hover:border-white/30 hover:bg-white/5 rounded-2xl p-8 text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-3.5 group animate-fadeIn"
+                      >
+                        <div className="w-12 h-12 rounded-full bg-[#1c1b1b] flex items-center justify-center border border-white/10 group-hover:scale-110 transition-transform">
+                          <Upload className="w-5 h-5 text-zinc-400 group-hover:text-white" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-white">Click to upload {selectedAttachmentType} file</p>
+                          <p className="text-[10px] text-zinc-500 mt-1">
+                            {selectedAttachmentType === 'image' && 'Supported: PNG, JPEG | Max: 8MB'}
+                            {selectedAttachmentType === 'video' && 'Supported: MP4, OGG, AVI, MOV, WEBM | Max: 25MB'}
+                            {selectedAttachmentType === 'audio' && 'Supported: AAC, M4A, WAV, MP4 | Max: 25MB'}
+                            {selectedAttachmentType === 'file' && 'Supported: PDF | Max: 25MB'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : selectedAttachmentType === 'sticker' ? (
+                    <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex items-center justify-between gap-2 animate-fadeIn">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-xl shrink-0">❤️</span>
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-white">Like Heart Sticker</p>
+                          <p className="text-[10px] text-zinc-500 truncate">Sends a standard Instagram Like Heart sticker</p>
+                        </div>
+                      </div>
+                      {attachments.some(att => att.type === 'sticker' && att.sticker_id === 'like_heart') ? (
+                        <span className="text-[10px] text-zinc-500 font-semibold italic bg-white/5 px-2.5 py-1.5 rounded-lg shrink-0">Added</span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAttachments(prev => [...prev, { type: 'sticker', sticker_id: 'like_heart' }]);
+                          }}
+                          className="px-3 py-1.5 rounded-lg bg-white text-black font-bold text-xs hover:opacity-90 transition-opacity shrink-0 flex items-center gap-1 cursor-pointer"
+                        >
+                          <Plus className="w-3.5 h-3.5" /> Add
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex items-center justify-between gap-2 animate-fadeIn">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Share2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-white">Share Post or Reel</p>
+                          <p className="text-[10px] text-zinc-500 truncate">Select posts/reels from your account</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowMediaPicker(true)}
+                        className="px-3 py-1.5 rounded-lg bg-[#8FE3FF] text-black font-bold text-xs hover:opacity-90 transition-opacity shrink-0 flex items-center gap-1 cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Select
+                      </button>
+
+                      {showMediaPicker && (
+                        <InstagramMediaPicker
+                          open={showMediaPicker}
+                          onClose={() => setShowMediaPicker(false)}
+                          onSelect={(mediaIds, mediaDetails) => {
+                            // Cache the details for mobile live preview (without storing in database)
+                            const newCache = { ...mediaDetailsCache };
+                            if (mediaDetails) {
+                              mediaDetails.forEach(detail => {
+                                newCache[detail.id] = {
+                                  media_url: detail.media_url,
+                                  media_type: detail.media_type,
+                                  thumbnail_url: detail.thumbnail_url
+                                };
+                              });
+                            }
+                            setMediaDetailsCache(newCache);
+
+                            mediaIds.forEach(id => {
+                              setAttachments(prev => {
+                                if (prev.some(att => att.type === 'MEDIA_SHARE' && att.media_id === id)) {
+                                  return prev;
+                                }
+                                return [...prev, { type: 'MEDIA_SHARE', media_id: id }];
+                              });
+                            });
+                          }}
+                        />
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Uploading Files List */}
@@ -2416,7 +3145,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                 {/* Current Attachments Grid/List */}
                 <div className="space-y-4">
                   <div className="flex justify-between items-center pb-2 border-b border-white/10">
-                    <h3 className="font-sora text-xs font-semibold text-[#8FE3FF] tracking-wider uppercase">Attachments List ({attachments.length})</h3>
+                    <h3 className="font-sora text-xs font-semibold text-[#8FE3FF] tracking-wider .uppercase">Attachments List ({attachments.length})</h3>
                     {attachments.length > 0 && (
                       <button
                         onClick={() => setAttachments([])}
@@ -2429,22 +3158,37 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
 
                   {attachments.length === 0 ? (
                     <div className="bg-white/5 border border-white/10 rounded-2xl p-8 text-center text-xs text-zinc-500 font-medium italic">
-                      No files uploaded yet. Select files above to start.
+                      No attachments added yet. Select a type and add them above.
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {attachments.map((url, idx) => {
-                        const isImage = url.match(/\.(jpeg|jpg|gif|png|webp)/i);
-                        const fileName = url.split('/').pop() || `File ${idx + 1}`;
+                      {attachments.map((att, idx) => {
+                        const isImage = att.type === 'image';
+                        const isVideo = att.type === 'video';
+                        const isAudio = att.type === 'audio';
+                        const isSticker = att.type === 'sticker';
+                        const isMediaShare = att.type === 'MEDIA_SHARE';
+
+                        const fileName = isSticker
+                          ? `Sticker: ${att.sticker_id}`
+                          : isMediaShare
+                            ? `Media Share ID: ${att.media_id}`
+                            : att.url?.split('/').pop() || `File ${idx + 1}`;
 
                         return (
-                          <div key={idx} className="bg-white/5 p-4 rounded-xl border border-white/10 flex items-center gap-3.5 group relative animate-fadeIn">
+                          <div key={idx} className="bg-white/5 p-2 rounded-xl border border-white/10 flex items-center gap-2 group relative animate-fadeIn">
                             {/* Visual preview */}
                             <div className="w-12 h-12 rounded-xl bg-zinc-900 border border-white/10 overflow-hidden flex items-center justify-center shrink-0">
-                              {isImage ? (
-                                <img src={url} alt="" className="w-full h-full object-cover" />
+                              {isImage && att.url ? (
+                                <img src={att.url} alt="" className="w-full h-full object-cover" />
+                              ) : isVideo ? (
+                                <Film className="w-5 h-5 text-[#8FE3FF]" />
+                              ) : isAudio ? (
+                                <Headphones className="w-5 h-5 text-[#CECBF6]" />
+                              ) : isSticker ? (
+                                <Heart className="w-5 h-5 text-red-500 fill-red-500" />
                               ) : (
-                                <Paperclip className="w-5 h-5 text-zinc-400" />
+                                <Share2 className="w-5 h-5 text-emerald-400" />
                               )}
                             </div>
 
@@ -2453,14 +3197,19 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                               <span className="text-xs font-bold text-zinc-200 block truncate" title={fileName}>
                                 {fileName}
                               </span>
-                              <a
-                                href={url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-[10px] text-zinc-500 hover:text-white truncate block mt-0.5"
-                              >
-                                View original file
-                              </a>
+                              <span className="text-[9px] font-extrabold uppercase tracking-wider text-zinc-500 block mt-0.5">
+                                {att.type === 'MEDIA_SHARE' ? 'Media Share' : att.type}
+                              </span>
+                              {att.url && (
+                                <a
+                                  href={att.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-[10px] text-zinc-400 hover:text-white hover:underline truncate block mt-0.5"
+                                >
+                                  View original file
+                                </a>
+                              )}
                             </div>
 
                             {/* Delete Action */}

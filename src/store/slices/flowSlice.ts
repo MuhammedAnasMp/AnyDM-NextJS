@@ -33,6 +33,22 @@ const saveToPast = (state: FlowState) => {
     state.lastEdit = null;
 };
 
+const deleteNodeRecursively = (state: FlowState, nodeId: string) => {
+    // Find all outgoing edges from this node
+    const outgoingEdges = state.edges.filter(e => e.source === nodeId);
+    
+    // Recursively delete all downstream target nodes
+    outgoingEdges.forEach(edge => {
+        deleteNodeRecursively(state, edge.target);
+    });
+
+    // Remove all edges connected to this node (incoming and outgoing)
+    state.edges = state.edges.filter(e => e.source !== nodeId && e.target !== nodeId);
+
+    // Remove the node itself
+    state.nodes = state.nodes.filter(n => n.id !== nodeId);
+};
+
 const syncLinkedNodes = (state: FlowState, nodeId: string) => {
     const node = state.nodes.find(n => n.id === nodeId);
     if (!node || node.type !== 'action') return;
@@ -50,33 +66,34 @@ const syncLinkedNodes = (state: FlowState, nodeId: string) => {
         let buttons: any[] = [];
         const btnsJson = node.data?.button_template_buttons_json;
         if (typeof btnsJson === 'string' && btnsJson.trim()) {
-            try {
-                buttons = JSON.parse(btnsJson);
-            } catch (e) {}
+            try { buttons = JSON.parse(btnsJson); } catch (e) { }
         } else if (Array.isArray(btnsJson)) {
             buttons = btnsJson;
         }
-        buttons.forEach((btn: any) => {
-            if (btn.type === 'postback') {
-                const payload = btn.payload || `BTN_${btn.title?.toUpperCase().replace(/\s+/g, '_')}`;
-                activeEvents.push({ payload, label: btn.title || payload });
+
+        const seenPayloads = new Set<string>();
+        buttons.forEach((btn) => {
+            if (btn.type !== 'web_url' && btn.type !== 'product' && btn.payload) {
+                if (!seenPayloads.has(btn.payload)) {
+                    seenPayloads.add(btn.payload);
+                    activeEvents.push({ payload: btn.payload, label: btn.title || btn.payload });
+                }
             }
         });
     } else if (format === 'generic_template') {
         let elements: any[] = [];
         const elemsJson = node.data?.generic_template_elements_json;
         if (typeof elemsJson === 'string' && elemsJson.trim()) {
-            try {
-                elements = JSON.parse(elemsJson);
-            } catch (e) {}
+            try { elements = JSON.parse(elemsJson); } catch (e) { }
         } else if (Array.isArray(elemsJson)) {
             elements = elemsJson;
         }
+
         const seenPayloads = new Set<string>();
-        elements.forEach((el: any) => {
-            (el.buttons || []).forEach((btn: any) => {
-                if (btn.type === 'postback') {
-                    const payload = btn.payload || `CARD_${btn.title?.toUpperCase().replace(/\s+/g, '_')}`;
+        elements.forEach((elem) => {
+            (elem.buttons || []).forEach((btn: any) => {
+                if (btn.type !== 'web_url' && btn.type !== 'product' && btn.payload) {
+                    const payload = btn.payload;
                     if (!seenPayloads.has(payload)) {
                         seenPayloads.add(payload);
                         activeEvents.push({ payload, label: btn.title || payload });
@@ -95,10 +112,8 @@ const syncLinkedNodes = (state: FlowState, nodeId: string) => {
         const parentEvent = childNode?.data?.parent_event;
         const stillActive = activeEvents.some(ae => ae.payload === parentEvent);
         if (!stillActive) {
-            // Delete the child node
-            state.nodes = state.nodes.filter(n => n.id !== edge.target);
-            // Delete the edge
-            state.edges = state.edges.filter(e => e.id !== edge.id);
+            // Delete the child node and all downstream flows recursively
+            deleteNodeRecursively(state, edge.target);
         }
     });
 
@@ -210,15 +225,14 @@ export const flowSlice = createSlice({
                 // 1. Find all labeled edges from this node (these point to linked reply nodes)
                 const linkedEdges = state.edges.filter(e => e.source === id && e.label);
                 const linkedNodeIds = linkedEdges.map(e => e.target);
-
-                // 2. Cascade-remove linked reply nodes and their downstream edges
+ 
+                // 2. Cascade-remove linked reply nodes and all their downstream edges and nodes
                 if (linkedNodeIds.length > 0) {
-                    state.nodes = state.nodes.filter(n => !linkedNodeIds.includes(n.id));
-                    state.edges = state.edges.filter(
-                        e => !linkedNodeIds.includes(e.source) && !linkedNodeIds.includes(e.target)
-                    );
+                    linkedNodeIds.forEach(targetId => {
+                        deleteNodeRecursively(state, targetId);
+                    });
                 }
-
+ 
                 // 3. Strip every format-specific key so the new wireframe is blank
                 const {
                     dm_format: _df,
@@ -241,7 +255,7 @@ export const flowSlice = createSlice({
                 syncLinkedNodes(state, id);
             }
         },
-
+ 
         // Reset a node back to placeholder and cascade-remove linked reply nodes
         resetToPlaceholder: (state, action: PayloadAction<string>) => {
             saveToPast(state);
@@ -249,14 +263,13 @@ export const flowSlice = createSlice({
             const id = action.payload;
             const node = state.nodes.find(n => n.id === id);
             if (node) {
-                // Remove all linked reply nodes (those connected via labeled edges)
+                // Remove all linked reply nodes and their downstream flows recursively
                 const linkedEdges = state.edges.filter(e => e.source === id && e.label);
                 const linkedNodeIds = linkedEdges.map(e => e.target);
                 if (linkedNodeIds.length > 0) {
-                    state.nodes = state.nodes.filter(n => !linkedNodeIds.includes(n.id));
-                    state.edges = state.edges.filter(
-                        e => !linkedNodeIds.includes(e.source) && !linkedNodeIds.includes(e.target)
-                    );
+                    linkedNodeIds.forEach(targetId => {
+                        deleteNodeRecursively(state, targetId);
+                    });
                 }
                 // Reset node data — keep only non-format fields
                 node.data = {
@@ -272,8 +285,7 @@ export const flowSlice = createSlice({
 
         removeNode: (state, action: PayloadAction<string>) => {
             saveToPast(state);
-            state.nodes = state.nodes.filter(n => n.id !== action.payload);
-            state.edges = state.edges.filter(e => e.source !== action.payload && e.target !== action.payload);
+            deleteNodeRecursively(state, action.payload);
             if (state.selectedNodeId === action.payload) {
                 state.selectedNodeId = null;
                 state.selectedNodeRect = null;
