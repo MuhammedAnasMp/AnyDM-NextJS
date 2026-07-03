@@ -3,21 +3,21 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Zap, 
-  Sparkles, 
-  Plus, 
-  Trash2, 
-  Edit, 
-  Play, 
-  Pause, 
-  TrendingUp, 
-  CheckCircle2, 
-  MessageSquare, 
+import {
+  Zap,
+  Sparkles,
+  Plus,
+  Trash2,
+  Edit,
+  Play,
+  TrendingUp,
+  CheckCircle2,
+  MessageSquare,
   AlertTriangle,
   ArrowRight,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  ChevronRight
 } from "lucide-react";
 import api from "@/lib/services/api.service";
 import Toast from "@/components/Toast";
@@ -55,7 +55,6 @@ export default function AutomationsDashboard() {
   const fetchAutomations = async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      // Bypass cache to get fresh execution counts and statuses
       const response = await api.get("/automations/", {
         bypassCache: true
       } as any);
@@ -91,7 +90,7 @@ export default function AutomationsDashboard() {
           return item;
         }));
         setToast({
-          message: `Automation ${nextEnabled ? "activated" : "paused"} successfully.`,
+          message: `Automation ${nextEnabled ? "activated" : "paused"}.`,
           type: "success",
           visible: true
         });
@@ -133,12 +132,11 @@ export default function AutomationsDashboard() {
     }
   };
 
-  // Compute analytics
   const totalTriggers = automations.reduce((sum, item) => sum + parseInt(item.count || "0", 10), 0);
   const activeCount = automations.filter(item => item.status === "active").length;
   const triggerTypes = automations.map(item => item.rule_type);
-  const mostCommonType = triggerTypes.length > 0 
-    ? triggerTypes.sort((a, b) => triggerTypes.filter(v => v === a).length - triggerTypes.filter(v => v === b).length).pop() 
+  const mostCommonType = triggerTypes.length > 0
+    ? triggerTypes.sort((a, b) => triggerTypes.filter(v => v === a).length - triggerTypes.filter(v => v === b).length).pop()
     : "None";
 
   const formatRuleType = (type: string) => {
@@ -147,234 +145,239 @@ export default function AutomationsDashboard() {
       .replace(/\b\w/g, c => c.toUpperCase());
   };
 
-  const getRuleTypeGlow = (type: string) => {
-    if (type.includes("comment")) return "border-[#8FE3FF]/20 text-[#8FE3FF]";
-    if (type.includes("story")) return "border-[#F472B6]/20 text-[#F472B6]";
-    return "border-[#C084FC]/20 text-[#C084FC]";
+  const getRuleTypeBadgeStyles = (type: string) => {
+    if (type.includes("comment")) return "border-[#8FE3FF]/20 text-[#8FE3FF] bg-[#8FE3FF]/5";
+    if (type.includes("story")) return "border-[#B6B2FF]/20 text-[#B6B2FF] bg-[#B6B2FF]/5";
+    return "border-[#E0E0E0]/20 text-[#E0E0E0] bg-[#E0E0E0]/5";
   };
 
   return (
-    <div className="min-h-screen bg-[#0F1011] text-white p-6 lg:p-10 relative overflow-hidden font-sans">
-      {/* Background glow effects */}
-      <div className="absolute top-1/3 left-1/4 w-[500px] h-[500px] rounded-full bg-indigo-500/5 blur-[120px] pointer-events-none -z-10" />
-      <div className="absolute bottom-1/3 right-1/4 w-[500px] h-[500px] rounded-full bg-rose-500/5 blur-[120px] pointer-events-none -z-10" />
+    <div className="min-h-screen bg-[#131313] text-[#e5e2e1] font-sans antialiased selection:bg-[#c6c6c7]/30">
 
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10 relative z-10">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
-            <span>Instagram Automations</span>
-            <Sparkles className="w-6 h-6 text-amber-400 animate-pulse" />
-          </h1>
-          <p className="text-sm text-[#c4c7c8]/60 mt-1 max-w-xl">
-            Build and manage powerful workflows to reply to comments, trigger story actions, and automate DMs using the Meta Instagram API.
-          </p>
-        </div>
+      {/* Dense Sticky Header Overlay */}
+      <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-[#131313]/85 border-b border-[#444748]">
+        <div className="max-w-6xl mx-auto px-4 h-12 flex items-center justify-between">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-[#c4c7c8]">
 
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={() => fetchAutomations()}
-            disabled={loading}
-            className="p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all flex items-center justify-center cursor-pointer text-[#c4c7c8] hover:text-white"
-            title="Refresh automations"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-          </button>
-          <Link 
-            href="/dashboard/automations"
-            className="py-3 px-6 bg-gradient-to-tr from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-500/20 transition-all duration-300 flex items-center gap-2 cursor-pointer border border-indigo-400/20 hover:scale-[1.02] active:scale-[0.98]"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Create Workflow</span>
-          </Link>
-        </div>
-      </div>
-
-      {/* Analytics Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10 relative z-10">
-        {[
-          { title: "Total Executions", value: totalTriggers, desc: "Successful trigger runs", icon: Zap, color: "text-[#FAC775]" },
-          { title: "Active Workflows", value: activeCount, desc: "Currently running rules", icon: Play, color: "text-[#34D399]" },
-          { title: "Total Workflows", value: automations.length, desc: "Saved automation rules", icon: MessageSquare, color: "text-[#8FE3FF]" },
-          { title: "Top Trigger Type", value: mostCommonType ? formatRuleType(mostCommonType) : "N/A", desc: "Most popular workflow", icon: TrendingUp, color: "text-[#C084FC]" },
-        ].map((stat, i) => {
-          const Icon = stat.icon;
-          return (
-            <div key={i} className="bg-[#161618]/60 backdrop-blur-xl border border-white/5 rounded-2xl p-5 shadow-xl flex items-center justify-between group hover:border-white/10 transition-all">
-              <div className="space-y-1">
-                <span className="text-xs font-semibold text-[#c4c7c8]/40 uppercase tracking-wider block">{stat.title}</span>
-                <span className="text-2xl font-extrabold text-white tracking-tight block">{stat.value}</span>
-                <span className="text-xs text-[#c4c7c8]/40 block">{stat.desc}</span>
-              </div>
-              <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Icon className={`w-5 h-5 ${stat.color}`} />
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Workflows Listing */}
-      <div className="relative z-10">
-        <h2 className="text-lg font-bold text-white mb-5 flex items-center gap-2">
-          <span>Active Workflows</span>
-          <span className="px-2 py-0.5 bg-white/5 border border-white/10 rounded-full text-xs text-[#c4c7c8]/60 font-mono">
-            {automations.length}
-          </span>
-        </h2>
-
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3].map(n => (
-              <div key={n} className="h-60 bg-[#161618]/30 border border-white/5 rounded-2xl animate-pulse flex flex-col justify-between p-6">
-                <div className="space-y-3">
-                  <div className="h-5 bg-white/5 rounded w-2/3" />
-                  <div className="h-4 bg-white/5 rounded w-1/3" />
-                </div>
-                <div className="h-10 bg-white/5 rounded w-full mt-auto" />
-              </div>
-            ))}
           </div>
-        ) : automations.length === 0 ? (
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col items-center justify-center text-center p-12 bg-[#161618]/30 border border-white/5 rounded-2xl backdrop-blur-xl"
-          >
-            <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-5">
-              <AlertTriangle className="w-8 h-8 text-amber-500" />
-            </div>
-            <h3 className="text-lg font-bold text-white mb-2">No Automations Created</h3>
-            <p className="text-sm text-[#c4c7c8]/60 max-w-sm mb-6">
-              You haven't built any workflows yet. Open the visual builder to create your first Instagram trigger automation.
-            </p>
-            <Link 
-              href="/dashboard/automations"
-              className="py-3 px-6 bg-white hover:bg-[#e4e4e4] text-black rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer"
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => fetchAutomations()}
+              disabled={loading}
+              className="p-1.5 bg-[#1c1b1b] hover:bg-[#20201f] border border-[#444748] rounded text-[#e5e2e1] transition-colors flex items-center justify-center disabled:opacity-50"
+              title="Refresh"
             >
-              <span>Build Your First Flow</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin" : ""}`} />
+            </button>
+            <Link
+              href="/dashboard/automations"
+              className="py-1 px-2.5 bg-white hover:bg-[#e5e2e1] text-[#131313] rounded text-[11px] font-bold tracking-tight transition-colors flex items-center gap-1"
+            >
+              <Plus className="w-3 h-3" />
+              <span>Create Workflow</span>
             </Link>
-          </motion.div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <AnimatePresence>
-              {automations.map((item) => (
-                <motion.div
-                  key={item.id}
-                  layoutId={item.id}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.3 }}
-                  className={`bg-[#161618]/60 border backdrop-blur-xl rounded-2xl p-6 flex flex-col justify-between shadow-lg relative group transition-all hover:translate-y-[-2px] ${
-                    item.status === "active" 
-                      ? "border-indigo-500/20 shadow-indigo-500/5 hover:border-indigo-500/30" 
-                      : "border-white/5 hover:border-white/15"
-                  }`}
-                >
-                  {/* Card Header */}
-                  <div className="space-y-3">
-                    <div className="flex items-start justify-between gap-4">
-                      <h3 className="font-bold text-[16px] text-white leading-snug tracking-tight truncate group-hover:text-indigo-300 transition-colors">
-                        {item.name}
-                      </h3>
-                      
-                      {/* Active Status Toggle */}
-                      <button
-                        onClick={() => handleToggle(item.id, item.status)}
-                        disabled={togglingId === item.id}
-                        className={`w-10 h-6 rounded-full p-0.5 transition-colors relative flex items-center cursor-pointer outline-none border-0 ${
-                          item.status === "active" ? "bg-indigo-500" : "bg-white/10"
-                        }`}
-                      >
-                        <div className={`w-5 h-5 rounded-full bg-white shadow-md transform transition-transform duration-200 ${
-                          item.status === "active" ? "translate-x-4" : "translate-x-0"
-                        } flex items-center justify-center`}>
-                          {togglingId === item.id && (
-                            <Loader2 className="w-3 h-3 animate-spin text-indigo-500" />
-                          )}
-                        </div>
-                      </button>
-                    </div>
+          </div>
+        </div>
+      </header>
 
-                    {/* Trigger Type Badge */}
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className={`px-2.5 py-1 text-[10px] font-bold rounded-full uppercase tracking-wider border bg-white/5 ${getRuleTypeGlow(item.rule_type)}`}>
-                        {formatRuleType(item.rule_type)}
-                      </span>
-                      <span className="text-[11px] text-[#c4c7c8]/40 flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3 text-[#34D399]" />
-                        {item.count} runs
-                      </span>
-                    </div>
+      <main className="max-w-6xl mx-auto px-4 py-5">
+
+        {/* Compact Title Section */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5 pb-3.5 border-b border-[#444748]/60">
+          <div>
+            <h1 className="text-base font-bold tracking-tight text-[#e5e2e1] flex items-center gap-1.5">
+              <span>Instagram Automations</span>
+              <Sparkles className="w-3.5 h-3.5 text-[#B6B2FF] shrink-0" />
+            </h1>
+            <p className="text-[11px] text-[#c4c7c8] mt-0.5 leading-relaxed">
+              Configure automatic replies, story triggers, and direct messaging workflows linked to your profile.
+            </p>
+          </div>
+        </div>
+
+        {/* Structured Grid Stats Panel */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+          {[
+            { title: "Total Executions", value: totalTriggers, icon: Zap, color: "text-[#E0E0E0]" },
+            { title: "Active Workflows", value: activeCount, icon: Play, color: "text-[#8FE3FF]" },
+            { title: "Saved Templates", value: automations.length, icon: MessageSquare, color: "text-[#c4c7c8]" },
+            { title: "Leading Trigger", value: mostCommonType ? formatRuleType(mostCommonType) : "N/A", icon: TrendingUp, color: "text-[#B6B2FF]" },
+          ].map((stat, i) => {
+            const Icon = stat.icon;
+            return (
+              <div key={i} className="bg-[#1c1b1b] border border-[#444748] rounded p-3 flex items-center justify-between shadow-sm">
+                <div className="space-y-0.5">
+                  <span className="text-[9px] font-semibold text-[#c4c7c8]/85 uppercase tracking-wider block">{stat.title}</span>
+                  <span className="text-lg font-bold text-[#e5e2e1] tracking-tight block">{stat.value}</span>
+                </div>
+                <div className="w-7 h-7 rounded bg-[#20201f] border border-[#444748]/60 flex items-center justify-center shrink-0">
+                  <Icon className={`w-3.5 h-3.5 ${stat.color}`} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Active Grid Setup */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <h2 className="text-[10px] font-bold uppercase tracking-wider text-[#c4c7c8]">
+              Configured Profiles & Rules
+            </h2>
+            <span className="px-1.5 py-0.2 bg-[#20201f] border border-[#444748] rounded-sm text-[9px] text-[#c4c7c8] font-mono">
+              {automations.length}
+            </span>
+          </div>
+
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {[1, 2, 3].map(n => (
+                <div key={n} className="h-40 bg-[#1c1b1b] border border-[#444748] rounded animate-pulse flex flex-col justify-between p-3.5">
+                  <div className="space-y-2">
+                    <div className="h-3.5 bg-[#20201f] rounded-sm w-2/3" />
+                    <div className="h-3 bg-[#20201f] rounded-sm w-1/3" />
                   </div>
+                  <div className="h-7 bg-[#20201f] rounded-sm w-full mt-auto" />
+                </div>
+              ))}
+            </div>
+          ) : automations.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0, y: 3 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col items-center justify-center text-center p-8 bg-[#1c1b1b] border border-[#444748] rounded"
+            >
+              <div className="w-8 h-8 rounded bg-[#20201f] border border-[#444748] flex items-center justify-center mb-3">
+                <AlertTriangle className="w-4 h-4 text-[#8e9192]" />
+              </div>
+              <h3 className="text-xs font-semibold text-[#e5e2e1] mb-0.5">No Active Rule Sets</h3>
+              <p className="text-[11px] text-[#c4c7c8] max-w-xs mb-3">
+                Select a visual trigger set to automatically configure communication hooks.
+              </p>
+              <Link
+                href="/dashboard/automations"
+                className="py-1 px-2.5 bg-white hover:bg-[#e5e2e1] text-[#131313] rounded text-[11px] font-bold transition-colors flex items-center gap-1"
+              >
+                <span>Add Template</span>
+                <ArrowRight className="w-3 h-3" />
+              </Link>
+            </motion.div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <AnimatePresence>
+                {automations.map((item) => (
+                  <motion.div
+                    key={item.id}
+                    layoutId={item.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.1 }}
+                    className={`bg-[#1c1b1b] border rounded p-3.5 flex flex-col justify-between shadow-sm transition-colors ${item.status === "active" ? "border-[#8e9192]" : "border-[#444748]"
+                      }`}
+                  >
+                    {/* Header parameters */}
+                    <div className="space-y-2">
+                      <div className="flex items-start justify-between gap-3">
+                        <h3 className="font-semibold text-xs text-[#e5e2e1] tracking-tight truncate flex-1 leading-snug">
+                          {item.name}
+                        </h3>
 
-                  {/* Keywords & Actions Info */}
-                  <div className="my-6 space-y-3 flex-1">
-                    {item.keywords && item.keywords.length > 0 && (
+                        {/* Minimal Compact Switch */}
+                        <button
+                          onClick={() => handleToggle(item.id, item.status)}
+                          disabled={togglingId === item.id}
+                          className={`w-8 h-4.5 rounded-full p-0.5 transition-colors relative flex items-center cursor-pointer outline-none border border-transparent shrink-0 ${item.status === "active" ? "bg-white" : "bg-[#20201f] border-[#444748]"
+                            }`}
+                        >
+                          <div className={`w-3 h-3 rounded-full shadow-sm transform transition-transform duration-100 ${item.status === "active" ? "translate-x-3.5 bg-[#131313]" : "translate-x-0 bg-[#8e9192]"
+                            } flex items-center justify-center`}>
+                            {togglingId === item.id && (
+                              <Loader2 className="w-2.5 h-2.5 animate-spin text-white" />
+                            )}
+                          </div>
+                        </button>
+                      </div>
+
+                      {/* Rule Badges */}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`px-1.5 py-0.2 text-[8px] font-bold rounded-sm uppercase tracking-wider border ${getRuleTypeBadgeStyles(item.rule_type)}`}>
+                          {formatRuleType(item.rule_type)}
+                        </span>
+                        <span className="text-[10px] text-[#c4c7c8] flex items-center gap-1 font-medium">
+                          <CheckCircle2 className="w-3 h-3 text-[#8FE3FF]" />
+                          {item.count} runs
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Compact Nested Details */}
+                    <div className="my-2.5 space-y-3.5 flex-1">
+                      {/* Keyword tags */}
+                      {item.keywords && item.keywords.length > 0 && (
+                        <div className="space-y-1">
+                          <span className="text-[8px] text-[#c4c7c8]/65 font-bold uppercase tracking-wider block">Keywords</span>
+                          <div className="flex flex-wrap gap-1">
+                            {item.keywords.map((kw, i) => (
+                              <span key={i} className="px-1.5 py-0.2 bg-[#131313] border border-[#444748] rounded-sm text-[10px] text-[#e5e2e1] font-mono">
+                                {kw}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Dynamic Action Lists */}
                       <div className="space-y-1">
-                        <span className="text-[11px] text-[#c4c7c8]/40 font-bold uppercase tracking-wider">Keywords</span>
-                        <div className="flex flex-wrap gap-1.5">
-                          {item.keywords.map((kw, i) => (
-                            <span key={i} className="px-2 py-0.5 bg-[#202022] border border-white/5 rounded-md text-xs text-[#c4c7c8] font-medium">
-                              {kw}
-                            </span>
+                        <span className="text-[8px] text-[#c4c7c8]/65 font-bold uppercase tracking-wider block">
+                          Actions ({item.actions.length})
+                        </span>
+                        <div className="space-y-1">
+                          {item.actions.slice(0, 2).map((act, i) => (
+                            <div key={i} className="text-[11px] text-[#c4c7c8] flex items-center gap-1.5 truncate">
+                              <span className="w-1 h-1 rounded-full bg-[#B6B2FF] shrink-0" />
+                              <span className="font-semibold text-[#B6B2FF] shrink-0">
+                                {act.action_type === 'send_dm' ? 'DM' : act.action_type === 'reply_comment' ? 'Comment' : 'Story'}
+                              </span>
+                              <span className="text-[#c4c7c8]/50 font-mono text-[9px]">({act.dm_format || 'txt'})</span>
+                              <span className="truncate italic text-[#c4c7c8]/90">"{act.messages[0]}"</span>
+                            </div>
                           ))}
                         </div>
                       </div>
-                    )}
-
-                    <div className="space-y-1">
-                      <span className="text-[11px] text-[#c4c7c8]/40 font-bold uppercase tracking-wider">Actions ({item.actions.length})</span>
-                      <div className="space-y-1">
-                        {item.actions.slice(0, 2).map((act, i) => (
-                          <div key={i} className="text-xs text-[#c4c7c8]/80 flex items-center gap-1.5 truncate">
-                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0" />
-                            <span className="font-semibold text-indigo-300 shrink-0">{act.action_type === 'send_dm' ? 'Send DM' : act.action_type === 'reply_comment' ? 'Reply Comment' : 'Reply Story'}</span>
-                            <span className="text-[#c4c7c8]/40">({act.dm_format || 'text'})</span>
-                            <span className="truncate">"{act.messages[0]}"</span>
-                          </div>
-                        ))}
-                        {item.actions.length > 2 && (
-                          <span className="text-[10px] text-[#c4c7c8]/40 block pl-3">
-                            + {item.actions.length - 2} more actions
-                          </span>
-                        )}
-                      </div>
                     </div>
-                  </div>
 
-                  {/* Card Actions Footer */}
-                  <div className="flex items-center gap-2 pt-4 border-t border-white/5 mt-auto">
-                    <Link
-                      href={`/dashboard/automations?id=${item.id}`}
-                      className="flex-1 py-2 px-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-semibold text-white transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      <Edit className="w-3.5 h-3.5" />
-                      <span>Edit Flow</span>
-                    </Link>
-                    <button
-                      onClick={() => handleDelete(item.id)}
-                      disabled={deletingId === item.id}
-                      className="p-2 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 hover:border-rose-500/30 rounded-xl text-rose-400 transition-all flex items-center justify-center cursor-pointer"
-                      title="Delete automation"
-                    >
-                      {deletingId === item.id ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <Trash2 className="w-3.5 h-3.5" />
-                      )}
-                    </button>
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
-        )}
-      </div>
+                    {/* Operational Footer Buttons */}
+                    <div className="flex items-center gap-1.5 pt-2 border-t border-[#444748]/60 mt-auto">
+                      <Link
+                        href={`/dashboard/automations?id=${item.id}`}
+                        className="flex-1 py-1 px-2.5 bg-[#20201f] hover:bg-[#2a2a2a] border border-[#444748] rounded text-[11px] font-semibold text-[#e5e2e1] transition-colors flex items-center justify-center gap-1"
+                      >
+                        <Edit className="w-3 h-3 text-[#c4c7c8]" />
+                        <span>Edit</span>
+                      </Link>
+                      <button
+                        onClick={() => handleDelete(item.id)}
+                        disabled={deletingId === item.id}
+                        className="p-1.5 bg-[#131313] hover:bg-rose-950/10 border border-[#444748] hover:border-rose-900/30 rounded text-[#e5e2e1] hover:text-rose-400 transition-colors flex items-center justify-center disabled:opacity-50"
+                        title="Delete automation"
+                      >
+                        {deletingId === item.id ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-3 h-3" />
+                        )}
+                      </button>
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+          )}
+        </div>
+      </main>
 
-      <Toast 
+      <Toast
         message={toast.message}
         type={toast.type}
         isVisible={toast.visible}

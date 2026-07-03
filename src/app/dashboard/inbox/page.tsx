@@ -6,7 +6,8 @@ import { useSelector } from "react-redux";
 import { RootState } from "@/store";
 import api from "@/lib/services/api.service";
 import { cn } from "@/lib/utils";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
+import { Lock } from "lucide-react";
 
 const PlayableVideoAttachment = ({ url }: { url: string }) => {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -67,6 +68,47 @@ const PlayableVideoAttachment = ({ url }: { url: string }) => {
 
 export default function InboxPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const appUser = useSelector((state: RootState) => state.auth.user);
+  const isPremiumActive = appUser?.is_premium_active ?? true;
+
+  if (!isPremiumActive) {
+    return (
+      <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 text-center max-w-lg mx-auto relative overflow-hidden font-sans">
+        <div className="absolute top-[-20%] right-[-10%] w-[300px] h-[300px] bg-[#c4c0ff]/5 blur-[80px] rounded-full pointer-events-none"></div>
+        <div className="absolute bottom-[-20%] left-[-10%] w-[300px] h-[300px] bg-[#8FE3FF]/5 blur-[80px] rounded-full pointer-events-none"></div>
+        
+        <div className="glass-pane p-8 rounded-3xl border border-white/10 bg-white/[0.02] flex flex-col items-center gap-6 relative z-10 w-full">
+          <div className="w-14 h-14 rounded-2xl bg-[#c4c0ff]/10 border border-[#c4c0ff]/20 flex items-center justify-center text-[#c4c0ff]">
+            <Lock className="w-6 h-6" />
+          </div>
+          
+          <div className="space-y-2">
+            <h2 className="text-xl font-bold text-white tracking-tight">Access Locked</h2>
+            <p className="text-xs text-[#c4c7c8]/60 leading-relaxed">
+              Your free trial has expired. Upgrade to Creator Pro to unlock access to your Direct Messages Inbox and customer CRM enquiries.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-2.5 w-full">
+            <button
+              onClick={() => router.push("/dashboard/pricing")}
+              className="w-full bg-white hover:bg-[#eaeaea] text-black font-bold text-xs uppercase py-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-95 shadow-lg"
+            >
+              <span>View Pricing Plans</span>
+            </button>
+            <button
+              onClick={() => router.push("/dashboard/refer")}
+              className="w-full bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold text-xs uppercase py-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-95"
+            >
+              <span>Earn Points (Refer &amp; Earn)</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const recipientIdParam = searchParams.get("recipient_id");
   const usernameParam = searchParams.get("username");
   const nameParam = searchParams.get("name");
@@ -191,7 +233,6 @@ export default function InboxPage() {
 
 
   const instagramAccounts = useSelector((state: RootState) => state.auth.instagramAccounts);
-  const appUser = useSelector((state: RootState) => state.auth.user);
   const activeAccount = instagramAccounts.find(
     (acc: any) => acc.id === appUser?.active_instagram_account_id
   ) || instagramAccounts[0];
@@ -970,8 +1011,8 @@ export default function InboxPage() {
                       checked={selectedConversation.is_ai_enabled !== false}
                       onChange={async (e) => {
                         const updatedVal = e.target.checked;
-                        setSelectedConversation(prev => prev ? { ...prev, is_ai_enabled: updatedVal } : null);
-                        setConversations(prev => prev.map(c => c.id === selectedConversation.id ? { ...c, is_ai_enabled: updatedVal } : c));
+                        setSelectedConversation((prev: any) => prev ? { ...prev, is_ai_enabled: updatedVal } : null);
+                        setConversations((prev: any[]) => prev.map(c => c.id === selectedConversation.id ? { ...c, is_ai_enabled: updatedVal } : c));
                         try {
                           const recipientId = selectedConversation.recipient_id;
                           await api.post(`/crm/customers/${recipientId}/toggle-ai/`, { is_ai_enabled: updatedVal });

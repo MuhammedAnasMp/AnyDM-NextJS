@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { clearApiCache } from './api.service';
 import {
     signInWithPopup,
     signInWithEmailAndPassword,
@@ -86,9 +87,12 @@ class AuthService {
 
     async exchangeFirebaseToken(idToken: string) {
         try {
-            const response = await axios.post(`${API_URL}/accounts/auth/firebase/`, {
-                id_token: idToken
-            });
+            const referralCode = typeof window !== 'undefined' ? sessionStorage.getItem('referral_code') : null;
+            const payload: any = { id_token: idToken };
+            if (referralCode) {
+                payload.referral_code = referralCode;
+            }
+            const response = await axios.post(`${API_URL}/accounts/auth/firebase/`, payload);
 
             const { tokens, user, instagram_accounts } = response.data;
             const { access, refresh } = tokens;
@@ -121,10 +125,16 @@ class AuthService {
                 (config as any).headers = { Authorization: `Bearer ${token}` };
             }
 
-            const response = await axios.post(`${API_URL}/accounts/auth/instagram/`, {
+            const referralCode = typeof window !== 'undefined' ? sessionStorage.getItem('referral_code') : null;
+            const payload: any = {
                 code: code,
                 redirect_uri: redirectUri || `${window.location.origin}/login`
-            }, config);
+            };
+            if (referralCode && !isLinking) {
+                payload.referral_code = referralCode;
+            }
+
+            const response = await axios.post(`${API_URL}/accounts/auth/instagram/`, payload, config);
 
             const { tokens, user, instagram_account, firebase_token } = response.data;
             const { access, refresh } = tokens;
@@ -309,6 +319,9 @@ class AuthService {
             }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
+            
+            // Clear the in-memory API cache so all pages re-fetch for the new account
+            clearApiCache();
             
             const currentUser = this.getCurrentUser();
             if (currentUser) {

@@ -17,7 +17,8 @@ import {
   RefreshCw,
   X,
   Layers,
-  Link as LinkIcon
+  Link as LinkIcon,
+  ChevronRight
 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -28,6 +29,7 @@ import Toast from "@/components/Toast";
 import axios from "axios";
 import { cn } from "@/lib/utils";
 import InstagramImportModal from "@/components/InstagramImportModal";
+import InstagramIcon from "@/components/ui/InstagramIcon";
 
 interface MediaItem {
   id: string;
@@ -136,7 +138,7 @@ export default function ProductCreatePage() {
         setTitle(croppedTitle.length > 50 ? croppedTitle.slice(0, 47) + "..." : croppedTitle);
       }
 
-      // Read selected media details from sessionStorage (from InstagramImportModal)
+      // Read selected media details from sessionStorage
       let storedMedia: any = null;
       try {
         const stored = sessionStorage.getItem("instagram_selected_media");
@@ -149,7 +151,6 @@ export default function ProductCreatePage() {
         }
       } catch (e) { /* ignore parse error */ }
 
-      // Trigger Cloudinary upload immediately
       if (storedMedia) {
         handleImportInstagramMedia(storedMedia);
       } else {
@@ -237,7 +238,6 @@ export default function ProductCreatePage() {
     setInitialLoading(false);
   };
 
-  // Drag and Drop support
   const [dragActive, setDragActive] = useState(false);
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -315,7 +315,7 @@ export default function ProductCreatePage() {
             return [...prevList, newMedia];
           });
 
-          showToast(`Uploaded "${file.name}" successfully!`, "success");
+          showToast(`Uploaded "${file.name}" successfully`, "success");
         } catch (e) {
           showToast("Failed to process uploaded file", "error");
         }
@@ -465,7 +465,6 @@ export default function ProductCreatePage() {
           });
         } catch (err) {
           console.error(`Failed to upload Instagram asset ${asset.id} to Cloudinary:`, err);
-          // Do not fall back to raw Instagram URL
         }
         setUploadProgress(Math.round(((i + 1) / total) * 100));
       }
@@ -493,10 +492,10 @@ export default function ProductCreatePage() {
         }
       }
 
-      showToast("Instagram media assets uploaded to Cloudinary successfully!", "success");
+      showToast("Instagram media assets uploaded successfully", "success");
     } catch (e: any) {
       console.error("Asset import error:", e);
-      showToast(e.message || "Failed to upload Instagram assets to Cloudinary", "error");
+      showToast(e.message || "Failed to upload Instagram assets", "error");
     } finally {
       setUploading(false);
       setUploadProgress(100);
@@ -524,18 +523,17 @@ export default function ProductCreatePage() {
     setVariants(variants.filter(item => item !== v));
   };
 
-  // Submit and save
   const handleSave = async (submitStatus: "PUBLISHED" | "DRAFT") => {
     if (!title) {
       showToast("Product title is required", "error");
       return;
     }
     if (!price || isNaN(Number(price)) || Number(price) <= 0) {
-      showToast("Please specify a valid price", "error");
+      showToast("Specify a valid price", "error");
       return;
     }
     if (mediaList.length === 0) {
-      showToast("Please upload or select at least one media item", "error");
+      showToast("Upload or select at least one media item", "error");
       return;
     }
 
@@ -585,7 +583,7 @@ export default function ProductCreatePage() {
       }
 
       updateLocalStorage(submitStatus, productPayload);
-      showToast(isEditing ? "Product updated successfully!" : "Product created successfully!", "success");
+      showToast(isEditing ? "Product updated successfully" : "Product created successfully", "success");
 
       setTimeout(() => {
         router.push("/dashboard/products/catalog");
@@ -596,9 +594,9 @@ export default function ProductCreatePage() {
         setLoading(false);
         return;
       }
-      console.warn("Backend API unreachable or threw another error. Storing product changes locally.");
+      console.warn("Backend API unreachable. Syncing product changes locally.");
       updateLocalStorage(submitStatus, productPayload);
-      showToast(isEditing ? "Product updated locally!" : "Product created locally!", "success");
+      showToast(isEditing ? "Product updated locally" : "Product created locally", "success");
 
       setTimeout(() => {
         router.push("/dashboard/products/catalog");
@@ -630,101 +628,77 @@ export default function ProductCreatePage() {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="max-w-6xl mx-auto text-white pb-16 space-y-6"
+      className="max-w-6xl mx-auto text-[#e5e2e1] pb-16 space-y-8 px-4 md:px-6 font-sans"
     >
-      {/* Top Header / Breadcrumb navigation */}
-      <div className="flex justify-between items-end mb-4">
+      {/* Header & Actions */}
+      <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-4 pb-4 border-b border-[#444748]/10">
         <div>
-          <nav className="flex items-center gap-2 text-gray-400 text-xs mb-2">
-            <Link href="/dashboard/products/catalog" className="hover:text-white transition-colors">Products</Link>
-            <span className="material-symbols-outlined text-[14px]">chevron_right</span>
-            <span className="text-white">{isEditing ? "Edit Product" : "Create Product"}</span>
+          <nav className="flex items-center gap-2 text-[#c4c7c8] text-xs mb-2">
+            <Link href="/dashboard/products/catalog" className="hover:text-white transition-colors">
+              Products
+            </Link>
+            <ChevronRight size={12} className="text-[#8e9192]" strokeWidth={1.75} />
+            <span className="text-white">{isEditing ? "Edit product" : "Create product"}</span>
           </nav>
-          <h2 className="text-2xl font-bold tracking-tight text-white flex items-center gap-3">
-            {isEditing ? `Edit: ${title || "Product"}` : "Create New Product"}
-            {!isEditing && productSource === "instagram" && <Sparkles className="w-5 h-5 text-pink-500 animate-pulse" />}
-            {isEditing && instagramPermalink && (
-              <a
-                href={instagramPermalink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1 bg-pink-500/10 border border-pink-500/25 rounded-full text-xs font-bold text-pink-400 hover:bg-pink-500/20 hover:text-pink-300 transition-all active:scale-[0.97]"
-              >
-                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
-                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-                  <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
-                </svg>
-                <span>View Instagram Post</span>
-                <span className="material-symbols-outlined text-[13px]">open_in_new</span>
-              </a>
+          <h2 className="text-2xl font-semibold tracking-tight text-white flex items-center gap-2">
+            {isEditing ? `Edit: ${title || "Product"}` : "Create new product"}
+            {!isEditing && productSource === "instagram" && (
+              <Sparkles size={18} className="text-white/40 animate-pulse" strokeWidth={1.75} />
             )}
           </h2>
         </div>
         <div className="flex gap-2 text-xs">
           <button
             onClick={() => router.push("/dashboard/products/catalog")}
-            className="px-4 py-2 rounded-lg border border-white/10 text-white font-semibold hover:bg-white/5 transition-all"
+            className="px-4 py-2 rounded-[4px] bg-transparent border border-[#444748] text-[#e5e2e1] font-medium hover:bg-[#1c1b1b] transition-colors"
           >
             Discard
           </button>
           <button
             disabled={loading}
             onClick={() => handleSave(status)}
-            className="px-4 py-2 rounded-lg bg-white text-black font-bold hover:bg-[#eaeaea] transition-all disabled:opacity-50"
+            className="px-4 py-2 rounded-[4px] bg-white text-[#131313] font-semibold hover:bg-[#e5e2e1] transition-colors disabled:opacity-50"
           >
-            {loading ? "Saving..." : isEditing ? "Save Updates" : "Create Product"}
+            {loading ? "Saving..." : isEditing ? "Save updates" : "Create product"}
           </button>
         </div>
       </div>
 
       {initialLoading ? (
-        <div className="py-20 text-center text-gray-500 font-medium">
-          <RefreshCw className="w-10 h-10 animate-spin text-white mx-auto mb-4" />
+        <div className="py-20 text-center text-[#c4c7c8] font-medium">
+          <RefreshCw size={24} className="animate-spin text-white mx-auto mb-4" strokeWidth={1.75} />
           Loading product details...
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left Column: Primary Details */}
-          <div className="lg:col-span-8 space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+          {/* Left Column: Form Fields */}
+          <div className="lg:col-span-8 space-y-10">
 
             {/* Media Assets Section */}
-            <section className="glass-pane rounded-xl p-6 border border-white/10 space-y-4">
-              <div className="flex justify-between items-center">
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
                 <div>
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400">Media Assets</h3>
-                  <p className="text-[11px] text-gray-500 mt-0.5">Click any image to set it as cover. The first image will be cover by default.</p>
+                  <h3 className="text-sm font-semibold tracking-wide text-white">Media assets</h3>
+                  <p className="text-[11px] text-[#c4c7c8]/70 mt-0.5">
+                    Click any image to set it as cover. The first image is the default cover.
+                  </p>
                 </div>
                 <div className="flex gap-2">
-                  {isEditing && instagramPermalink && (
-                    <a
-                      href={instagramPermalink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-pink-400 bg-pink-500/10 border border-pink-500/20 hover:bg-pink-500/20 px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs font-bold transition-all"
-                    >
-                      <span className="material-symbols-outlined text-[16px]">visibility</span>
-                      <span>View Instagram Source</span>
-                    </a>
-                  )}
                   <button
                     type="button"
                     onClick={() => setShowInstagramModal(true)}
-                    className="text-white bg-white/5 border border-white/10 hover:bg-white/10 px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs font-bold transition-all"
+                    className="text-[#e5e2e1] bg-[#1c1b1b] border border-[#444748]/60 hover:bg-[#1c1b1b] px-3 py-1.5 rounded-[4px] flex items-center gap-1.5 text-xs font-medium transition-colors"
                   >
-                    <svg className="w-3.5 h-3.5 text-pink-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
-                      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-                      <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
-                    </svg>
-                    <span>Import Instagram Media</span>
+                    <InstagramIcon className="w-4 h-4 text-pink-500" />
+                    <span>Instagram media</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="text-white bg-white/5 border border-white/10 hover:bg-white/10 px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs font-bold transition-all"
+                    className="text-[#e5e2e1] bg-[#1c1b1b] border border-[#444748]/60 hover:bg-[#1c1b1b] px-3 py-1.5 rounded-[4px] flex items-center gap-1.5 text-xs font-medium transition-colors"
                   >
-                    <Plus className="w-3.5 h-3.5" /> Add Asset
+                    <Plus size={14} strokeWidth={1.75} /> Media
                   </button>
                 </div>
                 <input
@@ -736,7 +710,7 @@ export default function ProductCreatePage() {
                 />
               </div>
 
-              {/* Drag and Drop upload area */}
+              {/* Recessed Drag and Drop Zone */}
               <div
                 onDragEnter={handleDrag}
                 onDragOver={handleDrag}
@@ -744,25 +718,25 @@ export default function ProductCreatePage() {
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
                 className={cn(
-                  "border border-dashed rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer transition-all hover:bg-white/[0.02]",
-                  dragActive ? "border-white bg-white/[0.05]" : "border-white/10",
-                  mediaList.length === 0 ? "h-40" : "py-4"
+                  "border border-dashed rounded-[4px] p-6 flex flex-col items-center justify-center cursor-pointer transition-colors bg-[#1c1b1b]",
+                  dragActive ? "border-white" : "border-[#444748]/60 hover:border-[#8e9192]",
+                  mediaList.length === 0 ? "h-36" : "py-4"
                 )}
               >
-                <Upload className="w-8 h-8 text-gray-500 mb-2" />
-                <p className="text-xs text-gray-300 font-medium">
-                  Drag & drop assets here, or click to upload
+                <Upload size={20} className="text-[#8e9192] mb-1.5" strokeWidth={1.75} />
+                <p className="text-xs text-[#e5e2e1] font-medium">
+                  Drag and drop assets here, or click to upload
                 </p>
-                <p className="text-[10px] text-gray-500 mt-1">Supports PNG, JPG, JPEG, MP4 files</p>
+                <p className="text-[10px] text-[#8e9192] mt-0.5">Supports PNG, JPG, JPEG, and MP4 files</p>
               </div>
 
               {uploading && (
                 <div className="space-y-1.5">
-                  <div className="flex justify-between text-xs text-gray-400">
+                  <div className="flex justify-between text-xs text-[#c4c7c8]">
                     <span>Uploading asset...</span>
                     <span>{uploadProgress}%</span>
                   </div>
-                  <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+                  <div className="w-full h-1 bg-[#1c1b1b] rounded-full overflow-hidden border border-[#444748]/20">
                     <div className="h-full bg-white transition-all duration-150" style={{ width: `${uploadProgress}%` }}></div>
                   </div>
                 </div>
@@ -771,13 +745,13 @@ export default function ProductCreatePage() {
               {/* Media Grid */}
               {mediaList.length > 0 && (
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                  {mediaList.map((item, i) => (
+                  {mediaList.map((item) => (
                     <div
                       key={item.id}
                       onClick={() => setMainMedia(item.id)}
                       className={cn(
-                        "relative aspect-square rounded-lg overflow-hidden border cursor-pointer group transition-all",
-                        item.isMain ? "border-white scale-[0.98]" : "border-white/10 hover:border-white/20"
+                        "relative aspect-square rounded-[4px] overflow-hidden border cursor-pointer group transition-all bg-[#1c1b1b]",
+                        item.isMain ? "border-white scale-[0.98]" : "border-[#444748]/30 hover:border-[#444748]"
                       )}
                     >
                       <img
@@ -791,128 +765,123 @@ export default function ProductCreatePage() {
                       <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
                         <button
                           onClick={(e) => removeMediaItem(item.id, e)}
-                          className="p-1 bg-black/60 hover:bg-black/90 text-red-500 rounded-md border border-white/10"
+                          className="p-1 bg-[#131313] hover:bg-[#1c1b1b] text-red-400 rounded border border-[#444748]"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 size={12} strokeWidth={1.75} />
                         </button>
                       </div>
 
                       {item.isMain && (
-                        <div className="absolute bottom-1.5 left-1.5 bg-white text-black text-[9px] font-bold uppercase px-1.5 py-0.5 rounded shadow">
+                        <div className="absolute bottom-1 right-1 bg-white text-[#131313] text-[9px] font-semibold px-1 rounded-[2px] shadow">
                           Cover
                         </div>
                       )}
 
-                      <div className="absolute top-1.5 left-1.5 bg-black/50 backdrop-blur-md p-1 rounded border border-white/10 shadow-sm flex items-center justify-center">
-                        {item.type === "VIDEO" ? <VideoIcon className="w-3 h-3 text-white" /> : <ImageIcon className="w-3 h-3 text-white" />}
+                      <div className="absolute top-1 left-1 bg-[#131313]/90 p-1 rounded border border-[#444748]/30 shadow-sm flex items-center justify-center">
+                        {item.type === "VIDEO" ? <VideoIcon size={12} strokeWidth={1.75} /> : <ImageIcon size={12} strokeWidth={1.75} />}
                       </div>
                     </div>
                   ))}
                 </div>
               )}
-            </section>
+            </div>
 
-            {/* Core Details section */}
-            <section className="glass-pane rounded-xl p-6 border border-white/10 space-y-4">
-              <div>
-                <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400">Core Details</h3>
-              </div>
+            {/* Hairline Section Separator */}
+            <div className="border-t border-[#444748]/20" />
+
+            {/* Core Details Section */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold tracking-wide text-white">Core details</h3>
 
               <div className="space-y-4">
                 <div>
-                  <label className="text-xs text-gray-400 block mb-1.5 uppercase tracking-wider font-bold">Product Title</label>
+                  <label className="text-xs text-[#c4c7c8] block mb-1.5 font-medium">Product title</label>
                   <input
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     type="text"
-                    placeholder="Enter product title..."
-                    className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-2.5 text-sm focus:border-white/30 focus:ring-0 outline-none transition-all text-white placeholder:text-gray-600"
+                    placeholder="Enter product title"
+                    className="w-full bg-[#1c1b1b] border border-[#444748]/60 rounded-[4px] px-3 py-2 text-sm focus:border-white outline-none transition-colors text-white placeholder:text-[#8e9192]"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs text-gray-400 block mb-1.5 uppercase tracking-wider font-bold">Price</label>
+                    <label className="text-xs text-[#c4c7c8] block mb-1.5 font-medium">Price</label>
                     <div className="relative">
-                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8e9192] text-sm">₹</span>
                       <input
                         value={price}
                         onChange={(e) => setPrice(e.target.value)}
                         type="text"
                         placeholder="0.00"
-                        className="w-full bg-black/20 border border-white/10 rounded-lg pl-8 pr-4 py-2.5 text-sm focus:border-white/30 focus:ring-0 outline-none transition-all text-white placeholder:text-gray-600"
+                        className="w-full bg-[#1c1b1b] border border-[#444748]/60 rounded-[4px] pl-7 pr-3 py-2 text-sm focus:border-white outline-none transition-colors text-white placeholder:text-[#8e9192]"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-xs text-gray-400 block mb-1.5 uppercase tracking-wider font-bold">Compare at Price (Original)</label>
+                    <label className="text-xs text-[#c4c7c8] block mb-1.5 font-medium">Compare at price (original)</label>
                     <div className="relative">
-                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8e9192] text-sm">₹</span>
                       <input
                         value={originalPrice}
                         onChange={(e) => setOriginalPrice(e.target.value)}
                         type="text"
                         placeholder="0.00"
-                        className="w-full bg-black/20 border border-white/10 rounded-lg pl-8 pr-4 py-2.5 text-sm focus:border-white/30 focus:ring-0 outline-none transition-all text-white placeholder:text-gray-600"
+                        className="w-full bg-[#1c1b1b] border border-[#444748]/60 rounded-[4px] pl-7 pr-3 py-2 text-sm focus:border-white outline-none transition-colors text-white placeholder:text-[#8e9192]"
                       />
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between py-1 bg-black/10 px-4 rounded-lg border border-white/5">
-                  <span className="text-xs font-semibold text-gray-300">Allow Price Negotiation</span>
-                  <label className="relative flex items-center cursor-pointer my-2">
+                <div className="flex items-center justify-between py-2 px-3 bg-[#1c1b1b] rounded-[4px] border border-[#444748]/30">
+                  <span className="text-xs text-[#c4c7c8]">Allow price negotiation</span>
+                  <label className="relative flex items-center cursor-pointer">
                     <input
                       type="checkbox"
                       checked={negotiable}
                       onChange={(e) => setNegotiable(e.target.checked)}
                       className="sr-only peer"
                     />
-                    <div className="w-10 h-5.5 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-gray-400 after:border-gray-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-white peer-checked:after:bg-black peer-checked:after:border-white"></div>
+                    <div className="w-9 h-5 bg-[#131313] border border-[#444748] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-[#8e9192] after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-white peer-checked:after:bg-[#131313] peer-checked:after:border-white"></div>
                   </label>
                 </div>
 
                 <div>
-                  <label className="text-xs text-gray-400 block mb-1.5 uppercase tracking-wider font-bold">Description</label>
+                  <label className="text-xs text-[#c4c7c8] block mb-1.5 font-medium">Description</label>
                   <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Enter rich descriptions..."
-                    className="w-full bg-black/20 border border-white/10 rounded-lg px-4 py-3 text-sm h-40 focus:border-white/30 focus:ring-0 outline-none transition-all text-white placeholder:text-gray-600 leading-relaxed"
+                    placeholder="Enter detailed description"
+                    className="w-full bg-[#1c1b1b] border border-[#444748]/60 rounded-[4px] px-3 py-2 text-sm h-36 focus:border-white outline-none transition-colors text-white placeholder:text-[#8e9192] leading-relaxed resize-none"
                   />
                 </div>
               </div>
-            </section>
+            </div>
           </div>
 
-          {/* Right Column: Sidebar Metadata */}
-          <div className="lg:col-span-4 space-y-6">
+          {/* Right Column: Dynamic Sidebar Stack */}
+          <div className="lg:col-span-4 space-y-10">
 
-            {/* Social Context Card */}
+            {/* Social Context Panel */}
             {productSource === "instagram" && (
-              <section className="glass-pane rounded-xl p-5 border border-white/10 space-y-3 relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-3">
-                  <div className="flex items-center gap-1 bg-pink-500/20 backdrop-blur-md px-2 py-0.5 rounded-full border border-pink-500/20 text-[9px] font-bold text-pink-400">
-                    <svg className="w-2.5 h-2.5 text-pink-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
-                      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-                      <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
-                    </svg>
-                    <span>INSTAGRAM POST</span>
-                  </div>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-xs font-semibold tracking-wider text-[#c4c7c8] uppercase">Social context</h3>
+                  <span className="text-[10px] bg-[#1c1b1b] text-white px-2 py-0.5 rounded-full border border-[#444748]/40 font-medium">
+                    Instagram post
+                  </span>
                 </div>
 
-                <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400">Social Context</h3>
-
-                <div className="rounded-lg overflow-hidden border border-white/5 bg-white/5 group relative aspect-video mt-2">
+                <div className="rounded-[4px] overflow-hidden border border-[#444748]/30 bg-[#1c1b1b] relative aspect-video mt-2">
                   <img
                     className="w-full h-full object-cover opacity-80"
                     src={mediaUrlParam || (mediaList[0]?.url)}
                     alt="Instagram Post visual"
                   />
-                  <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent flex items-center justify-between text-[10px]">
-                    <span className="font-bold text-white flex items-center gap-1">
+                  <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/90 to-transparent flex items-center justify-between text-[10px]">
+                    <span className="font-medium text-white flex items-center gap-1">
                       <img
                         src={activeAccount?.profile_picture_url || "https://picsum.photos/seed/elena/100/100"}
                         className="w-4 h-4 rounded-full object-cover border border-white/20"
@@ -920,11 +889,11 @@ export default function ProductCreatePage() {
                       />
                       @{activeAccount?.username || "instagram_feed"}
                     </span>
-                    <span className="text-gray-400">Imported Feed</span>
+                    <span className="text-[#c4c7c8]">Imported feed</span>
                   </div>
                 </div>
                 {captionParam && (
-                  <p className="text-[12px] text-gray-400 italic line-clamp-3">
+                  <p className="text-xs text-[#c4c7c8] italic line-clamp-3">
                     "{captionParam}"
                   </p>
                 )}
@@ -933,50 +902,52 @@ export default function ProductCreatePage() {
                     href={`https://instagram.com/p/${mediaIdParam}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-1.5 w-full py-1.5 border border-white/10 rounded-lg text-xs font-bold text-white hover:bg-white/5 transition-all mt-2"
+                    className="flex items-center justify-center gap-1.5 w-full py-1.5 border border-[#444748] rounded-[4px] text-xs font-medium text-white hover:bg-[#1c1b1b] transition-colors mt-2"
                   >
-                    <LinkIcon className="w-3.5 h-3.5" />
-                    View Original Post
+                    <LinkIcon size={12} strokeWidth={1.75} />
+                    View original post
                   </a>
                 )}
-              </section>
+                <div className="border-t border-[#444748]/20 pt-4" />
+              </div>
             )}
 
-            {/* Inventory Management Card */}
-            <section className="glass-pane rounded-xl p-5 border border-white/10 space-y-4">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400">Inventory & Details</h3>
+
+            {/* Inventory Management Panel */}
+            <div className="space-y-4">
+              <h3 className="text-xs font-semibold tracking-wider text-[#c4c7c8] uppercase">Inventory & details</h3>
 
               <div className="space-y-3.5">
                 <div>
-                  <label className="text-[10px] text-gray-500 uppercase tracking-widest font-bold block mb-1">Status</label>
+                  <label className="text-[10px] text-[#c4c7c8] uppercase tracking-wider font-medium block mb-1">Status</label>
                   <select
                     value={status}
                     onChange={(e) => setStatus(e.target.value as any)}
-                    className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-xs focus:border-white/30 focus:ring-0 outline-none text-white cursor-pointer"
+                    className="w-full bg-[#1c1b1b] border border-[#444748]/60 rounded-[4px] px-3 py-2 text-xs focus:border-white outline-none text-white cursor-pointer"
                   >
-                    <option className="bg-[#1c1b1b] text-white" value="PUBLISHED">Published</option>
-                    <option className="bg-[#1c1b1b] text-white" value="DRAFT">Draft</option>
+                    <option className="bg-[#1c1b1b]" value="PUBLISHED">Published</option>
+                    <option className="bg-[#1c1b1b]" value="DRAFT">Draft</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="text-[10px] text-gray-500 uppercase tracking-widest font-bold block mb-1">Category</label>
+                  <label className="text-[10px] text-[#c4c7c8] uppercase tracking-wider font-medium block mb-1">Category</label>
                   {!isAddingCategory ? (
                     <div className="flex gap-2">
                       <select
                         value={category}
                         onChange={(e) => setCategory(e.target.value)}
-                        className="flex-1 bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-xs focus:border-white/30 focus:ring-0 outline-none text-white cursor-pointer"
+                        className="flex-1 bg-[#1c1b1b] border border-[#444748]/60 rounded-[4px] px-3 py-2 text-xs focus:border-white outline-none text-white cursor-pointer"
                       >
                         {categories.map(cat => (
-                          <option key={cat} value={cat} className="bg-[#1c1b1b] text-white">{cat}</option>
+                          <option key={cat} value={cat} className="bg-[#1c1b1b]">{cat}</option>
                         ))}
                       </select>
                       <button
                         onClick={() => setIsAddingCategory(true)}
-                        className="p-2 border border-white/10 rounded-lg bg-white/5 text-gray-400 hover:text-white transition-colors"
+                        className="p-2 border border-[#444748]/60 rounded-[4px] bg-[#1c1b1b] text-[#c4c7c8] hover:text-white transition-colors"
                       >
-                        <Plus className="w-3.5 h-3.5" />
+                        <Plus size={14} strokeWidth={1.75} />
                       </button>
                     </div>
                   ) : (
@@ -984,64 +955,64 @@ export default function ProductCreatePage() {
                       <input
                         value={newCategory}
                         onChange={(e) => setNewCategory(e.target.value)}
-                        placeholder="Add category..."
+                        placeholder="Add category"
                         type="text"
-                        className="flex-1 bg-black/20 border border-white/10 rounded-lg px-3 py-1.5 text-xs focus:border-white/30 focus:ring-0 outline-none text-white"
+                        className="flex-1 bg-[#1c1b1b] border border-[#444748]/60 rounded-[4px] px-3 py-1.5 text-xs focus:border-white outline-none text-white"
                       />
                       <button
                         onClick={handleAddCategory}
-                        className="p-1.5 bg-white text-black rounded-lg hover:bg-[#eaeaea]"
+                        className="p-1.5 bg-white text-[#131313] rounded-[4px] hover:bg-[#eaeaea]"
                       >
-                        <Check className="w-3.5 h-3.5" />
+                        <Check size={14} strokeWidth={1.75} />
                       </button>
                       <button
                         onClick={() => setIsAddingCategory(false)}
-                        className="p-1.5 border border-white/10 text-gray-400 rounded-lg hover:text-white"
+                        className="p-1.5 border border-[#444748] text-[#c4c7c8] rounded-[4px] hover:text-white bg-[#1c1b1b]"
                       >
-                        <X className="w-3.5 h-3.5" />
+                        <X size={14} strokeWidth={1.75} />
                       </button>
                     </div>
                   )}
                 </div>
 
                 <div>
-                  <label className="text-[10px] text-gray-500 uppercase tracking-widest font-bold block mb-1">Stock Quantity</label>
+                  <label className="text-[10px] text-[#c4c7c8] uppercase tracking-wider font-medium block mb-1">Stock quantity</label>
                   <input
                     value={stock}
                     onChange={(e) => setStock(e.target.value)}
                     type="number"
                     placeholder="10"
-                    className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-xs focus:border-white/30 focus:ring-0 outline-none text-white placeholder:text-gray-600"
+                    className="w-full bg-[#1c1b1b] border border-[#444748]/60 rounded-[4px] px-3 py-2 text-xs focus:border-white outline-none text-white placeholder:text-[#8e9192]"
                   />
                 </div>
 
                 <div>
-                  <label className="text-[10px] text-gray-500 uppercase tracking-widest font-bold block mb-1">Physical Location</label>
+                  <label className="text-[10px] text-[#c4c7c8] uppercase tracking-wider font-medium block mb-1">Physical location</label>
                   <input
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
                     type="text"
                     placeholder="e.g. Mumbai, IN"
-                    className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-xs focus:border-white/30 focus:ring-0 outline-none text-white placeholder:text-gray-600"
+                    className="w-full bg-[#1c1b1b] border border-[#444748]/60 rounded-[4px] px-3 py-2 text-xs focus:border-white outline-none text-white placeholder:text-[#8e9192]"
                   />
                 </div>
               </div>
 
-              {/* Variants Section */}
-              <div className="mt-4 pt-4 border-t border-white/5 space-y-2">
-                <label className="text-[10px] text-gray-500 uppercase tracking-widest font-bold block">Active Variants</label>
+              {/* Active Variants Area */}
+              <div className="mt-4 pt-4 border-t border-[#444748]/20 space-y-2">
+                <label className="text-[10px] text-[#c4c7c8] uppercase tracking-wider font-medium block">Active variants</label>
                 <div className="flex flex-wrap gap-1.5">
                   {variants.map(v => (
                     <span
                       key={v}
-                      className="px-2.5 py-0.5 bg-white/5 rounded-full text-[10px] font-semibold border border-white/10 flex items-center gap-1 group text-gray-300"
+                      className="px-2.5 py-0.5 bg-[#1c1b1b] rounded-full text-[10px] font-medium border border-[#444748]/40 flex items-center gap-1 text-[#c4c7c8]"
                     >
                       {v}
                       <button
                         onClick={() => handleRemoveVariant(v)}
-                        className="p-0.5 text-gray-500 hover:text-white hover:bg-white/5 rounded-full"
+                        className="p-0.5 text-[#8e9192] hover:text-white hover:bg-white/5 rounded-full"
                       >
-                        <X className="w-2.5 h-2.5" />
+                        <X size={10} strokeWidth={2} />
                       </button>
                     </span>
                   ))}
@@ -1051,29 +1022,32 @@ export default function ProductCreatePage() {
                   <input
                     value={newVariant}
                     onChange={(e) => setNewVariant(e.target.value)}
-                    placeholder="New variant (e.g. Red, XL)..."
+                    placeholder="e.g. Red, XL"
                     type="text"
-                    className="flex-1 bg-black/20 border border-white/10 rounded-lg px-3 py-1.5 text-xs focus:border-white/30 focus:ring-0 outline-none text-white"
+                    className="flex-1 bg-[#1c1b1b] border border-[#444748]/60 rounded-[4px] px-3 py-1.5 text-xs focus:border-white outline-none text-white placeholder:text-[#8e9192]"
                   />
                   <button
                     onClick={handleAddVariant}
-                    className="px-3 bg-white text-black font-bold text-xs rounded-lg hover:bg-[#eaeaea]"
+                    className="px-3 py-1 bg-white text-[#131313] font-semibold text-xs rounded-[4px] hover:bg-[#eaeaea] transition-colors"
                   >
                     Add
                   </button>
                 </div>
               </div>
-            </section>
+            </div>
 
-            {/* Metadata (Key/Value) details */}
-            <section className="glass-pane rounded-xl p-5 border border-white/10 space-y-4">
+            {/* Hairline Sidebar Separator */}
+            <div className="border-t border-[#444748]/20" />
+
+            {/* Technical Specification Details */}
+            <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400">Technical Details</h3>
+                <h3 className="text-xs font-semibold tracking-wider text-[#c4c7c8] uppercase">Technical details</h3>
                 <button
                   onClick={() => setMetadata([...metadata, { key: "", value: "" }])}
-                  className="text-white bg-white/5 hover:bg-white/10 px-2.5 py-1 rounded border border-white/10 text-[10px] font-bold"
+                  className="text-white bg-[#1c1b1b] hover:bg-[#1c1b1b] px-2.5 py-1 rounded-[4px] border border-[#444748]/60 text-[10px] font-medium transition-colors"
                 >
-                  Add Detail
+                  Add detail
                 </button>
               </div>
 
@@ -1087,8 +1061,8 @@ export default function ProductCreatePage() {
                         updated[i].key = e.target.value;
                         setMetadata(updated);
                       }}
-                      placeholder="Specification (e.g. Size)"
-                      className="flex-1 bg-black/20 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white"
+                      placeholder="Spec (e.g. Size)"
+                      className="flex-1 bg-[#1c1b1b] border border-[#444748]/60 rounded-[4px] px-3 py-1.5 text-xs text-white placeholder:text-[#8e9192]"
                     />
                     <input
                       value={item.value}
@@ -1098,21 +1072,22 @@ export default function ProductCreatePage() {
                         setMetadata(updated);
                       }}
                       placeholder="Value (e.g. 10x20 inches)"
-                      className="flex-1 bg-black/20 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white"
+
+                      className="flex-w bg-[#1c1b1b] border border-[#444748]/60 rounded-[4px] px-3 py-1.5 text-xs text-white placeholder:text-[#8e9192]"
                     />
                     <button
                       onClick={() => setMetadata(metadata.filter((_, idx) => idx !== i))}
-                      className="p-1.5 border border-white/10 hover:bg-white/5 text-red-500 rounded-lg"
+                      className="p-1.5 border border-[#444748] hover:bg-[#1c1b1b] text-red-400 rounded-[4px] bg-[#1c1b1b]"
                     >
-                      <X className="w-3.5 h-3.5" />
+                      <X size={14} strokeWidth={1.75} />
                     </button>
                   </div>
                 ))}
                 {metadata.length === 0 && (
-                  <p className="text-[11px] text-gray-500 text-center py-2">No custom details specified.</p>
+                  <p className="text-[11px] text-[#8e9192] text-center py-2">No custom details specified.</p>
                 )}
               </div>
-            </section>
+            </div>
           </div>
         </div>
       )}

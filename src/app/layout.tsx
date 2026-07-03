@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
-
+import Script from "next/script";
 export const metadata: Metadata = {
   title: "AnyDM | AI Social Commerce Operating System",
   description: "Scale your Instagram sales automation with clinical precision and real-time AI analytics. Re-imagined for modern digital stores.",
@@ -28,6 +28,10 @@ export default function RootLayout({
           {children}
         </Providers>
       </body>
+      <Script
+        src="https://www.instagram.com/embed.js"
+        strategy="lazyOnload"
+      />
     </html>
   );
 }

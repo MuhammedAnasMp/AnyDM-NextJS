@@ -5,6 +5,7 @@ import api from '@/lib/services/api.service';
 import { X, ImageIcon, Video, Check, Layers, RefreshCw, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import InstagramIcon from '../ui/InstagramIcon';
 
 interface Media {
   id: string;
@@ -26,13 +27,7 @@ interface InstagramMediaPickerProps {
 const INSTAGRAM_TOKEN = 'IGAAUrAi9uIGRBZAFlQVjFrNHNLWlhmTUl4eTl2ZADFFZA2k4TjNlSmJvUXpqY0pWT0RGSDN5YWphUFMxRG5ZAR2lkT3JJSm1PNm0waE9CcHB2SFJBSGhySjRneGNjRlpqZAW9RaWZAiUU11OVRwNmxXb2p6cEVJVE9mU0hZAS2xuNlJ4dwZDZD';
 const INSTAGRAM_USER_ID = '27078812251731733';
 
-const InstagramIcon = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
-    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
-  </svg>
-);
+
 
 export function InstagramMediaPicker({ open, onClose, onSelect, selectedIds = [], resourceType = 'media' }: InstagramMediaPickerProps) {
   const [media, setMedia] = useState<Media[]>([]);
@@ -93,11 +88,15 @@ export function InstagramMediaPicker({ open, onClose, onSelect, selectedIds = []
         console.warn("Backend media fetch failed, falling back to direct graph API:", backendErr);
       }
 
-      // 2. Fallback to direct Graph API
+      // 2. Fallback to direct Graph API using active account credentials
       let endpoint = url;
       if (!endpoint) {
-        const urlObj = new URL(`https://graph.instagram.com/v25.0/${INSTAGRAM_USER_ID}/${resourceType === 'story' ? 'stories' : 'media'}`);
-        urlObj.searchParams.append('access_token', INSTAGRAM_TOKEN);
+        const targetUserId = activeAccount?.instagram_user_id || activeAccount?.instagram_scoped_id || INSTAGRAM_USER_ID;
+        const targetToken = activeAccount?.access_token || INSTAGRAM_TOKEN;
+        const isBasic = targetToken.startsWith("IGAA");
+        const host = isBasic ? "graph.instagram.com" : "graph.facebook.com";
+        const urlObj = new URL(`https://${host}/v25.0/${targetUserId}/${resourceType === 'story' ? 'stories' : 'media'}`);
+        urlObj.searchParams.append('access_token', targetToken);
         urlObj.searchParams.append('fields', 'id,media_type,media_url,thumbnail_url,permalink,caption');
         urlObj.searchParams.append('limit', '20');
         endpoint = urlObj.toString();
@@ -129,10 +128,13 @@ export function InstagramMediaPicker({ open, onClose, onSelect, selectedIds = []
       loadingRef.current = false;
       setLoading(false);
     }
-  }, [resourceType]);
+  }, [resourceType, activeAccount]);
 
   useEffect(() => {
     if (open) {
+      setMedia([]);
+      setNextUrl(null);
+      setError('');
       fetchMedia();
     } else {
       // Clear data on close
@@ -140,7 +142,6 @@ export function InstagramMediaPicker({ open, onClose, onSelect, selectedIds = []
       setNextUrl(null);
       setError('');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, fetchMedia]);
 
   useEffect(() => {

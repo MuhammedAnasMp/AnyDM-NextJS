@@ -213,113 +213,83 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
-            {/* Starter Plan */}
-            <div className="bg-white p-8 rounded-xl border border-[#eaeaea] flex flex-col justify-between transition-all duration-300 hover:border-black">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl mx-auto items-stretch">
+            {/* Free Trial Plan */}
+            <div className="bg-white p-8 rounded-2xl border border-[#eaeaea] flex flex-col justify-between transition-all duration-300 hover:border-black shadow-sm">
               <div>
-                <h4 className="text-xs font-bold text-[#5e5e5e] uppercase tracking-widest mb-4">Starter</h4>
+                <h4 className="text-xs font-bold text-[#5e5e5e] uppercase tracking-widest mb-4">Free Trial</h4>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-extrabold text-black">$0</span>
-                  <span className="text-[#5e5e5e] text-sm">/mo</span>
+                  <span className="text-4xl font-black text-black">₹0</span>
+                  <span className="text-[#5e5e5e] text-xs uppercase font-bold ml-1">14 Days</span>
                 </div>
-                <p className="text-sm text-[#888888] mt-4">
-                  Ideal for individuals just getting started with social sales.
+                <p className="text-xs text-[#888888] mt-4 leading-relaxed">
+                  Start risk-free and experience automatic lead captures. No credit card required.
                 </p>
-                <ul className="space-y-3 mt-8 text-sm text-[#5e5e5e]">
+                <ul className="space-y-3 mt-8 text-xs text-[#5e5e5e] font-medium">
                   <li className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-sm font-bold text-black">check</span>
-                    <span>100 Automations / mo</span>
+                    <span className="material-symbols-outlined text-sm text-black">check</span>
+                    <span>1 Connected Instagram Account</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-sm font-bold text-black">check</span>
-                    <span>Basic Analytics</span>
+                    <span className="material-symbols-outlined text-sm text-black">check</span>
+                    <span>Standard Automated Responses</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-sm font-bold text-black">check</span>
-                    <span>Email Support</span>
+                    <span className="material-symbols-outlined text-sm text-black">check</span>
+                    <span>Standard Analytics</span>
                   </li>
                 </ul>
               </div>
               <Link 
                 href="/signup" 
-                className="mt-8 block w-full text-center border border-[#eaeaea] py-2.5 rounded-lg text-sm font-semibold hover:bg-[#f3f3f3] transition-colors"
-              >
-                Get Started
-              </Link>
-            </div>
-
-            {/* Pro Plan */}
-            <div className="bg-white p-8 rounded-xl border-2 border-black flex flex-col justify-between relative transition-all duration-300 shadow-xl md:scale-105">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-black text-white text-[9px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                POPULAR
-              </div>
-              <div>
-                <h4 className="text-xs font-bold text-[#5e5e5e] uppercase tracking-widest mb-4">Professional</h4>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-extrabold text-black">$49</span>
-                  <span className="text-[#5e5e5e] text-sm">/mo</span>
-                </div>
-                <p className="text-sm text-[#888888] mt-4">
-                  Power users managing high-volume social stores.
-                </p>
-                <ul className="space-y-3 mt-8 text-sm text-black font-semibold">
-                  <li className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-sm font-bold">check</span>
-                    <span>Unlimited Automations</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-sm font-bold">check</span>
-                    <span>Advanced Lead Scoring</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-sm font-bold">check</span>
-                    <span>Priority CRM Sync</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-sm font-bold">check</span>
-                    <span>Custom Node Logic</span>
-                  </li>
-                </ul>
-              </div>
-              <Link 
-                href="/signup" 
-                className="mt-8 block w-full text-center py-2.5 rounded-lg text-sm font-semibold text-white hover:opacity-90 transition-opacity"
-                style={{
-                  background: "linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)"
-                }}
+                className="mt-8 block w-full text-center border border-black py-3 rounded-xl text-xs font-bold hover:bg-[#f3f3f3] transition-colors"
               >
                 Start Free Trial
               </Link>
             </div>
 
-            {/* Enterprise Plan */}
-            <div className="bg-white p-8 rounded-xl border border-[#eaeaea] flex flex-col justify-between transition-all duration-300 hover:border-black">
+            {/* Creator Pro Plan */}
+            <div className="bg-white p-8 rounded-2xl border-2 border-black flex flex-col justify-between relative transition-all duration-300 shadow-xl md:scale-105">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-black text-white text-[9px] font-black px-3.5 py-1 rounded-full uppercase tracking-widest">
+                MONTHLY PREMIUM
+              </div>
               <div>
-                <h4 className="text-xs font-bold text-[#5e5e5e] uppercase tracking-widest mb-4">Enterprise</h4>
+                <h4 className="text-xs font-bold text-[#5e5e5e] uppercase tracking-widest mb-4">Creator Pro</h4>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-2xl font-extrabold text-black">Custom</span>
+                  <span className="text-4xl font-black text-black">₹499</span>
+                  <span className="text-[#5e5e5e] text-xs uppercase font-bold ml-1">/ Month</span>
                 </div>
-                <p className="text-sm text-[#888888] mt-4">
-                  For large-scale operations requiring dedicated infra and SLA.
+                <p className="text-xs text-[#888888] mt-4 leading-relaxed">
+                  Scale your social commerce engine. Unlimited accounts, complete inbox access, and fully powered DMs.
                 </p>
-                <ul className="space-y-3 mt-8 text-sm text-[#5e5e5e]">
+                <ul className="space-y-3 mt-8 text-xs text-black font-bold">
                   <li className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-sm font-bold text-black">check</span>
-                    <span>White-label Options</span>
+                    <span className="material-symbols-outlined text-sm text-black">check</span>
+                    <span>Unlimited Connected Instagram Accounts</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-sm font-bold text-black">check</span>
-                    <span>Dedicated Account Manager</span>
+                    <span className="material-symbols-outlined text-sm text-black">check</span>
+                    <span>Full Direct Message CRM Inbox</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-sm font-bold text-black">check</span>
-                    <span>Custom Security Audit</span>
+                    <span className="material-symbols-outlined text-sm text-black">check</span>
+                    <span>Unlimited Story Triggers &amp; Automations</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-sm text-black">check</span>
+                    <span>Custom Engagement Games (Spin-Wheel)</span>
                   </li>
                 </ul>
               </div>
-              <button className="mt-8 w-full border border-[#eaeaea] py-2.5 rounded-lg text-sm font-semibold hover:bg-[#f3f3f3] transition-colors">
-                Contact Sales
-              </button>
+              <Link 
+                href="/signup" 
+                className="mt-8 block w-full text-center py-3 rounded-xl text-xs font-black text-white hover:opacity-95 transition-opacity"
+                style={{
+                  background: "linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)"
+                }}
+              >
+                Get Started
+              </Link>
             </div>
           </div>
         </section>

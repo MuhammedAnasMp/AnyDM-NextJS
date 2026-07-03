@@ -74,6 +74,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
     if (pathname.startsWith("/dashboard/inbox")) return "Inbox";
     if (pathname.startsWith("/dashboard/games")) return "Games";
     if (pathname.startsWith("/dashboard/settings")) return "Settings";
+    if (pathname.startsWith("/dashboard/refer")) return "Refer";
+    if (pathname.startsWith("/dashboard/pricing")) return "Pricing";
     if (pathname.startsWith("/dashboard/analytics") || pathname.startsWith("/dashboard/revenue") || pathname === "/dashboard") return "Dashboard";
     return "Dashboard";
   };
@@ -83,14 +85,14 @@ export default function Header({ onMenuClick }: HeaderProps) {
   // Dynamic Automations Navigation items:
   const automationsSubNav = createdAutomations.length > 0
     ? [
-        { name: "Visual Builder", href: "/dashboard/automations" },
-        { name: createdAutomations[0].name, href: `/dashboard/automation?id=${createdAutomations[0].id}` },
-        { name: "Browse Templates", href: "/dashboard/automation" }
-      ]
+      { name: "Visual Builder", href: "/dashboard/automations" },
+      { name: createdAutomations[0].name, href: `/dashboard/automation?id=${createdAutomations[0].id}` },
+      { name: "Browse Templates", href: "/dashboard/automation" }
+    ]
     : [
-        { name: "Visual Builder", href: "/dashboard/automations" },
-        { name: "Create Automation", href: "/dashboard/automation" }
-      ];
+      { name: "Visual Builder", href: "/dashboard/automations" },
+      { name: "Create Automation", href: "/dashboard/automation" }
+    ];
 
   // Mapping of category to its corresponding sub-navigation items
   const subNavItems: Record<string, Array<{ name: string; href: string }>> = {
@@ -120,6 +122,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
       { name: "Workspace Settings", href: "/dashboard/settings/workspace" },
       { name: "AI Settings", href: "/dashboard/settings/ai" },
     ],
+    Refer: [],
+    Pricing: [],
   };
 
   const items = subNavItems[category] || [];
@@ -138,7 +142,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
       <header className="px-4 lg:px-lg py-sm flex justify-between items-center w-full min-h-[64px] gap-4">
         <div className="flex items-center gap-3 md:gap-6 flex-1 min-w-0">
           {/* Hamburger Menu (Mobile Only) */}
-          <button 
+          <button
             onClick={onMenuClick}
             className="lg:hidden p-2 rounded-lg hover:bg-white/5 transition-colors text-[#c4c7c8]/60 hover:text-white shrink-0"
           >
@@ -150,26 +154,26 @@ export default function Header({ onMenuClick }: HeaderProps) {
             <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-[#c4c7c8]/40 group-focus-within:text-white transition-colors">
               <span className="material-symbols-outlined text-[18px]">search</span>
             </div>
-            <input 
-              className="bg-white/5 border border-white/5 rounded-full pl-9 pr-4 py-1.5 text-xs focus:ring-1 focus:ring-white/20 w-full transition-all text-white placeholder:text-[#c4c7c8]/40 outline-none" 
-              placeholder="Search anything (⌘K)" 
-              type="text" 
+            <input
+              className="bg-white/5 border border-white/5 rounded-full pl-9 pr-4 py-1.5 text-xs focus:ring-1 focus:ring-white/20 w-full transition-all text-white placeholder:text-[#c4c7c8]/40 outline-none"
+              placeholder="Search anything (⌘K)"
+              type="text"
             />
           </div>
         </div>
 
         <div className="flex items-center gap-2 md:gap-3 shrink-0">
           {/* Instagram Account Switcher Dropdown */}
-          {activeAccount && (
+          {activeAccount && pathname !== "/dashboard/products/catalog/create" && (
             <div className="relative" ref={accountMenuRef}>
-              <div 
+              <div
                 onClick={() => instagramAccounts.length > 1 && setIsAccountMenuOpen(!isAccountMenuOpen)}
                 className={`relative flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 bg-white/5 backdrop-blur-md cursor-pointer hover:bg-white/10 transition-all mr-1 md:mr-2 select-none ${instagramAccounts.length > 1 ? "active:scale-[0.98]" : ""}`}
               >
                 <div className="w-5 h-5 rounded-full overflow-hidden border border-white/20">
-                  <img 
-                    src={activeAccount.profile_picture_url || "https://picsum.photos/seed/elena/100/100"} 
-                    alt="Instagram Profile" 
+                  <img
+                    src={activeAccount.profile_picture_url || "https://picsum.photos/seed/elena/100/100"}
+                    alt="Instagram Profile"
                     className="w-full h-full object-cover"
                   />
                 </div>
@@ -188,9 +192,9 @@ export default function Header({ onMenuClick }: HeaderProps) {
                       onClick={() => handleSwitchAccount(acc.id)}
                       className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${acc.id === activeAccount.id ? "bg-white/10 text-white font-semibold" : "hover:bg-white/5 text-[#c4c7c8]/60 hover:text-white"}`}
                     >
-                      <img 
-                        src={acc.profile_picture_url} 
-                        className="w-5 h-5 rounded-full object-cover" 
+                      <img
+                        src={acc.profile_picture_url}
+                        className="w-5 h-5 rounded-full object-cover"
                         alt={acc.username}
                       />
                       <span className="text-xs truncate">@{acc.username}</span>
@@ -210,18 +214,18 @@ export default function Header({ onMenuClick }: HeaderProps) {
           <button className="p-1.5 md:p-2 text-[#c4c7c8]/60 hover:text-white transition-colors hover:bg-white/5 rounded-full hidden sm:inline-flex">
             <span className="material-symbols-outlined text-lg md:text-xl">help_outline</span>
           </button>
-          
+
           <div className="h-6 w-px bg-white/10 mx-0.5 md:mx-1"></div>
 
           {/* User Profile Menu Dropdown */}
           <div className="relative" ref={profileMenuRef}>
-            <div 
+            <div
               onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
               className="w-7 h-7 md:w-8 h-8 rounded-full border border-white/20 bg-white/5 overflow-hidden cursor-pointer hover:border-white transition-colors active:scale-95 select-none"
             >
-              <img 
-                alt="Profile" 
-                className="w-full h-full object-cover" 
+              <img
+                alt="Profile"
+                className="w-full h-full object-cover"
                 src={userPhoto}
               />
             </div>
@@ -233,7 +237,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                   <p className="text-[10px] text-[#c4c7c8]/60 truncate mt-0.5">{appUser?.email || "Connected account"}</p>
                 </div>
 
-                <Link 
+                <Link
                   href="/dashboard/settings/accounts"
                   onClick={() => setIsProfileMenuOpen(false)}
                   className="flex items-center gap-2.5 px-3 py-2 text-xs text-[#c4c7c8]/60 hover:text-white hover:bg-white/5 rounded-lg transition-all"
@@ -242,7 +246,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                   <span>Settings</span>
                 </Link>
 
-                <button 
+                <button
                   onClick={handleLogout}
                   className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all text-left cursor-pointer"
                 >
@@ -256,29 +260,30 @@ export default function Header({ onMenuClick }: HeaderProps) {
       </header>
 
       {/* Tier 2: Sub-Navigation Bar */}
-      <nav className="bg-[#181817]/40 backdrop-blur-xl border-t border-white/5 px-4 lg:px-lg h-12 flex items-center overflow-x-auto scrollbar-hide">
-        <div className="flex items-center gap-6 md:gap-8 text-xs font-semibold h-full whitespace-nowrap">
-          {items.map((item) => {
-            const pathBase = item.href.split("?")[0];
-            const isSubActive = pathname === pathBase && 
-              (!item.href.includes("?") || searchParams.get("id") === new URL(item.href, "http://x").searchParams.get("id"));
-            
-            return (
-              <Link 
-                key={item.name}
-                href={item.href}
-                className={`h-full flex items-center px-1 border-b-2 transition-all ${
-                  isSubActive 
-                    ? "text-white font-bold border-white" 
+      {items.length > 0 && (
+        <nav className="bg-[#181817]/40 backdrop-blur-xl border-t border-white/5 px-4 lg:px-lg h-9 flex items-center overflow-x-auto scrollbar-hide">
+          <div className="flex items-center gap-3 md:gap-3 text-xs font-semibold h-full whitespace-nowrap">
+            {items.map((item) => {
+              const pathBase = item.href.split("?")[0];
+              const isSubActive = pathname === pathBase &&
+                (!item.href.includes("?") || searchParams.get("id") === new URL(item.href, "http://x").searchParams.get("id"));
+
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`h-full flex items-center px-1 border-b-2 transition-all ${isSubActive
+                    ? "text-white font-bold border-white"
                     : "text-[#c4c7c8]/60 border-transparent hover:text-white"
-                }`}
-              >
-                {item.name}
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
+                    }`}
+                >
+                  {item.name}
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+      )}
     </div>
   );
 }

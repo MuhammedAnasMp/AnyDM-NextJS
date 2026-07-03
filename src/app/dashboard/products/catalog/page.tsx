@@ -8,54 +8,24 @@ import { RootState } from "@/store";
 import api from "@/lib/services/api.service";
 import InstagramImportModal from "@/components/InstagramImportModal";
 import Toast from "@/components/Toast";
-
-const DEFAULT_PRODUCTS = [
-  {
-    id: "p_1",
-    title: "HyperBoost Running Core",
-    sku: "HYP-CR-001",
-    price: 89.00,
-    currency: "₹",
-    category: "Apparel",
-    stock: 120,
-    negotiable: true,
-    status: "PUBLISHED",
-    media_url: "https://lh3.googleusercontent.com/aida-public/AB6AXuCp-lfo7IxC9Z5DkrJfEBY9prWBgF0Nraoa6TmtKPmY_PB4X6ompLv0r0FyRcyQV3Y7DL7dZ7QfCH8fmEBZ2xH_4791sWQi62XmCov1y89uvfbYEprthQFSJOyMmHylytZK6pPwtpbT24TVRlfH2rtROIriZ-_kdxixpTK1p26z04l3mJnPfn0S8AVS_zwfmqL6EoLMKOwiR-Iakj84qGedem6nbddsPRoii7KttJy0apq3mY4kxyaBO-6gsZMSZNVipVciRTsTuYM",
-    media_type: "IMAGE",
-    source: "instagram",
-    updated_at: new Date(Date.now() - 2 * 3600000).toISOString()
-  },
-  {
-    id: "p_2",
-    title: "Serene Quartz Minimalist",
-    sku: "SER-QTZ-44",
-    price: 145.00,
-    currency: "₹",
-    category: "Accessories",
-    stock: 45,
-    negotiable: false,
-    status: "DRAFT",
-    media_url: "https://lh3.googleusercontent.com/aida-public/AB6AXuAsesPxVBpHJ7XEF6tg78St4xAph3PREaxRqKWCS12plW7-4Pa_qE92IDDJnvUdDFdjX-omDrM8QXM3mOCiDo_nn_sIJCEfxPOMKFZyVaS_oiYsw6pVh7h128phIqZe4JTWvM8xiC6eImDHQG4s6Pc6YwfCLlEIX4tcrN9OeBbIZM8937DX_TCXc0H1A-9xiXWWU2EMMnl8gwtjzFBCfQWtmzRrKv4BDic0xDUqen_Co_AaQamWvUbQXrzQvajonSpWp2ZEUNWUl88",
-    media_type: "IMAGE",
-    source: "manual",
-    updated_at: new Date(Date.now() - 24 * 3600000).toISOString()
-  },
-  {
-    id: "p_3",
-    title: "Acoustic Pro Gen-2",
-    sku: "AC-PRO-G2",
-    price: 199.00,
-    currency: "₹",
-    category: "Electronics",
-    stock: 8,
-    negotiable: false,
-    status: "PUBLISHED",
-    media_url: "https://lh3.googleusercontent.com/aida-public/AB6AXuCVsNaqvbiMCFl-eWS6BqN_WsaGyM8KlXz3TH0Q2VzLPXTCjRViD-j0ELNiAx8UW0rQ2xlo04t7bn2Y0xLqusFrB8h-jWEVyYc4Z4iaQCGvGsDDS7TXQXEIbLm5ofv5LypfpueOP4q6D0XWJzoc2lGtNNhHDaCx2XCQC41ed61mlPN7nLa0D7mqjJptirVd7z6ojMU2ygvTcHAIK9gQpY76riPuXGXTFoqYdZeA0ziKHf266WZY6DfdXUDjTv1-YSr_dFYolRkJ1V8",
-    media_type: "IMAGE",
-    source: "instagram",
-    updated_at: new Date(Date.now() - 4 * 3600000).toISOString()
-  }
-];
+import InstagramIcon from "@/components/ui/InstagramIcon";
+import {
+  Lock,
+  Plus,
+  Package,
+  CheckCircle,
+  FileText,
+  RefreshCw,
+  Filter,
+  Search,
+  Image as ImageIcon,
+  Edit2,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+  TrendingUp,
+  AlertCircle
+} from "lucide-react";
 
 export default function CatalogPage() {
   const searchParams = useSearchParams();
@@ -64,6 +34,64 @@ export default function CatalogPage() {
 
   const appUser = useSelector((state: RootState) => state.auth.user);
   const activeAccountId = appUser?.active_instagram_account_id;
+  const isPremiumActive = appUser?.is_premium_active ?? true;
+
+  if (!isPremiumActive) {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center p-6 relative font-sans bg-[#131313]">
+        {/* Subtle, restricted ambient glows matching premium state allowance */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-white/[0.02] blur-[120px] rounded-full pointer-events-none" />
+
+        <div className="relative z-10 w-full max-w-md bg-[#1c1b1b] border border-[#2a2a2a] rounded-lg p-6 shadow-2xl">
+          <div className="flex flex-col items-center text-center">
+            {/* Lock Icon Frame */}
+            <div className="w-12 h-12 rounded-lg bg-white/[0.03] border border-white/[0.08] flex items-center justify-center text-white mb-5 shadow-inner">
+              <Lock className="w-5 h-5 text-white" strokeWidth={1.75} />
+            </div>
+
+            <h2 className="text-lg font-semibold text-white tracking-tight mb-2">
+              Access restricted
+            </h2>
+            <p className="text-xs text-[#c4c7c8] leading-relaxed mb-6">
+              Your free trial has expired. Upgrade to Creator Pro to unlock your synchronized product catalog, analytics, and custom storefront templates.
+            </p>
+
+            {/* Premium Feature Checklist */}
+            <div className="w-full bg-[#131313]/50 rounded border border-[#2a2a2a] p-3.5 mb-6 text-left space-y-2.5">
+              <div className="flex items-center gap-2 text-[11px] text-[#c4c7c8]">
+                <CheckCircle className="w-3.5 h-3.5 text-white shrink-0" strokeWidth={2} />
+                <span>Unlimited automated Instagram imports</span>
+              </div>
+              <div className="flex items-center gap-2 text-[11px] text-[#c4c7c8]">
+                <CheckCircle className="w-3.5 h-3.5 text-white shrink-0" strokeWidth={2} />
+                <span>Real-time click &amp; conversion analytics</span>
+              </div>
+              <div className="flex items-center gap-2 text-[11px] text-[#c4c7c8]">
+                <CheckCircle className="w-3.5 h-3.5 text-white shrink-0" strokeWidth={2} />
+                <span>Custom storefront storefront themes</span>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col gap-2 w-full">
+              <button
+                onClick={() => router.push("/dashboard/pricing")}
+                className="w-full bg-white hover:bg-[#e2e2e2] text-black font-semibold text-xs py-2.5 rounded transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-[0.98]"
+              >
+                <span>Upgrade to Creator Pro</span>
+              </button>
+              <button
+                onClick={() => router.push("/dashboard/refer")}
+                className="w-full bg-transparent hover:bg-white/[0.03] text-white border border-[#444748] font-medium text-xs py-2.5 rounded transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-[0.98]"
+              >
+                <span>Earn points (refer &amp; earn)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,6 +109,8 @@ export default function CatalogPage() {
     setToastVisible(true);
   };
 
+  const cacheKey = `anydm_products_${activeAccountId || "default"}`;
+
   const loadProducts = async () => {
     setLoading(true);
     try {
@@ -88,7 +118,7 @@ export default function CatalogPage() {
       const data = response.data?.results || response.data;
       if (data && Array.isArray(data)) {
         setProducts(data);
-        localStorage.setItem("anydm_products", JSON.stringify(data));
+        localStorage.setItem(cacheKey, JSON.stringify(data));
       } else {
         loadFromLocalStorage();
       }
@@ -101,16 +131,18 @@ export default function CatalogPage() {
   };
 
   const loadFromLocalStorage = () => {
-    const cached = localStorage.getItem("anydm_products");
+    const cached = localStorage.getItem(cacheKey);
     if (cached) {
       setProducts(JSON.parse(cached));
     } else {
-      localStorage.setItem("anydm_products", JSON.stringify(DEFAULT_PRODUCTS));
-      setProducts(DEFAULT_PRODUCTS);
+      setProducts([]);
     }
   };
 
   useEffect(() => {
+    setProducts([]);
+    setSearchQuery("");
+    setSelectedFilter("All");
     loadProducts();
   }, [activeAccountId]);
 
@@ -132,7 +164,6 @@ export default function CatalogPage() {
     showToast("Product deleted successfully", "success");
   };
 
-  // Helper to format date
   const formatUpdatedTime = (isoString: string) => {
     if (!isoString) return "recently";
     try {
@@ -148,7 +179,6 @@ export default function CatalogPage() {
     }
   };
 
-  // Filter products by status & search query
   const filteredProducts = products.filter(p => {
     const matchesSearch = p.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.sku?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -161,159 +191,170 @@ export default function CatalogPage() {
     return true;
   });
 
-  // Dynamic Bento Stats
   const publishedCount = products.filter(p => p.status?.toUpperCase() === "PUBLISHED").length;
   const draftCount = products.filter(p => p.status?.toUpperCase() === "DRAFT").length;
   const totalProducts = products.length;
 
   const bentoStats = [
-    { label: "Total Products", val: String(totalProducts), growth: "+12%", icon: "inventory" },
-    { label: "Published Items", val: String(publishedCount), growth: "Active", icon: "cloud_done" },
-    { label: "Draft Showcase", val: String(draftCount), growth: "Pending", icon: "edit_document" },
-    { label: "From Instagram", val: String(products.filter(p => p.source === "instagram").length), growth: "Synced", icon: "sync" }
+    { label: "Total products", val: String(totalProducts), meta: "Inventory count", icon: Package },
+    { label: "Published items", val: String(publishedCount), meta: "Active online", icon: CheckCircle },
+    { label: "Draft items", val: String(draftCount), meta: "Work in progress", icon: FileText },
+    { label: "Instagram imports", val: String(products.filter(p => p.source === "instagram").length), meta: "Live sync active", icon: RefreshCw }
   ];
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      className="space-y-6 text-white"
+      transition={{ duration: 0.25 }}
+      className="space-y-6 text-[#e5e2e1] max-w-[1600px] mx-auto"
     >
       {/* Page Header */}
-      <div className="flex justify-between items-end mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#20201f] pb-5">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">Product Catalog</h1>
-          <p className="text-sm text-on-surface-variant opacity-70 mt-1">Manage and track your AI-synced ecommerce inventory.</p>
+          <h1 className="text-xl font-semibold text-white tracking-tight">Product catalog</h1>
+          <p className="text-xs text-[#c4c7c8] mt-0.5">Manage, track, and optimize your synchronized ecommerce inventory.</p>
         </div>
-        <div className="flex gap-2 text-xs">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => router.push("/dashboard/products/catalog?import=instagram")}
-            className="glass-pane px-4 py-2 rounded-lg flex items-center gap-2 font-medium hover:bg-white/10 transition-all text-white border border-white/10"
+            className="h-9 px-4 rounded border border-[#2a2a2a] hover:bg-white/[0.02] text-white flex items-center gap-2 text-xs font-medium transition-colors bg-transparent active:scale-[0.98]"
           >
-            <svg className="w-3.5 h-3.5 text-pink-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
-              <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-              <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
-            </svg>
+            <InstagramIcon className="w-4 h-4 text-pink-500" />
             <span>Create from Instagram</span>
           </button>
-          <span className="flex justify-center items-center">
-            or
-          </span>
           <button
             onClick={() => router.push("/dashboard/products/catalog/create")}
-            className="bg-white text-black px-4 py-2 rounded-lg flex items-center gap-2 font-bold hover:bg-[#eaeaea] active:scale-95 transition-all"
+            className="h-9 px-4 rounded bg-white hover:bg-[#e2e2e2] text-[#131313] flex items-center gap-1.5 text-xs font-semibold transition-colors active:scale-[0.98]"
           >
-            <span className="material-symbols-outlined text-sm font-bold">add</span>
-            <span>Create Normal Product</span>
+            <Plus className="w-4 h-4" strokeWidth={2} />
+            <span>Create normal product</span>
           </button>
         </div>
       </div>
 
-      {/* Bento Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {bentoStats.map((stat, i) => (
-          <div key={i} className="glass-pane p-6 rounded-xl flex flex-col justify-between h-32 relative overflow-hidden group border border-white/5">
-            <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity">
-              <span className="material-symbols-outlined text-8xl text-white">{stat.icon}</span>
+      {/* Stats Bento Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {bentoStats.map((stat, i) => {
+          const Icon = stat.icon;
+          return (
+            <div key={i} className="p-4 rounded bg-[#1c1b1b] border border-[#2a2a2a] flex items-start justify-between">
+              <div className="space-y-1.5">
+                <p className="text-[11px] font-medium text-[#c4c7c8]">{stat.label}</p>
+                <p className="text-2xl font-semibold text-white tracking-tight">{stat.val}</p>
+                <p className="text-[10px] text-[#8e9192] flex items-center gap-1">
+                  <span className="w-1 h-1 rounded-full bg-neutral-600 inline-block" />
+                  {stat.meta}
+                </p>
+              </div>
+              <div className="w-8 h-8 rounded bg-[#131313] border border-[#2a2a2a] flex items-center justify-center text-[#8e9192]">
+                <Icon className="w-4 h-4" strokeWidth={1.75} />
+              </div>
             </div>
-            <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider text-gray-400">{stat.label}</span>
-            <div className="flex items-baseline gap-2 mt-4">
-              <span className="text-2xl font-bold text-white">{stat.val}</span>
-              <span className="text-xs text-emerald-400 font-semibold">{stat.growth}</span>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      {/* Filters & Actions Bar */}
-      <div className="glass-pane rounded-t-xl p-4 flex flex-wrap items-center justify-between gap-4 border border-white/10">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5 text-xs text-white">
-            <span className="material-symbols-outlined text-sm">filter_list</span>
-            <span>Filters</span>
-          </div>
-          <div className="h-6 w-[1px] bg-white/10"></div>
-          <div className="flex gap-1 bg-white/5 p-1 rounded-lg">
+      {/* Control Actions & Filter Bar */}
+      <div className="bg-[#1c1b1b] border border-[#2a2a2a] rounded-t p-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
+        {/* Left Side: Filter Segments */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* <div className="flex items-center gap-1 px-2.5 h-8 rounded bg-[#131313] border border-[#2a2a2a] text-xs text-[#c4c7c8]">
+            <Filter className="w-3.5 h-3.5" strokeWidth={1.75} />
+            <span className="font-medium">Filters</span>
+          </div> */}
+          <div className="h-4 w-[1px] bg-[#2a2a2a] hidden sm:block" />
+          <div className="flex p-0.5 bg-[#131313] border border-[#2a2a2a] rounded">
             {["All", "Published", "Drafts"].map((filter) => (
               <button
                 key={filter}
                 onClick={() => setSelectedFilter(filter)}
-                className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${selectedFilter === filter
-                  ? "bg-white/10 text-white font-bold"
-                  : "text-gray-400 hover:text-white"
+                className={`px-3 h-7 rounded text-xs font-medium transition-colors ${selectedFilter === filter
+                  ? "bg-[#20201f] text-white border border-[#2a2a2a] shadow-sm"
+                  : "text-[#c4c7c8] hover:text-white border border-transparent"
                   }`}
               >
-                {filter === "All" ? "All Products" : filter}
+                {filter === "All" ? "All products" : filter}
               </button>
             ))}
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="relative group">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">search</span>
-            <input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-white/5 border border-white/5 rounded-lg pl-9 py-2 pr-4 text-xs w-64 focus:ring-1 focus:ring-white/20 transition-all text-white placeholder:text-gray-500 outline-none"
-              placeholder="Search products..."
-              type="text"
-            />
-          </div>
+        {/* Right Side: Active Query Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8e9192] w-4 h-4" strokeWidth={1.75} />
+          <input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="bg-[#131313] border border-[#2a2a2a] rounded pl-9 pr-4 h-8 text-xs w-full md:w-64 focus:border-[#444748] transition-colors text-white placeholder-[#8e9192] outline-none"
+            placeholder="Search catalog by title, sku..."
+            type="text"
+          />
         </div>
       </div>
 
-      {/* Products Table */}
-      <div className="glass-pane rounded-b-xl overflow-hidden border border-white/10 border-t-0">
+      {/* Data Table Frame */}
+      <div className="bg-[#1c1b1b] border border-[#2a2a2a] border-t-0 rounded-b overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="bg-white/5 border-b border-white/10 text-gray-400 font-bold uppercase tracking-wider">
-                <th className="px-6 py-4">Product Name</th>
-                <th className="px-6 py-4 text-center">Inquiries</th>
-                <th className="px-6 py-4 text-center">Clicks</th>
-                <th className="px-6 py-4 text-center">Conversion</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4 text-right">Actions</th>
+              <tr className="bg-[#131313] border-b border-[#2a2a2a] text-[#8e9192] font-medium tracking-wide">
+                <th className="px-6 py-3.5 w-[45%]">Product name</th>
+                <th className="px-6 py-3.5 text-center w-[12%]">Inquiries</th>
+                <th className="px-6 py-3.5 text-center w-[12%]">Clicks</th>
+                <th className="px-6 py-3.5 text-center w-[15%]">Conversion rate</th>
+                <th className="px-6 py-3.5 w-[11%]">Status</th>
+                <th className="px-6 py-3.5 text-right w-[5%]">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-[#2a2a2a]">
               {loading ? (
-                [1, 2, 3].map(i => (
+                Array.from({ length: 4 }).map((_, i) => (
                   <tr key={i} className="animate-pulse">
-                    <td className="px-6 py-6 flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-lg bg-white/5" />
-                      <div className="space-y-2">
-                        <div className="h-4 bg-white/10 w-40 rounded" />
-                        <div className="h-3 bg-white/5 w-24 rounded" />
+                    <td className="px-6 py-4 flex items-center gap-3">
+                      <div className="w-9 h-9 rounded bg-[#20201f] border border-white/5" />
+                      <div className="space-y-1.5 flex-1">
+                        <div className="h-3 bg-[#20201f] w-1/2 rounded" />
+                        <div className="h-2.5 bg-[#20201f] w-1/4 rounded" />
                       </div>
                     </td>
-                    <td className="px-6 py-6"><div className="h-4 bg-white/5 w-8 mx-auto rounded" /></td>
-                    <td className="px-6 py-6"><div className="h-4 bg-white/5 w-8 mx-auto rounded" /></td>
-                    <td className="px-6 py-6"><div className="h-4 bg-white/5 w-12 mx-auto rounded" /></td>
-                    <td className="px-6 py-6"><div className="h-6 bg-white/5 w-16 rounded-full" /></td>
-                    <td className="px-6 py-6" />
+                    <td className="px-6 py-4"><div className="h-3.5 bg-[#20201f] w-8 mx-auto rounded" /></td>
+                    <td className="px-6 py-4"><div className="h-3.5 bg-[#20201f] w-8 mx-auto rounded" /></td>
+                    <td className="px-6 py-4">
+                      <div className="space-y-1 max-w-[80px] mx-auto">
+                        <div className="h-3 bg-[#20201f] w-10 mx-auto rounded" />
+                        <div className="h-1 bg-[#20201f] w-full rounded-full" />
+                      </div>
+                    </td>
+                    <td className="px-6 py-4"><div className="h-5 bg-[#20201f] w-16 rounded" /></td>
+                    <td className="px-6 py-4" />
                   </tr>
                 ))
               ) : filteredProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-12 text-gray-500 font-medium">
-                    <span className="material-symbols-outlined text-4xl mb-2 opacity-50 block">inventory_2</span>
-                    No products found. Add products manually or import them from Instagram posts!
+                  <td colSpan={6} className="text-center py-14 text-[#c4c7c8]">
+                    <div className="flex flex-col items-center justify-center gap-3 max-w-sm mx-auto">
+                      <div className="w-10 h-10 rounded-full bg-[#131313] border border-[#2a2a2a] flex items-center justify-center text-[#8e9192]">
+                        <AlertCircle className="w-5 h-5" strokeWidth={1.5} />
+                      </div>
+                      <div className="space-y-1">
+                        <p className="font-medium text-white">No products found</p>
+                        <p className="text-[11px] text-[#8e9192]">
+                          Try modifying your filters, clearing your search query, or importing posts directly from Instagram.
+                        </p>
+                      </div>
+                    </div>
                   </td>
                 </tr>
               ) : (
                 filteredProducts.map((p: any, i: number) => {
-                  // Dynamic display analytics metrics
                   const hashId = typeof p.id === "number" ? p.id : (p.id?.charCodeAt(0) || 5);
                   const inquiriesVal = p.inquiries || Math.floor((hashId * 7) % 150) + 12;
                   const clicksVal = p.clicks || Math.floor(inquiriesVal * 6.5) + 32;
                   const convPercentage = p.conv || ((inquiriesVal / clicksVal) * 100).toFixed(1) + "%";
                   const convProgress = Math.min(100, Math.floor((inquiriesVal / clicksVal) * 100));
 
-                  const titleText = p.title || p.name || "Untitled Product";
+                  const titleText = p.title || p.name || "Untitled product";
                   const skuCode = p.sku || (titleText.substring(0, 3).toUpperCase() + "-" + String(p.id).substring(0, 4).toUpperCase());
 
                   const isInstagramProduct = p.source === "instagram" ||
@@ -323,23 +364,20 @@ export default function CatalogPage() {
                     (p.source_id && p.source_type !== "MANUAL");
 
                   return (
-                    <tr key={p.id || i} className="hover:bg-white/[0.02] transition-colors group">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-lg overflow-hidden bg-white/5 border border-white/10 shrink-0 flex items-center justify-center relative">
+                    <tr key={p.id || i} className="hover:bg-white/[0.01] transition-colors group">
+                      {/* Product Name Column */}
+                      <td className="px-6 py-3.5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded overflow-hidden bg-[#131313] border border-[#2a2a2a] shrink-0 flex items-center justify-center relative">
                             {isInstagramProduct && (
-                              <div className="absolute top-0.5 right-0.5 w-4 h-4 bg-black/60 rounded-full flex items-center justify-center border border-white/10 shadow-sm z-10 animate-fadeIn" title="Imported from Instagram">
-                                <svg className="w-2.5 h-2.5 text-pink-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                  <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
-                                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-                                  <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
-                                </svg>
+                              <div className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-black/80 rounded-full flex items-center justify-center border border-white/[0.08] z-10" title="Imported from Instagram">
+                                <InstagramIcon className="w-2.5 h-2.5 text-pink-500" />
                               </div>
                             )}
                             {(() => {
                               const mainMediaUrl = p.media_url || p.gallery?.[0]?.media_url;
                               if (!mainMediaUrl) {
-                                return <span className="material-symbols-outlined text-xl opacity-40">image</span>;
+                                return <ImageIcon className="w-4 h-4 text-[#8e9192]" strokeWidth={1.5} />;
                               }
 
                               const isMainVideo =
@@ -360,60 +398,68 @@ export default function CatalogPage() {
                               }
                             })()}
                           </div>
-                          <div>
-                            <p className="text-sm font-bold text-white mb-1 flex items-center gap-1.5">
+                          <div className="space-y-0.5 min-w-0">
+                            <p className="font-medium text-white truncate flex items-center gap-1.5">
                               {titleText}
                               {isInstagramProduct && (
-                                <svg className="w-3.5 h-3.5 text-pink-500 shrink-0 animate-fadeIn" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                  <title>Imported from Instagram</title>
-                                  <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
-                                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-                                  <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
-                                </svg>
+                                <InstagramIcon className="w-3.5 h-3.5 text-pink-500 shrink-0 inline" />
                               )}
                             </p>
-                            <p className="text-[10px] text-gray-400">
+                            <p className="text-[10px] text-[#8e9192] truncate">
                               SKU: {skuCode} • Updated {formatUpdatedTime(p.updated_at)}
                             </p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-center text-sm font-medium text-white">{inquiriesVal}</td>
-                      <td className="px-6 py-4 text-center text-sm font-medium text-white">{clicksVal}</td>
-                      <td className="px-6 py-4">
-                        <div className="flex flex-col items-center gap-1">
-                          <span className="text-sm font-bold text-white">{convPercentage}</span>
-                          <div className="w-16 h-1 bg-white/10 rounded-full overflow-hidden">
-                            <div className="h-full bg-white rounded-full" style={{ width: `${convProgress}%` }}></div>
+
+                      {/* Inquiries */}
+                      <td className="px-6 py-3.5 text-center font-medium text-white">{inquiriesVal}</td>
+
+                      {/* Clicks */}
+                      <td className="px-6 py-3.5 text-center font-medium text-white">{clicksVal}</td>
+
+                      {/* Conversion Analytics Column */}
+                      <td className="px-6 py-3.5">
+                        <div className="flex flex-col items-center gap-1.5 max-w-[100px] mx-auto">
+                          <span className="font-semibold text-white flex items-center gap-1">
+                            {convPercentage}
+                            {convProgress > 15 && <TrendingUp className="w-3 h-3 text-emerald-400" />}
+                          </span>
+                          <div className="w-16 h-1 bg-[#131313] border border-[#2a2a2a] rounded-full overflow-hidden">
+                            <div className="h-full bg-white rounded-full" style={{ width: `${convProgress}%` }} />
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase border ${p.status?.toUpperCase() === "PUBLISHED"
-                          ? "bg-green-500/10 text-green-400 border-green-500/20"
-                          : "bg-white/10 text-gray-400 border-white/5"
+
+                      {/* Status Column */}
+                      <td className="px-6 py-3.5">
+                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-medium border ${p.status?.toUpperCase() === "PUBLISHED"
+                          ? "bg-green-500/5 text-green-400 border-green-500/15"
+                          : "bg-white/[0.02] text-[#8e9192] border-white/5"
                           }`}>
                           {p.status?.toUpperCase() === "PUBLISHED" && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
                           )}
                           {p.status?.toLowerCase() === "published" ? "Published" : "Draft"}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+
+                      {/* Table row action menu */}
+                      <td className="px-6 py-3.5 text-right">
+                        <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
                             onClick={() => router.push(`/dashboard/products/catalog/create?edit=${p.id}`)}
-                            className="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors"
+                            className="p-1.5 hover:bg-white/5 rounded text-[#c4c7c8] hover:text-white transition-colors border border-transparent hover:border-[#2a2a2a]"
                             title="Edit"
                           >
-                            <span className="material-symbols-outlined text-lg">edit</span>
+                            <Edit2 className="w-3.5 h-3.5" strokeWidth={1.75} />
                           </button>
                           <button
                             onClick={(e) => handleDeleteProduct(p.id, e)}
-                            className="p-2 hover:bg-white/10 rounded-lg text-red-400 hover:text-red-300 transition-colors"
+                            className="p-1.5 hover:bg-red-500/5 rounded text-red-400 hover:text-red-300 transition-colors border border-transparent hover:border-red-500/20"
                             title="Delete"
                           >
-                            <span className="material-symbols-outlined text-lg">delete</span>
+                            <Trash2 className="w-3.5 h-3.5" strokeWidth={1.75} />
                           </button>
                         </div>
                       </td>
@@ -425,24 +471,24 @@ export default function CatalogPage() {
           </table>
         </div>
 
-        {/* Pagination Footer */}
+        {/* Dense Pagination Navigation */}
         {!loading && filteredProducts.length > 0 && (
-          <div className="p-4 bg-white/5 border-t border-white/5 flex items-center justify-between">
-            <p className="text-xs text-gray-400 font-medium">Showing 1 to {filteredProducts.length} of {filteredProducts.length} products</p>
-            <div className="flex gap-2">
-              <button className="w-8 h-8 flex items-center justify-center rounded-lg border border-white/10 hover:bg-white/10 transition-colors disabled:opacity-30" disabled>
-                <span className="material-symbols-outlined text-sm">chevron_left</span>
+          <div className="p-3.5 bg-[#131313] border-t border-[#2a2a2a] flex items-center justify-between text-xs">
+            <p className="text-[#8e9192]">Showing 1 to {filteredProducts.length} of {filteredProducts.length} products</p>
+            <div className="flex gap-1">
+              <button className="w-7 h-7 flex items-center justify-center rounded border border-[#2a2a2a] hover:bg-white/5 transition-colors disabled:opacity-30 disabled:pointer-events-none" disabled>
+                <ChevronLeft className="w-3.5 h-3.5 text-white" strokeWidth={1.75} />
               </button>
-              <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-white text-black text-xs font-bold">1</button>
-              <button className="w-8 h-8 flex items-center justify-center rounded-lg border border-white/10 hover:bg-white/10 transition-colors disabled:opacity-30" disabled>
-                <span className="material-symbols-outlined text-sm">chevron_right</span>
+              <button className="w-7 h-7 flex items-center justify-center rounded bg-white text-black text-xs font-semibold">1</button>
+              <button className="w-7 h-7 flex items-center justify-center rounded border border-[#2a2a2a] hover:bg-white/5 transition-colors disabled:opacity-30 disabled:pointer-events-none" disabled>
+                <ChevronRight className="w-3.5 h-3.5 text-white" strokeWidth={1.75} />
               </button>
             </div>
           </div>
         )}
       </div>
 
-      {/* Instagram Selector Modal */}
+      {/* Instagram Selector Overlap Drawer/Modal */}
       <InstagramImportModal
         isOpen={isImportOpen}
         onClose={() => {
@@ -451,7 +497,7 @@ export default function CatalogPage() {
         }}
       />
 
-      {/* Toast notifications */}
+      {/* Action Notification Feed */}
       <Toast
         message={toastMessage}
         type={toastType}

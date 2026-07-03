@@ -34,6 +34,7 @@ export default function AISettingsPage() {
   const [responseStyle, setResponseStyle] = useState("Friendly");
   const [maxReplyLength, setMaxReplyLength] = useState(150);
   const [maxReplyCount, setMaxReplyCount] = useState(50);
+  const [lastError, setLastError] = useState("");
   
   // Business details
   const [businessName, setBusinessName] = useState("");
@@ -78,6 +79,7 @@ export default function AISettingsPage() {
           setProductsAndServices(res.data.products_and_services || "");
           setFaqs(res.data.faqs || []);
           setQuickReplies(res.data.quick_replies || []);
+          setLastError(res.data.last_error || "");
         }
       } catch (err) {
         console.error("Error fetching AI settings:", err);
@@ -109,15 +111,17 @@ export default function AISettingsPage() {
         quick_replies: quickReplies
       });
       setIsAiModeOn(res.data.is_ai_mode_on);
+      setLastError(res.data.last_error || "");
       showToast("AI Assistant settings saved successfully!", "success");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error saving AI settings:", err);
-      showToast("Failed to save AI configuration.", "error");
+      const errMsg = err.response?.data?.error || "Failed to save AI configuration.";
+      showToast(errMsg, "error");
     }
   };
 
   const handleAddFaq = () => {
-    if (!newFaqQ.strip() || !newFaqA.strip()) {
+    if (!newFaqQ.trim() || !newFaqA.trim()) {
       showToast("Please enter both question and answer.", "error");
       return;
     }
@@ -133,7 +137,7 @@ export default function AISettingsPage() {
   };
 
   const handleAddQuickReply = () => {
-    if (!newQuickReply.strip()) return;
+    if (!newQuickReply.trim()) return;
     if (quickReplies.includes(newQuickReply.trim())) {
       showToast("Quick reply already exists.", "error");
       return;
@@ -182,6 +186,18 @@ export default function AISettingsPage() {
         </button>
       </div>
 
+      {/* Error / Quota Limit warning banner */}
+      {lastError && (
+        <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-3.5 text-xs text-red-200">
+          <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="font-bold">AI Autopilot Deactivated (API Error)</p>
+            <p className="text-red-300/80 leading-relaxed font-mono text-[11px]">{lastError}</p>
+            <p className="text-white/40 text-[9px] pt-1">To reactivate, please configure a valid key with sufficient quota below and click Save Changes.</p>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column: Directives & Autopilot */}
         <div className="lg:col-span-2 flex flex-col gap-6">
@@ -195,7 +211,10 @@ export default function AISettingsPage() {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-[#c4c7c8]/80 mb-2">Gemini API Token</label>
+                <div className="flex justify-between items-baseline mb-2">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-[#c4c7c8]/80">Gemini API Token</label>
+                  <span className="text-[10px] text-[#B6B2FF] font-semibold">Only Google Gemini API Keys supported</span>
+                </div>
                 <div className="relative">
                   <input
                     type={showApiKey ? "text" : "password"}
@@ -212,7 +231,10 @@ export default function AISettingsPage() {
                     {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-                <p className="text-[10px] text-[#c4c7c8]/40 mt-1">Provided directly to run the support AI. Disables automatically if invalid or quota limit exceeded.</p>
+                <div className="flex justify-between items-center mt-1">
+                  <p className="text-[10px] text-[#c4c7c8]/40">Provided directly to run the support AI. Disables automatically if invalid or quota limit exceeded.</p>
+                  <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" className="text-[9px] text-[#B6B2FF] hover:underline font-semibold">Get a Gemini Key →</a>
+                </div>
               </div>
 
               <div className="flex items-center justify-between border-t border-white/5 pt-4">

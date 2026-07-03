@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Toast from "@/components/Toast";
+import InstagramIcon from "@/components/ui/InstagramIcon";
 
 const GoogleIcon = () => (
   <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
@@ -29,21 +30,7 @@ const GoogleIcon = () => (
   </svg>
 );
 
-const InstagramIcon = ({ className }: { className?: string }) => (
-  <svg 
-    className={className} 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="2" 
-    strokeLinecap="round" 
-    strokeLinejoin="round"
-  >
-    <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
-    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
-  </svg>
-);
+
 
 function SignupContent() {
   const [name, setName] = useState("");
@@ -61,6 +48,12 @@ function SignupContent() {
   const isAnyLoading = isGoogleLoading || isEmailLoading || isInstagramLoading;
 
   useEffect(() => {
+    // Save referral code if present
+    const refCode = searchParams.get("ref");
+    if (refCode) {
+      sessionStorage.setItem("referral_code", refCode);
+    }
+
     // Handle Instagram OAuth code if present in URL
     const code = searchParams.get("code");
     if (code) {
@@ -162,7 +155,7 @@ function SignupContent() {
         )}
       </AnimatePresence>
 
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.4 }}
@@ -182,12 +175,12 @@ function SignupContent() {
             <label className="block text-xs font-bold uppercase tracking-wider text-[#c4c7c8]/80 mb-2">Full Name</label>
             <div className="relative group">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-white transition-colors" />
-              <input 
-                type="text" 
+              <input
+                type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full bg-[#1c1b1b] border border-white/10 rounded-lg py-2.5 pl-10 pr-4 text-sm text-white focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20 transition-all placeholder:text-white/20"
-                placeholder="Alex Rivera" 
+                placeholder="Alex Rivera"
               />
             </div>
           </div>
@@ -196,12 +189,12 @@ function SignupContent() {
             <label className="block text-xs font-bold uppercase tracking-wider text-[#c4c7c8]/80 mb-2">Email Address</label>
             <div className="relative group">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-white transition-colors" />
-              <input 
-                type="email" 
+              <input
+                type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full bg-[#1c1b1b] border border-white/10 rounded-lg py-2.5 pl-10 pr-4 text-sm text-white focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20 transition-all placeholder:text-white/20"
-                placeholder="name@company.com" 
+                placeholder="name@company.com"
               />
             </div>
           </div>
@@ -210,22 +203,22 @@ function SignupContent() {
             <label className="block text-xs font-bold uppercase tracking-wider text-[#c4c7c8]/80 mb-2">Password</label>
             <div className="relative group">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-white transition-colors" />
-              <input 
-                type="password" 
+              <input
+                type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full bg-[#1c1b1b] border border-white/10 rounded-lg py-2.5 pl-10 pr-4 text-sm text-white focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20 transition-all placeholder:text-white/20"
-                placeholder="••••••••" 
+                placeholder="••••••••"
               />
             </div>
           </div>
 
           <div className="flex items-center gap-2 pt-2">
-            <input 
-              type="checkbox" 
+            <input
+              type="checkbox"
               checked={agree}
               onChange={(e) => setAgree(e.target.checked)}
-              className="rounded bg-transparent border-white/20 focus:ring-0 text-primary cursor-pointer accent-white" 
+              className="rounded bg-transparent border-white/20 focus:ring-0 text-primary cursor-pointer accent-white"
               id="agree"
             />
             <label htmlFor="agree" className="text-xs text-[#c4c7c8]/60 cursor-pointer select-none">
@@ -233,8 +226,8 @@ function SignupContent() {
             </label>
           </div>
 
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={isAnyLoading}
             className="w-full bg-white text-black py-3 rounded-lg text-sm font-bold shadow-lg hover:bg-[#eaeaea] hover:scale-[1.01] active:scale-95 transition-all duration-200 flex items-center justify-center gap-2 mt-6 disabled:opacity-50"
           >
@@ -257,7 +250,7 @@ function SignupContent() {
         </div>
 
         <div className="space-y-3">
-          <button 
+          <button
             onClick={handleGoogleLogin}
             disabled={isAnyLoading}
             className="w-full bg-white/5 border border-white/10 text-white py-3 rounded-lg text-sm font-bold shadow-lg hover:bg-white/10 active:scale-95 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50"
@@ -267,7 +260,7 @@ function SignupContent() {
             {isGoogleLoading && <Loader2 className="w-4 h-4 animate-spin text-white ml-2" />}
           </button>
 
-          <button 
+          <button
             onClick={handleInstagramLogin}
             disabled={isAnyLoading}
             className="w-full insta-gradient text-white py-3 rounded-lg text-sm font-bold shadow-lg hover:opacity-90 active:scale-95 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50"
