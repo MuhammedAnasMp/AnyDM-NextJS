@@ -152,47 +152,45 @@ export default function AutomationsDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-[#131313] text-[#e5e2e1] font-sans antialiased selection:bg-[#c6c6c7]/30">
+    <div className="min-h-screen .bg-[#131313] text-[#e5e2e1] font-sans antialiased selection:bg-[#c6c6c7]/30">
 
       {/* Dense Sticky Header Overlay */}
-      <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-[#131313]/85 border-b border-[#444748]">
-        <div className="max-w-6xl mx-auto px-4 h-12 flex items-center justify-between">
-          <div className="flex items-center gap-1.5 text-xs font-medium text-[#c4c7c8]">
 
-          </div>
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => fetchAutomations()}
-              disabled={loading}
-              className="p-1.5 bg-[#1c1b1b] hover:bg-[#20201f] border border-[#444748] rounded text-[#e5e2e1] transition-colors flex items-center justify-center disabled:opacity-50"
-              title="Refresh"
-            >
-              <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin" : ""}`} />
-            </button>
-            <Link
-              href="/dashboard/automations"
-              className="py-1 px-2.5 bg-white hover:bg-[#e5e2e1] text-[#131313] rounded text-[11px] font-bold tracking-tight transition-colors flex items-center gap-1"
-            >
-              <Plus className="w-3 h-3" />
-              <span>Create Workflow</span>
-            </Link>
-          </div>
-        </div>
-      </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-5">
+      <main className=".max-w-6xl mx-auto px-4 ">
 
         {/* Compact Title Section */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5 pb-3.5 border-b border-[#444748]/60">
-          <div>
-            <h1 className="text-base font-bold tracking-tight text-[#e5e2e1] flex items-center gap-1.5">
-              <span>Instagram Automations</span>
-              <Sparkles className="w-3.5 h-3.5 text-[#B6B2FF] shrink-0" />
-            </h1>
-            <p className="text-[11px] text-[#c4c7c8] mt-0.5 leading-relaxed">
-              Configure automatic replies, story triggers, and direct messaging workflows linked to your profile.
-            </p>
-          </div>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5 pb-3.5">
+
+          <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-[#131313]/85 border-b border-[#444748]">
+            <div className=" mx-auto h-12 flex items-center justify-between">
+
+              <div>
+                <h1 className="text-base font-bold tracking-tight text-[#e5e2e1] flex items-center gap-1.5">
+                  <span>Instagram Automations</span>
+                  {/* <Sparkles className="w-3.5 h-3.5 text-[#B6B2FF] shrink-0" /> */}
+                </h1>
+
+              </div>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => fetchAutomations()}
+                  disabled={loading}
+                  className="p-1.5 bg-[#1c1b1b] hover:bg-[#20201f] border border-[#444748] rounded text-[#e5e2e1] transition-colors flex items-center justify-center disabled:opacity-50"
+                  title="Refresh"
+                >
+                  <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin" : ""}`} />
+                </button>
+                <Link
+                  href="/dashboard/automations"
+                  className="py-1 px-2.5 bg-white hover:bg-[#e5e2e1] text-[#131313] rounded text-[11px] font-bold tracking-tight transition-colors flex items-center gap-1"
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>Create Workflow</span>
+                </Link>
+              </div>
+            </div>
+          </header>
         </div>
 
         {/* Structured Grid Stats Panel */}

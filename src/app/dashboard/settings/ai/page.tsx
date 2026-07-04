@@ -1,16 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { 
-  Brain, 
-  Settings2, 
-  MessageSquareCode, 
-  Sparkles, 
-  Save, 
-  HelpCircle, 
-  Plus, 
+import {
+  Brain,
+  Settings2,
+  Sparkles,
+  Save,
+  Plus,
   Trash2,
   AlertCircle,
   Eye,
@@ -21,12 +19,46 @@ import {
   Phone,
   Store,
   Layers,
-  BookOpen
+  BookOpen,
+  Bot,
+  RefreshCw,
 } from "lucide-react";
 import Toast from "@/components/Toast";
 import api from "@/lib/services/api.service";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store";
+
+/**
+ * Design tokens — Glass Monochrome
+ * Mirrors design-system.yaml. Move to tailwind.config theme.extend.colors
+ * once adopted app-wide.
+ */
+const t = {
+  surfaceContainerLowest: "#0e0e0e",
+  surfaceContainerLow: "#1c1b1b",
+  surfaceContainer: "#20201f",
+  surfaceContainerHigh: "#2a2a2a",
+  onSurface: "#e5e2e1",
+  onSurfaceVariant: "#c4c7c8",
+  outline: "#8e9192",
+  outlineVariant: "#444748",
+  primary: "#ffffff",
+  onPrimary: "#2f3131",
+  accentCyan: "#8fe3ff",
+  lavender: "#c4c0ff",
+  success: "#34d399",
+  error: "#ffb4ab",
+};
+
+const monoStat = { fontFamily: "'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" };
 
 export default function AISettingsPage() {
+  const appUser = useSelector((state: RootState) => state.auth.user);
+  const instagramAccounts = useSelector((state: RootState) => state.auth.instagramAccounts);
+
+  const activeAccount = instagramAccounts.find((a: any) => a.id === appUser?.active_instagram_account_id) || instagramAccounts[0];
+  const activeAccountId = activeAccount?.id ?? null;
+
   const [apiKey, setApiKey] = useState("");
   const [showApiKey, setShowApiKey] = useState(false);
   const [isAiModeOn, setIsAiModeOn] = useState(false);
@@ -35,66 +67,73 @@ export default function AISettingsPage() {
   const [maxReplyLength, setMaxReplyLength] = useState(150);
   const [maxReplyCount, setMaxReplyCount] = useState(50);
   const [lastError, setLastError] = useState("");
-  
-  // Business details
+
   const [businessName, setBusinessName] = useState("");
   const [businessLocation, setBusinessLocation] = useState("");
   const [workingHours, setWorkingHours] = useState("");
   const [deliveryTime, setDeliveryTime] = useState("");
   const [contactDetails, setContactDetails] = useState("");
   const [productsAndServices, setProductsAndServices] = useState("");
-  
-  // FAQ and Quick Replies
+
   const [faqs, setFaqs] = useState<{ question: string; answer: string }[]>([]);
   const [quickReplies, setQuickReplies] = useState<string[]>([]);
-  
-  // Local state for builders
+
   const [newFaqQ, setNewFaqQ] = useState("");
   const [newFaqA, setNewFaqA] = useState("");
   const [newQuickReply, setNewQuickReply] = useState("");
 
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [toast, setToast] = useState({ isVisible: false, message: "", type: "success" as "success" | "error" | "info" });
 
   const showToast = (message: string, type: "success" | "error" | "info" = "success") => {
     setToast({ isVisible: true, message, type });
   };
 
-  useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        const res = await api.get("/crm/ai-settings/");
-        if (res.data) {
-          setApiKey(res.data.api_key || "");
-          setIsAiModeOn(res.data.is_ai_mode_on || false);
-          setCustomInstructions(res.data.custom_instructions || "");
-          setResponseStyle(res.data.response_style || "Friendly");
-          setMaxReplyLength(res.data.max_reply_length || 150);
-          setMaxReplyCount(res.data.max_reply_count || 50);
-          setBusinessName(res.data.business_name || "");
-          setBusinessLocation(res.data.business_location || "");
-          setWorkingHours(res.data.working_hours || "");
-          setDeliveryTime(res.data.delivery_time || "");
-          setContactDetails(res.data.contact_details || "");
-          setProductsAndServices(res.data.products_and_services || "");
-          setFaqs(res.data.faqs || []);
-          setQuickReplies(res.data.quick_replies || []);
-          setLastError(res.data.last_error || "");
-        }
-      } catch (err) {
-        console.error("Error fetching AI settings:", err);
-        showToast("Failed to load AI configuration.", "error");
-      } finally {
-        setIsLoading(false);
+  const populateForm = (data: any) => {
+    setApiKey(data.api_key || "");
+    setIsAiModeOn(data.is_ai_mode_on || false);
+    setCustomInstructions(data.custom_instructions || "");
+    setResponseStyle(data.response_style || "Friendly");
+    setMaxReplyLength(data.max_reply_length || 150);
+    setMaxReplyCount(data.max_reply_count || 50);
+    setBusinessName(data.business_name || "");
+    setBusinessLocation(data.business_location || "");
+    setWorkingHours(data.working_hours || "");
+    setDeliveryTime(data.delivery_time || "");
+    setContactDetails(data.contact_details || "");
+    setProductsAndServices(data.products_and_services || "");
+    setFaqs(data.faqs || []);
+    setQuickReplies(data.quick_replies || []);
+    setLastError(data.last_error || "");
+  };
+
+  const fetchSettings = useCallback(async (accountId: number | null) => {
+    if (!accountId) return;
+    setIsLoading(true);
+    try {
+      const res = await api.get(`/crm/ai-settings/?account_id=${accountId}`);
+      if (res.data) {
+        populateForm(res.data);
       }
-    };
-    fetchSettings();
+    } catch (err) {
+      console.error("Error fetching AI settings:", err);
+      showToast("Couldn't load the AI configuration.", "error");
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchSettings(activeAccountId);
+  }, [activeAccountId, fetchSettings]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSaving(true);
     try {
       const res = await api.post("/crm/ai-settings/", {
+        ...(activeAccountId ? { account_id: activeAccountId } : {}),
         api_key: apiKey,
         is_ai_mode_on: isAiModeOn,
         custom_instructions: customInstructions,
@@ -108,21 +147,23 @@ export default function AISettingsPage() {
         contact_details: contactDetails,
         products_and_services: productsAndServices,
         faqs,
-        quick_replies: quickReplies
+        quick_replies: quickReplies,
       });
       setIsAiModeOn(res.data.is_ai_mode_on);
       setLastError(res.data.last_error || "");
-      showToast("AI Assistant settings saved successfully!", "success");
+      showToast("AI assistant settings saved.", "success");
     } catch (err: any) {
       console.error("Error saving AI settings:", err);
-      const errMsg = err.response?.data?.error || "Failed to save AI configuration.";
+      const errMsg = err.response?.data?.error || "Couldn't save the AI configuration.";
       showToast(errMsg, "error");
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleAddFaq = () => {
     if (!newFaqQ.trim() || !newFaqA.trim()) {
-      showToast("Please enter both question and answer.", "error");
+      showToast("Enter both a question and an answer.", "error");
       return;
     }
     setFaqs([...faqs, { question: newFaqQ.trim(), answer: newFaqA.trim() }]);
@@ -136,114 +177,128 @@ export default function AISettingsPage() {
     showToast("FAQ removed.", "info");
   };
 
-  const handleAddQuickReply = () => {
-    if (!newQuickReply.trim()) return;
-    if (quickReplies.includes(newQuickReply.trim())) {
-      showToast("Quick reply already exists.", "error");
-      return;
-    }
-    setQuickReplies([...quickReplies, newQuickReply.trim()]);
-    setNewQuickReply("");
-    showToast("Quick reply pill added.", "success");
-  };
-
-  const handleDeleteQuickReply = (pill: string) => {
-    setQuickReplies(quickReplies.filter(p => p !== pill));
-    showToast("Quick reply pill removed.", "info");
-  };
-
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3">
-        <div className="animate-spin w-8 h-8 border-4 border-white/20 border-t-white rounded-full"></div>
-        <span className="text-xs font-semibold text-white/50 tracking-wider">LOADING CONFIGURATION...</span>
+        <RefreshCw className="w-6 h-6 animate-spin" style={{ color: t.onSurface }} strokeWidth={1.75} />
+        <span className="text-xs font-medium" style={{ color: t.onSurfaceVariant }}>
+          Loading configuration…
+        </span>
       </div>
     );
   }
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 10 }}
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      className="max-w-4xl mx-auto space-y-6"
+      transition={{ duration: 0.3 }}
+      className="max-w-6xl mx-auto space-y-6 pt-6"
+      style={{ color: t.onSurface }}
     >
-      {/* Page Header */}
-      <div className="flex items-center justify-between border-b border-white/10 pb-6">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-            <span className="material-symbols-outlined text-white">psychology</span>
-            <span>AI Support Agent Core</span>
-          </h1>
-          <p className="text-xs text-[#c4c7c8]/60 mt-1">Configure your automated customer support employee, access databases, and customize replies.</p>
+      {/* Page header */}
+      <div className="flex flex-col gap-3 pb-5" style={{ borderBottom: `1px solid ${t.outlineVariant}` }}>
+        <div className="flex items-center justify-between">
+          <div>
+
+            <p className="text-xs mt-1" style={{ color: t.onSurfaceVariant }}>
+              Configure your automated customer support agent, connect its knowledge, and shape how it replies.
+            </p>
+          </div>
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="px-4 py-2 rounded-md font-medium text-xs flex items-center gap-1.5 transition-opacity hover:opacity-90 disabled:opacity-50 cursor-pointer"
+            style={{ backgroundColor: t.primary, color: t.onPrimary }}
+          >
+            {isSaving ? <RefreshCw className="w-4 h-4 animate-spin" strokeWidth={1.75} /> : <Save className="w-4 h-4" strokeWidth={1.75} />}
+            <span>Save changes</span>
+          </button>
         </div>
-        <button 
-          onClick={handleSave}
-          className="bg-white text-black px-4 py-2.5 rounded-lg font-bold flex items-center gap-2 shadow-lg hover:bg-[#eaeaea] hover:scale-[1.01] active:scale-95 transition-all text-xs cursor-pointer"
-        >
-          <Save className="w-4 h-4" />
-          <span>Save Changes</span>
-        </button>
+
+        {/* Active account context */}
+
       </div>
 
-      {/* Error / Quota Limit warning banner */}
+      {/* Error banner */}
       {lastError && (
-        <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-3.5 text-xs text-red-200">
-          <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+        <div
+          className="p-4 rounded-md flex items-start gap-3 text-xs"
+          style={{ backgroundColor: "rgba(255,180,171,0.08)", border: "1px solid rgba(255,180,171,0.2)", color: t.error }}
+        >
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" strokeWidth={1.75} />
           <div className="space-y-1">
-            <p className="font-bold">AI Autopilot Deactivated (API Error)</p>
-            <p className="text-red-300/80 leading-relaxed font-mono text-[11px]">{lastError}</p>
-            <p className="text-white/40 text-[9px] pt-1">To reactivate, please configure a valid key with sufficient quota below and click Save Changes.</p>
+            <p className="font-medium">AI autopilot deactivated (API error)</p>
+            <p className="text-[11px] opacity-90" style={monoStat}>
+              {lastError}
+            </p>
+            <p className="text-[11px] pt-1" style={{ color: t.onSurfaceVariant }}>
+              To reactivate, add a valid key with sufficient quota below and save your changes.
+            </p>
           </div>
         </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Directives & Autopilot */}
+        {/* Left column */}
         <div className="lg:col-span-2 flex flex-col gap-6">
-          
-          {/* AI Credentials & Autopilot */}
-          <div className="glass-pane p-6 rounded-2xl space-y-4">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <Settings2 className="w-4 h-4 text-[#B6B2FF]" />
-              <span>AI Access & Activation</span>
-            </h3>
+          {/* AI access & activation */}
+          <section className="rounded-lg p-4 md:p-5 space-y-4" style={{ backgroundColor: t.surfaceContainer }}>
+            <SectionHeading icon={Settings2} label="AI access & activation" />
 
             <div className="space-y-4">
               <div>
-                <div className="flex justify-between items-baseline mb-2">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-[#c4c7c8]/80">Gemini API Token</label>
-                  <span className="text-[10px] text-[#B6B2FF] font-semibold">Only Google Gemini API Keys supported</span>
+                <div className="flex justify-between items-baseline mb-1.5">
+                  <label className="text-xs font-medium" style={{ color: t.onSurfaceVariant }}>
+                    Gemini API token
+                  </label>
+                  <span className="text-[11px]" style={{ color: t.lavender }}>
+                    Google Gemini keys only
+                  </span>
                 </div>
                 <div className="relative">
                   <input
                     type={showApiKey ? "text" : "password"}
-                    placeholder="Enter your Gemini API key (e.g., AIzaSy...)"
+                    placeholder="Enter your Gemini API key (e.g., AIzaSy…)"
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
-                    className="w-full bg-[#1c1b1b] border border-white/10 rounded-lg py-2.5 pl-4 pr-10 text-xs text-white focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20 transition-all font-mono"
+                    className="w-full rounded text-xs py-2 pl-3 pr-10 focus:outline-none transition-colors"
+                    style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface, ...monoStat }}
                   />
                   <button
                     type="button"
                     onClick={() => setShowApiKey(!showApiKey)}
-                    className="absolute right-3 top-2.5 text-[#c4c7c8]/50 hover:text-white transition-colors"
+                    className="absolute right-3 top-2 transition-colors"
+                    style={{ color: t.onSurfaceVariant }}
                   >
-                    {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showApiKey ? <EyeOff className="w-4 h-4" strokeWidth={1.75} /> : <Eye className="w-4 h-4" strokeWidth={1.75} />}
                   </button>
                 </div>
-                <div className="flex justify-between items-center mt-1">
-                  <p className="text-[10px] text-[#c4c7c8]/40">Provided directly to run the support AI. Disables automatically if invalid or quota limit exceeded.</p>
-                  <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" className="text-[9px] text-[#B6B2FF] hover:underline font-semibold">Get a Gemini Key →</a>
+                <div className="flex justify-between items-center mt-1.5">
+                  <p className="text-[11px]" style={{ color: t.onSurfaceVariant }}>
+                    Used to run the support AI. Turns off automatically if the key is invalid or over quota.
+                  </p>
+                  <a
+                    href="https://aistudio.google.com/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[11px] hover:underline font-medium shrink-0 ml-2"
+                    style={{ color: t.lavender }}
+                  >
+                    Get a Gemini key →
+                  </a>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between border-t border-white/5 pt-4">
-                <div className="space-y-0.5">
-                  <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-[#8FE3FF]" />
-                    <span>Enable AI Autopilot Mode</span>
+              <div className="flex items-center justify-between pt-4" style={{ borderTop: `1px solid ${t.outlineVariant}` }}>
+                <div className="space-y-0.5 pr-4">
+                  <span className="text-xs font-medium flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5" style={{ color: t.accentCyan }} strokeWidth={1.75} />
+                    <span>Enable AI autopilot mode</span>
                   </span>
-                  <p className="text-[10px] text-[#c4c7c8]/50 max-w-sm">When active, the AI manages support conversations automatically using your settings.</p>
+                  <p className="text-[11px] max-w-sm" style={{ color: t.onSurfaceVariant }}>
+                    When on, the AI manages support conversations automatically using the settings below.
+                  </p>
                 </div>
                 <button
                   type="button"
@@ -251,77 +306,87 @@ export default function AISettingsPage() {
                     const nextVal = !isAiModeOn;
                     setIsAiModeOn(nextVal);
                     try {
-                      await api.post("/crm/ai-settings/toggle-global/", { is_ai_mode_on: nextVal });
-                      showToast(`AI Autopilot Mode turned ${nextVal ? "ON" : "OFF"}.`, "success");
+                      await api.post("/crm/ai-settings/toggle-global/", {
+                        is_ai_mode_on: nextVal,
+                        ...(activeAccountId ? { account_id: activeAccountId } : {}),
+                      });
+                      showToast(`AI autopilot mode turned ${nextVal ? "on" : "off"}.`, "success");
                     } catch (err) {
                       console.error("Failed to toggle global AI mode:", err);
-                      showToast("Failed to update AI mode.", "error");
+                      showToast("Couldn't update the AI mode.", "error");
                     }
                   }}
-                  className={cn(
-                    "w-11 h-6 rounded-full p-0.5 transition-colors duration-200 focus:outline-none cursor-pointer relative shrink-0",
-                    isAiModeOn ? "bg-[#B6B2FF]" : "bg-white/10 border border-white/5"
-                  )}
+                  className="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full transition-colors duration-200 focus:outline-none"
+                  style={{ backgroundColor: isAiModeOn ? t.lavender : t.surfaceContainerHigh }}
                 >
-                  <div
-                    className={cn(
-                      "w-5 h-5 rounded-full transition-transform duration-200 shadow",
-                      isAiModeOn ? "translate-x-5 bg-black" : "translate-x-0 bg-white/70"
-                    )}
+                  <span
+                    className="pointer-events-none inline-block h-4 w-4 mt-0.5 transform rounded-full transition duration-200"
+                    style={{ transform: isAiModeOn ? "translateX(18px)" : "translateX(2px)", backgroundColor: isAiModeOn ? t.onPrimary : t.outline }}
                   />
                 </button>
               </div>
             </div>
-          </div>
+          </section>
 
-          {/* Agent Directives & Personality */}
-          <div className="glass-pane p-6 rounded-2xl space-y-4">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <Brain className="w-4 h-4 text-[#B6B2FF]" />
-              <span>AI Agent Personality</span>
-            </h3>
+          {/* Agent personality */}
+          <section className="rounded-lg p-4 md:p-5 space-y-4" style={{ backgroundColor: t.surfaceContainer }}>
+            <SectionHeading icon={Brain} label="AI agent personality" />
 
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-[#c4c7c8]/80 mb-2">Tone of Voice</label>
+                <label className="text-xs font-medium mb-2 block" style={{ color: t.onSurfaceVariant }}>
+                  Tone of voice
+                </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {["Friendly", "Professional", "Casual / Approachable", "Formal"].map((t) => (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => setResponseStyle(t)}
-                      className={cn(
-                        "py-2 px-3 rounded-lg text-xs font-bold border transition-all text-center cursor-pointer",
-                        responseStyle === t
-                          ? "bg-white text-black border-white"
-                          : "bg-[#1c1b1b] border-white/10 text-[#c4c7c8] hover:border-white/20 hover:text-white"
-                      )}
-                    >
-                      {t}
-                    </button>
-                  ))}
+                  {["Friendly", "Professional", "Casual", "Formal"].map((style) => {
+                    const active = responseStyle === style;
+                    return (
+                      <button
+                        key={style}
+                        type="button"
+                        onClick={() => setResponseStyle(style)}
+                        className="py-2 px-3 rounded-md text-xs font-medium text-center transition-colors cursor-pointer"
+                        style={{
+                          backgroundColor: active ? t.primary : t.surfaceContainerLowest,
+                          border: active ? `1px solid ${t.primary}` : `1px solid ${t.outlineVariant}`,
+                          color: active ? t.onPrimary : t.onSurfaceVariant,
+                        }}
+                      >
+                        {style}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
               <div>
-                <div className="flex justify-between items-center mb-2">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-[#c4c7c8]/80">Custom Instructions</label>
-                  <span className="text-[10px] text-[#c4c7c8]/40 font-mono">{customInstructions.length} chars</span>
+                <div className="flex justify-between items-center mb-1.5">
+                  <label className="text-xs font-medium" style={{ color: t.onSurfaceVariant }}>
+                    Custom instructions
+                  </label>
+                  <span className="text-[11px]" style={{ color: t.onSurfaceVariant, ...monoStat }}>
+                    {customInstructions.length} chars
+                  </span>
                 </div>
                 <textarea
                   rows={4}
                   value={customInstructions}
                   onChange={(e) => setCustomInstructions(e.target.value)}
-                  placeholder="Define how the AI employee should act, rules to follow, greeting style, etc."
-                  className="w-full bg-[#1c1b1b] border border-white/10 rounded-lg py-2.5 px-4 text-xs text-white focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20 transition-all font-mono"
+                  placeholder="Define how the AI agent should act — rules to follow, greeting style, and so on."
+                  className="w-full rounded text-xs py-2 px-3 focus:outline-none transition-colors"
+                  style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface }}
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-white/5 pt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4" style={{ borderTop: `1px solid ${t.outlineVariant}` }}>
                 <div>
                   <div className="flex justify-between items-center mb-2">
-                    <label className="block text-xs font-bold uppercase tracking-wider text-[#c4c7c8]/80">Max Word Limit</label>
-                    <span className="text-xs font-bold text-white">{maxReplyLength} words</span>
+                    <label className="text-xs font-medium" style={{ color: t.onSurfaceVariant }}>
+                      Max word limit
+                    </label>
+                    <span className="text-xs font-bold" style={monoStat}>
+                      {maxReplyLength} words
+                    </span>
                   </div>
                   <input
                     type="range"
@@ -330,14 +395,19 @@ export default function AISettingsPage() {
                     step="10"
                     value={maxReplyLength}
                     onChange={(e) => setMaxReplyLength(parseInt(e.target.value))}
-                    className="w-full h-1 bg-[#1c1b1b] rounded-lg appearance-none cursor-pointer accent-white"
+                    className="w-full h-1 rounded-full appearance-none cursor-pointer accent-white"
+                    style={{ backgroundColor: t.surfaceContainerHigh }}
                   />
                 </div>
 
                 <div>
                   <div className="flex justify-between items-center mb-2">
-                    <label className="block text-xs font-bold uppercase tracking-wider text-[#c4c7c8]/80">Max Replies / Chat</label>
-                    <span className="text-xs font-bold text-white">{maxReplyCount} msgs</span>
+                    <label className="text-xs font-medium" style={{ color: t.onSurfaceVariant }}>
+                      Max replies / chat
+                    </label>
+                    <span className="text-xs font-bold" style={monoStat}>
+                      {maxReplyCount} msgs
+                    </span>
                   </div>
                   <input
                     type="number"
@@ -345,190 +415,198 @@ export default function AISettingsPage() {
                     max="100"
                     value={maxReplyCount}
                     onChange={(e) => setMaxReplyCount(parseInt(e.target.value) || 20)}
-                    className="w-full bg-[#1c1b1b] border border-white/10 rounded-lg py-1 px-3 text-xs text-white focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20 transition-all"
+                    className="w-full rounded text-xs py-1.5 px-3 focus:outline-none transition-colors"
+                    style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface, ...monoStat }}
                   />
                 </div>
               </div>
             </div>
-          </div>
+          </section>
 
-          {/* Interactive FAQ Builder */}
-          <div className="glass-pane p-6 rounded-2xl space-y-4">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <BookOpen className="w-4 h-4 text-[#B6B2FF]" />
-              <span>Interactive FAQs (Frequently Asked Questions)</span>
-            </h3>
-            <p className="text-[11px] text-[#c4c7c8]/60">Input common customer questions and exact answers. The AI will prioritize referencing these.</p>
+          {/* FAQ builder */}
+          <section className="rounded-lg p-4 md:p-5 space-y-4" style={{ backgroundColor: t.surfaceContainer }}>
+            <SectionHeading icon={BookOpen} label="Interactive FAQs" />
+            <p className="text-[11px] -mt-3" style={{ color: t.onSurfaceVariant }}>
+              Add common customer questions and exact answers. The AI prioritizes these over improvising.
+            </p>
 
-            <div className="space-y-3 bg-[#111111]/50 p-4 rounded-xl border border-white/5">
+            <div className="space-y-2.5 p-3 rounded-md" style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}` }}>
               <input
                 type="text"
                 placeholder="Question (e.g., Do you offer refunds?)"
                 value={newFaqQ}
                 onChange={(e) => setNewFaqQ(e.target.value)}
-                className="w-full bg-[#1c1b1b] border border-white/10 rounded-lg py-2 px-3 text-xs text-white focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20 transition-all"
+                className="w-full rounded text-xs py-2 px-3 focus:outline-none transition-colors"
+                style={{ backgroundColor: t.surfaceContainerLow, border: `1px solid ${t.outlineVariant}`, color: t.onSurface }}
               />
               <textarea
                 rows={2}
-                placeholder="Answer (e.g., Yes, we offer full refunds within 14 days of purchase...)"
+                placeholder="Answer (e.g., Yes, we offer full refunds within 14 days of purchase.)"
                 value={newFaqA}
                 onChange={(e) => setNewFaqA(e.target.value)}
-                className="w-full bg-[#1c1b1b] border border-white/10 rounded-lg py-2 px-3 text-xs text-white focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20 transition-all"
+                className="w-full rounded text-xs py-2 px-3 focus:outline-none transition-colors"
+                style={{ backgroundColor: t.surfaceContainerLow, border: `1px solid ${t.outlineVariant}`, color: t.onSurface }}
               />
               <button
                 type="button"
                 onClick={handleAddFaq}
-                className="bg-white text-black text-xs font-bold py-1.5 px-4 rounded-lg flex items-center justify-center gap-1.5 ml-auto hover:bg-[#eaeaea] transition-all cursor-pointer"
+                className="text-xs font-medium py-1.5 px-3.5 rounded-md flex items-center justify-center gap-1.5 ml-auto transition-opacity hover:opacity-90 cursor-pointer"
+                style={{ backgroundColor: t.primary, color: t.onPrimary }}
               >
-                <Plus className="w-3.5 h-3.5" />
+                <Plus className="w-3.5 h-3.5" strokeWidth={1.75} />
                 <span>Add FAQ</span>
               </button>
             </div>
 
-            <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1">
-              {faqs.length === 0 ? (
-                <p className="text-[10px] text-white/30 text-center py-4">No FAQs added yet. Add some above to feed your AI.</p>
-              ) : (
-                faqs.map((faq, index) => (
-                  <div key={index} className="p-3 bg-white/5 rounded-xl border border-white/5 flex items-start justify-between gap-3">
+            {faqs.length === 0 ? (
+              <p className="text-xs text-center py-4" style={{ color: t.outline }}>
+                No FAQs yet. Add one above to give the AI something to reference.
+              </p>
+            ) : (
+              <div className="max-h-[250px] overflow-y-auto pr-1">
+                {faqs.map((faq, index) => (
+                  <div
+                    key={index}
+                    className="py-3 flex items-start justify-between gap-3"
+                    style={index !== faqs.length - 1 ? { borderBottom: `1px solid ${t.outlineVariant}` } : undefined}
+                  >
                     <div className="space-y-1">
-                      <p className="text-[11px] font-bold text-white">Q: {faq.question}</p>
-                      <p className="text-[10px] text-[#c4c7c8]/80">A: {faq.answer}</p>
+                      <p className="text-xs font-medium">{faq.question}</p>
+                      <p className="text-[11px]" style={{ color: t.onSurfaceVariant }}>
+                        {faq.answer}
+                      </p>
                     </div>
                     <button
                       type="button"
                       onClick={() => handleDeleteFaq(index)}
-                      className="text-[#c4c7c8]/50 hover:text-red-400 p-1 rounded hover:bg-white/5 transition-colors cursor-pointer shrink-0"
+                      className="p-1 rounded transition-colors cursor-pointer shrink-0 hover:bg-white/5"
+                      style={{ color: t.onSurfaceVariant }}
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-3.5 h-3.5" strokeWidth={1.75} />
                     </button>
                   </div>
-                ))
-              )}
-            </div>
-          </div>
+                ))}
+              </div>
+            )}
+          </section>
         </div>
 
-        {/* Right Column: Business Profile Data */}
+        {/* Right column */}
         <div className="lg:col-span-1 flex flex-col gap-6">
-          
-          {/* Business settings */}
-          <div className="glass-pane p-6 rounded-2xl space-y-4">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <Store className="w-4 h-4 text-[#B6B2FF]" />
-              <span>Business Profile</span>
-            </h3>
-            <p className="text-[11px] text-[#c4c7c8]/60 leading-relaxed">
-              Define static store data. The AI assistant retrieves this secure data to formulate correct custom answers.
+          {/* Business profile */}
+          <section className="rounded-lg p-4 md:p-5 space-y-4" style={{ backgroundColor: t.surfaceContainer }}>
+            <SectionHeading icon={Store} label="Business profile" />
+            <p className="text-[11px] -mt-3 leading-relaxed" style={{ color: t.onSurfaceVariant }}>
+              Static store details the AI references to answer questions accurately.
             </p>
 
             <div className="space-y-3.5">
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#c4c7c8]/70 mb-1 flex items-center gap-1.5">
-                  <Store className="w-3 h-3 text-[#B6B2FF]" />
-                  <span>Business Name</span>
-                </label>
+              <ProfileField icon={Store} label="Business name">
                 <input
                   type="text"
                   placeholder="e.g., Serene Quartz Jewels"
                   value={businessName}
                   onChange={(e) => setBusinessName(e.target.value)}
-                  className="w-full bg-[#1c1b1b] border border-white/10 rounded-lg py-2 px-3 text-xs text-white focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20 transition-all"
+                  className="w-full rounded text-xs py-2 px-3 focus:outline-none transition-colors"
+                  style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface }}
                 />
-              </div>
+              </ProfileField>
 
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#c4c7c8]/70 mb-1 flex items-center gap-1.5">
-                  <Clock className="w-3 h-3 text-[#B6B2FF]" />
-                  <span>Working Hours</span>
-                </label>
+              <ProfileField icon={Clock} label="Working hours">
                 <input
                   type="text"
-                  placeholder="e.g., Mon - Fri: 9AM - 6PM"
+                  placeholder="e.g., Mon–Fri: 9am–6pm"
                   value={workingHours}
                   onChange={(e) => setWorkingHours(e.target.value)}
-                  className="w-full bg-[#1c1b1b] border border-white/10 rounded-lg py-2 px-3 text-xs text-white focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20 transition-all"
+                  className="w-full rounded text-xs py-2 px-3 focus:outline-none transition-colors"
+                  style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface }}
                 />
-              </div>
+              </ProfileField>
 
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#c4c7c8]/70 mb-1 flex items-center gap-1.5">
-                  <Truck className="w-3 h-3 text-[#B6B2FF]" />
-                  <span>Delivery Time</span>
-                </label>
+              <ProfileField icon={Truck} label="Delivery time">
                 <input
                   type="text"
-                  placeholder="e.g., 2-3 Business Days"
+                  placeholder="e.g., 2–3 business days"
                   value={deliveryTime}
                   onChange={(e) => setDeliveryTime(e.target.value)}
-                  className="w-full bg-[#1c1b1b] border border-white/10 rounded-lg py-2 px-3 text-xs text-white focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20 transition-all"
+                  className="w-full rounded text-xs py-2 px-3 focus:outline-none transition-colors"
+                  style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface }}
                 />
-              </div>
+              </ProfileField>
 
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#c4c7c8]/70 mb-1 flex items-center gap-1.5">
-                  <Phone className="w-3 h-3 text-[#B6B2FF]" />
-                  <span>Contact Details</span>
-                </label>
+              <ProfileField icon={Phone} label="Contact details">
                 <textarea
                   rows={2}
                   placeholder="e.g., Email: support@serene.com, Phone: +123 456 789"
                   value={contactDetails}
                   onChange={(e) => setContactDetails(e.target.value)}
-                  className="w-full bg-[#1c1b1b] border border-white/10 rounded-lg py-2 px-3 text-xs text-white focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20 transition-all"
+                  className="w-full rounded text-xs py-2 px-3 focus:outline-none transition-colors"
+                  style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface }}
                 />
-              </div>
+              </ProfileField>
 
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#c4c7c8]/70 mb-1 flex items-center gap-1.5">
-                  <MapPin className="w-3 h-3 text-[#B6B2FF]" />
-                  <span>Store Location</span>
-                </label>
+              <ProfileField icon={MapPin} label="Store location">
                 <textarea
                   rows={2}
                   placeholder="e.g., 5th Avenue, Suite 400, New York, NY"
                   value={businessLocation}
                   onChange={(e) => setBusinessLocation(e.target.value)}
-                  className="w-full bg-[#1c1b1b] border border-white/10 rounded-lg py-2 px-3 text-xs text-white focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20 transition-all"
+                  className="w-full rounded text-xs py-2 px-3 focus:outline-none transition-colors"
+                  style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface }}
                 />
-              </div>
+              </ProfileField>
 
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#c4c7c8]/70 mb-1 flex items-center gap-1.5">
-                  <Layers className="w-3 h-3 text-[#B6B2FF]" />
-                  <span>Products & Services Description</span>
-                </label>
+              <ProfileField icon={Layers} label="Products & services">
                 <textarea
                   rows={3}
-                  placeholder="Describe your products/services in detail so the AI can answer matching specs..."
+                  placeholder="Describe your products or services in enough detail for the AI to match specifics."
                   value={productsAndServices}
                   onChange={(e) => setProductsAndServices(e.target.value)}
-                  className="w-full bg-[#1c1b1b] border border-white/10 rounded-lg py-2 px-3 text-xs text-white focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20 transition-all"
+                  className="w-full rounded text-xs py-2 px-3 focus:outline-none transition-colors"
+                  style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface }}
                 />
-              </div>
+              </ProfileField>
             </div>
-          </div>
+          </section>
 
-
-          {/* Autopilot security rules info */}
-          <div className="p-5 rounded-xl bg-white/5 flex items-start space-x-3 border border-white/5">
-            <AlertCircle className="w-4 h-4 text-white shrink-0 mt-0.5" />
+          {/* Safety note */}
+          <div className="p-4 rounded-md flex items-start gap-3" style={{ border: `1px solid ${t.outlineVariant}` }}>
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" style={{ color: t.onSurfaceVariant }} strokeWidth={1.75} />
             <div>
-              <h4 className="text-[11px] font-bold text-white mb-1">Global System Safety Rules</h4>
-              <p className="text-[9px] text-[#c4c7c8]/60 leading-relaxed">
-                The core prompt prevents the AI employee from performing unauthorized actions, leaking credentials, or exposing private details, complying with strict company privacy guidelines.
+              <h4 className="text-xs font-medium mb-1">Global system safety rules</h4>
+              <p className="text-[11px] leading-relaxed" style={{ color: t.onSurfaceVariant }}>
+                The core prompt stops the AI agent from taking unauthorized actions, leaking credentials, or exposing private
+                details — in line with company privacy guidelines.
               </p>
             </div>
           </div>
         </div>
       </div>
 
-      <Toast
-        isVisible={toast.isVisible}
-        message={toast.message}
-        type={toast.type}
-        onClose={() => setToast(prev => ({ ...prev, isVisible: false }))}
-      />
+      <Toast isVisible={toast.isVisible} message={toast.message} type={toast.type} onClose={() => setToast((prev) => ({ ...prev, isVisible: false }))} />
     </motion.div>
+  );
+}
+
+/* ---------- Local presentational helpers ---------- */
+
+function SectionHeading({ icon: Icon, label }: { icon: React.ElementType; label: string }) {
+  return (
+    <h3 className="text-[13px] font-medium tracking-[0.01em] flex items-center gap-2">
+      <Icon className="w-4 h-4" style={{ color: t.onSurfaceVariant }} strokeWidth={1.75} />
+      <span>{label}</span>
+    </h3>
+  );
+}
+
+function ProfileField({ icon: Icon, label, children }: { icon: React.ElementType; label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="text-xs font-medium mb-1.5 flex items-center gap-1.5" style={{ color: t.onSurfaceVariant }}>
+        <Icon className="w-3.5 h-3.5" style={{ color: t.lavender }} strokeWidth={1.75} />
+        <span>{label}</span>
+      </label>
+      {children}
+    </div>
   );
 }

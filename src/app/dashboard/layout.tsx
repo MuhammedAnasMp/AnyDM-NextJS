@@ -19,7 +19,7 @@ function DashboardLayoutContent({
 }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
-  
+
   const appUser = useSelector((state: RootState) => state.auth.user);
   const isHydrating = useSelector((state: RootState) => state.auth.isHydrating);
   const router = useRouter();
@@ -87,7 +87,7 @@ function DashboardLayoutContent({
         {/* Background glows */}
         <div className="absolute top-[-300px] left-[-300px] w-[600px] h-[600px] rounded-full bg-[#c4c0ff]/10 blur-[120px] pointer-events-none"></div>
         <div className="absolute bottom-[-300px] right-[-300px] w-[600px] h-[600px] rounded-full bg-white/5 blur-[120px] pointer-events-none"></div>
-        
+
         <div className="glass-pane p-8 rounded-2xl flex flex-col items-center gap-4 relative z-10">
           <div className="w-10 h-10 rounded-full border-4 border-white/20 border-t-white animate-spin"></div>
           <p className="text-sm font-semibold tracking-tight text-white/80">Securing environment...</p>
@@ -118,7 +118,7 @@ function DashboardLayoutContent({
         {/* Content Canvas (p-4 on Mobile, p-8 on Desktop) */}
         <main className={cn(
           "flex-1 w-full mx-auto",
-          isBuilder ? "min-h-0 p-0 max-w-none overflow-hidden" : "max-w-[1440px] p-4 md:p-6 lg:p-8"
+          isBuilder ? "min-h-0 p-0 max-w-none overflow-hidden" : "max-w-[1440px]"
         )}>
           {children}
         </main>

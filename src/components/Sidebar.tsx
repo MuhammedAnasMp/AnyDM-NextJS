@@ -55,9 +55,9 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const menuItems = [
     { name: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
-    { name: "Automations", icon: Zap, href: "/dashboard/automations" },
-    { name: "Videos", icon: Video, href: "/dashboard/videos" },
-    { name: "Games", icon: Gamepad2, href: "/dashboard/games/spin" },
+    { name: "Automations", icon: Zap, href: "/dashboard/automation" },
+    // { name: "Videos", icon: Video, href: "/dashboard/videos" },
+    // { name: "Games", icon: Gamepad2, href: "/dashboard/games/spin" },
     { name: "Products", icon: Package, href: "/dashboard/products/catalog" },
     { name: "Inbox", icon: MessageSquare, href: "/dashboard/inbox" },
     { name: "Refer & Earn", icon: Gift, href: "/dashboard/refer" },
@@ -142,6 +142,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             const isActive = activeTab === item.name;
             const targetHref = item.href;
             const Icon = item.icon;
+            appUser?.is_premium_active
             return (
               <Link
                 key={item.name}

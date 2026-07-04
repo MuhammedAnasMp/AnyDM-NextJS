@@ -90,8 +90,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
       { name: "Browse Templates", href: "/dashboard/automation" }
     ]
     : [
-      { name: "Visual Builder", href: "/dashboard/automations" },
-      { name: "Create Automation", href: "/dashboard/automation" }
+      { name: "All Automation", href: "/dashboard/automation" },
+      { name: "Visual Builder", href: "/dashboard/automations" }
     ];
 
   // Mapping of category to its corresponding sub-navigation items
@@ -103,14 +103,14 @@ export default function Header({ onMenuClick }: HeaderProps) {
     ],
     Products: [
       { name: "Catalog", href: "/dashboard/products/catalog" },
-      { name: "DM Replies", href: "/dashboard/products/replies" },
+      // { name: "DM Replies", href: "/dashboard/products/replies" },
       { name: "Website", href: "/dashboard/products/website" },
     ],
     Automations: automationsSubNav,
     Inbox: [
       { name: "Inbox", href: "/dashboard/inbox" },
       { name: "Contacts", href: "/dashboard/inbox/contacts" },
-      { name: "Broadcast", href: "/dashboard/inbox/broadcast" },
+      // { name: "Broadcast", href: "/dashboard/inbox/broadcast" },
     ],
     Games: [
       { name: "Spin-to-Win", href: "/dashboard/games/spin" },
@@ -119,7 +119,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
     ],
     Settings: [
       { name: "Manage Accounts", href: "/dashboard/settings/accounts" },
-      { name: "Workspace Settings", href: "/dashboard/settings/workspace" },
+      // { name: "Workspace Settings", href: "/dashboard/settings/workspace" },
       { name: "AI Settings", href: "/dashboard/settings/ai" },
     ],
     Refer: [],

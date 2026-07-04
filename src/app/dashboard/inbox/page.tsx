@@ -7,7 +7,7 @@ import { RootState } from "@/store";
 import api from "@/lib/services/api.service";
 import { cn } from "@/lib/utils";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Lock } from "lucide-react";
+import { CheckCircle, Lock } from "lucide-react";
 
 const PlayableVideoAttachment = ({ url }: { url: string }) => {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -44,7 +44,7 @@ const PlayableVideoAttachment = ({ url }: { url: string }) => {
           className="w-full h-auto max-h-56 object-cover"
         />
         {!isPlaying && (
-          <div 
+          <div
             onClick={handlePlayClick}
             className="absolute inset-0 flex items-center justify-center bg-black/25 hover:bg-black/35 transition-all cursor-pointer"
           >
@@ -54,7 +54,7 @@ const PlayableVideoAttachment = ({ url }: { url: string }) => {
           </div>
         )}
         {isPlaying && (
-          <div 
+          <div
             onClick={handlePlayClick}
             className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 border border-white/10 flex items-center justify-center text-white cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
           >
@@ -72,42 +72,64 @@ export default function InboxPage() {
   const appUser = useSelector((state: RootState) => state.auth.user);
   const isPremiumActive = appUser?.is_premium_active ?? true;
 
+
   if (!isPremiumActive) {
     return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 text-center max-w-lg mx-auto relative overflow-hidden font-sans">
-        <div className="absolute top-[-20%] right-[-10%] w-[300px] h-[300px] bg-[#c4c0ff]/5 blur-[80px] rounded-full pointer-events-none"></div>
-        <div className="absolute bottom-[-20%] left-[-10%] w-[300px] h-[300px] bg-[#8FE3FF]/5 blur-[80px] rounded-full pointer-events-none"></div>
-        
-        <div className="glass-pane p-8 rounded-3xl border border-white/10 bg-white/[0.02] flex flex-col items-center gap-6 relative z-10 w-full">
-          <div className="w-14 h-14 rounded-2xl bg-[#c4c0ff]/10 border border-[#c4c0ff]/20 flex items-center justify-center text-[#c4c0ff]">
-            <Lock className="w-6 h-6" />
-          </div>
-          
-          <div className="space-y-2">
-            <h2 className="text-xl font-bold text-white tracking-tight">Access Locked</h2>
-            <p className="text-xs text-[#c4c7c8]/60 leading-relaxed">
-              Your free trial has expired. Upgrade to Creator Pro to unlock access to your Direct Messages Inbox and customer CRM enquiries.
-            </p>
-          </div>
+      <div className="min-h-[50vh] flex items-center justify-center p-6 relative font-sans .bg-[#131313]">
+        {/* Subtle, restricted ambient glows matching premium state allowance */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-white/[0.02] blur-[120px] rounded-full pointer-events-none" />
 
-          <div className="flex flex-col gap-2.5 w-full">
-            <button
-              onClick={() => router.push("/dashboard/pricing")}
-              className="w-full bg-white hover:bg-[#eaeaea] text-black font-bold text-xs uppercase py-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-95 shadow-lg"
-            >
-              <span>View Pricing Plans</span>
-            </button>
-            <button
-              onClick={() => router.push("/dashboard/refer")}
-              className="w-full bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold text-xs uppercase py-3 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-95"
-            >
-              <span>Earn Points (Refer &amp; Earn)</span>
-            </button>
+        <div className="relative z-10 w-full max-w-md bg-[#1c1b1b] border border-[#2a2a2a] rounded-lg p-6 shadow-2xl">
+          <div className="flex flex-col items-center text-center">
+            {/* Lock Icon Frame */}
+            <div className="w-12 h-12 rounded-lg bg-white/[0.03] border border-white/[0.08] flex items-center justify-center text-white mb-5 shadow-inner">
+              <Lock className="w-5 h-5 text-white" strokeWidth={1.75} />
+            </div>
+
+            <h2 className="text-lg font-semibold text-white tracking-tight mb-2">
+              Access restricted
+            </h2>
+            <p className="text-xs text-[#c4c7c8] leading-relaxed mb-6">
+              Your free trial has expired. Upgrade to Creator Pro to unlock your synchronized product catalog, analytics, and custom storefront templates.
+            </p>
+
+            {/* Premium Feature Checklist */}
+            <div className="w-full bg-[#131313]/50 rounded border border-[#2a2a2a] p-3.5 mb-6 text-left space-y-2.5">
+              <div className="flex items-center gap-2 text-[11px] text-[#c4c7c8]">
+                <CheckCircle className="w-3.5 h-3.5 text-white shrink-0" strokeWidth={2} />
+                <span>Unlimited automated Instagram imports</span>
+              </div>
+              <div className="flex items-center gap-2 text-[11px] text-[#c4c7c8]">
+                <CheckCircle className="w-3.5 h-3.5 text-white shrink-0" strokeWidth={2} />
+                <span>Real-time click &amp; conversion analytics</span>
+              </div>
+              <div className="flex items-center gap-2 text-[11px] text-[#c4c7c8]">
+                <CheckCircle className="w-3.5 h-3.5 text-white shrink-0" strokeWidth={2} />
+                <span>Custom storefront storefront themes</span>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col gap-2 w-full">
+              <button
+                onClick={() => router.push("/dashboard/pricing")}
+                className="w-full bg-white hover:bg-[#e2e2e2] text-black font-semibold text-xs py-2.5 rounded transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-[0.98]"
+              >
+                <span>Upgrade to Creator Pro</span>
+              </button>
+              <button
+                onClick={() => router.push("/dashboard/refer")}
+                className="w-full bg-transparent hover:bg-white/[0.03] text-white border border-[#444748] font-medium text-xs py-2.5 rounded transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-[0.98]"
+              >
+                <span>Earn points (refer &amp; earn)</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
     );
   }
+
 
   const recipientIdParam = searchParams.get("recipient_id");
   const usernameParam = searchParams.get("username");
@@ -358,7 +380,7 @@ export default function InboxPage() {
     if (selectedConversation) {
       selectedConversationIdRef.current = selectedConversation.id;
       setIsWithin24hWindow(selectedConversation.is_within_24h_window !== false);
-      
+
       // Load from cache instantly if available
       const cached = chatCache[selectedConversation.id];
       if (cached) {
@@ -370,7 +392,7 @@ export default function InboxPage() {
         setNextCursor(null);
         setHasMore(true);
       }
-      
+
       fetchMessages(selectedConversation.id);
       fetchEnquiries(selectedConversation.name);
     } else {
@@ -490,7 +512,7 @@ export default function InboxPage() {
 
           setNextCursor(res.data.next_cursor || null);
           setHasMore(!!res.data.next_cursor);
-          
+
           // Client-side 24h window check fallback
           const lastMessage = mapped[mapped.length - 1];
           const isLastMessageFromCustomer = lastMessage && !lastMessage.isSelf;
@@ -567,14 +589,14 @@ export default function InboxPage() {
         recipient_id: selectedConversation.recipient_id,
         message: messagePayload
       };
-      
+
       const isTemp = selectedConversation.id.startsWith("temp_");
       const url = isTemp
         ? `/crm/conversations/new/send/`
         : `/crm/conversations/${selectedConversation.id}/send/`;
 
       const res = await api.post(url, payload);
-      
+
       const localMsg = {
         id: res.data.message_id || `local_${Date.now()}`,
         sender: "You",
@@ -814,7 +836,7 @@ export default function InboxPage() {
             </span>
           </div>
           <div className="flex gap-2">
-            <button 
+            <button
               onClick={() => {
                 fetchConversations();
                 if (selectedConversation) {
@@ -830,48 +852,15 @@ export default function InboxPage() {
             <button className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 transition-all">
               <span className="material-symbols-outlined text-lg">edit_square</span>
             </button>
+            <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${globalAIOn ? "text-[#B6B2FF] bg-[#B6B2FF]/10 border border-[#B6B2FF]/10" : "text-white/40 bg-white/5 border border-white/5"
+              }`}>
+              AI MODE {globalAIOn ? "ON" : "OFF"}
+            </span>
           </div>
         </div>
 
-        {/* AI Support Status Banner Hint */}
-        <div className="px-6 py-2.5 bg-white/[0.01] border-b border-white/5 flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <span className={`material-symbols-outlined text-[14px] ${globalAIOn ? "text-[#B6B2FF] animate-pulse" : "text-white/30"}`}>
-              psychology
-            </span>
-            <span className="text-[9px] font-bold text-white/50 uppercase tracking-wider">
-              AI Autopilot
-            </span>
-          </div>
-          <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
-            globalAIOn ? "text-[#B6B2FF] bg-[#B6B2FF]/10 border border-[#B6B2FF]/10" : "text-white/40 bg-white/5 border border-white/5"
-          }`}>
-            {globalAIOn ? "ON" : "OFF"}
-          </span>
-        </div>
 
-        {/* Instagram Tabs */}
-        <div className="px-6 py-3 flex gap-5 border-b border-white/5 text-xs font-medium">
-          {["Primary", "General", "Requests"].map((f) => (
-            <button
-              key={f}
-              onClick={() => setActiveFilter(f)}
-              className={`pb-2 transition-all relative font-semibold tracking-wider uppercase text-[10px] ${
-                activeFilter === f 
-                  ? "text-white" 
-                  : "text-white/40 hover:text-white/70"
-              }`}
-            >
-              {f}
-              {activeFilter === f && (
-                <motion.div 
-                  layoutId="activeTabUnderline"
-                  className="absolute bottom-0 left-0 right-0 h-[2px] bg-white rounded-full" 
-                />
-              )}
-            </button>
-          ))}
-        </div>
+
 
         {/* Search Bar */}
         <div className="px-6 py-3 border-b border-white/5">
@@ -917,21 +906,21 @@ export default function InboxPage() {
                   }}
                   className={cn(
                     "px-4 py-3.5 flex gap-3.5 cursor-pointer items-center rounded-xl transition-all border duration-200",
-                    isSelected 
-                      ? "bg-white/[0.07] border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.2)]" 
+                    isSelected
+                      ? "bg-white/[0.07] border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.2)]"
                       : "bg-transparent border-transparent hover:bg-white/[0.03] hover:border-white/5"
                   )}
                 >
                   <div className="relative shrink-0">
-                    <img 
-                      className="w-12 h-12 rounded-full border border-white/10 object-cover shadow-inner" 
-                      src={item.avatar} 
-                      alt={item.name} 
+                    <img
+                      className="w-12 h-12 rounded-full border border-white/10 object-cover shadow-inner"
+                      src={item.avatar}
+                      alt={item.name}
                     />
                     <span className={cn(
                       "absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#0c0c0c] shadow-lg transition-all duration-300",
-                      item.is_within_24h_window !== false 
-                        ? "bg-green-500 shadow-green-500/40" 
+                      item.is_within_24h_window !== false
+                        ? "bg-green-500 shadow-green-500/40"
                         : "bg-red-500 shadow-red-500/40"
                     )}></span>
                   </div>
@@ -999,13 +988,13 @@ export default function InboxPage() {
                   </div>
                 </div>
               </div>
-              
+
               <div className="flex gap-2 items-center text-white">
                 {/* Specific Chat AI Toggle */}
                 {globalAIOn && (
                   <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 px-2.5 py-1 rounded-lg mr-1 text-[9px] font-bold text-white/70">
                     <span className="material-symbols-outlined text-[13px] text-[#B6B2FF] shrink-0">psychology</span>
-                    <span className="uppercase tracking-wider">AI Mode</span>
+                    <span className=" tracking-wider">{selectedConversation.name} AI Mode</span>
                     <input
                       type="checkbox"
                       checked={selectedConversation.is_ai_enabled !== false}
@@ -1025,7 +1014,7 @@ export default function InboxPage() {
                   </div>
                 )}
 
-                <button 
+                <button
                   onClick={() => fetchMessages(selectedConversation.id)}
                   disabled={loadingMessages}
                   className="w-8 h-8 rounded-lg bg-white/5 border border-white/5 hover:border-white/10 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1033,18 +1022,13 @@ export default function InboxPage() {
                 >
                   <span className={`material-symbols-outlined text-lg ${loadingMessages ? 'animate-spin' : ''}`}>refresh</span>
                 </button>
-                <button className="w-8 h-8 rounded-lg bg-white/5 border border-white/5 hover:border-white/10 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-all">
-                  <span className="material-symbols-outlined text-lg">call</span>
-                </button>
-                <button className="w-8 h-8 rounded-lg bg-white/5 border border-white/5 hover:border-white/10 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-all">
-                  <span className="material-symbols-outlined text-lg">videocam</span>
-                </button>
-                <button 
+
+                <button
                   onClick={() => setShowRightPanel(!showRightPanel)}
                   className={cn(
                     "w-8 h-8 rounded-lg border flex items-center justify-center transition-all",
-                    showRightPanel 
-                      ? "bg-[#B6B2FF]/10 border-[#B6B2FF]/20 text-[#B6B2FF]" 
+                    showRightPanel
+                      ? "bg-[#B6B2FF]/10 border-[#B6B2FF]/20 text-[#B6B2FF]"
                       : "bg-white/5 border-white/5 text-white/70 hover:text-white hover:bg-white/10"
                   )}
                   title="Toggle Details"
@@ -1090,11 +1074,10 @@ export default function InboxPage() {
                     <div className="flex flex-col gap-1 max-w-full">
                       {/* Text Bubble */}
                       {(msg.text || (!msg.attachments?.data && !msg.shares?.data && !msg.story)) && (
-                        <div className={`px-4 py-2.5 rounded-2xl text-xs leading-relaxed break-words shadow-sm border ${
-                          msg.isSelf
-                            ? "bg-white/10 backdrop-blur-md border-white/15 text-white rounded-br-none"
-                            : "bg-white/[0.03] border-white/5 text-white/90 rounded-bl-none"
-                        }`}>
+                        <div className={`px-4 py-2.5 rounded-2xl text-xs leading-relaxed break-words shadow-sm border ${msg.isSelf
+                          ? "bg-white/10 backdrop-blur-md border-white/15 text-white rounded-br-none"
+                          : "bg-white/[0.03] border-white/5 text-white/90 rounded-bl-none"
+                          }`}>
                           {msg.isAi && (
                             <div className="flex items-center gap-1.5 mb-1.5 text-[#B6B2FF]">
                               <span className="material-symbols-outlined text-xs" style={{ fontVariationSettings: "'FILL' 1" }}>smart_toy</span>
@@ -1260,8 +1243,8 @@ export default function InboxPage() {
               <div className="p-5 bg-[#121212]/95 backdrop-blur-xl border-t border-white/10 text-xs text-white space-y-4 max-h-64 overflow-y-auto animate-fadeIn shadow-2xl relative z-30">
                 <div className="flex justify-between items-center border-b border-white/5 pb-2.5">
                   <h4 className="font-semibold text-xs text-[#B6B2FF] uppercase tracking-wider">Product Catalog</h4>
-                  <button 
-                    onClick={() => setShowProductCatalogPopup(false)} 
+                  <button
+                    onClick={() => setShowProductCatalogPopup(false)}
                     className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center text-white/50 hover:text-white transition-colors"
                   >
                     <span className="material-symbols-outlined text-base">close</span>
@@ -1380,7 +1363,7 @@ export default function InboxPage() {
                       {showButtonTemplateForm && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#B6B2FF]" />}
                     </button>
                   </div>
-                  
+
                   <div className="flex items-center gap-3">
                     {selectedProductsForTemplates.length > 0 && (
                       <span className="text-[9px] bg-[#B6B2FF]/20 text-[#B6B2FF] px-2.5 py-0.5 rounded-full font-semibold uppercase tracking-wider">
@@ -1801,10 +1784,10 @@ export default function InboxPage() {
                     <span className="material-symbols-outlined text-lg text-red-400">warning</span>
                     <span>Out of 24-hour messaging window. Only replies to inbound customer DMs are allowed.</span>
                   </div>
-                  <a 
-                    href={`https://ig.me/m/${selectedConversation.name}`} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
+                  <a
+                    href={`https://ig.me/m/${selectedConversation.name}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="shrink-0 px-3.5 py-1.5 rounded-lg bg-[#e1306c] hover:bg-[#c13584] text-white text-[10px] font-bold tracking-wide uppercase transition-all flex items-center gap-1.5 shadow-lg"
                   >
                     <span className="material-symbols-outlined text-sm">chat_bubble</span>
@@ -1817,13 +1800,13 @@ export default function InboxPage() {
                 "border rounded-xl py-3 px-5 flex items-center gap-4 bg-white/[0.02] backdrop-blur-md transition-all duration-300",
                 isWithin24hWindow ? "border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3)]" : "border-red-500/10 opacity-40 cursor-not-allowed"
               )}>
-                <button 
+                <button
                   disabled={!isWithin24hWindow}
                   className="text-white/60 hover:text-white transition-opacity shrink-0 disabled:opacity-35"
                 >
                   <span className="material-symbols-outlined text-2xl">sentiment_satisfied</span>
                 </button>
-                
+
                 <input
                   className="flex-1 bg-transparent border-none focus:ring-0 text-xs text-white placeholder-white/25 outline-none disabled:cursor-not-allowed"
                   placeholder={isWithin24hWindow ? "Write a message..." : "Messaging disabled (24h window closed)"}
@@ -1873,13 +1856,13 @@ export default function InboxPage() {
                   <span className="material-symbols-outlined text-2xl">view_carousel</span>
                 </button>
 
-                <button 
+                <button
                   disabled={!isWithin24hWindow}
                   className="text-white/60 hover:text-white transition-opacity shrink-0 disabled:opacity-35"
                 >
                   <span className="material-symbols-outlined text-2xl">image</span>
                 </button>
-                
+
                 <button
                   onClick={handleSendTextMessage}
                   disabled={sending || !isWithin24hWindow || !inputText.trim()}
@@ -1902,156 +1885,155 @@ export default function InboxPage() {
       {/* Right Pane: Contextual Information (Desktop Only) */}
       {showRightPanel && (
         <section className="w-80 border-l border-white/5 bg-white/[0.005] backdrop-blur-md hidden xl:flex flex-col p-6 gap-6 overflow-y-auto shrink-0 relative z-10">
-        {selectedConversation ? (
-          <>
-            {/* User Profile Info Card */}
-            <div className="flex flex-col items-center text-center mt-2">
-              <div className="w-20 h-20 rounded-full border border-white/10 p-1 mb-4 shadow-[0_0_24px_rgba(255,255,255,0.03)] bg-black/20">
-                <img
-                  src={selectedConversation.avatar}
-                  alt={selectedConversation.name}
-                  className="w-full h-full rounded-full object-cover"
-                />
-              </div>
-              <h3 className="text-xs font-bold text-white tracking-wide">{selectedConversation.name}</h3>
-              <div className="flex gap-2 justify-center mt-3">
-                <span className="px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-[8px] font-bold text-white/50 uppercase tracking-widest">Client</span>
-                <span className="px-2.5 py-0.5 rounded-full bg-[#B6B2FF]/10 border border-[#B6B2FF]/20 text-[8px] font-bold text-[#B6B2FF] uppercase tracking-widest">Active</span>
-              </div>
-            </div>
-
-            {/* Details List */}
-            <div className="space-y-4 border-t border-white/5 pt-5">
-              <h4 className="text-[9px] font-bold text-white/30 uppercase tracking-widest">
-                Conversation Details
-              </h4>
-              <div className="space-y-3 text-xs">
-                <div className="flex justify-between items-center py-1 border-b border-white/[0.03]">
-                  <span className="text-white/45 text-[11px]">Last Active</span>
-                  <span className="text-white/90 font-medium text-[11px]">{selectedConversation.time}</span>
+          {selectedConversation ? (
+            <>
+              {/* User Profile Info Card */}
+              <div className="flex flex-col items-center text-center mt-2">
+                <div className="w-20 h-20 rounded-full border border-white/10 p-1 mb-4 shadow-[0_0_24px_rgba(255,255,255,0.03)] bg-black/20">
+                  <img
+                    src={selectedConversation.avatar}
+                    alt={selectedConversation.name}
+                    className="w-full h-full rounded-full object-cover"
+                  />
                 </div>
-                <div className="flex justify-between items-center py-1">
-                  <span className="text-white/45 text-[11px]">24h Window</span>
-                  <span className={cn(
-                    "font-bold uppercase tracking-wider text-[9px] px-2 py-0.5 rounded",
-                    isWithin24hWindow 
-                      ? "bg-green-500/10 text-green-400 border border-green-500/20" 
-                      : "bg-red-500/10 text-red-400 border border-red-500/20"
-                  )}>
-                    {isWithin24hWindow ? "Open" : "Closed"}
-                  </span>
+                <h3 className="text-xs font-bold text-white tracking-wide">{selectedConversation.name}</h3>
+                <div className="flex gap-2 justify-center mt-3">
+                  <span className="px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-[8px] font-bold text-white/50 uppercase tracking-widest">Client</span>
+                  <span className="px-2.5 py-0.5 rounded-full bg-[#B6B2FF]/10 border border-[#B6B2FF]/20 text-[8px] font-bold text-[#B6B2FF] uppercase tracking-widest">Active</span>
                 </div>
               </div>
-            </div>
 
-            {/* Interested Items Section */}
-            <div className="space-y-4 border-t border-white/5 pt-5 flex-1 flex flex-col min-h-0">
-              <h4 className="text-[9px] font-bold text-white/30 uppercase tracking-widest">
-                Interested Items
-              </h4>
-              
-              {loadingEnquiries ? (
-                <div className="text-center py-8 text-xs text-white/30 flex flex-col items-center justify-center gap-2">
-                  <div className="animate-spin w-4 h-4 border border-white/20 border-t-white rounded-full"></div>
-                  <span className="text-[9px] uppercase tracking-wider">Loading...</span>
+              {/* Details List */}
+              <div className="space-y-4 border-t border-white/5 pt-5">
+                <h4 className="text-[9px] font-bold text-white/30 uppercase tracking-widest">
+                  Conversation Details
+                </h4>
+                <div className="space-y-3 text-xs">
+                  <div className="flex justify-between items-center py-1 border-b border-white/[0.03]">
+                    <span className="text-white/45 text-[11px]">Last Active</span>
+                    <span className="text-white/90 font-medium text-[11px]">{selectedConversation.time}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-1">
+                    <span className="text-white/45 text-[11px]">24h Window</span>
+                    <span className={cn(
+                      "font-bold uppercase tracking-wider text-[9px] px-2 py-0.5 rounded",
+                      isWithin24hWindow
+                        ? "bg-green-500/10 text-green-400 border border-green-500/20"
+                        : "bg-red-500/10 text-red-400 border border-red-500/20"
+                    )}>
+                      {isWithin24hWindow ? "Open" : "Closed"}
+                    </span>
+                  </div>
                 </div>
-              ) : enquiries.length === 0 ? (
-                <div className="text-center py-8 text-xs text-white/20 flex flex-col items-center justify-center gap-1.5 border border-dashed border-white/5 rounded-xl bg-white/[0.01]">
-                  <span className="material-symbols-outlined text-2xl text-white/10">shopping_bag</span>
-                  <span className="text-[11px]">No items tracked yet</span>
-                </div>
-              ) : (
-                <div className="space-y-3 overflow-y-auto custom-scrollbar pr-1 flex-1">
-                  {enquiries.map((enquiry: any) => (
-                    <div key={enquiry.id} className="space-y-2.5">
-                      {enquiry.products?.map((ep: any) => {
-                        const isSelected = selectedProductsForTemplates.some(p => p.id === ep.product_id);
-                        const selectionIndex = selectedProductsForTemplates.findIndex(p => p.id === ep.product_id);
+              </div>
 
-                        return (
-                          <div
-                            key={ep.enquiry_product_id}
-                            onClick={() => handleToggleProductForSend(ep)}
-                            className={cn(
-                              "group flex gap-3 p-3 rounded-xl border transition-all duration-200 items-start relative cursor-pointer",
-                              isSelected
-                                ? "bg-[#B6B2FF]/10 border-[#B6B2FF]/30 shadow-lg"
-                                : "bg-white/[0.02] border-white/5 hover:border-white/10 hover:bg-white/[0.04]"
-                            )}
-                          >
-                            {ep.main_media_url ? (
-                              <img
-                                src={ep.main_media_url}
-                                className="w-11 h-11 rounded-lg object-cover border border-white/10 shrink-0"
-                                alt={ep.title}
-                              />
-                            ) : (
-                              <div className="w-11 h-11 rounded-lg bg-white/5 flex items-center justify-center border border-white/10 shrink-0">
-                                <span className="material-symbols-outlined text-base text-white/30">shopping_bag</span>
-                              </div>
-                            )}
-                            <div className="min-w-0 flex-1 pr-6">
-                              <h5 className="text-[11px] font-semibold text-white truncate leading-tight">
-                                {ep.title}
-                              </h5>
-                              {ep.price && (
-                                <p className="text-[10px] font-bold text-[#B6B2FF] mt-1">
-                                  ₹{ep.price}
-                                </p>
+              {/* Interested Items Section */}
+              <div className="space-y-4 border-t border-white/5 pt-5 flex-1 flex flex-col min-h-0">
+                <h4 className="text-[9px] font-bold text-white/30 uppercase tracking-widest">
+                  Interested Items
+                </h4>
+
+                {loadingEnquiries ? (
+                  <div className="text-center py-8 text-xs text-white/30 flex flex-col items-center justify-center gap-2">
+                    <div className="animate-spin w-4 h-4 border border-white/20 border-t-white rounded-full"></div>
+                    <span className="text-[9px] uppercase tracking-wider">Loading...</span>
+                  </div>
+                ) : enquiries.length === 0 ? (
+                  <div className="text-center py-8 text-xs text-white/20 flex flex-col items-center justify-center gap-1.5 border border-dashed border-white/5 rounded-xl bg-white/[0.01]">
+                    <span className="material-symbols-outlined text-2xl text-white/10">shopping_bag</span>
+                    <span className="text-[11px]">No items tracked yet</span>
+                  </div>
+                ) : (
+                  <div className="space-y-3 overflow-y-auto custom-scrollbar pr-1 flex-1">
+                    {enquiries.map((enquiry: any) => (
+                      <div key={enquiry.id} className="space-y-2.5">
+                        {enquiry.products?.map((ep: any) => {
+                          const isSelected = selectedProductsForTemplates.some(p => p.id === ep.product_id);
+                          const selectionIndex = selectedProductsForTemplates.findIndex(p => p.id === ep.product_id);
+
+                          return (
+                            <div
+                              key={ep.enquiry_product_id}
+                              onClick={() => handleToggleProductForSend(ep)}
+                              className={cn(
+                                "group flex gap-3 p-3 rounded-xl border transition-all duration-200 items-start relative cursor-pointer",
+                                isSelected
+                                  ? "bg-[#B6B2FF]/10 border-[#B6B2FF]/30 shadow-lg"
+                                  : "bg-white/[0.02] border-white/5 hover:border-white/10 hover:bg-white/[0.04]"
                               )}
-                              <div className="flex gap-1.5 mt-1.5 flex-wrap">
-                                <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider ${
-                                  enquiry.status === "OPEN" 
-                                    ? "bg-green-500/10 text-green-400 border border-green-500/20" 
-                                    : enquiry.status === "ACTIVE" 
-                                      ? "bg-blue-500/10 text-blue-400 border border-blue-500/20" 
-                                      : "bg-white/5 text-white/40 border border-white/10"
-                                }`}>
-                                  {enquiry.status}
-                                </span>
-                                {ep.confidence_score !== null && (
-                                  <span className="px-1.5 py-0.5 rounded bg-[#8FE3FF]/10 text-[#8FE3FF] border border-[#8FE3FF]/20 text-[8px] font-bold uppercase tracking-wider">
-                                    {Math.round(ep.confidence_score * 100)}% Match
-                                  </span>
+                            >
+                              {ep.main_media_url ? (
+                                <img
+                                  src={ep.main_media_url}
+                                  className="w-11 h-11 rounded-lg object-cover border border-white/10 shrink-0"
+                                  alt={ep.title}
+                                />
+                              ) : (
+                                <div className="w-11 h-11 rounded-lg bg-white/5 flex items-center justify-center border border-white/10 shrink-0">
+                                  <span className="material-symbols-outlined text-base text-white/30">shopping_bag</span>
+                                </div>
+                              )}
+                              <div className="min-w-0 flex-1 pr-6">
+                                <h5 className="text-[11px] font-semibold text-white truncate leading-tight">
+                                  {ep.title}
+                                </h5>
+                                {ep.price && (
+                                  <p className="text-[10px] font-bold text-[#B6B2FF] mt-1">
+                                    ₹{ep.price}
+                                  </p>
                                 )}
+                                <div className="flex gap-1.5 mt-1.5 flex-wrap">
+                                  <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider ${enquiry.status === "OPEN"
+                                    ? "bg-green-500/10 text-green-400 border border-green-500/20"
+                                    : enquiry.status === "ACTIVE"
+                                      ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                                      : "bg-white/5 text-white/40 border border-white/10"
+                                    }`}>
+                                    {enquiry.status}
+                                  </span>
+                                  {ep.confidence_score !== null && (
+                                    <span className="px-1.5 py-0.5 rounded bg-[#8FE3FF]/10 text-[#8FE3FF] border border-[#8FE3FF]/20 text-[8px] font-bold uppercase tracking-wider">
+                                      {Math.round(ep.confidence_score * 100)}% Match
+                                    </span>
+                                  )}
+                                </div>
                               </div>
+
+                              {/* Selection Number Badge */}
+                              {isSelected && (
+                                <span className="absolute top-2.5 right-2.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#B6B2FF] text-black text-[9px] font-bold shadow-md">
+                                  {selectionIndex + 1}
+                                </span>
+                              )}
+
+                              {/* Delete/Remove Icon */}
+                              {!isSelected && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteEnquiryProduct(ep.enquiry_product_id);
+                                  }}
+                                  className="absolute top-2 right-2 w-6 h-6 rounded bg-red-500/10 text-red-400 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 hover:text-white"
+                                  title="Remove item"
+                                >
+                                  <span className="material-symbols-outlined text-xs">delete</span>
+                                </button>
+                              )}
                             </div>
-
-                            {/* Selection Number Badge */}
-                            {isSelected && (
-                              <span className="absolute top-2.5 right-2.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#B6B2FF] text-black text-[9px] font-bold shadow-md">
-                                {selectionIndex + 1}
-                              </span>
-                            )}
-
-                            {/* Delete/Remove Icon */}
-                            {!isSelected && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteEnquiryProduct(ep.enquiry_product_id);
-                                }}
-                                className="absolute top-2 right-2 w-6 h-6 rounded bg-red-500/10 text-red-400 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 hover:text-white"
-                                title="Remove item"
-                              >
-                                <span className="material-symbols-outlined text-xs">delete</span>
-                              </button>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ))}
-                </div>
-              )}
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-white/20 text-[11px] font-semibold uppercase tracking-widest text-center">
+              No conversation selected
             </div>
-          </>
-        ) : (
-          <div className="flex-1 flex items-center justify-center text-white/20 text-[11px] font-semibold uppercase tracking-widest text-center">
-            No conversation selected
-          </div>
-        )}
-      </section>
+          )}
+        </section>
       )}
     </motion.div>
   );

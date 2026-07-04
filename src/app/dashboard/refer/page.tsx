@@ -98,7 +98,7 @@ export default function ReferPage() {
     : "Generating code...";
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto pb-12 px-4 sm:px-6">
+    <div className="space-y-6 max-w-6xl mx-auto  p-6 sm:px-6 ">
       {toast.isVisible && (
         <Toast
           isVisible={toast.isVisible}
@@ -200,13 +200,15 @@ export default function ReferPage() {
                   <tr className="border-b border-[#2a2a2a] text-[#c4c7c8]/50 uppercase tracking-wider text-[11px] font-semibold">
                     <th className="pb-2.5 font-medium">User</th>
                     <th className="pb-2.5 font-medium">Joined date</th>
-                    <th className="pb-2.5 font-medium">Plan status</th>
+                    {/* <th className="pb-2.5 font-medium">Plan status</th> */}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#2a2a2a]/40">
                   {stats.referred_users.map((ref: any, idx: number) => (
                     <tr key={idx} className="hover:bg-white/[0.01] transition-colors">
-                      <td className="py-3 font-medium text-[#e5e2e1]">@{ref.username}</td>
+                      <td className="py-3 font-medium text-[#e5e2e1]">
+                        {ref.display_name ? `${ref.display_name}` : `${ref.username}`}
+                      </td>
                       <td className="py-3 text-[#c4c7c8]/70">
                         {new Date(ref.date_joined).toLocaleDateString(undefined, {
                           year: 'numeric',
@@ -214,7 +216,7 @@ export default function ReferPage() {
                           day: 'numeric'
                         })}
                       </td>
-                      <td className="py-3">
+                      {/* <td className="py-3">
                         {ref.is_premium_active ? (
                           <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-semibold">
                             Active
@@ -224,7 +226,7 @@ export default function ReferPage() {
                             Expired
                           </span>
                         )}
-                      </td>
+                      </td> */}
                     </tr>
                   ))}
                 </tbody>

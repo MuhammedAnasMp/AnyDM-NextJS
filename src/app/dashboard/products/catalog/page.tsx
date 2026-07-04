@@ -38,7 +38,7 @@ export default function CatalogPage() {
 
   if (!isPremiumActive) {
     return (
-      <div className="min-h-[80vh] flex items-center justify-center p-6 relative font-sans bg-[#131313]">
+      <div className="min-h-[50vh] flex items-center justify-center p-6 relative font-sans .bg-[#131313]">
         {/* Subtle, restricted ambient glows matching premium state allowance */}
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-white/[0.02] blur-[120px] rounded-full pointer-events-none" />
 

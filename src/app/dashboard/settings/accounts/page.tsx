@@ -550,7 +550,7 @@ function AccountsContent() {
   if (!mounted) return null;
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto space-y-6 p-6">
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#444748] pb-6">
         <div className="flex items-center gap-4">
