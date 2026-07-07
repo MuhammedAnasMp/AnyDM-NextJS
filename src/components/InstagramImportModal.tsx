@@ -195,7 +195,7 @@ export default function InstagramImportModal({ isOpen, onClose, onSelectImport }
                   <div className="p-5 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-3 text-red-400">
                     <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
                     <div>
-                      <h4 className="font-bold text-sm text-white">Failed to Fetch Feed</h4>
+                      {/* <h4 className="font-bold text-sm text-white">Failed to Fetch Feed</h4> */}
                       <p className="text-xs opacity-80 mt-1">{errorMedia}</p>
                     </div>
                   </div>

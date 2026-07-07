@@ -207,7 +207,7 @@ export default function CatalogPage() {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
-      className="space-y-6 text-[#e5e2e1] max-w-[1600px] mx-auto"
+      className="space-y-6 text-[#e5e2e1]"
     >
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#20201f] pb-5">

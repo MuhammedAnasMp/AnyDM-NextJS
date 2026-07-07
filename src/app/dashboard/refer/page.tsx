@@ -11,7 +11,9 @@ import Toast from "@/components/Toast";
 export default function ReferPage() {
   const dispatch = useDispatch();
   const appUser = useSelector((state: RootState) => state.auth.user);
+  const [isSubmittingReferral, setIsSubmittingReferral] = useState(false);
 
+  const [referralCodeInput, setReferralCodeInput] = useState("");
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -52,6 +54,26 @@ export default function ReferPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const showToast = (message: string, type: "success" | "error" | "info") => {
+    setToast({ isVisible: true, message, type });
+  };
+
+  const handleSubmitReferral = async () => {
+    if (!referralCodeInput.trim()) return;
+    setIsSubmittingReferral(true);
+    try {
+      const res = await api.post("/accounts/referral/set-referred-by/", {
+        code: referralCodeInput.trim()
+      });
+      showToast(res.data.message, "success");
+      dispatch(setUser(res.data.user));
+    } catch (err: any) {
+      const msg = err.response?.data?.details || err.response?.data?.error || "Failed to set referrer.";
+      showToast(msg, "error");
+    } finally {
+      setIsSubmittingReferral(false);
+    }
+  };
   const handleRedeemPoints = async () => {
     if (!stats || stats.points < stats.points_needed_for_premium) {
       setToast({
@@ -98,7 +120,7 @@ export default function ReferPage() {
     : "Generating code...";
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto  p-6 sm:px-6 ">
+    <div className="space-y-6">
       {toast.isVisible && (
         <Toast
           isVisible={toast.isVisible}
@@ -155,30 +177,79 @@ export default function ReferPage() {
           )}
         </div>
       </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
-      {/* Copy referral link card */}
-      <div className="bg-[#1c1b1b] p-5 rounded-lg border border-[#2a2a2a] flex flex-col gap-3">
-        <h3 className="text-sm font-semibold text-[#e5e2e1] flex items-center gap-2">
-          <Copy className="w-4 h-4 text-[#c4c0ff]" strokeWidth={1.75} />
-          <span>Share your referral link</span>
-        </h3>
-        <div className="flex flex-col sm:flex-row gap-2.5">
-          <input
-            type="text"
-            readOnly
-            value={referralLink}
-            className="flex-1 bg-[#0e0e0e] border border-[#444748] rounded-md py-2 px-3 text-xs font-mono text-[#c4c7c8] select-all focus:outline-none"
-          />
-          <button
-            onClick={handleCopyLink}
-            className="bg-white hover:bg-[#e2e2e2] text-black font-semibold text-xs px-5 py-2 rounded-md transition-colors cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
-          >
-            {copied ? <Check className="w-4 h-4 text-emerald-600" strokeWidth={1.75} /> : <Copy className="w-4 h-4" strokeWidth={1.75} />}
-            <span>{copied ? "Copied" : "Copy link"}</span>
-          </button>
+        {/* Copy referral link card */}
+        <div className="bg-[#1c1b1b] p-5 rounded-lg border border-[#2a2a2a] flex flex-col gap-3">
+          <h3 className="text-sm font-semibold text-[#e5e2e1] flex items-center gap-2">
+            <Copy className="w-4 h-4 text-[#c4c0ff]" strokeWidth={1.75} />
+            <span>Share your referral link</span>
+          </h3>
+
+          <div className="flex flex-col sm:flex-row gap-2.5">
+            <input
+              type="text"
+              readOnly
+              value={referralLink}
+              className="flex-1 bg-[#0e0e0e] border border-[#444748] rounded-md py-2 px-3 text-xs font-mono text-[#c4c7c8] select-all focus:outline-none"
+            />
+
+            <button
+              onClick={handleCopyLink}
+              className="bg-white hover:bg-[#e2e2e2] text-black font-semibold text-xs px-5 py-2 rounded-md transition-colors cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
+            >
+              {copied ? (
+                <Check className="w-4 h-4 text-emerald-600" strokeWidth={1.75} />
+              ) : (
+                <Copy className="w-4 h-4" strokeWidth={1.75} />
+              )}
+              <span>{copied ? "Copied" : "Copy link"}</span>
+            </button>
+          </div>
         </div>
-      </div>
 
+        {/* Referred by card */}
+        <div className="bg-[#20201f] border border-[#444748] rounded-md p-4">
+          <h3 className="text-sm font-semibold text-[#e5e2e1] mb-3 flex items-center gap-2">
+            <Gift className="w-4 h-4 text-[#8fe3ff]" strokeWidth={1.75} />
+            <span>Referred by</span>
+          </h3>
+
+          {appUser?.referred_by ? (
+            <div className="flex-1 bg-[#0e0e0e] border border-[#444748] rounded-md py-2 px-3 text-xs font-mono text-[#c4c7c8] select-all focus:outline-none">
+              You were referred by:{" "}
+              <span className="text-[#e5e2e1] font-mono font-semibold">
+                {appUser.referred_by}
+              </span>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              <p className="text-[11px] text-[#c4c7c8]/60 leading-relaxed">
+                If you signed up without a referral link, within 14 days of signup to support them.
+              </p>
+
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={referralCodeInput}
+                  onChange={(e) => setReferralCodeInput(e.target.value)}
+                  placeholder="Enter REF-XXXXXX"
+                  className="flex-1 bg-[#1c1b1b] border border-[#444748] rounded py-2 px-3 text-xs text-[#e5e2e1] uppercase focus:outline-none focus:border-[#8e9192]"
+                />
+
+                <button
+                  onClick={handleSubmitReferral}
+                  disabled={isSubmittingReferral}
+                  className="bg-white text-black font-semibold text-xs px-4 py-2 rounded transition-colors cursor-pointer hover:bg-[#eaeaea] disabled:opacity-50"
+                >
+                  {isSubmittingReferral ? "..." : "Link"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+      </div>
       {/* Referral stats and leaderboard grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Referred friends table */}

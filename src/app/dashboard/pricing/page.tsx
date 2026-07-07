@@ -207,7 +207,7 @@ export default function PricingPage() {
   const pointsProgress = Math.min(100, Math.round(((stats?.points || 0) / (stats?.points_needed_for_premium || 100)) * 100));
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 p-6">
+    <div className="space-y-6">
       {toast.isVisible && (
         <Toast
           isVisible={toast.isVisible}

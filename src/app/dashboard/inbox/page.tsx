@@ -66,6 +66,47 @@ const PlayableVideoAttachment = ({ url }: { url: string }) => {
   );
 };
 
+const RichTemplateInput = ({ value, onChange, placeholder, disabled, maxLength }: any) => {
+  const renderStyledText = (val: string) => {
+    if (!val) return <span className="text-white/30">{placeholder}</span>;
+    const parts = val.split("{{price}}");
+    if (parts.length === 1) {
+      return <span>{val}</span>;
+    }
+    const elements: React.ReactNode[] = [];
+    parts.forEach((part, index) => {
+      elements.push(<span key={`txt-${index}`}>{part}</span>);
+      if (index < parts.length - 1) {
+        elements.push(
+          <span key={`ph-${index}`} className="inline-flex items-center select-none font-bold">
+            <span className="text-red-500">{"{{"}</span>
+            <span className="text-white font-semibold">price</span>
+            <span className="text-red-500">{"}}"}</span>
+          </span>
+        );
+      }
+    });
+    return elements;
+  };
+
+  return (
+    <div className="relative w-full min-h-[32px] bg-black/50 border border-white/10 rounded px-2.5 py-1.5 flex items-center overflow-hidden">
+      <div className="absolute inset-x-2.5 inset-y-1.5 flex items-center text-xs text-white pointer-events-none whitespace-pre overflow-hidden">
+        {renderStyledText(value)}
+      </div>
+      <input 
+        type="text" 
+        value={value} 
+        disabled={disabled}
+        maxLength={maxLength}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full bg-transparent border-none p-0 text-xs text-transparent caret-white outline-none focus:ring-0 relative z-10 font-medium"
+      />
+    </div>
+  );
+};
+
 export default function InboxPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -192,6 +233,7 @@ export default function InboxPage() {
   const [isEditingGenericTemplate, setIsEditingGenericTemplate] = useState(false);
   const [showProductCatalogPopup, setShowProductCatalogPopup] = useState(false);
   const [isWithin24hWindow, setIsWithin24hWindow] = useState<boolean>(true);
+  const [focusedField, setFocusedField] = useState<{cardIdx: number, type: 'title' | 'subtitle' | 'btn' | 'btnTempText' | 'btnTempBtn', btnIdx?: number} | null>(null);
   const [chatCache, setChatCache] = useState<Record<string, { messages: any[], nextCursor: string | null, hasMore: boolean }>>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [productSearchQuery, setProductSearchQuery] = useState("");
@@ -269,16 +311,8 @@ export default function InboxPage() {
     fetchConversations();
   }, [activeAccount?.username]);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      fetchConversations(true);
-      if (selectedConversationIdRef.current) {
-        fetchMessages(selectedConversationIdRef.current, null, true);
-      }
-    }, 5000);
 
-    return () => clearInterval(interval);
-  }, []);
+
 
   const fetchConversations = async (silent = false) => {
     try {
@@ -377,6 +411,15 @@ export default function InboxPage() {
   const selectedConversationIdRef = useRef<string | null>(null);
 
   useEffect(() => {
+    // Reset conversation-specific input/preview states
+    setShowButtonTemplateForm(false);
+    setShowGenericTemplateForm(false);
+    setShowProductCatalogPopup(false);
+    setSelectedProductsForTemplates([]);
+    setIsEditingGenericTemplate(false);
+    setIsEditingButtonTemplate(false);
+    setInputText("");
+
     if (selectedConversation) {
       selectedConversationIdRef.current = selectedConversation.id;
       setIsWithin24hWindow(selectedConversation.is_within_24h_window !== false);
@@ -628,13 +671,20 @@ export default function InboxPage() {
   };
 
   const handleSendButtonTemplate = async (text: string, buttons: any[]) => {
+    const priceVal = selectedProductsForTemplates[0]?.price ? `₹${selectedProductsForTemplates[0].price}` : "";
+    const processedText = (text || "").replace("{{price}}", priceVal);
+    const processedButtons = (buttons || []).map((btn: any) => ({
+      ...btn,
+      title: (btn.title || "").replace("{{price}}", priceVal)
+    }));
+
     const messagePayload = {
       attachment: {
         type: "template",
         payload: {
           template_type: "button",
-          text: text,
-          buttons: buttons
+          text: processedText,
+          buttons: processedButtons
         }
       }
     };
@@ -643,12 +693,25 @@ export default function InboxPage() {
   };
 
   const handleSendGenericTemplate = async (elements: any[]) => {
+    const processedElements = elements.map(el => {
+      const priceVal = el.price ? `₹${el.price}` : "";
+      const processedButtons = (el.buttons || []).map((btn: any) => ({
+        ...btn,
+        title: (btn.title || "").replace("{{price}}", priceVal)
+      }));
+      return {
+        ...el,
+        title: (el.title || "").replace("{{price}}", priceVal),
+        subtitle: (el.subtitle || "").replace("{{price}}", priceVal),
+        buttons: processedButtons
+      };
+    });
     const messagePayload = {
       attachment: {
         type: "template",
         payload: {
           template_type: "generic",
-          elements: elements
+          elements: processedElements
         }
       }
     };
@@ -666,6 +729,7 @@ export default function InboxPage() {
         title: 'Product Title',
         subtitle: 'Product Description',
         image_url: '',
+        price: '',
         default_action: { type: 'web_url', url: 'https://' },
         buttons: [{ type: 'web_url', title: 'Buy Now', url: 'https://' }]
       }]);
@@ -694,6 +758,7 @@ export default function InboxPage() {
         title: (p.title || p.name || 'Product').slice(0, 80),
         subtitle: (p.description || 'Premium quality item.').slice(0, 80),
         image_url: p.media_url || p.main_media_url || '',
+        price: p.price || '',
         default_action: {
           type: 'web_url',
           url: prodUrl
@@ -701,7 +766,7 @@ export default function InboxPage() {
         buttons: [
           {
             type: 'web_url',
-            title: p.price ? `Buy: ₹${p.price}`.slice(0, 20) : 'Buy Now',
+            title: `Buy: {{price}}`,
             url: prodUrl
           },
           {
@@ -786,6 +851,43 @@ export default function InboxPage() {
     }
   };
 
+  const handleSwitchTemplateType = (toGeneric: boolean) => {
+    if (toGeneric) {
+      setShowGenericTemplateForm(true);
+      setShowButtonTemplateForm(false);
+      
+      const firstCard = carouselElements[0] || {
+        image_url: "",
+        title: "",
+        subtitle: "",
+        price: "",
+        buttons: []
+      };
+      
+      const updatedCard = {
+        ...firstCard,
+        title: btnTempText || firstCard.title,
+        buttons: buttonTemplateButtons.length > 0 ? buttonTemplateButtons : firstCard.buttons
+      };
+      
+      setCarouselElements(prev => {
+        if (prev.length === 0) return [updatedCard];
+        const copy = [...prev];
+        copy[0] = updatedCard;
+        return copy;
+      });
+    } else {
+      setShowGenericTemplateForm(false);
+      setShowButtonTemplateForm(true);
+      
+      const firstCard = carouselElements[0];
+      if (firstCard) {
+        setBtnTempText(firstCard.title || "");
+        setButtonTemplateButtons(firstCard.buttons || []);
+      }
+    }
+  };
+
   const handleScroll = async (e: React.UIEvent<HTMLDivElement>) => {
     const target = e.currentTarget;
     if (target.scrollTop === 0 && hasMore && !loadingMore && selectedConversation && nextCursor) {
@@ -811,427 +913,310 @@ export default function InboxPage() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-      className="flex-1 flex overflow-hidden -mx-4 md:-mx-8 -my-4 md:-my-8 h-[calc(100vh-112px)] bg-[#0c0c0c] relative font-sans"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+      className="flex h-full overflow-hidden bg-[#0d0d0d] font-sans text-white"
     >
-      {/* Background Ethereal Glows */}
-      <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-[#B6B2FF]/[0.03] blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-[#8FE3FF]/[0.03] blur-[120px] pointer-events-none" />
+      {/* ─── LEFT PANE: Conversation List ─────────────────────────────── */}
+      <aside className={`w-full lg:w-[320px] xl:w-[360px] flex flex-col border-r border-white/[0.06] bg-[#111111] shrink-0 ${showChatOnMobile ? "hidden lg:flex" : "flex"}`}>
 
-      {/* Left Pane: Conversation List */}
-      <section
-        className={`w-full lg:w-[360px] border-r border-white/5 flex flex-col bg-white/[0.01] backdrop-blur-md shrink-0 relative z-10
-          ${showChatOnMobile ? "hidden lg:flex" : "flex"}`}
-      >
-        {/* Instagram Sidebar Header */}
-        <div className="p-6 pb-4 flex items-center justify-between border-b border-white/5">
-          <div className="flex items-center gap-2 group cursor-pointer">
-            <h1 className="text-base font-semibold text-white tracking-tight group-hover:text-white/80 transition-colors">
-              {businessInfo?.username || activeAccount?.username || "inbox"}
-            </h1>
-            <span className="material-symbols-outlined text-base text-white/50 group-hover:text-white/80 transition-transform duration-200 group-hover:translate-y-0.5">
-              expand_more
-            </span>
+        {/* Account Header */}
+        <div className="px-5 pt-5 pb-3 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#833ab4] via-[#fd1d1d] to-[#fcb045] p-0.5 shrink-0">
+              <div className="w-full h-full rounded-[9px] bg-[#111] flex items-center justify-center">
+                <span className="material-symbols-outlined text-sm text-white" style={{ fontVariationSettings: "'FILL' 1" }}>photo_camera</span>
+              </div>
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-white leading-none">
+                {businessInfo?.username || activeAccount?.username || "Inbox"}
+              </h2>
+              <span className={`text-[9px] font-bold uppercase tracking-widest mt-0.5 block ${globalAIOn ? "text-[#b6b2ff]" : "text-white/30"}`}>
+                AI {globalAIOn ? "ON" : "OFF"}
+              </span>
+            </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-1.5">
             <button
-              onClick={() => {
-                fetchConversations();
-                if (selectedConversation) {
-                  fetchMessages(selectedConversation.id);
-                }
-              }}
+              onClick={() => { fetchConversations(); if (selectedConversation) fetchMessages(selectedConversation.id); }}
               disabled={loading}
-              className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Refresh conversations"
+              className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 border border-white/[0.07] flex items-center justify-center text-white/50 hover:text-white transition-all active:scale-95 disabled:opacity-40"
             >
-              <span className={`material-symbols-outlined text-base ${loading ? 'animate-spin' : ''}`}>refresh</span>
+              <span className={`material-symbols-outlined text-[17px] ${loading ? "animate-spin" : ""}`}>refresh</span>
             </button>
-            <button className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 transition-all">
-              <span className="material-symbols-outlined text-lg">edit_square</span>
+            <button className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 border border-white/[0.07] flex items-center justify-center text-white/50 hover:text-white transition-all active:scale-95">
+              <span className="material-symbols-outlined text-[17px]">edit_square</span>
             </button>
-            <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${globalAIOn ? "text-[#B6B2FF] bg-[#B6B2FF]/10 border border-[#B6B2FF]/10" : "text-white/40 bg-white/5 border border-white/5"
-              }`}>
-              AI MODE {globalAIOn ? "ON" : "OFF"}
-            </span>
           </div>
         </div>
 
-
-
-
-        {/* Search Bar */}
-        <div className="px-6 py-3 border-b border-white/5">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/10 focus-within:border-white/20 transition-all">
-            <span className="material-symbols-outlined text-sm text-white/40">search</span>
+        {/* Search */}
+        <div className="px-4 pb-3 shrink-0">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.07] focus-within:border-white/20 focus-within:bg-white/[0.06] transition-all">
+            <span className="material-symbols-outlined text-[16px] text-white/30">search</span>
             <input
               type="text"
-              placeholder="Search chats..."
+              placeholder="Search conversations..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-transparent border-none text-xs text-white placeholder-white/25 outline-none w-full p-0 focus:ring-0"
+              className="bg-transparent text-xs text-white placeholder-white/25 outline-none w-full"
             />
             {searchQuery && (
-              <button onClick={() => setSearchQuery("")} className="text-white/40 hover:text-white">
-                <span className="material-symbols-outlined text-xs">close</span>
+              <button onClick={() => setSearchQuery("")} className="text-white/30 hover:text-white transition-colors">
+                <span className="material-symbols-outlined text-[14px]">close</span>
               </button>
             )}
           </div>
         </div>
 
-        {/* Conversation list scroll area */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-1.5">
+        {/* Filter Pills */}
+        <div className="px-4 pb-3 flex gap-1.5 shrink-0">
+          {["Primary", "General", "Requests"].map((f) => (
+            <button
+              key={f}
+              onClick={() => setActiveFilter(f)}
+              className={cn(
+                "px-3 py-1 rounded-full text-[10px] font-bold tracking-wide transition-all",
+                activeFilter === f
+                  ? "bg-white text-black shadow-md"
+                  : "bg-white/5 text-white/40 hover:text-white hover:bg-white/10 border border-white/[0.06]"
+              )}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+
+        {/* Conversation Items */}
+        <div className="flex-1 overflow-y-auto px-2 pb-4 space-y-0.5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full">
           {loading ? (
-            <div className="p-8 text-center text-xs text-white/30 flex flex-col items-center justify-center gap-3">
-              <div className="animate-spin w-5 h-5 border-2 border-white/30 border-t-white rounded-full"></div>
-              <span className="font-medium tracking-wider uppercase text-[10px]">Loading chats...</span>
+            <div className="flex flex-col items-center justify-center gap-3 py-20 text-white/25">
+              <div className="w-5 h-5 rounded-full border-2 border-white/20 border-t-white/60 animate-spin" />
+              <span className="text-[10px] font-semibold uppercase tracking-widest">Loading chats</span>
             </div>
           ) : filteredConversations.length === 0 ? (
-            <div className="p-8 text-center text-xs text-white/30 flex flex-col items-center justify-center py-16 gap-2">
-              <span className="material-symbols-outlined text-3xl text-white/10">forum</span>
-              <span className="font-medium">No conversations found</span>
+            <div className="flex flex-col items-center justify-center gap-2 py-20 text-white/20">
+              <span className="material-symbols-outlined text-4xl">forum</span>
+              <span className="text-xs font-medium">No conversations found</span>
             </div>
           ) : (
-            filteredConversations.map((item, idx) => {
+            filteredConversations.map((item) => {
               const isSelected = selectedConversation?.id === item.id;
               return (
                 <div
-                  key={item.id || idx}
-                  onClick={() => {
-                    setSelectedConversation(item);
-                    setShowChatOnMobile(true);
-                    setIsWithin24hWindow(item.is_within_24h_window !== false);
-                  }}
+                  key={item.id}
+                  onClick={() => { setSelectedConversation(item); setShowChatOnMobile(true); setIsWithin24hWindow(item.is_within_24h_window !== false); }}
                   className={cn(
-                    "px-4 py-3.5 flex gap-3.5 cursor-pointer items-center rounded-xl transition-all border duration-200",
-                    isSelected
-                      ? "bg-white/[0.07] border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.2)]"
-                      : "bg-transparent border-transparent hover:bg-white/[0.03] hover:border-white/5"
+                    "flex items-center gap-3 px-3 py-3 rounded-xl cursor-pointer transition-all duration-150 group select-none",
+                    isSelected ? "bg-white/[0.09] border border-white/10" : "hover:bg-white/[0.04] border border-transparent"
                   )}
                 >
+                  {/* Avatar */}
                   <div className="relative shrink-0">
-                    <img
-                      className="w-12 h-12 rounded-full border border-white/10 object-cover shadow-inner"
-                      src={item.avatar}
-                      alt={item.name}
-                    />
+                    <img src={item.avatar} alt={item.name} className="w-11 h-11 rounded-full object-cover border border-white/10" />
                     <span className={cn(
-                      "absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#0c0c0c] shadow-lg transition-all duration-300",
-                      item.is_within_24h_window !== false
-                        ? "bg-green-500 shadow-green-500/40"
-                        : "bg-red-500 shadow-red-500/40"
-                    )}></span>
+                      "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#111]",
+                      item.is_within_24h_window !== false ? "bg-emerald-500" : "bg-red-500"
+                    )} />
                   </div>
-                  <div className="flex-grow min-w-0">
-                    <div className="flex justify-between items-baseline mb-0.5">
-                      <div className="flex items-center gap-1 min-w-0">
-                        <h3 className="font-semibold text-xs text-white truncate">{item.name}</h3>
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-center mb-0.5">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-[13px] font-semibold text-white truncate">{item.name}</span>
                         {globalAIOn && item.is_ai_enabled !== false && (
-                          <span className="material-symbols-outlined text-[13px] text-[#B6B2FF] shrink-0 animate-pulse" title="AI Support Active">psychology</span>
+                          <span className="material-symbols-outlined text-[12px] text-[#b6b2ff] shrink-0">psychology</span>
                         )}
                       </div>
-                      <span className="text-[9px] text-white/30 font-medium shrink-0">{item.time}</span>
+                      <span className="text-[10px] text-white/30 shrink-0 ml-2">{item.time}</span>
                     </div>
-                    <p className={cn(
-                      "text-[11px] truncate font-medium",
-                      item.badge > 0 ? "text-white font-semibold" : "text-white/45"
-                    )}>
-                      {item.text}
-                    </p>
+                    <p className="text-[11px] text-white/40 truncate">{item.text}</p>
                   </div>
                   {item.badge > 0 && (
-                    <div className="w-2 h-2 bg-[#B6B2FF] rounded-full shrink-0 shadow-[0_0_8px_rgba(182,178,255,0.5)]"></div>
+                    <div className="w-2 h-2 rounded-full bg-[#b6b2ff] shadow-[0_0_8px_rgba(182,178,255,0.6)] shrink-0" />
                   )}
                 </div>
               );
             })
           )}
         </div>
-      </section>
+      </aside>
 
-      {/* Center Pane: Chat Conversation View */}
-      <section
-        className={`flex-grow flex flex-col bg-white/[0.005] backdrop-blur-lg relative overflow-hidden z-10
-          ${showChatOnMobile ? "flex" : "hidden lg:flex"}`}
-      >
+      {/* ─── CENTER PANE: Chat View ────────────────────────────────────── */}
+      <section className={`flex-1 flex flex-col min-w-0 bg-[#0d0d0d] ${showChatOnMobile ? "flex" : "hidden lg:flex"}`}>
         {selectedConversation ? (
           <>
             {/* Chat Header */}
-            <div className="px-6 py-4.5 border-b border-white/5 flex items-center justify-between bg-[#0c0c0c]/40 backdrop-blur-md shrink-0 z-20">
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/[0.06] bg-[#111]/80 backdrop-blur-md shrink-0">
               <div className="flex items-center gap-3">
-                {/* Back Button (Mobile Only) */}
-                <button
-                  onClick={() => setShowChatOnMobile(false)}
-                  className="lg:hidden w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-white/10 transition-all"
-                >
-                  <span className="material-symbols-outlined text-lg">arrow_back</span>
+                <button onClick={() => setShowChatOnMobile(false)} className="lg:hidden w-8 h-8 rounded-lg bg-white/5 border border-white/[0.07] flex items-center justify-center text-white/60 hover:text-white transition-all">
+                  <span className="material-symbols-outlined text-[18px]">arrow_back</span>
                 </button>
-
                 <div className="relative">
-                  <img
-                    alt={selectedConversation.name}
-                    className="w-10 h-10 rounded-full border border-white/10 object-cover"
-                    src={selectedConversation.avatar}
-                  />
-                  <span className={cn(
-                    "absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-[#0c0c0c] transition-colors",
-                    isWithin24hWindow ? "bg-green-500" : "bg-red-500"
-                  )}></span>
+                  <img src={selectedConversation.avatar} alt={selectedConversation.name} className="w-9 h-9 rounded-full object-cover border border-white/10" />
+                  <span className={cn("absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#111]", isWithin24hWindow ? "bg-emerald-500" : "bg-red-500")} />
                 </div>
                 <div>
-                  <h2 className="text-xs font-semibold text-white leading-tight">{selectedConversation.name}</h2>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-green-500/80"></span>
-                    <p className="text-[9px] text-white/40 font-medium">Active now</p>
-                  </div>
+                  <h3 className="text-sm font-semibold text-white leading-tight">{selectedConversation.name}</h3>
+                  <span className="text-[10px] text-white/35">{isWithin24hWindow ? "Within 24h window · Can message" : "24h window closed"}</span>
                 </div>
               </div>
 
-              <div className="flex gap-2 items-center text-white">
-                {/* Specific Chat AI Toggle */}
+              <div className="flex items-center gap-2">
                 {globalAIOn && (
-                  <div className="flex items-center gap-1.5 bg-white/5 border border-white/10 px-2.5 py-1 rounded-lg mr-1 text-[9px] font-bold text-white/70">
-                    <span className="material-symbols-outlined text-[13px] text-[#B6B2FF] shrink-0">psychology</span>
-                    <span className=" tracking-wider">{selectedConversation.name} AI Mode</span>
+                  <label className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#b6b2ff]/10 border border-[#b6b2ff]/20 cursor-pointer select-none">
+                    <span className="material-symbols-outlined text-[14px] text-[#b6b2ff]">psychology</span>
+                    <span className="text-[10px] font-bold text-[#b6b2ff] tracking-wider">AI</span>
                     <input
                       type="checkbox"
                       checked={selectedConversation.is_ai_enabled !== false}
                       onChange={async (e) => {
-                        const updatedVal = e.target.checked;
-                        setSelectedConversation((prev: any) => prev ? { ...prev, is_ai_enabled: updatedVal } : null);
-                        setConversations((prev: any[]) => prev.map(c => c.id === selectedConversation.id ? { ...c, is_ai_enabled: updatedVal } : c));
-                        try {
-                          const recipientId = selectedConversation.recipient_id;
-                          await api.post(`/crm/customers/${recipientId}/toggle-ai/`, { is_ai_enabled: updatedVal });
-                        } catch (err) {
-                          console.error("Failed to toggle AI mode for customer:", err);
-                        }
+                        const v = e.target.checked;
+                        setSelectedConversation((p: any) => p ? { ...p, is_ai_enabled: v } : null);
+                        setConversations((p: any[]) => p.map(c => c.id === selectedConversation.id ? { ...c, is_ai_enabled: v } : c));
+                        try { await api.post(`/crm/customers/${selectedConversation.recipient_id}/toggle-ai/`, { is_ai_enabled: v }); } catch { }
                       }}
-                      className="w-7 h-4 bg-white/10 rounded-full accent-white cursor-pointer ml-1"
+                      className="w-7 h-3.5 rounded-full accent-[#b6b2ff] cursor-pointer"
                     />
-                  </div>
+                  </label>
                 )}
-
                 <button
                   onClick={() => fetchMessages(selectedConversation.id)}
                   disabled={loadingMessages}
-                  className="w-8 h-8 rounded-lg bg-white/5 border border-white/5 hover:border-white/10 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Refresh chat messages"
+                  className="w-8 h-8 rounded-lg bg-white/5 border border-white/[0.07] flex items-center justify-center text-white/50 hover:text-white transition-all active:scale-95 disabled:opacity-40"
                 >
-                  <span className={`material-symbols-outlined text-lg ${loadingMessages ? 'animate-spin' : ''}`}>refresh</span>
+                  <span className={`material-symbols-outlined text-[17px] ${loadingMessages ? "animate-spin" : ""}`}>refresh</span>
                 </button>
-
                 <button
                   onClick={() => setShowRightPanel(!showRightPanel)}
                   className={cn(
                     "w-8 h-8 rounded-lg border flex items-center justify-center transition-all",
-                    showRightPanel
-                      ? "bg-[#B6B2FF]/10 border-[#B6B2FF]/20 text-[#B6B2FF]"
-                      : "bg-white/5 border-white/5 text-white/70 hover:text-white hover:bg-white/10"
+                    showRightPanel ? "bg-[#b6b2ff]/10 border-[#b6b2ff]/20 text-[#b6b2ff]" : "bg-white/5 border-white/[0.07] text-white/50 hover:text-white"
                   )}
-                  title="Toggle Details"
                 >
-                  <span className="material-symbols-outlined text-lg">info</span>
+                  <span className="material-symbols-outlined text-[17px]">dock_to_right</span>
                 </button>
               </div>
             </div>
 
-            {/* Chat Messages Log */}
+            {/* Messages */}
             <div
               ref={messagesContainerRef}
               onScroll={handleScroll}
-              className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar bg-gradient-to-b from-transparent to-black/10"
+              className="flex-1 overflow-y-auto px-5 py-5 space-y-3 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full"
             >
               {loadingMore && (
-                <div className="text-center text-[10px] text-white/30 py-2 flex items-center justify-center gap-2">
-                  <div className="animate-spin w-3 h-3 border border-white/20 border-t-white rounded-full"></div>
-                  <span className="font-medium uppercase tracking-wider text-[9px]">Loading history...</span>
+                <div className="flex items-center justify-center gap-2 py-2 text-white/25">
+                  <div className="w-3 h-3 rounded-full border border-white/20 border-t-white animate-spin" />
+                  <span className="text-[10px] uppercase tracking-widest font-semibold">Loading history</span>
                 </div>
               )}
 
               {loadingMessages ? (
-                <div className="flex-1 flex flex-col items-center justify-center py-20 gap-3 text-white/30">
-                  <div className="animate-spin w-6 h-6 border-2 border-white/20 border-t-white rounded-full"></div>
-                  <span className="text-[10px] font-semibold uppercase tracking-widest">Fetching Messages</span>
+                <div className="flex flex-col items-center justify-center gap-3 h-full text-white/25">
+                  <div className="w-6 h-6 rounded-full border-2 border-white/20 border-t-white/60 animate-spin" />
+                  <span className="text-[10px] uppercase tracking-widest font-semibold">Loading messages</span>
                 </div>
               ) : messages.length === 0 ? (
-                <div className="text-center py-20 text-xs text-white/30 flex flex-col items-center gap-2">
-                  <span className="material-symbols-outlined text-4xl text-white/5">chat_bubble_outline</span>
-                  <span>No messages in this conversation.</span>
+                <div className="flex flex-col items-center justify-center gap-2 h-full text-white/20">
+                  <span className="material-symbols-outlined text-5xl">chat_bubble_outline</span>
+                  <span className="text-xs font-medium">No messages yet</span>
                 </div>
               ) : (
                 messages.map((msg, idx) => (
-                  <div key={msg.id || idx} className={`flex gap-3 max-w-[85%] sm:max-w-[70%] ${msg.isSelf ? "ml-auto flex-row-reverse" : ""}`}>
+                  <div key={msg.id || idx} className={`flex gap-2.5 max-w-[75%] ${msg.isSelf ? "ml-auto flex-row-reverse" : ""}`}>
                     {!msg.isSelf && (
-                      <img
-                        alt={msg.sender}
-                        className="w-8 h-8 rounded-full shrink-0 self-end border border-white/10 object-cover shadow"
-                        src={msg.avatar || selectedConversation.avatar}
-                      />
+                      <img src={msg.avatar || selectedConversation.avatar} alt={msg.sender} className="w-7 h-7 rounded-full object-cover border border-white/10 shrink-0 self-end" />
                     )}
-                    <div className="flex flex-col gap-1 max-w-full">
-                      {/* Text Bubble */}
+                    <div className={`flex flex-col gap-1 ${msg.isSelf ? "items-end" : "items-start"}`}>
+                      {msg.isAi && (
+                        <div className="flex items-center gap-1 text-[#b6b2ff] mb-0.5">
+                          <span className="material-symbols-outlined text-[11px]" style={{ fontVariationSettings: "'FILL' 1" }}>smart_toy</span>
+                          <span className="text-[8px] font-bold uppercase tracking-widest">AnyDM AI</span>
+                        </div>
+                      )}
                       {(msg.text || (!msg.attachments?.data && !msg.shares?.data && !msg.story)) && (
-                        <div className={`px-4 py-2.5 rounded-2xl text-xs leading-relaxed break-words shadow-sm border ${msg.isSelf
-                          ? "bg-white/10 backdrop-blur-md border-white/15 text-white rounded-br-none"
-                          : "bg-white/[0.03] border-white/5 text-white/90 rounded-bl-none"
-                          }`}>
-                          {msg.isAi && (
-                            <div className="flex items-center gap-1.5 mb-1.5 text-[#B6B2FF]">
-                              <span className="material-symbols-outlined text-xs" style={{ fontVariationSettings: "'FILL' 1" }}>smart_toy</span>
-                              <span className="text-[8px] uppercase font-bold tracking-widest">Sent by AnyDM AI</span>
-                            </div>
-                          )}
+                        <div className={cn(
+                          "px-4 py-2.5 rounded-2xl text-[13px] leading-relaxed break-words max-w-full",
+                          msg.isSelf
+                            ? "bg-white text-black rounded-br-md font-medium"
+                            : "bg-white/[0.07] border border-white/[0.08] text-white/90 rounded-bl-md"
+                        )}>
                           <p className="whitespace-pre-wrap">{msg.text}</p>
                         </div>
                       )}
 
-                      {/* Attachments (Generic Templates / Carousel / Images / Videos / Audio) */}
+                      {/* Attachments */}
                       {msg.attachments?.data && msg.attachments.data.length > 0 && (
-                        <div
-                          className="flex gap-3 overflow-x-auto py-1.5 max-w-full mt-1 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden"
-                          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-                        >
+                        <div className="flex gap-2 overflow-x-auto py-1 max-w-full [&::-webkit-scrollbar]:hidden snap-x snap-mandatory">
                           {msg.attachments.data.map((att: any, aIdx: number) => {
-                            // Generic Template Card
                             if (att.generic_template) {
                               const imageUrl = att.generic_template.media_url || att.generic_template.image_url;
                               return (
-                                <div
-                                  key={aIdx}
-                                  className="bg-white/[0.02] border border-white/10 rounded-2xl overflow-hidden w-60 shrink-0 shadow-xl text-left snap-start flex flex-col justify-between"
-                                >
-                                  <div>
-                                    {imageUrl && (
-                                      <img src={imageUrl} className="w-full h-32 object-cover border-b border-white/5" alt="" />
-                                    )}
-                                    <div className="p-4">
-                                      <p className="text-xs font-semibold text-white whitespace-pre-wrap leading-snug">
-                                        {att.generic_template.title}
-                                      </p>
-                                      {att.generic_template.subtitle && (
-                                        <p className="text-[11px] text-white/50 mt-1 leading-snug">
-                                          {att.generic_template.subtitle}
-                                        </p>
-                                      )}
-                                    </div>
+                                <div key={aIdx} className="w-52 shrink-0 rounded-2xl overflow-hidden border border-white/10 bg-white/[0.03] snap-start">
+                                  {imageUrl && <img src={imageUrl} className="w-full h-28 object-cover" alt="" />}
+                                  <div className="p-3">
+                                    <p className="text-xs font-semibold text-white">{att.generic_template.title}</p>
+                                    {att.generic_template.subtitle && <p className="text-[11px] text-white/40 mt-0.5">{att.generic_template.subtitle}</p>}
                                   </div>
                                   {att.generic_template.cta && (
-                                    <div className="border-t border-white/5 divide-y divide-white/5 flex flex-col mt-auto">
+                                    <div className="border-t border-white/[0.06] divide-y divide-white/[0.06]">
                                       {att.generic_template.cta.map((cta: any, cIdx: number) => (
-                                        <a
-                                          key={cIdx}
-                                          href={cta.url || "#"}
-                                          target={cta.url ? "_blank" : "_self"}
-                                          rel="noopener noreferrer"
-                                          className="py-2.5 text-center text-[11px] font-bold text-[#8FE3FF] hover:bg-white/5 transition-colors"
-                                        >
-                                          {cta.title}
-                                        </a>
+                                        <a key={cIdx} href={cta.url || "#"} target="_blank" rel="noopener noreferrer" className="block py-2 text-center text-[11px] font-bold text-[#8fe3ff] hover:bg-white/5 transition-colors">{cta.title}</a>
                                       ))}
                                     </div>
                                   )}
                                 </div>
                               );
                             }
-
-                            // Image Attachment
-                            if (att.image_data) {
-                              return (
-                                <div
-                                  key={aIdx}
-                                  className="bg-white/[0.02] border border-white/10 rounded-2xl overflow-hidden max-w-xs shrink-0 shadow-lg text-left snap-start"
-                                >
-                                  <a
-                                    href={att.image_data.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="block hover:opacity-90 transition-opacity"
-                                  >
-                                    <img
-                                      src={att.image_data.preview_url || att.image_data.url}
-                                      alt="Instagram Attachment"
-                                      className="w-full h-auto max-h-56 object-cover"
-                                      referrerPolicy="no-referrer"
-                                    />
-                                  </a>
-                                </div>
-                              );
-                            }
-
-                            // Video Attachment
-                            if (att.video_data) {
-                              return (
-                                <div
-                                  key={aIdx}
-                                  className="bg-white/[0.02] border border-white/10 rounded-2xl overflow-hidden max-w-xs shrink-0 shadow-lg text-left snap-start"
-                                >
-                                  <PlayableVideoAttachment url={att.video_data.url} />
-                                </div>
-                              );
-                            }
-
-                            // Audio / Voice Message Attachment
-                            if (att.audio_data) {
-                              return (
-                                <div
-                                  key={aIdx}
-                                  className="bg-white/[0.02] border border-white/10 rounded-2xl p-3.5 max-w-xs shrink-0 shadow-md text-left snap-start flex items-center gap-3"
-                                >
-                                  <span className="material-symbols-outlined text-lg text-white/60">mic</span>
-                                  <audio src={att.audio_data.url} controls className="w-44 text-xs" />
-                                </div>
-                              );
-                            }
-
+                            if (att.image_data) return (
+                              <a key={aIdx} href={att.image_data.url} target="_blank" rel="noopener noreferrer" className="block rounded-2xl overflow-hidden max-w-[220px] shrink-0 snap-start border border-white/10">
+                                <img src={att.image_data.preview_url || att.image_data.url} alt="" className="w-full h-auto max-h-52 object-cover" referrerPolicy="no-referrer" />
+                              </a>
+                            );
+                            if (att.video_data) return (
+                              <div key={aIdx} className="rounded-2xl overflow-hidden max-w-[220px] shrink-0 snap-start border border-white/10">
+                                <PlayableVideoAttachment url={att.video_data.url} />
+                              </div>
+                            );
+                            if (att.audio_data) return (
+                              <div key={aIdx} className="flex items-center gap-2 bg-white/[0.04] border border-white/10 rounded-2xl px-3 py-2 snap-start">
+                                <span className="material-symbols-outlined text-white/50 text-lg">mic</span>
+                                <audio src={att.audio_data.url} controls className="w-40" />
+                              </div>
+                            );
                             return null;
                           })}
                         </div>
                       )}
 
-                      {/* Shares (Shared Reel/Post) */}
-                      {msg.shares?.data?.map((sh: any, sIdx: number) => {
-                        if (sh.link) {
-                          return (
-                            <div key={sIdx} className="bg-white/[0.02] border border-white/15 rounded-2xl p-4 max-w-xs flex items-center gap-3.5 shadow-md mt-1 self-start text-left">
-                              <div className="w-10 h-10 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center shrink-0">
-                                <span className="material-symbols-outlined text-lg text-[#8FE3FF]">play_circle</span>
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <p className="text-xs font-semibold text-white truncate">Shared a Reel / Post</p>
-                                <a
-                                  href={sh.link}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-[10px] text-[#8FE3FF] hover:underline truncate block mt-0.5"
-                                >
-                                  View on Instagram
-                                </a>
-                              </div>
-                            </div>
-                          );
-                        }
-                        return null;
-                      })}
+                      {/* Shares */}
+                      {msg.shares?.data?.map((sh: any, sIdx: number) => sh.link && (
+                        <div key={sIdx} className="flex items-center gap-3 bg-white/[0.03] border border-white/10 rounded-2xl px-3 py-2.5 mt-1 max-w-[260px] w-full">
+                          <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                            <span className="material-symbols-outlined text-[#8fe3ff] text-base">play_circle</span>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-semibold text-white truncate">Shared a Reel / Post</p>
+                            <a href={sh.link} target="_blank" rel="noopener noreferrer" className="text-[10px] text-[#8fe3ff] hover:underline truncate block">View on Instagram</a>
+                          </div>
+                        </div>
+                      ))}
 
-                      {/* Story Mentions */}
+                      {/* Story */}
                       {msg.story && (
-                        <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-4 max-w-xs flex flex-col gap-2 shadow-lg mt-1 self-start text-left">
-                          <div className="flex items-center gap-2 text-white/40 text-[9px] uppercase font-bold tracking-wider">
+                        <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-3 mt-1 max-w-[180px]">
+                          <div className="flex items-center gap-1.5 text-white/30 text-[9px] uppercase font-bold tracking-widest mb-2">
                             <span className="material-symbols-outlined text-xs">history_toggle_off</span>
                             <span>Story Mention</span>
                           </div>
-                          {msg.story.url && (
-                            <img src={msg.story.url} className="w-full h-36 object-cover rounded-xl border border-white/5" alt="" />
-                          )}
+                          {msg.story.url && <img src={msg.story.url} className="w-full h-28 object-cover rounded-xl border border-white/5" alt="" />}
                         </div>
                       )}
 
-                      <span className={`text-[9px] text-white/30 mt-0.5 px-1 font-medium ${msg.isSelf ? "text-right" : ""}`}>
-                        {msg.time}
-                      </span>
+                      <span className="text-[9px] text-white/20 px-1">{msg.time}</span>
                     </div>
                   </div>
                 ))
@@ -1240,88 +1225,33 @@ export default function InboxPage() {
 
             {/* Product Catalog Popup */}
             {showProductCatalogPopup && (
-              <div className="p-5 bg-[#121212]/95 backdrop-blur-xl border-t border-white/10 text-xs text-white space-y-4 max-h-64 overflow-y-auto animate-fadeIn shadow-2xl relative z-30">
-                <div className="flex justify-between items-center border-b border-white/5 pb-2.5">
-                  <h4 className="font-semibold text-xs text-[#B6B2FF] uppercase tracking-wider">Product Catalog</h4>
-                  <button
-                    onClick={() => setShowProductCatalogPopup(false)}
-                    className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center text-white/50 hover:text-white transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-base">close</span>
+              <div className="border-t border-white/[0.06] bg-[#111]/95 backdrop-blur-xl p-4 max-h-64 overflow-y-auto space-y-3 shrink-0 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full">
+                <div className="flex justify-between items-center">
+                  <h4 className="text-[11px] font-bold text-[#b6b2ff] uppercase tracking-widest">Product Catalog</h4>
+                  <button onClick={() => setShowProductCatalogPopup(false)} className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center text-white/40 hover:text-white transition-colors">
+                    <span className="material-symbols-outlined text-sm">close</span>
                   </button>
                 </div>
-
-                {/* Product Search */}
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/10 focus-within:border-white/20 transition-all">
-                  <span className="material-symbols-outlined text-xs text-white/40">search</span>
-                  <input
-                    type="text"
-                    placeholder="Search products..."
-                    value={productSearchQuery}
-                    onChange={(e) => setProductSearchQuery(e.target.value)}
-                    className="bg-transparent border-none text-[11px] text-white placeholder-white/25 outline-none w-full p-0 focus:ring-0"
-                  />
-                  {productSearchQuery && (
-                    <button onClick={() => setProductSearchQuery("")} className="text-white/40 hover:text-white">
-                      <span className="material-symbols-outlined text-[10px]">close</span>
-                    </button>
-                  )}
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.07] focus-within:border-white/20 transition-all">
+                  <span className="material-symbols-outlined text-[13px] text-white/30">search</span>
+                  <input type="text" placeholder="Search products..." value={productSearchQuery} onChange={(e) => setProductSearchQuery(e.target.value)} className="bg-transparent text-[11px] text-white placeholder-white/25 outline-none w-full" />
                 </div>
-
                 {filteredProducts.length === 0 ? (
-                  <div className="text-center py-8 text-white/30">
-                    No products found matching your search.
-                  </div>
+                  <p className="text-center text-xs text-white/20 py-6">No products found</p>
                 ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2.5">
                     {filteredProducts.map((prod: any) => {
-                      const isSelected = selectedProductsForTemplates.some(p => p.id === prod.id);
-
+                      const isSel = selectedProductsForTemplates.some(p => p.id === prod.id);
                       return (
-                        <div
-                          key={prod.id}
-                          onClick={() => {
-                            const fakeEp = {
-                              product_id: prod.id,
-                              title: prod.title,
-                              price: prod.price,
-                              main_media_url: prod.media_url || prod.main_media_url
-                            };
-                            handleToggleProductForSend(fakeEp);
-                          }}
-                          className={cn(
-                            "group relative flex flex-col gap-2.5 p-2.5 rounded-xl border cursor-pointer transition-all duration-200",
-                            isSelected
-                              ? "bg-[#B6B2FF]/10 border-[#B6B2FF]/40 shadow-lg"
-                              : "bg-white/[0.02] border-white/5 hover:border-white/10 hover:bg-white/[0.04]"
-                          )}
+                        <div key={prod.id} onClick={() => handleToggleProductForSend({ product_id: prod.id, title: prod.title, price: prod.price, main_media_url: prod.media_url || prod.main_media_url })}
+                          className={cn("relative flex flex-col gap-1.5 p-2 rounded-xl border cursor-pointer transition-all", isSel ? "bg-[#b6b2ff]/10 border-[#b6b2ff]/40" : "bg-white/[0.02] border-white/[0.06] hover:border-white/15")}
                         >
-                          <div className="aspect-square rounded-lg overflow-hidden bg-white/5 border border-white/5">
-                            {(prod.media_url || prod.main_media_url) ? (
-                              <img
-                                src={prod.media_url || prod.main_media_url}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                alt={prod.title}
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <span className="material-symbols-outlined text-xl text-white/20">shopping_bag</span>
-                              </div>
-                            )}
+                          <div className="aspect-square rounded-lg overflow-hidden bg-white/5">
+                            {(prod.media_url || prod.main_media_url) ? <img src={prod.media_url || prod.main_media_url} className="w-full h-full object-cover" alt={prod.title} /> : <div className="w-full h-full flex items-center justify-center"><span className="material-symbols-outlined text-white/20">shopping_bag</span></div>}
                           </div>
-                          <div className="min-w-0">
-                            <h5 className="font-semibold text-white truncate text-[11px] leading-tight">
-                              {prod.title}
-                            </h5>
-                            <p className="text-[10px] font-bold text-[#B6B2FF] mt-0.5">
-                              ₹{prod.price}
-                            </p>
-                          </div>
-                          {isSelected && (
-                            <span className="absolute top-1.5 right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#B6B2FF] text-black text-[9px] font-bold shadow-md">
-                              {selectedProductsForTemplates.findIndex(p => p.id === prod.id) + 1}
-                            </span>
-                          )}
+                          <p className="text-[10px] font-semibold text-white truncate">{prod.title}</p>
+                          <p className="text-[9px] font-bold text-[#b6b2ff]">₹{prod.price}</p>
+                          {isSel && <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-[#b6b2ff] text-black text-[8px] font-bold flex items-center justify-center shadow">{selectedProductsForTemplates.findIndex(p => p.id === prod.id) + 1}</span>}
                         </div>
                       );
                     })}
@@ -1330,711 +1260,603 @@ export default function InboxPage() {
               </div>
             )}
 
-            {/* Template Send Forms (Carousel or Button) */}
+            {/* Template Forms */}
             {(showButtonTemplateForm || showGenericTemplateForm) && (
-              <div className="p-5 bg-[#121212]/95 backdrop-blur-xl border-t border-white/10 text-xs text-white space-y-4 animate-fadeIn relative z-30 shadow-2xl">
-                {/* Header with toggle tabs */}
-                <div className="flex justify-between items-center border-b border-white/5 pb-2.5">
-                  <div className="flex gap-4 text-xs font-semibold">
-                    <button
-                      onClick={() => {
-                        setShowGenericTemplateForm(true);
-                        setShowButtonTemplateForm(false);
-                      }}
-                      className={cn(
-                        "pb-1 transition-all relative font-bold text-[11px] uppercase tracking-wider",
-                        showGenericTemplateForm ? "text-white" : "text-white/40 hover:text-white/70"
-                      )}
-                    >
-                      Image Slider
-                      {showGenericTemplateForm && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#B6B2FF]" />}
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowButtonTemplateForm(true);
-                        setShowGenericTemplateForm(false);
-                      }}
-                      className={cn(
-                        "pb-1 transition-all relative font-bold text-[11px] uppercase tracking-wider",
-                        showButtonTemplateForm ? "text-white" : "text-white/40 hover:text-white/70"
-                      )}
-                    >
-                      Action Buttons
-                      {showButtonTemplateForm && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#B6B2FF]" />}
-                    </button>
+              <div className="relative border-t border-white/[0.06] bg-[#111]/95 backdrop-blur-xl p-4 space-y-3 shrink-0">
+                <div className="flex justify-between items-center">
+                  <div className="flex gap-1.5">
+                    {[["Image Slider", true, showGenericTemplateForm], ["Action Buttons", false, showButtonTemplateForm]].map(([label, isGeneric, isActive]: any) => (
+                      <button key={label} onClick={() => handleSwitchTemplateType(isGeneric)}
+                        className={cn("px-3 py-1 rounded-lg text-[10px] font-semibold transition-all", isActive ? "bg-white/10 text-white border border-white/15" : "text-white/35 hover:text-white/60 border border-transparent")}
+                      >{label}</button>
+                    ))}
                   </div>
-
-                  <div className="flex items-center gap-3">
-                    {selectedProductsForTemplates.length > 0 && (
-                      <span className="text-[9px] bg-[#B6B2FF]/20 text-[#B6B2FF] px-2.5 py-0.5 rounded-full font-semibold uppercase tracking-wider">
-                        {selectedProductsForTemplates.length} selected
-                      </span>
-                    )}
-                    <button
-                      onClick={() => {
-                        setShowButtonTemplateForm(false);
-                        setShowGenericTemplateForm(false);
-                        setSelectedProductsForTemplates([]);
-                      }}
-                      className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-colors"
-                    >
-                      <span className="material-symbols-outlined text-base">close</span>
-                    </button>
-                  </div>
+                  <button onClick={() => { setShowButtonTemplateForm(false); setShowGenericTemplateForm(false); setSelectedProductsForTemplates([]); }} className="w-6 h-6 rounded-md bg-white/5 text-white/40 hover:text-white flex items-center justify-center transition-colors">
+                    <span className="material-symbols-outlined text-sm">close</span>
+                  </button>
                 </div>
 
-                {/* IMAGE SLIDER / CAROUSEL MODE */}
                 {showGenericTemplateForm && (
-                  <>
-                    {isEditingGenericTemplate ? (
-                      <div className="space-y-3.5">
-                        <div className="flex justify-between items-center">
-                          <span className="text-[9px] text-[#B6B2FF] font-bold uppercase tracking-wider">
-                            Card {activeCardIndex + 1} of {carouselElements.length}
-                          </span>
-                          {carouselElements.length > 1 && (
-                            <div className="flex gap-1">
-                              <button
-                                disabled={activeCardIndex === 0}
-                                onClick={() => setActiveCardIndex(prev => prev - 1)}
-                                className="w-6 h-6 rounded bg-white/5 hover:bg-white/10 flex items-center justify-center disabled:opacity-20"
-                              >
-                                <span className="material-symbols-outlined text-sm">arrow_back</span>
-                              </button>
-                              <button
-                                disabled={activeCardIndex === carouselElements.length - 1}
-                                onClick={() => setActiveCardIndex(prev => prev + 1)}
-                                className="w-6 h-6 rounded bg-white/5 hover:bg-white/10 flex items-center justify-center disabled:opacity-20"
-                              >
-                                <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                              </button>
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                          <div>
-                            <label className="text-[9px] text-white/40 uppercase font-bold tracking-wider block mb-1.5">Card Title</label>
-                            <input
-                              type="text"
-                              value={carouselElements[activeCardIndex]?.title || ""}
-                              onChange={(e) => {
-                                const newElems = [...carouselElements];
-                                newElems[activeCardIndex] = { ...newElems[activeCardIndex], title: e.target.value };
-                                setCarouselElements(newElems);
-                              }}
-                              className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white outline-none text-xs focus:border-white/30 transition-all"
-                              placeholder="Product name..."
-                            />
-                          </div>
-                          <div>
-                            <label className="text-[9px] text-white/40 uppercase font-bold tracking-wider block mb-1.5">Card Subtitle</label>
-                            <input
-                              type="text"
-                              value={carouselElements[activeCardIndex]?.subtitle || ""}
-                              onChange={(e) => {
-                                const newElems = [...carouselElements];
-                                newElems[activeCardIndex] = { ...newElems[activeCardIndex], subtitle: e.target.value };
-                                setCarouselElements(newElems);
-                              }}
-                              className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white outline-none text-xs focus:border-white/30 transition-all"
-                              placeholder="Short description..."
-                            />
-                          </div>
-                          <div className="sm:col-span-2">
-                            <label className="text-[9px] text-white/40 uppercase font-bold tracking-wider block mb-1.5">Card Image</label>
-                            <div className="relative">
-                              {carouselElements[activeCardIndex]?.image_url ? (
-                                <div className="group relative w-full h-36 rounded-xl overflow-hidden border border-white/10 bg-black/20 flex items-center justify-center">
-                                  <img
-                                    src={carouselElements[activeCardIndex].image_url}
-                                    className="w-full h-full object-cover"
-                                    alt="Preview"
-                                  />
-                                  <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                                    <label className="cursor-pointer px-3 py-1.5 rounded-lg bg-white text-black text-[11px] font-bold hover:bg-white/90 transition-colors flex items-center gap-1 shadow-lg">
-                                      <span className="material-symbols-outlined text-sm">photo_camera</span>
-                                      Change Image
-                                      <input
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={handleImageUpload}
-                                        className="hidden"
-                                        disabled={uploadingImage}
-                                      />
-                                    </label>
-                                    <button
-                                      onClick={() => {
-                                        const newElems = [...carouselElements];
-                                        newElems[activeCardIndex] = { ...newElems[activeCardIndex], image_url: "" };
-                                        setCarouselElements(newElems);
-                                      }}
-                                      className="p-1.5 rounded-lg bg-red-500/80 text-white hover:bg-red-500 transition-colors flex items-center justify-center shadow-lg"
-                                      title="Remove Image"
-                                    >
-                                      <span className="material-symbols-outlined text-sm">delete</span>
-                                    </button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <label className="cursor-pointer w-full h-36 rounded-xl border border-dashed border-white/10 hover:border-[#B6B2FF]/40 hover:bg-white/[0.02] transition-all flex flex-col items-center justify-center text-white/40 hover:text-white/80 gap-2">
-                                  <span className="material-symbols-outlined text-2xl text-white/30">add_photo_alternate</span>
-                                  <span className="text-xs font-semibold">
-                                    {uploadingImage ? "Uploading to Cloudinary..." : "Upload Image"}
-                                  </span>
-                                  <span className="text-[9px] text-white/30 uppercase tracking-widest">Supports JPG, PNG, WEBP</span>
-                                  <input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={handleImageUpload}
-                                    className="hidden"
-                                    disabled={uploadingImage}
-                                  />
-                                </label>
-                              )}
-                              {uploadingImage && (
-                                <div className="absolute inset-0 bg-black/65 flex flex-col items-center justify-center rounded-xl backdrop-blur-xs">
-                                  <div className="animate-spin w-5 h-5 border-2 border-[#B6B2FF] border-t-transparent rounded-full mb-2"></div>
-                                  <span className="text-[8px] font-bold text-[#B6B2FF] tracking-widest uppercase">Uploading...</span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          <div className="sm:col-span-2 space-y-3">
-                            <div className="flex justify-between items-center border-b border-white/5 pb-1">
-                              <label className="text-[9px] text-white/40 uppercase font-bold tracking-wider">Buttons (Max 3)</label>
-                              {(carouselElements[activeCardIndex]?.buttons || []).length < 3 && (
-                                <button
-                                  onClick={() => {
-                                    const newElems = [...carouselElements];
-                                    const buttons = [...(newElems[activeCardIndex].buttons || [])];
-                                    buttons.push({ type: 'web_url', title: 'New Button', url: 'https://' });
-                                    newElems[activeCardIndex] = { ...newElems[activeCardIndex], buttons };
-                                    setCarouselElements(newElems);
-                                  }}
-                                  className="text-[9px] text-[#8FE3FF] hover:underline font-bold flex items-center gap-0.5 uppercase tracking-wider"
-                                >
-                                  <span className="material-symbols-outlined text-xs">add</span>
-                                  Add Button
-                                </button>
-                              )}
-                            </div>
-
-                            <div className="space-y-2">
-                              {(carouselElements[activeCardIndex]?.buttons || []).map((btn: any, btnIdx: number) => (
-                                <div key={btnIdx} className="flex gap-2 items-center bg-black/30 p-2.5 rounded-lg border border-white/5">
-                                  <div className="flex-1 grid grid-cols-2 gap-2">
-                                    <input
-                                      type="text"
-                                      value={btn.title}
-                                      onChange={(e) => {
-                                        const newElems = [...carouselElements];
-                                        const buttons = [...newElems[activeCardIndex].buttons];
-                                        buttons[btnIdx] = { ...buttons[btnIdx], title: e.target.value };
-                                        newElems[activeCardIndex] = { ...newElems[activeCardIndex], buttons };
-                                        setCarouselElements(newElems);
-                                      }}
-                                      className="bg-black/50 border border-white/10 rounded-md px-2 py-1.5 text-white outline-none text-[11px] focus:border-white/20"
-                                      placeholder="Button Title"
-                                    />
-                                    <input
-                                      type="text"
-                                      value={btn.url}
-                                      onChange={(e) => {
-                                        const newElems = [...carouselElements];
-                                        const buttons = [...newElems[activeCardIndex].buttons];
-                                        buttons[btnIdx] = { ...buttons[btnIdx], url: e.target.value };
-                                        newElems[activeCardIndex] = { ...newElems[activeCardIndex], buttons };
-                                        setCarouselElements(newElems);
-                                      }}
-                                      className="bg-black/50 border border-white/10 rounded-md px-2 py-1.5 text-white outline-none text-[11px] focus:border-white/20"
-                                      placeholder="https://..."
-                                    />
-                                  </div>
-                                  {(carouselElements[activeCardIndex]?.buttons || []).length > 1 && (
-                                    <button
-                                      onClick={() => {
-                                        const newElems = [...carouselElements];
-                                        const buttons = newElems[activeCardIndex].buttons.filter((_: any, idx: number) => idx !== btnIdx);
-                                        newElems[activeCardIndex] = { ...newElems[activeCardIndex], buttons };
-                                        setCarouselElements(newElems);
-                                      }}
-                                      className="text-white/30 hover:text-red-400 p-1.5 hover:bg-white/5 rounded"
-                                    >
-                                      <span className="material-symbols-outlined text-sm">close</span>
-                                    </button>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex justify-end gap-2 pt-2 border-t border-white/5">
-                          <button
-                            onClick={() => setIsEditingGenericTemplate(false)}
-                            className="px-4 py-1.5 rounded-lg bg-white text-black font-semibold text-xs hover:bg-white/90 transition-all"
-                          >
-                            Save & Preview
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center py-2 space-y-4">
-                        <div className="text-[9px] text-white/30 uppercase font-bold tracking-widest">Instagram Preview</div>
-
-                        <div className="relative w-full max-w-sm flex justify-center items-center">
-                          {carouselElements.length > 1 && activeCardIndex > 0 && (
-                            <button
-                              onClick={() => setActiveCardIndex(prev => prev - 1)}
-                              className="absolute left-4 w-7 h-7 rounded-full bg-black/75 border border-white/10 text-white hover:bg-black/90 z-10 shadow-lg flex items-center justify-center transition-all"
-                            >
-                              <span className="material-symbols-outlined text-sm">chevron_left</span>
-                            </button>
-                          )}
-
-                          <div className="group relative bg-[#1f1f1f] border border-white/10 rounded-2xl overflow-hidden w-56 shadow-2xl text-left">
-                            {carouselElements[activeCardIndex]?.image_url ? (
-                              <img src={carouselElements[activeCardIndex].image_url} className="w-full h-28 object-cover border-b border-white/5" alt="" />
+                  <div className="flex flex-col items-center py-2 space-y-3 w-full">
+                    {/* Horizontal scrollable carousel with directly editable mockups matching Instagram's native look */}
+                    <div className="flex items-start gap-3 overflow-x-auto py-2 px-1 max-w-full w-full justify-start md:justify-center snap-x snap-mandatory [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:bg-white/15 [&::-webkit-scrollbar-thumb]:rounded-full">
+                      {carouselElements.map((elem, idx) => (
+                        <div key={idx} className="w-[248px] shrink-0 bg-[#262626] border border-white/5 rounded-[18px] overflow-hidden snap-start relative shadow-lg flex flex-col justify-between select-none">
+                          
+                          {/* 1. Editable Image (aspect ratio 1.91:1) */}
+                          <label className="block w-full h-[130px] overflow-hidden cursor-pointer relative shrink-0">
+                            {elem.image_url ? (
+                              <img src={elem.image_url} className="w-full h-full object-cover" alt="" />
                             ) : (
-                              <div className="w-full h-28 bg-white/5 flex items-center justify-center border-b border-white/5">
-                                <span className="material-symbols-outlined text-2xl text-white/15">image</span>
+                              <div className="w-full h-full bg-white/5 flex items-center justify-center">
+                                <span className="material-symbols-outlined text-white/20 text-xl">image</span>
                               </div>
                             )}
-                            <div className="p-3">
-                              <p className="text-[11px] font-semibold text-white truncate">
-                                {carouselElements[activeCardIndex]?.title || "Product Title"}
-                              </p>
-                              <p className="text-[10px] text-white/45 mt-0.5 truncate leading-normal">
-                                {carouselElements[activeCardIndex]?.subtitle || "Product Description"}
-                              </p>
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                              <span className="text-[9px] font-bold text-white bg-black/60 px-1.5 py-0.5 rounded border border-white/10 flex items-center gap-1 shadow-sm">
+                                <span className="material-symbols-outlined text-[10px]">edit</span>
+                                Change Image
+                              </span>
                             </div>
-                            <div className="border-t border-white/5">
-                              <div className="py-2 text-center text-[10px] font-bold text-[#8FE3FF] hover:bg-white/5 transition-colors cursor-pointer">
-                                {carouselElements[activeCardIndex]?.buttons?.[0]?.title || "Buy Now"}
-                              </div>
+                            <input 
+                              type="file" 
+                              accept="image/*" 
+                              onChange={(e) => {
+                                setActiveCardIndex(idx);
+                                handleImageUpload(e);
+                              }} 
+                              className="hidden" 
+                              disabled={uploadingImage} 
+                            />
+                          </label>
+
+                          {/* 2. Left-Aligned Text Content (Instagram Style padding & styling) */}
+                          <div className="px-3.5 py-3 space-y-1.5 flex-1 min-w-0 relative group/text">
+                            {/* Title */}
+                            <div className="min-h-[20px] flex items-center justify-between">
+                              {focusedField?.cardIdx === idx && focusedField?.type === 'title' ? (
+                                <div className="w-full flex flex-col">
+                                  <input 
+                                    autoFocus
+                                    type="text" 
+                                    value={elem.title} 
+                                    maxLength={80}
+                                    onBlur={() => setFocusedField(null)}
+                                    onChange={(e) => {
+                                      const n = [...carouselElements];
+                                      n[idx] = { ...n[idx], title: e.target.value.slice(0, 80) };
+                                      setCarouselElements(n);
+                                    }}
+                                    placeholder="Edit Title"
+                                    className="bg-transparent border-none p-0 text-sm font-semibold text-white outline-none focus:ring-0 w-full"
+                                  />
+                                  <span className="text-[8px] text-white/40 self-end mt-0.5">{elem.title.length}/80</span>
+                                </div>
+                              ) : (
+                                <div 
+                                  onClick={() => setFocusedField({ cardIdx: idx, type: 'title' })}
+                                  className="flex items-center justify-between cursor-pointer w-full py-0.5"
+                                >
+                                  <span className="text-sm font-semibold text-white truncate">
+                                    {(elem.title || "Edit Title").replace("{{price}}", elem.price ? `₹${elem.price}` : "")}
+                                  </span>
+                                  <span className="material-symbols-outlined text-[10px] text-white/40 opacity-100 md:opacity-0 md:group-hover/text:opacity-100 transition-opacity ml-1">edit</span>
+                                </div>
+                              )}
                             </div>
-                            <button
-                              onClick={() => setIsEditingGenericTemplate(true)}
-                              className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/60 text-white/80 hover:text-white hover:bg-black/90 transition-all opacity-0 group-hover:opacity-100 shadow-md flex items-center justify-center"
-                              title="Edit Template"
-                            >
-                              <span className="material-symbols-outlined text-sm">edit</span>
-                            </button>
+                            
+                            {/* Subtitle */}
+                            <div className="min-h-[18px] flex items-center justify-between">
+                              {focusedField?.cardIdx === idx && focusedField?.type === 'subtitle' ? (
+                                <div className="w-full flex flex-col">
+                                  <input 
+                                    autoFocus
+                                    type="text" 
+                                    value={elem.subtitle} 
+                                    maxLength={80}
+                                    onBlur={() => setFocusedField(null)}
+                                    onChange={(e) => {
+                                      const n = [...carouselElements];
+                                      n[idx] = { ...n[idx], subtitle: e.target.value.slice(0, 80) };
+                                      setCarouselElements(n);
+                                    }}
+                                    placeholder="Edit Description"
+                                    className="bg-transparent border-none p-0 text-xs text-[#8e8e93] outline-none focus:ring-0 w-full"
+                                  />
+                                  <span className="text-[8px] text-white/40 self-end mt-0.5">{elem.subtitle.length}/80</span>
+                                </div>
+                              ) : (
+                                <div 
+                                  onClick={() => setFocusedField({ cardIdx: idx, type: 'subtitle' })}
+                                  className="flex items-center justify-between cursor-pointer w-full py-0.5"
+                                >
+                                  <span className="text-xs text-[#8e8e93] line-clamp-2 leading-snug">
+                                    {(elem.subtitle || "Edit Description").replace("{{price}}", elem.price ? `₹${elem.price}` : "")}
+                                  </span>
+                                  <span className="material-symbols-outlined text-[10px] text-white/40 opacity-100 md:opacity-0 md:group-hover/text:opacity-100 transition-opacity ml-1">edit</span>
+                                </div>
+                              )}
+                            </div>
                           </div>
 
-                          {carouselElements.length > 1 && activeCardIndex < carouselElements.length - 1 && (
-                            <button
-                              onClick={() => setActiveCardIndex(prev => prev + 1)}
-                              className="absolute right-4 w-7 h-7 rounded-full bg-black/75 border border-white/10 text-white hover:bg-black/90 z-10 shadow-lg flex items-center justify-center transition-all"
-                            >
-                              <span className="material-symbols-outlined text-sm">chevron_right</span>
-                            </button>
-                          )}
-                        </div>
+                          {/* 3. Action Buttons List (Stacked, border divider, Instagram blue link color) */}
+                          <div className="border-t border-[#363636] divide-y divide-[#363636] flex flex-col shrink-0">
+                            {(elem.buttons || []).map((btn: any, bIdx: number) => {
+                              const isFirst = bIdx === 0;
+                              return (
+                                <div key={bIdx} className="py-2.5 flex items-center justify-center px-4 relative group/btn hover:bg-white/[0.02] transition-colors min-h-[40px]">
+                                  {/* Centered Button Title View */}
+                                  <span className="text-sm font-semibold text-[#0095f6] truncate max-w-[80%] pointer-events-none select-none text-center">
+                                    {(btn.title || "").replace("{{price}}", `${elem.price || ""}`)}
+                                  </span>
+                                  
+                                  {/* Absolute Edit Trigger Controls on the Right Edge of Button Row */}
+                                  <div className="absolute right-2 opacity-100 md:opacity-0 md:group-hover/btn:opacity-100 transition-all flex items-center gap-1">
+                                    <button 
+                                      onClick={() => {
+                                        setFocusedField({ cardIdx: idx, type: 'btn', btnIdx: bIdx });
+                                        setShowRightPanel(true);
+                                      }}
+                                      className="w-5 h-5 rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white flex items-center justify-center transition-colors"
+                                      title="Edit Button"
+                                    >
+                                      <span className="material-symbols-outlined text-[11px]">edit</span>
+                                    </button>
+                                    {!isFirst && (
+                                      <button 
+                                        onClick={() => {
+                                          const n = [...carouselElements];
+                                          const btns = n[idx].buttons.filter((_: any, i: number) => i !== bIdx);
+                                          n[idx] = { ...n[idx], buttons: btns };
+                                          setCarouselElements(n);
+                                        }}
+                                        className="w-5 h-5 rounded-full bg-red-500/10 hover:bg-red-500 hover:text-white text-red-400 flex items-center justify-center transition-colors"
+                                        title="Remove Button"
+                                      >
+                                        <span className="material-symbols-outlined text-[11px]">close</span>
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
 
-                        {carouselElements.length > 1 && (
-                          <div className="flex gap-1.5 justify-center">
-                            {carouselElements.map((_, idx) => (
-                              <div
-                                key={idx}
-                                className={cn(
-                                  "w-1.5 h-1.5 rounded-full transition-all duration-200",
-                                  idx === activeCardIndex ? "bg-[#B6B2FF] scale-110" : "bg-white/25"
-                                )}
-                              />
-                            ))}
+                            {/* Add Button action inside card */}
+                            {(elem.buttons || []).length < 3 && (
+                              <button 
+                                onClick={() => {
+                                  const n = [...carouselElements];
+                                  const btns = [...(n[idx].buttons || [])];
+                                  btns.push({ type: 'web_url', title: 'New Button', url: 'https://' });
+                                  n[idx] = { ...n[idx], buttons: btns };
+                                  setCarouselElements(n);
+                                }}
+                                className="py-2.5 text-center text-[10px] text-[#0095f6] hover:text-[#0095f6]/80 font-bold uppercase transition-all bg-white/[0.01] flex items-center justify-center gap-1"
+                              >
+                                <span className="material-symbols-outlined text-[12px]">add</span>
+                                Add Button
+                              </button>
+                            )}
+                          </div>
+
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Send Button */}
+                    <div className="flex gap-2 justify-center pt-1 w-full">
+                      <button onClick={() => handleSendGenericTemplate(carouselElements)} disabled={sending} className="px-5 py-2 rounded-xl bg-white text-black text-xs font-bold hover:bg-white/90 disabled:opacity-40 transition-all">
+                        Send Slider ({carouselElements.length} Cards)
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {showButtonTemplateForm && (
+                  <div className="flex flex-col items-center py-2 space-y-3 w-full">
+                    {/* Native Instagram DM Bubble mockup for Action Buttons template */}
+                    <div className="w-[248px] shrink-0 bg-[#262626] border border-white/5 rounded-[18px] overflow-hidden relative shadow-lg flex flex-col justify-between select-none">
+                      
+                      {/* 1. Message Bubble text content (click to edit inline) */}
+                      <div className="p-3.5 flex-1 min-w-0">
+                        {focusedField?.type === 'btnTempText' ? (
+                          <input 
+                            autoFocus
+                            type="text" 
+                            value={btnTempText} 
+                            onBlur={() => setFocusedField(null)}
+                            onChange={(e) => setBtnTempText(e.target.value)}
+                            placeholder="Message Text"
+                            className="bg-transparent border-none p-0 text-sm text-[#f5f5f5] outline-none focus:ring-0 w-full"
+                          />
+                        ) : (
+                          <div 
+                            onClick={() => setFocusedField({ cardIdx: -999, type: 'btnTempText' })}
+                            className="flex items-center justify-between cursor-pointer group/btn-temp-txt w-full py-0.5"
+                          >
+                            <span className="text-sm text-[#f5f5f5] break-words whitespace-pre-wrap flex-1">
+                              {(btnTempText || "Message text...").replace("{{price}}", selectedProductsForTemplates[0]?.price ? `₹${selectedProductsForTemplates[0].price}` : "")}
+                            </span>
+                            <span className="material-symbols-outlined text-[10px] text-white/30 opacity-100 md:opacity-0 md:group-hover/btn-temp-txt:opacity-100 transition-opacity ml-1 shrink-0">edit</span>
                           </div>
                         )}
-
-                        <div className="flex gap-2 w-full justify-end pt-3 border-t border-white/5">
-                          <button
-                            onClick={() => setIsEditingGenericTemplate(true)}
-                            className="px-3.5 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 font-bold text-xs flex items-center gap-1.5 transition-all"
-                          >
-                            <span className="material-symbols-outlined text-sm">edit</span>
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleSendGenericTemplate(carouselElements)}
-                            disabled={sending}
-                            className="px-4 py-1.5 rounded-lg bg-white text-black hover:bg-white/90 font-bold text-xs disabled:opacity-50 transition-all"
-                          >
-                            Send Slider ({carouselElements.length} card{carouselElements.length > 1 ? 's' : ''})
-                          </button>
-                        </div>
                       </div>
-                    )}
-                  </>
-                )}
 
-                {/* ACTION BUTTON MODE */}
-                {showButtonTemplateForm && (
-                  <>
-                    {isEditingButtonTemplate ? (
-                      <div className="space-y-4">
-                        <div>
-                          <label className="text-[9px] text-white/40 uppercase font-bold tracking-wider block mb-1.5">Message Text</label>
-                          <input
-                            type="text"
-                            value={btnTempText}
-                            onChange={(e) => setBtnTempText(e.target.value)}
-                            className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-white outline-none text-xs focus:border-white/30 transition-all"
-                            placeholder="e.g., Tap below to view details"
-                          />
-                        </div>
-
-                        <div className="space-y-3">
-                          <span className="text-[9px] text-white/40 font-bold uppercase tracking-wider block">Buttons (Max 3)</span>
-                          {buttonTemplateButtons.map((btn, idx) => (
-                            <div key={idx} className="grid grid-cols-2 gap-3 p-3 bg-white/[0.02] rounded-xl border border-white/5">
-                              <div>
-                                <label className="text-[9px] text-white/30 uppercase font-bold block mb-1">Button {idx + 1} Title</label>
-                                <input
-                                  type="text"
-                                  value={btn.title}
-                                  onChange={(e) => {
-                                    const newBtns = [...buttonTemplateButtons];
-                                    newBtns[idx] = { ...newBtns[idx], title: e.target.value };
-                                    setButtonTemplateButtons(newBtns);
-                                  }}
-                                  className="w-full bg-black/50 border border-white/10 rounded-md px-2.5 py-1.5 text-white outline-none text-xs focus:border-white/20"
-                                  placeholder="Buy Now"
-                                />
-                              </div>
-                              <div>
-                                <label className="text-[9px] text-white/30 uppercase font-bold block mb-1">Button {idx + 1} URL</label>
-                                <input
-                                  type="text"
-                                  value={btn.url}
-                                  onChange={(e) => {
-                                    const newBtns = [...buttonTemplateButtons];
-                                    newBtns[idx] = { ...newBtns[idx], url: e.target.value };
-                                    setButtonTemplateButtons(newBtns);
-                                  }}
-                                  className="w-full bg-black/50 border border-white/10 rounded-md px-2.5 py-1.5 text-white outline-none text-xs focus:border-white/20"
-                                  placeholder="https://..."
-                                />
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-
-                        <div className="flex justify-end gap-2 pt-2 border-t border-white/5">
-                          <button
-                            onClick={() => setIsEditingButtonTemplate(false)}
-                            className="px-4 py-1.5 rounded-lg bg-white text-black font-semibold text-xs hover:bg-white/90 transition-all"
-                          >
-                            Save & Preview
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center py-2 space-y-4">
-                        <div className="text-[9px] text-white/30 uppercase font-bold tracking-widest">Instagram Preview</div>
-
-                        <div className="w-full max-w-sm flex flex-col items-end gap-1">
-                          <div className="group relative px-4 py-2.5 rounded-2xl text-[11px] leading-relaxed break-words bg-white/[0.08] border border-white/10 text-white rounded-br-none shadow-lg">
-                            <p>{btnTempText}</p>
-                            <button
-                              onClick={() => setIsEditingButtonTemplate(true)}
-                              className="absolute -left-8 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black/60 text-white/80 hover:text-white hover:bg-black/90 transition-all opacity-0 group-hover:opacity-100 shadow-md flex items-center justify-center"
-                              title="Edit Template"
-                            >
-                              <span className="material-symbols-outlined text-sm">edit</span>
-                            </button>
-                          </div>
-
-                          <div className="w-[160px] bg-[#1f1f1f] border border-white/10 rounded-b-2xl overflow-hidden shadow-2xl divide-y divide-white/5">
-                            {buttonTemplateButtons.map((btn, idx) => (
-                              <div key={idx} className="py-2 text-[10px] font-bold text-[#8FE3FF] cursor-pointer hover:bg-white/5 transition-colors text-center">
-                                {btn.title || `Button ${idx + 1}`}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="flex gap-2 w-full justify-end pt-3 border-t border-white/5">
-                          <button
-                            onClick={() => setIsEditingButtonTemplate(true)}
-                            className="px-3.5 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 font-bold text-xs flex items-center gap-1.5 transition-all"
-                          >
-                            <span className="material-symbols-outlined text-sm">edit</span>
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleSendButtonTemplate(btnTempText, buttonTemplateButtons)}
-                            disabled={sending || buttonTemplateButtons.length === 0}
-                            className="px-4 py-1.5 rounded-lg bg-white text-black hover:bg-white/90 font-bold text-xs disabled:opacity-50 transition-all"
-                          >
-                            Send Template ({buttonTemplateButtons.length} button{buttonTemplateButtons.length > 1 ? 's' : ''})
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            )}
-
-            {/* Bottom Bar: Action Inputs */}
-            <div className="p-4 bg-[#0c0c0c]/40 border-t border-white/5 shrink-0 z-20">
-              {!isWithin24hWindow && (
-                <div className="mb-4 p-3 bg-red-500/5 border border-red-500/20 rounded-xl text-red-200/95 text-[11px] flex flex-col sm:flex-row items-center gap-3.5 justify-between font-medium">
-                  <div className="flex items-center gap-2.5">
-                    <span className="material-symbols-outlined text-lg text-red-400">warning</span>
-                    <span>Out of 24-hour messaging window. Only replies to inbound customer DMs are allowed.</span>
-                  </div>
-                  <a
-                    href={`https://ig.me/m/${selectedConversation.name}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="shrink-0 px-3.5 py-1.5 rounded-lg bg-[#e1306c] hover:bg-[#c13584] text-white text-[10px] font-bold tracking-wide uppercase transition-all flex items-center gap-1.5 shadow-lg"
-                  >
-                    <span className="material-symbols-outlined text-sm">chat_bubble</span>
-                    Message on Instagram
-                  </a>
-                </div>
-              )}
-
-              <div className={cn(
-                "border rounded-xl py-3 px-5 flex items-center gap-4 bg-white/[0.02] backdrop-blur-md transition-all duration-300",
-                isWithin24hWindow ? "border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3)]" : "border-red-500/10 opacity-40 cursor-not-allowed"
-              )}>
-                <button
-                  disabled={!isWithin24hWindow}
-                  className="text-white/60 hover:text-white transition-opacity shrink-0 disabled:opacity-35"
-                >
-                  <span className="material-symbols-outlined text-2xl">sentiment_satisfied</span>
-                </button>
-
-                <input
-                  className="flex-1 bg-transparent border-none focus:ring-0 text-xs text-white placeholder-white/25 outline-none disabled:cursor-not-allowed"
-                  placeholder={isWithin24hWindow ? "Write a message..." : "Messaging disabled (24h window closed)"}
-                  type="text"
-                  value={inputText}
-                  onChange={(e) => setInputText(e.target.value)}
-                  disabled={!isWithin24hWindow}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSendTextMessage();
-                    }
-                  }}
-                />
-
-                {/* Product Catalog Button */}
-                <button
-                  onClick={() => {
-                    setShowProductCatalogPopup(!showProductCatalogPopup);
-                    setShowButtonTemplateForm(false);
-                    setShowGenericTemplateForm(false);
-                  }}
-                  disabled={!isWithin24hWindow}
-                  className={cn(
-                    "transition-all shrink-0 disabled:opacity-35 hover:scale-105",
-                    showProductCatalogPopup ? "text-[#B6B2FF]" : "text-white/60 hover:text-white"
-                  )}
-                  title="Product Catalog"
-                >
-                  <span className="material-symbols-outlined text-2xl">shopping_bag</span>
-                </button>
-
-                {/* Templates Selector */}
-                <button
-                  onClick={() => {
-                    setShowGenericTemplateForm(!showGenericTemplateForm);
-                    setShowButtonTemplateForm(false);
-                    setShowProductCatalogPopup(false);
-                  }}
-                  disabled={!isWithin24hWindow}
-                  className={cn(
-                    "transition-all shrink-0 disabled:opacity-35 hover:scale-105",
-                    showGenericTemplateForm ? "text-[#B6B2FF]" : "text-white/60 hover:text-white"
-                  )}
-                  title="Image Slider Template"
-                >
-                  <span className="material-symbols-outlined text-2xl">view_carousel</span>
-                </button>
-
-                <button
-                  disabled={!isWithin24hWindow}
-                  className="text-white/60 hover:text-white transition-opacity shrink-0 disabled:opacity-35"
-                >
-                  <span className="material-symbols-outlined text-2xl">image</span>
-                </button>
-
-                <button
-                  onClick={handleSendTextMessage}
-                  disabled={sending || !isWithin24hWindow || !inputText.trim()}
-                  className="text-[#8FE3FF] hover:text-white font-bold text-[11px] uppercase tracking-wider transition-colors shrink-0 px-2 disabled:opacity-30"
-                >
-                  Send
-                </button>
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-white/30 text-xs p-6 gap-2">
-            <span className="material-symbols-outlined text-4xl text-white/10 mb-2 animate-pulse">forum</span>
-            <span className="font-semibold uppercase tracking-wider text-[10px]">Select a conversation</span>
-            <span className="text-white/20">Choose a contact from the sidebar to begin chatting</span>
-          </div>
-        )}
-      </section>
-
-      {/* Right Pane: Contextual Information (Desktop Only) */}
-      {showRightPanel && (
-        <section className="w-80 border-l border-white/5 bg-white/[0.005] backdrop-blur-md hidden xl:flex flex-col p-6 gap-6 overflow-y-auto shrink-0 relative z-10">
-          {selectedConversation ? (
-            <>
-              {/* User Profile Info Card */}
-              <div className="flex flex-col items-center text-center mt-2">
-                <div className="w-20 h-20 rounded-full border border-white/10 p-1 mb-4 shadow-[0_0_24px_rgba(255,255,255,0.03)] bg-black/20">
-                  <img
-                    src={selectedConversation.avatar}
-                    alt={selectedConversation.name}
-                    className="w-full h-full rounded-full object-cover"
-                  />
-                </div>
-                <h3 className="text-xs font-bold text-white tracking-wide">{selectedConversation.name}</h3>
-                <div className="flex gap-2 justify-center mt-3">
-                  <span className="px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-[8px] font-bold text-white/50 uppercase tracking-widest">Client</span>
-                  <span className="px-2.5 py-0.5 rounded-full bg-[#B6B2FF]/10 border border-[#B6B2FF]/20 text-[8px] font-bold text-[#B6B2FF] uppercase tracking-widest">Active</span>
-                </div>
-              </div>
-
-              {/* Details List */}
-              <div className="space-y-4 border-t border-white/5 pt-5">
-                <h4 className="text-[9px] font-bold text-white/30 uppercase tracking-widest">
-                  Conversation Details
-                </h4>
-                <div className="space-y-3 text-xs">
-                  <div className="flex justify-between items-center py-1 border-b border-white/[0.03]">
-                    <span className="text-white/45 text-[11px]">Last Active</span>
-                    <span className="text-white/90 font-medium text-[11px]">{selectedConversation.time}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-1">
-                    <span className="text-white/45 text-[11px]">24h Window</span>
-                    <span className={cn(
-                      "font-bold uppercase tracking-wider text-[9px] px-2 py-0.5 rounded",
-                      isWithin24hWindow
-                        ? "bg-green-500/10 text-green-400 border border-green-500/20"
-                        : "bg-red-500/10 text-red-400 border border-red-500/20"
-                    )}>
-                      {isWithin24hWindow ? "Open" : "Closed"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Interested Items Section */}
-              <div className="space-y-4 border-t border-white/5 pt-5 flex-1 flex flex-col min-h-0">
-                <h4 className="text-[9px] font-bold text-white/30 uppercase tracking-widest">
-                  Interested Items
-                </h4>
-
-                {loadingEnquiries ? (
-                  <div className="text-center py-8 text-xs text-white/30 flex flex-col items-center justify-center gap-2">
-                    <div className="animate-spin w-4 h-4 border border-white/20 border-t-white rounded-full"></div>
-                    <span className="text-[9px] uppercase tracking-wider">Loading...</span>
-                  </div>
-                ) : enquiries.length === 0 ? (
-                  <div className="text-center py-8 text-xs text-white/20 flex flex-col items-center justify-center gap-1.5 border border-dashed border-white/5 rounded-xl bg-white/[0.01]">
-                    <span className="material-symbols-outlined text-2xl text-white/10">shopping_bag</span>
-                    <span className="text-[11px]">No items tracked yet</span>
-                  </div>
-                ) : (
-                  <div className="space-y-3 overflow-y-auto custom-scrollbar pr-1 flex-1">
-                    {enquiries.map((enquiry: any) => (
-                      <div key={enquiry.id} className="space-y-2.5">
-                        {enquiry.products?.map((ep: any) => {
-                          const isSelected = selectedProductsForTemplates.some(p => p.id === ep.product_id);
-                          const selectionIndex = selectedProductsForTemplates.findIndex(p => p.id === ep.product_id);
-
+                      {/* 2. Action Buttons list (Instagram blue link color, stacked with dividers) */}
+                      <div className="border-t border-[#363636] divide-y divide-[#363636] flex flex-col shrink-0">
+                        {(buttonTemplateButtons || []).map((btn: any, bIdx: number) => {
+                          const isFirst = bIdx === 0;
                           return (
-                            <div
-                              key={ep.enquiry_product_id}
-                              onClick={() => handleToggleProductForSend(ep)}
-                              className={cn(
-                                "group flex gap-3 p-3 rounded-xl border transition-all duration-200 items-start relative cursor-pointer",
-                                isSelected
-                                  ? "bg-[#B6B2FF]/10 border-[#B6B2FF]/30 shadow-lg"
-                                  : "bg-white/[0.02] border-white/5 hover:border-white/10 hover:bg-white/[0.04]"
-                              )}
-                            >
-                              {ep.main_media_url ? (
-                                <img
-                                  src={ep.main_media_url}
-                                  className="w-11 h-11 rounded-lg object-cover border border-white/10 shrink-0"
-                                  alt={ep.title}
-                                />
-                              ) : (
-                                <div className="w-11 h-11 rounded-lg bg-white/5 flex items-center justify-center border border-white/10 shrink-0">
-                                  <span className="material-symbols-outlined text-base text-white/30">shopping_bag</span>
-                                </div>
-                              )}
-                              <div className="min-w-0 flex-1 pr-6">
-                                <h5 className="text-[11px] font-semibold text-white truncate leading-tight">
-                                  {ep.title}
-                                </h5>
-                                {ep.price && (
-                                  <p className="text-[10px] font-bold text-[#B6B2FF] mt-1">
-                                    ₹{ep.price}
-                                  </p>
-                                )}
-                                <div className="flex gap-1.5 mt-1.5 flex-wrap">
-                                  <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider ${enquiry.status === "OPEN"
-                                    ? "bg-green-500/10 text-green-400 border border-green-500/20"
-                                    : enquiry.status === "ACTIVE"
-                                      ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                                      : "bg-white/5 text-white/40 border border-white/10"
-                                    }`}>
-                                    {enquiry.status}
-                                  </span>
-                                  {ep.confidence_score !== null && (
-                                    <span className="px-1.5 py-0.5 rounded bg-[#8FE3FF]/10 text-[#8FE3FF] border border-[#8FE3FF]/20 text-[8px] font-bold uppercase tracking-wider">
-                                      {Math.round(ep.confidence_score * 100)}% Match
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-
-                              {/* Selection Number Badge */}
-                              {isSelected && (
-                                <span className="absolute top-2.5 right-2.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#B6B2FF] text-black text-[9px] font-bold shadow-md">
-                                  {selectionIndex + 1}
-                                </span>
-                              )}
-
-                              {/* Delete/Remove Icon */}
-                              {!isSelected && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeleteEnquiryProduct(ep.enquiry_product_id);
+                            <div key={bIdx} className="py-2.5 flex items-center justify-center px-4 relative group/btn hover:bg-white/[0.02] transition-colors min-h-[40px]">
+                              {/* Centered Button Title View */}
+                              <span className="text-sm font-semibold text-[#0095f6] truncate max-w-[80%] pointer-events-none select-none text-center">
+                                {(btn.title || "").replace("{{price}}", selectedProductsForTemplates[0]?.price ? `₹${selectedProductsForTemplates[0].price}` : "")}
+                              </span>
+                              
+                              {/* Absolute Edit Trigger Controls on the Right Edge of Button Row */}
+                              <div className="absolute right-2 opacity-100 md:opacity-0 md:group-hover/btn:opacity-100 transition-all flex items-center gap-1">
+                                <button 
+                                  onClick={() => {
+                                    setFocusedField({ cardIdx: -999, type: 'btnTempBtn', btnIdx: bIdx });
+                                    setShowRightPanel(true);
                                   }}
-                                  className="absolute top-2 right-2 w-6 h-6 rounded bg-red-500/10 text-red-400 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 hover:text-white"
-                                  title="Remove item"
+                                  className="w-5 h-5 rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white flex items-center justify-center transition-colors"
+                                  title="Edit Button"
                                 >
-                                  <span className="material-symbols-outlined text-xs">delete</span>
+                                  <span className="material-symbols-outlined text-[11px]">edit</span>
                                 </button>
-                              )}
+                                {!isFirst && (
+                                  <button 
+                                    onClick={() => {
+                                      const btns = buttonTemplateButtons.filter((_: any, i: number) => i !== bIdx);
+                                      setButtonTemplateButtons(btns);
+                                    }}
+                                    className="w-5 h-5 rounded-full bg-red-500/10 hover:bg-red-500 hover:text-white text-red-400 flex items-center justify-center transition-colors"
+                                    title="Remove Button"
+                                  >
+                                    <span className="material-symbols-outlined text-[11px]">close</span>
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           );
                         })}
                       </div>
-                    ))}
+
+                        {/* Add Button action inside bubble */}
+                        {(buttonTemplateButtons || []).length < 3 && (
+                          <button 
+                            onClick={() => {
+                              const btns = [...buttonTemplateButtons];
+                              btns.push({ type: 'web_url', title: 'New Button', url: 'https://' });
+                              setButtonTemplateButtons(btns);
+                            }}
+                            className="py-2.5 text-center text-[10px] text-[#0095f6] hover:text-[#0095f6]/80 font-bold uppercase transition-all bg-white/[0.01] flex items-center justify-center gap-1"
+                          >
+                            <span className="material-symbols-outlined text-[12px]">add</span>
+                            Add Button
+                          </button>
+                        )}
+                      </div>
+
+                    {/* Send Button */}
+                    <div className="flex gap-2 justify-center pt-1 w-full">
+                      <button 
+                        onClick={() => handleSendButtonTemplate(btnTempText, buttonTemplateButtons)} 
+                        disabled={sending || buttonTemplateButtons.length === 0} 
+                        className="px-5 py-2 rounded-xl bg-white text-black text-xs font-bold hover:bg-white/90 disabled:opacity-40 transition-all"
+                      >
+                        Send Buttons
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Floating Action Settings Popover (styled like Canvas trigger settings) */}
+                {focusedField && (focusedField.type === 'btn' || focusedField.type === 'btnTempBtn') && (
+                  <div className="absolute inset-0 bg-black/55 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="w-[340px] flex flex-col rounded-2xl bg-[#0F0F1A]/95 backdrop-blur-3xl border border-[#8FE3FF]/30 shadow-[0_32px_80px_-16px_rgba(0,0,0,0.65),0_0_0_1px_rgba(143,227,255,0.18)] ring-1 ring-[#8FE3FF]/15 overflow-hidden animate-in zoom-in-95 duration-200">
+                      {/* Drag Header look */}
+                      <div className="flex items-center justify-between p-3.5 border-b border-white/5 bg-[#8FE3FF]/5">
+                        <div className="flex items-center gap-2">
+                          <span className="material-symbols-outlined text-[#8FE3FF] text-lg">settings</span>
+                          <span className="text-[10px] font-bold text-white uppercase tracking-wider">Configure Action</span>
+                        </div>
+                        <button 
+                          onClick={() => setFocusedField(null)}
+                          className="w-5 h-5 rounded bg-white/5 text-white/40 hover:text-white flex items-center justify-center transition-colors"
+                        >
+                          <span className="material-symbols-outlined text-xs">close</span>
+                        </button>
+                      </div>
+
+                      {/* Body */}
+                      <div className="p-4 space-y-4 text-left">
+                        {(() => {
+                          const isGeneric = focusedField.type === 'btn';
+                          const cardIdx = focusedField.cardIdx;
+                          const btnIdx = focusedField.btnIdx ?? 0;
+                          
+                          const btn = isGeneric 
+                            ? carouselElements[cardIdx]?.buttons?.[btnIdx]
+                            : buttonTemplateButtons[btnIdx];
+
+                          if (!btn) return <p className="text-xs text-white/40">No action selected.</p>;
+                          const isFirst = btnIdx === 0;
+
+                          return (
+                            <div className="space-y-4">
+                              {/* Label */}
+                              <div>
+                                <div className="flex justify-between items-center mb-1">
+                                  <label className="text-[10px] text-[#8FE3FF] font-bold uppercase block">Button Text (Label)</label>
+                                  <span className="text-[9px] text-[#8FE3FF]/50 font-semibold">{btn.title.length}/20</span>
+                                </div>
+                                <RichTemplateInput 
+                                  value={btn.title}
+                                  maxLength={20}
+                                  onChange={(val: string) => {
+                                    if (isGeneric) {
+                                      const n = [...carouselElements];
+                                      const btns = [...n[cardIdx].buttons];
+                                      btns[btnIdx] = { ...btns[btnIdx], title: val.slice(0, 20) };
+                                      n[cardIdx] = { ...n[cardIdx], buttons: btns };
+                                      setCarouselElements(n);
+                                    } else {
+                                      const btns = [...buttonTemplateButtons];
+                                      btns[btnIdx] = { ...btns[btnIdx], title: val.slice(0, 20) };
+                                      setButtonTemplateButtons(btns);
+                                    }
+                                  }}
+                                  placeholder="Button Label"
+                                />
+                                <p className="text-[9px] text-white/35 mt-1.5 leading-relaxed">
+                                  Use <code className="text-red-400 font-semibold">{"{{"}price{"}}"}</code> to insert the product price. E.g. <code className="text-[#8FE3FF]">Buy at {"{{"}price{"}}"}</code>.
+                                </p>
+                              </div>
+
+                              {/* URL */}
+                              <div>
+                                <label className="text-[10px] text-[#8FE3FF] font-bold uppercase block mb-1.5">Button Action (Link URL)</label>
+                                <input 
+                                  type="text"
+                                  disabled={isFirst}
+                                  value={btn.url || ""}
+                                  onChange={(e) => {
+                                    if (isGeneric) {
+                                      const n = [...carouselElements];
+                                      const btns = [...n[cardIdx].buttons];
+                                      btns[btnIdx] = { ...btns[btnIdx], url: e.target.value };
+                                      n[cardIdx] = { ...n[cardIdx], buttons: btns };
+                                      setCarouselElements(n);
+                                    } else {
+                                      const btns = [...buttonTemplateButtons];
+                                      btns[btnIdx] = { ...btns[btnIdx], url: e.target.value };
+                                      setButtonTemplateButtons(btns);
+                                    }
+                                  }}
+                                  placeholder="https://yourstore.com/checkout"
+                                  className="w-full bg-[#11111a] border border-[#8FE3FF]/20 rounded-md px-3 py-2 text-xs text-white outline-none focus:border-[#8FE3FF]/45 disabled:opacity-40"
+                                />
+                                {isFirst && (
+                                  <p className="text-[9px] text-[#8e8e93] mt-1.5 leading-relaxed">
+                                    ℹ️ The first action link is automatically tied to the storefront checkout link.
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </div>
+
+                      {/* Footer */}
+                      <div className="p-3 border-t border-white/5 bg-[#8FE3FF]/5 flex justify-end">
+                        <button 
+                          onClick={() => setFocusedField(null)}
+                          className="px-4 py-1.5 bg-[#0095f6] hover:bg-[#0095f6]/95 text-white text-[10px] font-bold rounded-lg shadow-md transition-all active:scale-[0.98]"
+                        >
+                          Done & Save
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
+            )}
+
+            {/* Input Bar */}
+            <div className="px-4 py-3 border-t border-white/[0.06] bg-[#0d0d0d] shrink-0">
+              {!isWithin24hWindow ? (
+                <div className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl bg-red-500/5 border border-red-500/20 text-red-300/80">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-red-400 text-[18px]">warning</span>
+                    <span className="text-[11px] font-medium">24h messaging window closed</span>
+                  </div>
+                  <a href={`https://ig.me/m/${selectedConversation.name}`} target="_blank" rel="noopener noreferrer" className="shrink-0 px-3 py-1 rounded-lg bg-[#e1306c] hover:bg-[#c13584] text-white text-[10px] font-bold tracking-wide uppercase transition-all flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[13px]">open_in_new</span>
+                    Instagram
+                  </a>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all bg-white/[0.04] border-white/[0.08] focus-within:border-white/20">
+                  <button className="text-white/40 hover:text-white transition-colors shrink-0">
+                    <span className="material-symbols-outlined text-[22px]">sentiment_satisfied</span>
+                  </button>
+                  <input
+                    className="flex-1 bg-transparent text-sm text-white placeholder-white/25 outline-none"
+                    placeholder="Message..."
+                    value={inputText}
+                    onChange={(e) => setInputText(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendTextMessage(); } }}
+                  />
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button onClick={() => { setShowProductCatalogPopup(!showProductCatalogPopup); setShowButtonTemplateForm(false); setShowGenericTemplateForm(false); }} className={cn("transition-all hover:scale-110", showProductCatalogPopup ? "text-[#b6b2ff]" : "text-white/40 hover:text-white")}>
+                      <span className="material-symbols-outlined text-[22px]">shopping_bag</span>
+                    </button>
+                    <button onClick={() => { setShowGenericTemplateForm(!showGenericTemplateForm); setShowButtonTemplateForm(false); setShowProductCatalogPopup(false); }} className={cn("transition-all hover:scale-110", showGenericTemplateForm ? "text-[#b6b2ff]" : "text-white/40 hover:text-white")}>
+                      <span className="material-symbols-outlined text-[22px]">view_carousel</span>
+                    </button>
+                    <button
+                      onClick={handleSendTextMessage}
+                      disabled={sending || !inputText.trim()}
+                      className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-black hover:bg-white/90 active:scale-95 transition-all disabled:opacity-30 shadow-sm"
+                    >
+                      <span className="material-symbols-outlined text-[17px]" style={{ fontVariationSettings: "'FILL' 1" }}>send</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center gap-3 text-white/20 select-none">
+            <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mb-2">
+              <span className="material-symbols-outlined text-3xl">forum</span>
+            </div>
+            <h3 className="text-sm font-semibold text-white/40">Select a conversation</h3>
+            <p className="text-xs text-white/20">Choose a contact from the sidebar to start chatting</p>
+          </div>
+        )}
+      </section>
+
+      {/* ─── RIGHT PANE: Context Panel ────────────────────────────────── */}
+      {/* Backdrop for mobile */}
+      {showRightPanel && (
+        <div className="xl:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-40" onClick={() => setShowRightPanel(false)} />
+      )}
+      {showRightPanel && (
+        <aside className={`
+          fixed xl:relative top-0 right-0 h-full z-50
+          w-80 xl:w-80
+          border-l border-white/[0.06] bg-[#111]
+          flex flex-col shrink-0 overflow-y-auto
+          [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full
+          transition-transform duration-300
+          xl:translate-x-0
+        `}>
+          {selectedConversation ? (
+            <>
+              {/* Profile */}
+              <div className="flex flex-col items-center text-center px-5 pt-6 pb-5 border-b border-white/[0.06]">
+                    <img src={selectedConversation.avatar} alt={selectedConversation.name} className="w-20 h-20 rounded-full object-cover border border-white/10 mb-3 shadow-lg" />
+                    <h3 className="text-sm font-bold text-white">@{selectedConversation.name}</h3>
+
+                    {/* Instagram Quick Actions Bar */}
+                    <div className="flex justify-center gap-6 mt-4 w-full">
+                      <a
+                        href={`https://instagram.com/${selectedConversation.name}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex flex-col items-center gap-1 group text-white/60 hover:text-white transition-colors"
+                      >
+                        <div className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-white/10 transition-colors">
+                          <span className="material-symbols-outlined text-[18px]">person</span>
+                        </div>
+                        <span className="text-[10px] font-medium">Profile</span>
+                      </a>
+                      <button className="flex flex-col items-center gap-1 group text-white/60 hover:text-white transition-colors">
+                        <div className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-white/10 transition-colors">
+                          <span className="material-symbols-outlined text-[18px]">notifications</span>
+                        </div>
+                        <span className="text-[10px] font-medium">Mute</span>
+                      </button>
+                      <button className="flex flex-col items-center gap-1 group text-white/60 hover:text-white transition-colors">
+                        <div className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-white/10 transition-colors">
+                          <span className="material-symbols-outlined text-[18px]">search</span>
+                        </div>
+                        <span className="text-[10px] font-medium">Search</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Toggles (Instagram Details Style) */}
+                  <div className="px-5 py-4 border-b border-white/[0.06] space-y-3.5">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-white/90">Mute messages</span>
+                      <input type="checkbox" className="w-7 h-3.5 rounded-full accent-[#b6b2ff] cursor-pointer" />
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-white/90">Mute calls</span>
+                      <input type="checkbox" className="w-7 h-3.5 rounded-full accent-[#b6b2ff] cursor-pointer" />
+                    </div>
+                  </div>
+
+                  {/* Conversation Info */}
+                  <div className="px-5 py-4 border-b border-white/[0.06] space-y-2.5">
+                    <p className="text-[9px] font-bold text-white/25 uppercase tracking-widest mb-3">Conversation Info</p>
+                    {[
+                      ["Last Active", selectedConversation.time],
+                      ["24h Window", isWithin24hWindow ? "Open" : "Closed"],
+                      ["Messages", messages.length.toString()],
+                    ].map(([label, val]) => (
+                      <div key={label} className="flex justify-between items-center">
+                        <span className="text-[11px] text-white/40">{label}</span>
+                        <span className="text-[11px] text-white font-medium">{val}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Enquiries */}
+                  <div className="flex-1 px-5 py-4">
+                    <p className="text-[9px] font-bold text-white/25 uppercase tracking-widest mb-3">Interested Products</p>
+                    {loadingEnquiries ? (
+                      <div className="flex flex-col items-center justify-center gap-2 py-8 text-white/20">
+                        <div className="w-4 h-4 rounded-full border border-white/20 border-t-white animate-spin" />
+                        <span className="text-[9px] uppercase tracking-widest">Loading</span>
+                      </div>
+                    ) : enquiries.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center gap-2 py-8 border border-dashed border-white/[0.06] rounded-xl text-white/20">
+                        <span className="material-symbols-outlined text-2xl">shopping_bag</span>
+                        <span className="text-[11px]">No items tracked</span>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {enquiries.map((enquiry: any) =>
+                          enquiry.products?.map((ep: any) => {
+                            const isSel = selectedProductsForTemplates.some(p => p.id === ep.product_id);
+                            return (
+                              <div
+                                key={ep.enquiry_product_id}
+                                onClick={() => handleToggleProductForSend(ep)}
+                                className={cn("group flex gap-3 p-3 rounded-xl border cursor-pointer transition-all relative", isSel ? "bg-[#b6b2ff]/10 border-[#b6b2ff]/30" : "bg-white/[0.02] border-white/[0.06] hover:border-white/15")}
+                              >
+                                {ep.main_media_url ? (
+                                  <img src={ep.main_media_url} className="w-10 h-10 rounded-lg object-cover border border-white/10 shrink-0" alt="" />
+                                ) : (
+                                  <div className="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                                    <span className="material-symbols-outlined text-sm text-white/20">shopping_bag</span>
+                                  </div>
+                                )}
+                                <div className="flex-1 min-w-0 pr-5">
+                                  <p className="text-[11px] font-semibold text-white truncate">{ep.title}</p>
+                                  {ep.price && <p className="text-[10px] font-bold text-[#b6b2ff] mt-0.5">₹{ep.price}</p>}
+                                  <div className="flex gap-1 mt-1">
+                                    <span className={cn("px-1.5 py-0.5 rounded text-[8px] font-bold uppercase", enquiry.status === "OPEN" ? "bg-emerald-500/10 text-emerald-400" : "bg-white/5 text-white/30")}>{enquiry.status}</span>
+                                    {ep.confidence_score != null && <span className="px-1.5 py-0.5 rounded bg-[#8fe3ff]/10 text-[#8fe3ff] text-[8px] font-bold">{Math.round(ep.confidence_score * 100)}%</span>}
+                                  </div>
+                                </div>
+                                {isSel && <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-[#b6b2ff] text-black text-[8px] font-bold flex items-center justify-center">{selectedProductsForTemplates.findIndex(p => p.id === ep.product_id) + 1}</span>}
+                                {!isSel && (
+                                  <button onClick={(e) => { e.stopPropagation(); handleDeleteEnquiryProduct(ep.enquiry_product_id); }} className="absolute top-2 right-2 w-5 h-5 rounded bg-red-500/10 text-red-400 items-center justify-center hidden group-hover:flex hover:bg-red-500 hover:text-white transition-all">
+                                    <span className="material-symbols-outlined text-[11px]">delete</span>
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    )}
+                  </div>
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center text-white/20 text-[11px] font-semibold uppercase tracking-widest text-center">
-              No conversation selected
+            <div className="flex-1 flex items-center justify-center text-white/15 text-[11px] font-semibold uppercase tracking-widest text-center px-5">
+              Select a conversation
             </div>
           )}
-        </section>
+        </aside>
       )}
     </motion.div>
   );
 }
+

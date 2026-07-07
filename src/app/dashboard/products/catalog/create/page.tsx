@@ -628,7 +628,7 @@ export default function ProductCreatePage() {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="max-w-6xl mx-auto text-[#e5e2e1] pb-16 space-y-8 px-4 md:px-6 font-sans"
+      className="text-[#e5e2e1] pb-16 space-y-8 font-sans"
     >
       {/* Header & Actions */}
       <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-4 pb-4 border-b border-[#444748]/10">

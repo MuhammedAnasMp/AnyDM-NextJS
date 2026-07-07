@@ -21,13 +21,13 @@ function DashboardLayoutContent({
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
 
   const appUser = useSelector((state: RootState) => state.auth.user);
-  const isHydrating = useSelector((state: RootState) => state.auth.isHydrating);
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const dispatch = useDispatch();
 
   const isBuilder = pathname === "/dashboard/automations" || pathname.startsWith("/dashboard/automations");
+  const isFullBleed = isBuilder || pathname === "/dashboard/inbox";
 
   useEffect(() => {
     const handleOpenSidebar = () => setIsSidebarOpen(true);
@@ -81,23 +81,8 @@ function DashboardLayoutContent({
     hydrateSession();
   }, [firebaseUser, appUser, searchParams, dispatch]);
 
-  if (isHydrating) {
-    return (
-      <div className="min-h-screen bg-[#131313] text-[#e5e2e1] flex flex-col items-center justify-center relative overflow-hidden font-sans">
-        {/* Background glows */}
-        <div className="absolute top-[-300px] left-[-300px] w-[600px] h-[600px] rounded-full bg-[#c4c0ff]/10 blur-[120px] pointer-events-none"></div>
-        <div className="absolute bottom-[-300px] right-[-300px] w-[600px] h-[600px] rounded-full bg-white/5 blur-[120px] pointer-events-none"></div>
-
-        <div className="glass-pane p-8 rounded-2xl flex flex-col items-center gap-4 relative z-10">
-          <div className="w-10 h-10 rounded-full border-4 border-white/20 border-t-white animate-spin"></div>
-          <p className="text-sm font-semibold tracking-tight text-white/80">Securing environment...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className={cn("bg-[#131313] text-[#e5e2e1] relative", isBuilder ? "h-screen overflow-hidden" : "min-h-screen")}>
+    <div className={cn("bg-[#131313] text-[#e5e2e1] relative", isFullBleed ? "h-screen overflow-hidden" : "min-h-screen")}>
       {/* Ethereal Background Accents */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-[#c4c0ff]/5 blur-[120px] rounded-full"></div>
@@ -110,17 +95,19 @@ function DashboardLayoutContent({
       {/* Main Content Area (ml-0 on Mobile, ml-[240px] on Desktop) */}
       <div className={cn(
         "lg:ml-[240px] flex flex-col relative z-10 transition-all duration-300",
-        isBuilder ? "h-screen overflow-hidden" : "min-h-screen"
+        isFullBleed ? "h-screen overflow-hidden" : "min-h-screen"
       )}>
         {/* Two-Tier Dynamic Header */}
         <Header onMenuClick={() => setIsSidebarOpen(true)} />
 
-        {/* Content Canvas (p-4 on Mobile, p-8 on Desktop) */}
+        {/* Content Canvas — only render after Firebase resolves (~100ms) */}
         <main className={cn(
           "flex-1 w-full mx-auto",
-          isBuilder ? "min-h-0 p-0 max-w-none overflow-hidden" : "max-w-[1440px]"
+          isFullBleed
+            ? "flex flex-col flex-1 min-h-0 p-0 max-w-none overflow-hidden"
+            : "w-full px-4 py-6 sm:px-6"
         )}>
-          {children}
+          {firebaseUser ? children : null}
         </main>
       </div>
     </div>

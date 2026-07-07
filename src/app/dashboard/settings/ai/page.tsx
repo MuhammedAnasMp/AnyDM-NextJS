@@ -193,7 +193,7 @@ export default function AISettingsPage() {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="max-w-6xl mx-auto space-y-6 pt-6"
+      className="space-y-6"
       style={{ color: t.onSurface }}
     >
       {/* Page header */}

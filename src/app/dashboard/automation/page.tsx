@@ -157,7 +157,7 @@ export default function AutomationsDashboard() {
       {/* Dense Sticky Header Overlay */}
 
 
-      <main className=".max-w-6xl mx-auto px-4 ">
+      <main className="w-full">
 
         {/* Compact Title Section */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5 pb-3.5">

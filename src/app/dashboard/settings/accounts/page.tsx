@@ -217,8 +217,7 @@ function AccountsContent() {
     type: "error" | "success" | "info";
   }>({ isVisible: false, message: "", type: "error" });
 
-  const [referralCodeInput, setReferralCodeInput] = useState("");
-  const [isSubmittingReferral, setIsSubmittingReferral] = useState(false);
+
 
   const [globalSettings, setGlobalSettings] = useState({
     trial_days: 14,
@@ -238,22 +237,7 @@ function AccountsContent() {
       .catch(err => console.error("Error fetching global settings:", err));
   }, []);
 
-  const handleSubmitReferral = async () => {
-    if (!referralCodeInput.trim()) return;
-    setIsSubmittingReferral(true);
-    try {
-      const res = await api.post("/accounts/referral/set-referred-by/", {
-        code: referralCodeInput.trim()
-      });
-      showToast(res.data.message, "success");
-      dispatch(setUser(res.data.user));
-    } catch (err: any) {
-      const msg = err.response?.data?.details || err.response?.data?.error || "Failed to set referrer.";
-      showToast(msg, "error");
-    } finally {
-      setIsSubmittingReferral(false);
-    }
-  };
+
 
   const handleSaveSettings = async () => {
     setIsSavingSettings(true);
@@ -550,7 +534,7 @@ function AccountsContent() {
   if (!mounted) return null;
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 p-6">
+    <div className="space-y-6">
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#444748] pb-6">
         <div className="flex items-center gap-4">
@@ -675,40 +659,7 @@ function AccountsContent() {
           </div>
 
           {/* Referral Entry Card */}
-          <div className="bg-[#20201f] border border-[#444748] rounded-md p-4">
-            <h3 className="text-sm font-semibold text-[#e5e2e1] mb-3 flex items-center gap-2">
-              <Gift className="w-4 h-4 text-[#8fe3ff]" strokeWidth={1.75} />
-              <span>Referred by</span>
-            </h3>
 
-            {appUser?.referred_by ? (
-              <div className="p-3 bg-[#1c1b1b] border border-[#444748] rounded-md text-xs text-[#c4c7c8]/80 leading-relaxed">
-                You were referred by: <span className="text-[#e5e2e1] font-mono font-semibold">{appUser.referred_by}</span>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-3">
-                <p className="text-[11px] text-[#c4c7c8]/60 leading-relaxed">
-                  If you signed up without a referral link, you can add your referrer's code below within 14 days of signup to support them.
-                </p>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={referralCodeInput}
-                    onChange={(e) => setReferralCodeInput(e.target.value)}
-                    placeholder="Enter REF-XXXXXX"
-                    className="flex-1 bg-[#1c1b1b] border border-[#444748] rounded py-2 px-3 text-xs text-[#e5e2e1] uppercase focus:outline-none focus:border-[#8e9192]"
-                  />
-                  <button
-                    onClick={handleSubmitReferral}
-                    disabled={isSubmittingReferral}
-                    className="bg-white text-black font-semibold text-xs px-4 py-2 rounded transition-colors cursor-pointer hover:bg-[#eaeaea] disabled:opacity-50"
-                  >
-                    {isSubmittingReferral ? "..." : "Link"}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
 
           {/* Global Configuration Card (Demo Settings) */}
           <div className="bg-[#20201f] border border-[#444748] rounded-md p-4">
