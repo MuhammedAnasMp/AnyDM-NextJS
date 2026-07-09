@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
 import api from "@/lib/services/api.service";
+import { authService } from "@/lib/services/auth.service";
 import { cn } from "@/lib/utils";
 import { useSearchParams, useRouter } from "next/navigation";
 import { CheckCircle, Lock } from "lucide-react";
@@ -315,6 +316,142 @@ export default function InboxPage() {
     prevAccountUsernameRef.current = activeAccount?.username;
     fetchConversations();
   }, [activeAccount?.username]);
+
+  // Keep refs of state to prevent WebSocket event handler stale closures
+  const selectedConversationRef = useRef(selectedConversation);
+  const businessInfoRef = useRef(businessInfo);
+
+  useEffect(() => {
+    selectedConversationRef.current = selectedConversation;
+  }, [selectedConversation]);
+
+  useEffect(() => {
+    businessInfoRef.current = businessInfo;
+  }, [businessInfo]);
+
+  useEffect(() => {
+    const token = authService.getAccessToken();
+    if (!token || !activeAccount?.id) return;
+
+    let wsUrl = "";
+    const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+    let host = rawApiUrl;
+    let isSecure = false;
+    
+    if (rawApiUrl.startsWith("https://")) {
+      host = rawApiUrl.substring(8);
+      isSecure = true;
+    } else if (rawApiUrl.startsWith("http://")) {
+      host = rawApiUrl.substring(7);
+    } else if (typeof window !== "undefined") {
+      isSecure = window.location.protocol === "https:";
+      if (!host) {
+        host = window.location.hostname + (window.location.port ? `:${window.location.port}` : "");
+      }
+    }
+    
+    const wsProtocol = isSecure ? "wss://" : "ws://";
+    wsUrl = `${wsProtocol}${host}/ws/inbox/?token=${token}`;
+
+    console.log("[WebSocket] Connecting to", wsUrl);
+    const socket = new WebSocket(wsUrl);
+
+    socket.onopen = () => {
+      console.log("[WebSocket] Connected successfully");
+    };
+
+    socket.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log("[WebSocket] Received message", data);
+
+        if (data.event_type === "new_message") {
+          const { recipient_id, message } = data;
+
+          const currentSelConv = selectedConversationRef.current;
+          const currentBusInfo = businessInfoRef.current;
+
+          // 1. Map backend message format to frontend message format
+          const filterUsername = activeAccount?.username;
+          const isSelf = message.from?.username === filterUsername || message.from?.id === currentBusInfo?.id;
+          
+          const formattedMessage = {
+            id: message.id,
+            sender: message.from?.username || (isSelf ? "You" : "Instagram User"),
+            text: message.message || "",
+            time: message.created_time
+              ? new Date(message.created_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+              : "",
+            isSelf,
+            isAi: message.message_source === "AI" || message.from?.username === "AI",
+            avatar: isSelf
+              ? `https://ui-avatars.com/api/?name=Admin&background=000&color=fff`
+              : currentSelConv?.avatar || `https://ui-avatars.com/api/?name=User&background=random&color=fff`,
+            created_time: message.created_time,
+            attachments: message.attachments,
+            shares: message.shares,
+            story: message.story
+          };
+
+          // 2. If this message is for the currently selected conversation, append it in real time
+          if (currentSelConv && String(currentSelConv.recipient_id) === String(recipient_id)) {
+            setMessages((prev) => {
+              if (prev.some((m) => m.id === formattedMessage.id)) return prev;
+              return [...prev, formattedMessage];
+            });
+
+            // Update cache
+            if (globalChatCache[currentSelConv.id]) {
+              const cacheMsgs = globalChatCache[currentSelConv.id].messages;
+              if (!cacheMsgs.some((m) => m.id === formattedMessage.id)) {
+                globalChatCache[currentSelConv.id].messages = [...cacheMsgs, formattedMessage];
+              }
+            }
+          }
+
+          // 3. Update the conversation list
+          setConversations((prevConvs) => {
+            const index = prevConvs.findIndex((c) => String(c.recipient_id) === String(recipient_id));
+            if (index !== -1) {
+              const updatedConvs = [...prevConvs];
+              updatedConvs[index] = {
+                ...updatedConvs[index],
+                text: formattedMessage.text || "Sent an attachment",
+                updated_time: message.created_time,
+                time: "Just now"
+              };
+              // Re-sort conversations by updated_time descending
+              updatedConvs.sort((a, b) => new Date(b.updated_time || 0).getTime() - new Date(a.updated_time || 0).getTime());
+              return updatedConvs;
+            } else {
+              // If conversation doesn't exist in the list, trigger silent fetch
+              fetchConversations(true);
+              return prevConvs;
+            }
+          });
+        }
+      } catch (err) {
+        console.error("[WebSocket] Error handling incoming message:", err);
+      }
+    };
+
+    socket.onerror = (error) => {
+      console.error("[WebSocket] Error:", error);
+    };
+
+    socket.onclose = (event) => {
+      console.log("[WebSocket] Connection closed", event);
+    };
+
+    return () => {
+      console.log("[WebSocket] Cleaning up connection");
+      socket.onopen = null;
+      socket.onmessage = null;
+      socket.onerror = null;
+      socket.onclose = null;
+      socket.close();
+    };
+  }, [activeAccount?.id]);
 
 
 
