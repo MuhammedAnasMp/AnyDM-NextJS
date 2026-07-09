@@ -10,6 +10,7 @@ import { getCategoryForTemplate } from './TemplateItem';
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/Tooltip';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSearchParams } from 'next/navigation';
 
 import * as UserComment from './templates/User Comment';
 import * as UserDM from './templates/User DM';
@@ -91,6 +92,9 @@ const TEMPLATE_CATEGORIES = [
 ];
 
 export function LeftSidebar() {
+  const searchParams = useSearchParams();
+  const flowId = searchParams.get('id');
+
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
   const nodes = useSelector((state: RootState) => state.flow.nodes);
@@ -107,6 +111,10 @@ export function LeftSidebar() {
   };
 
   const activeCategoryData = TEMPLATE_CATEGORIES.find(c => c.id === activeCategory);
+
+  if (flowId) {
+    return null;
+  }
 
   return (
     <TooltipProvider>

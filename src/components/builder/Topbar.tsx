@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store';
 import { undo, redo, selectNode, setFlow } from '@/store/slices/flowSlice';
-import { Undo, Redo, Settings, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Undo, Redo, Settings, Eye, EyeOff, Loader2, ArrowLeft } from 'lucide-react';
 import api from '@/lib/services/api.service';
 import { useRouter } from 'next/navigation';
 import Toast from '../Toast';
@@ -92,8 +92,15 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
   return (
     <div className="w-full flex flex-col bg-[#131313] border-b border-white/5 z-10 shrink-0">
       {/* Main Header Row */}
-      <div className="h-16 px-6 flex items-center justify-between">
+      <div className="h-16 px-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => router.push('/dashboard/automation')}
+            className="p-1.5 rounded-full hover:bg-white/5 text-white/60 hover:text-white transition-all cursor-pointer mr-1 flex items-center justify-center"
+            title="Back to Automations"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
           <h1 className="text-xl font-bold text-white tracking-tight">{flow.name}</h1>
           <span className="text-sm font-medium text-on-surface-variant italic">Edited just now</span>
         </div>
@@ -104,11 +111,10 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
             <button
               onClick={() => dispatch(undo())}
               disabled={!canUndo}
-              className={`p-1.5 rounded-full transition-all ${
-                canUndo 
-                  ? 'text-white hover:bg-white/10 hover:scale-105 active:scale-95' 
-                  : 'text-white/25 cursor-not-allowed opacity-40'
-              }`}
+              className={`p-1.5 rounded-full transition-all ${canUndo
+                ? 'text-white hover:bg-white/10 hover:scale-105 active:scale-95'
+                : 'text-white/25 cursor-not-allowed opacity-40'
+                }`}
               title="Undo (Ctrl+Z)"
             >
               <Undo className="w-4 h-4" />
@@ -116,11 +122,10 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
             <button
               onClick={() => dispatch(redo())}
               disabled={!canRedo}
-              className={`p-1.5 rounded-full transition-all ${
-                canRedo 
-                  ? 'text-white hover:bg-white/10 hover:scale-105 active:scale-95' 
-                  : 'text-white/25 cursor-not-allowed opacity-40'
-              }`}
+              className={`p-1.5 rounded-full transition-all ${canRedo
+                ? 'text-white hover:bg-white/10 hover:scale-105 active:scale-95'
+                : 'text-white/25 cursor-not-allowed opacity-40'
+                }`}
               title="Redo (Ctrl+Y)"
             >
               <Redo className="w-4 h-4" />
@@ -129,11 +134,10 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
 
           <button
             onClick={onTogglePreview}
-            className={`h-10 px-4 rounded-full border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-              showPreview
-                ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/20 shadow-sm'
-                : 'bg-[#181818] border-white/10 text-on-surface-variant hover:text-white hover:border-white/20'
-            }`}
+            className={`h-10 px-4 rounded-full border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${showPreview
+              ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/20 shadow-sm'
+              : 'bg-[#181818] border-white/10 text-on-surface-variant hover:text-white hover:border-white/20'
+              }`}
           >
             {showPreview ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
             <span>{showPreview ? 'Hide Preview' : 'Show Preview'}</span>
@@ -145,7 +149,7 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
           >
             Save Draft
           </button>
-          <button 
+          <button
             onClick={() => dispatch(selectNode({ id: 'global' }))}
             className="h-10 px-4 rounded-full bg-[#1a1a1a] text-white border border-white/5 font-semibold text-sm hover:bg-white/10 transition-colors flex items-center gap-2"
           >
@@ -163,7 +167,7 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
         </div>
       </div>
 
-      <Toast 
+      <Toast
         message={toast.message}
         type={toast.type}
         isVisible={toast.visible}

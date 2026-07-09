@@ -137,7 +137,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const userPhoto = googlePhoto || appUser?.photo_url || "https://picsum.photos/seed/elena/100/100";
 
   return (
-    <div className="sticky top-0 z-40 w-full flex flex-col bg-[#131313] border-b border-white/5 shrink-0 text-white">
+    <div className="sticky top-0 z-[50] w-full flex flex-col bg-[#131313] border-b border-white/5 shrink-0 text-white">
       {/* Tier 1: Main Header */}
       <header className="px-4 lg:px-lg py-sm flex justify-between items-center w-full min-h-[64px] gap-4">
         <div className="flex items-center gap-3 md:gap-6 flex-1 min-w-0">
@@ -164,7 +164,9 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
         <div className="flex items-center gap-2 md:gap-3 shrink-0">
           {/* Instagram Account Switcher Dropdown */}
-          {activeAccount && pathname !== "/dashboard/products/catalog/create" && (
+          {activeAccount && 
+            pathname !== "/dashboard/products/catalog/create" && 
+            !pathname.startsWith("/dashboard/automations") && (
             <div className="relative" ref={accountMenuRef}>
               <div
                 onClick={() => instagramAccounts.length > 1 && setIsAccountMenuOpen(!isAccountMenuOpen)}
@@ -260,7 +262,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
       </header>
 
       {/* Tier 2: Sub-Navigation Bar */}
-      {items.length > 0 && (
+      {!pathname.startsWith("/dashboard/automations") && items.length > 0 && (
         <nav className="bg-[#181817]/40 backdrop-blur-xl border-t border-white/5 px-4 lg:px-lg h-9 flex items-center overflow-x-auto scrollbar-hide">
           <div className="flex items-center gap-3 md:gap-3 text-xs font-semibold h-full whitespace-nowrap">
             {items.map((item) => {

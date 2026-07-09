@@ -21,6 +21,8 @@ import {
 } from "lucide-react";
 import api from "@/lib/services/api.service";
 import Toast from "@/components/Toast";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store";
 
 interface Automation {
   id: string;
@@ -42,6 +44,9 @@ interface Automation {
 }
 
 export default function AutomationsDashboard() {
+  const appUser = useSelector((state: RootState) => state.auth.user);
+  const activeAccountId = appUser?.active_instagram_account_id;
+
   const [automations, setAutomations] = useState<Automation[]>([]);
   const [loading, setLoading] = useState(true);
   const [togglingId, setTogglingId] = useState<string | null>(null);
@@ -75,7 +80,7 @@ export default function AutomationsDashboard() {
 
   useEffect(() => {
     fetchAutomations();
-  }, []);
+  }, [activeAccountId]);
 
   const handleToggle = async (id: string, currentStatus: "active" | "disabled") => {
     setTogglingId(id);
@@ -162,7 +167,7 @@ export default function AutomationsDashboard() {
         {/* Compact Title Section */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5 pb-3.5">
 
-          <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-[#131313]/85 border-b border-[#444748]">
+          <header className="sticky top-0 z-40 w-full backdrop-blur-md .bg-[#131313]/85 border-b border-[#444748]">
             <div className=" mx-auto h-12 flex items-center justify-between">
 
               <div>

@@ -54,12 +54,13 @@ function DashboardLayoutContent({
     return () => unsubscribe();
   }, [router, dispatch]);
 
+  const instagramAccounts = useSelector((state: RootState) => state.auth.instagramAccounts);
+  const hasIgCode = searchParams ? searchParams.get("code") : null;
+
   // 2. Hydrate Django Session & Instagram Accounts
   useEffect(() => {
     const hydrateSession = async () => {
       if (!firebaseUser) return;
-
-      const hasIgCode = searchParams.get("code");
 
       if (!appUser && !hasIgCode) {
         try {
@@ -73,13 +74,13 @@ function DashboardLayoutContent({
         dispatch(setHydrating(false));
       }
 
-      if (authService.getAccessToken()) {
+      if (authService.getAccessToken() && instagramAccounts.length === 0) {
         await authService.getConnectedInstagramAccounts();
       }
     };
 
     hydrateSession();
-  }, [firebaseUser, appUser, searchParams, dispatch]);
+  }, [firebaseUser, appUser, hasIgCode, instagramAccounts.length, dispatch]);
 
   return (
     <div className={cn("bg-[#131313] text-[#e5e2e1] relative", isFullBleed ? "h-screen overflow-hidden" : "min-h-screen")}>

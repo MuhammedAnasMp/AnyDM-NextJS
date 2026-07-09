@@ -107,6 +107,9 @@ const RichTemplateInput = ({ value, onChange, placeholder, disabled, maxLength }
   );
 };
 
+// Module-level global cache persisting message histories across client page transitions
+let globalChatCache: Record<string, { messages: any[], nextCursor: string | null, hasMore: boolean }> = {};
+
 export default function InboxPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -234,7 +237,6 @@ export default function InboxPage() {
   const [showProductCatalogPopup, setShowProductCatalogPopup] = useState(false);
   const [isWithin24hWindow, setIsWithin24hWindow] = useState<boolean>(true);
   const [focusedField, setFocusedField] = useState<{cardIdx: number, type: 'title' | 'subtitle' | 'btn' | 'btnTempText' | 'btnTempBtn', btnIdx?: number} | null>(null);
-  const [chatCache, setChatCache] = useState<Record<string, { messages: any[], nextCursor: string | null, hasMore: boolean }>>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [productSearchQuery, setProductSearchQuery] = useState("");
   const [showRightPanel, setShowRightPanel] = useState(true);
@@ -304,8 +306,11 @@ export default function InboxPage() {
   const prevAccountUsernameRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
+    if (!activeAccount?.username) return;
+
     if (prevAccountUsernameRef.current && prevAccountUsernameRef.current !== activeAccount?.username) {
       setSelectedConversation(null); // Close the current chat when switching accounts
+      globalChatCache = {}; // Reset the messages cache for the new account
     }
     prevAccountUsernameRef.current = activeAccount?.username;
     fetchConversations();
@@ -425,18 +430,18 @@ export default function InboxPage() {
       setIsWithin24hWindow(selectedConversation.is_within_24h_window !== false);
 
       // Load from cache instantly if available
-      const cached = chatCache[selectedConversation.id];
+      const cached = globalChatCache[selectedConversation.id];
       if (cached) {
         setMessages(cached.messages);
         setNextCursor(cached.nextCursor);
         setHasMore(cached.hasMore);
+        setLoadingMessages(false);
       } else {
         setMessages([]);
         setNextCursor(null);
         setHasMore(true);
+        fetchMessages(selectedConversation.id);
       }
-
-      fetchMessages(selectedConversation.id);
       fetchEnquiries(selectedConversation.name);
     } else {
       selectedConversationIdRef.current = null;
@@ -444,6 +449,7 @@ export default function InboxPage() {
       setNextCursor(null);
       setHasMore(true);
       setEnquiries([]);
+      setLoadingMessages(false);
     }
   }, [selectedConversation]);
 
@@ -470,7 +476,7 @@ export default function InboxPage() {
 
     try {
       if (!cursor && !silent) {
-        if (!chatCache[conversationId]) {
+        if (!globalChatCache[conversationId]) {
           setLoadingMessages(true);
         }
       }
@@ -513,26 +519,21 @@ export default function InboxPage() {
         mapped.sort((a: any, b: any) => new Date(a.created_time || 0).getTime() - new Date(b.created_time || 0).getTime());
 
         // Always update the cache with the loaded messages
-        setChatCache((prevCache) => {
-          const existingMessages = cursor && prevCache[conversationId] ? prevCache[conversationId].messages : [];
-          const combined = cursor ? [...mapped, ...existingMessages] : mapped;
-          const seen = new Set();
-          const unique = combined.filter((msg: any) => {
-            const key = msg.id || `${msg.created_time}-${msg.text}`;
-            if (seen.has(key)) return false;
-            seen.add(key);
-            return true;
-          });
-
-          return {
-            ...prevCache,
-            [conversationId]: {
-              messages: unique,
-              nextCursor: res.data.next_cursor || null,
-              hasMore: !!res.data.next_cursor
-            }
-          };
+        const existingMessages = cursor && globalChatCache[conversationId] ? globalChatCache[conversationId].messages : [];
+        const combined = cursor ? [...mapped, ...existingMessages] : mapped;
+        const seen = new Set();
+        const unique = combined.filter((msg: any) => {
+          const key = msg.id || `${msg.created_time}-${msg.text}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
         });
+
+        globalChatCache[conversationId] = {
+          messages: unique,
+          nextCursor: res.data.next_cursor || null,
+          hasMore: !!res.data.next_cursor
+        };
 
         // Only update active UI states if this conversation is still the selected one
         if (selectedConversationIdRef.current === conversationId) {
@@ -1722,11 +1723,11 @@ export default function InboxPage() {
       {/* ─── RIGHT PANE: Context Panel ────────────────────────────────── */}
       {/* Backdrop for mobile */}
       {showRightPanel && (
-        <div className="xl:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-40" onClick={() => setShowRightPanel(false)} />
+        <div className="xl:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-25" onClick={() => setShowRightPanel(false)} />
       )}
       {showRightPanel && (
         <aside className={`
-          fixed xl:relative top-0 right-0 h-full z-50
+          fixed xl:relative top-[100px] xl:top-0 right-0 h-[calc(100vh-100px)] xl:h-full z-30
           w-80 xl:w-80
           border-l border-white/[0.06] bg-[#111]
           flex flex-col shrink-0 overflow-y-auto
