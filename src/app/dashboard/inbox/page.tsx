@@ -110,6 +110,7 @@ const RichTemplateInput = ({ value, onChange, placeholder, disabled, maxLength }
 
 // Module-level global cache persisting message histories across client page transitions
 let globalChatCache: Record<string, { messages: any[], nextCursor: string | null, hasMore: boolean }> = {};
+let globalConversationsCache: { conversations: any[], businessInfo: any } | null = null;
 
 export default function InboxPage() {
   const searchParams = useSearchParams();
@@ -183,17 +184,32 @@ export default function InboxPage() {
 
   const [activeFilter, setActiveFilter] = useState("Primary");
   const [showChatOnMobile, setShowChatOnMobile] = useState(false);
-  const [conversations, setConversations] = useState<any[]>([]);
+  const [conversations, setConversations] = useState<any[]>(() => {
+    return globalConversationsCache?.conversations || [];
+  });
   const [selectedConversation, setSelectedConversation] = useState<any | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [businessInfo, setBusinessInfo] = useState<{ username: string; id: string } | null>(null);
+  const [loading, setLoading] = useState(() => {
+    return !globalConversationsCache;
+  });
+  const [businessInfo, setBusinessInfo] = useState<{ username: string; id: string } | null>(() => {
+    return globalConversationsCache?.businessInfo || null;
+  });
   const [enquiries, setEnquiries] = useState<any[]>([]);
   const [loadingEnquiries, setLoadingEnquiries] = useState(false);
   const [globalAIOn, setGlobalAIOn] = useState(false);
+  const [enableAi, setEnableAi] = useState(true);
 
   useEffect(() => {
     const fetchGlobalAIStatus = async () => {
       try {
+        try {
+          const sysRes = await api.get("/accounts/settings/system/");
+          if (sysRes.data && sysRes.data.enable_ai !== undefined) {
+            setEnableAi(sysRes.data.enable_ai);
+          }
+        } catch (sysErr) {
+          console.error("Error loading global system settings:", sysErr);
+        }
         const res = await api.get("/crm/ai-settings/");
         if (res.data) {
           setGlobalAIOn(res.data.is_ai_mode_on);
@@ -288,7 +304,11 @@ export default function InboxPage() {
 
         setConversations(prev => {
           if (prev.some((c: any) => c.recipient_id === recipientIdParam)) return prev;
-          return [tempConv, ...prev];
+          const updated = [tempConv, ...prev];
+          if (globalConversationsCache) {
+            globalConversationsCache.conversations = updated;
+          }
+          return updated;
         });
 
         if (!selectedConversation || selectedConversation.recipient_id !== recipientIdParam) {
@@ -312,9 +332,17 @@ export default function InboxPage() {
     if (prevAccountUsernameRef.current && prevAccountUsernameRef.current !== activeAccount?.username) {
       setSelectedConversation(null); // Close the current chat when switching accounts
       globalChatCache = {}; // Reset the messages cache for the new account
+      globalConversationsCache = null; // Clear the cache
     }
     prevAccountUsernameRef.current = activeAccount?.username;
-    fetchConversations();
+
+    if (globalConversationsCache) {
+      setConversations(globalConversationsCache.conversations);
+      setBusinessInfo(globalConversationsCache.businessInfo);
+      setLoading(false);
+    } else {
+      fetchConversations();
+    }
   }, [activeAccount?.username]);
 
   // Keep refs of state to prevent WebSocket event handler stale closures
@@ -422,6 +450,9 @@ export default function InboxPage() {
               };
               // Re-sort conversations by updated_time descending
               updatedConvs.sort((a, b) => new Date(b.updated_time || 0).getTime() - new Date(a.updated_time || 0).getTime());
+              if (globalConversationsCache) {
+                globalConversationsCache.conversations = updatedConvs;
+              }
               return updatedConvs;
             } else {
               // If conversation doesn't exist in the list, trigger silent fetch
@@ -530,12 +561,18 @@ export default function InboxPage() {
         }
 
         setConversations(mapped);
+        globalConversationsCache = {
+          conversations: mapped,
+          businessInfo: { username: busUsername || "", id: busId || "" }
+        };
       } else {
         setConversations([]);
+        globalConversationsCache = null;
       }
     } catch (err) {
       console.error("Error fetching conversations:", err);
       setConversations([]);
+      globalConversationsCache = null;
     } finally {
       setLoading(false);
     }
@@ -790,7 +827,10 @@ export default function InboxPage() {
         attachments: messagePayload.attachment ? { data: [messagePayload.attachment] } : null
       };
 
-      setMessages((prev) => [...prev, localMsg]);
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === localMsg.id)) return prev;
+        return [...prev, localMsg];
+      });
 
       await fetchConversations();
     } catch (err) {
@@ -1071,9 +1111,11 @@ export default function InboxPage() {
               <h2 className="text-sm font-bold text-white leading-none">
                 {businessInfo?.username || activeAccount?.username || "Inbox"}
               </h2>
-              <span className={`text-[9px] font-bold uppercase tracking-widest mt-0.5 block ${globalAIOn ? "text-[#b6b2ff]" : "text-white/30"}`}>
-                AI {globalAIOn ? "ON" : "OFF"}
-              </span>
+              {enableAi && (
+                <span className={`text-[9px] font-bold uppercase tracking-widest mt-0.5 block ${globalAIOn ? "text-[#b6b2ff]" : "text-white/30"}`}>
+                  AI {globalAIOn ? "ON" : "OFF"}
+                </span>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-1.5">
@@ -1164,7 +1206,7 @@ export default function InboxPage() {
                     <div className="flex justify-between items-center mb-0.5">
                       <div className="flex items-center gap-1.5 min-w-0">
                         <span className="text-[13px] font-semibold text-white truncate">{item.name}</span>
-                        {globalAIOn && item.is_ai_enabled !== false && (
+                        {enableAi && globalAIOn && item.is_ai_enabled !== false && (
                           <span className="material-symbols-outlined text-[12px] text-[#b6b2ff] shrink-0">psychology</span>
                         )}
                       </div>
@@ -1203,7 +1245,7 @@ export default function InboxPage() {
               </div>
 
               <div className="flex items-center gap-2">
-                {globalAIOn && (
+                {enableAi && globalAIOn && (
                   <label className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#b6b2ff]/10 border border-[#b6b2ff]/20 cursor-pointer select-none">
                     <span className="material-symbols-outlined text-[14px] text-[#b6b2ff]">psychology</span>
                     <span className="text-[10px] font-bold text-[#b6b2ff] tracking-wider">AI</span>
@@ -1213,7 +1255,13 @@ export default function InboxPage() {
                       onChange={async (e) => {
                         const v = e.target.checked;
                         setSelectedConversation((p: any) => p ? { ...p, is_ai_enabled: v } : null);
-                        setConversations((p: any[]) => p.map(c => c.id === selectedConversation.id ? { ...c, is_ai_enabled: v } : c));
+                        setConversations((p: any[]) => {
+                          const updated = p.map(c => c.id === selectedConversation.id ? { ...c, is_ai_enabled: v } : c);
+                          if (globalConversationsCache) {
+                            globalConversationsCache.conversations = updated;
+                          }
+                          return updated;
+                        });
                         try { await api.post(`/crm/customers/${selectedConversation.recipient_id}/toggle-ai/`, { is_ai_enabled: v }); } catch { }
                       }}
                       className="w-7 h-3.5 rounded-full accent-[#b6b2ff] cursor-pointer"

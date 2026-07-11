@@ -62,11 +62,14 @@ export default function AISettingsPage() {
   const [apiKey, setApiKey] = useState("");
   const [showApiKey, setShowApiKey] = useState(false);
   const [isAiModeOn, setIsAiModeOn] = useState(false);
+  const [useBusinessToken, setUseBusinessToken] = useState(false);
+  const [enableSubscriptionAi, setEnableSubscriptionAi] = useState(false);
   const [customInstructions, setCustomInstructions] = useState("");
   const [responseStyle, setResponseStyle] = useState("Friendly");
   const [maxReplyLength, setMaxReplyLength] = useState(150);
   const [maxReplyCount, setMaxReplyCount] = useState(50);
   const [lastError, setLastError] = useState("");
+  const [enableAi, setEnableAi] = useState(true);
 
   const [businessName, setBusinessName] = useState("");
   const [businessLocation, setBusinessLocation] = useState("");
@@ -93,6 +96,8 @@ export default function AISettingsPage() {
   const populateForm = (data: any) => {
     setApiKey(data.api_key || "");
     setIsAiModeOn(data.is_ai_mode_on || false);
+    setUseBusinessToken(data.use_business_token || false);
+    setEnableSubscriptionAi(data.enable_subscription_ai || false);
     setCustomInstructions(data.custom_instructions || "");
     setResponseStyle(data.response_style || "Friendly");
     setMaxReplyLength(data.max_reply_length || 150);
@@ -112,6 +117,19 @@ export default function AISettingsPage() {
     if (!accountId) return;
     setIsLoading(true);
     try {
+      try {
+        const sysRes = await api.get("/accounts/settings/system/");
+        if (sysRes.data && sysRes.data.enable_ai !== undefined) {
+          setEnableAi(sysRes.data.enable_ai);
+          if (!sysRes.data.enable_ai) {
+            setIsLoading(false);
+            return;
+          }
+        }
+      } catch (sysErr) {
+        console.error("Error loading system settings in AI page:", sysErr);
+      }
+
       const res = await api.get(`/crm/ai-settings/?account_id=${accountId}`);
       if (res.data) {
         populateForm(res.data);
@@ -136,6 +154,7 @@ export default function AISettingsPage() {
         ...(activeAccountId ? { account_id: activeAccountId } : {}),
         api_key: apiKey,
         is_ai_mode_on: isAiModeOn,
+        use_business_token: useBusinessToken,
         custom_instructions: customInstructions,
         response_style: responseStyle,
         max_reply_length: maxReplyLength,
@@ -183,6 +202,17 @@ export default function AISettingsPage() {
         <RefreshCw className="w-6 h-6 animate-spin" style={{ color: t.onSurface }} strokeWidth={1.75} />
         <span className="text-xs font-medium" style={{ color: t.onSurfaceVariant }}>
           Loading configuration…
+        </span>
+      </div>
+    );
+  }
+
+  if (!enableAi) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3">
+        <AlertCircle className="w-8 h-8 text-zinc-500" style={{ color: t.error }} />
+        <span className="text-sm font-medium text-zinc-400">
+          AI assistant service is currently unavailable.
         </span>
       </div>
     );
@@ -247,48 +277,94 @@ export default function AISettingsPage() {
             <SectionHeading icon={Settings2} label="AI access & activation" />
 
             <div className="space-y-4">
-              <div>
-                <div className="flex justify-between items-baseline mb-1.5">
-                  <label className="text-xs font-medium" style={{ color: t.onSurfaceVariant }}>
-                    Gemini API token
+              {(!enableSubscriptionAi || !useBusinessToken) && (
+                <div>
+                  <div className="flex justify-between items-baseline mb-1.5">
+                    <label className="text-xs font-medium" style={{ color: t.onSurfaceVariant }}>
+                      Gemini API token
+                    </label>
+                    <span className="text-[11px]" style={{ color: t.lavender }}>
+                      Google Gemini keys only
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type={showApiKey ? "text" : "password"}
+                      placeholder="Enter your Gemini API key (e.g., AIzaSy…)"
+                      value={apiKey}
+                      onChange={(e) => setApiKey(e.target.value)}
+                      className="w-full rounded text-xs py-2 pl-3 pr-10 focus:outline-none transition-colors"
+                      style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface, ...monoStat }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowApiKey(!showApiKey)}
+                      className="absolute right-3 top-2 transition-colors"
+                      style={{ color: t.onSurfaceVariant }}
+                    >
+                      {showApiKey ? <EyeOff className="w-4 h-4" strokeWidth={1.75} /> : <Eye className="w-4 h-4" strokeWidth={1.75} />}
+                    </button>
+                  </div>
+                  <div className="flex justify-between items-center mt-1.5">
+                    <p className="text-[11px]" style={{ color: t.onSurfaceVariant }}>
+                      Used to run the support AI. Turns off automatically if the key is invalid or over quota.
+                    </p>
+                    <a
+                      href="https://aistudio.google.com/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] hover:underline font-medium shrink-0 ml-2"
+                      style={{ color: t.lavender }}
+                    >
+                      Get a Gemini key →
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {enableSubscriptionAi && (
+                <div className="space-y-2 pt-4" style={{ borderTop: `1px solid ${t.outlineVariant}` }}>
+                  <label className="text-xs font-medium block" style={{ color: t.onSurfaceVariant }}>
+                    AI Subscription Plan
                   </label>
-                  <span className="text-[11px]" style={{ color: t.lavender }}>
-                    Google Gemini keys only
-                  </span>
-                </div>
-                <div className="relative">
-                  <input
-                    type={showApiKey ? "text" : "password"}
-                    placeholder="Enter your Gemini API key (e.g., AIzaSy…)"
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    className="w-full rounded text-xs py-2 pl-3 pr-10 focus:outline-none transition-colors"
-                    style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface, ...monoStat }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowApiKey(!showApiKey)}
-                    className="absolute right-3 top-2 transition-colors"
-                    style={{ color: t.onSurfaceVariant }}
-                  >
-                    {showApiKey ? <EyeOff className="w-4 h-4" strokeWidth={1.75} /> : <Eye className="w-4 h-4" strokeWidth={1.75} />}
-                  </button>
-                </div>
-                <div className="flex justify-between items-center mt-1.5">
                   <p className="text-[11px]" style={{ color: t.onSurfaceVariant }}>
-                    Used to run the support AI. Turns off automatically if the key is invalid or over quota.
+                    Choose whether to use your own Gemini API key or use the business's master token.
                   </p>
-                  <a
-                    href="https://aistudio.google.com/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[11px] hover:underline font-medium shrink-0 ml-2"
-                    style={{ color: t.lavender }}
-                  >
-                    Get a Gemini key →
-                  </a>
+                  
+                  {appUser?.plan === 'pro' ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setUseBusinessToken(false)}
+                        className={cn(
+                          "py-2 px-3 rounded-md text-xs font-medium text-center transition-colors cursor-pointer border",
+                          !useBusinessToken
+                            ? "bg-white text-black border-white"
+                            : "bg-transparent text-white border-zinc-700 hover:border-zinc-500"
+                        )}
+                      >
+                        Use My Own Key
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setUseBusinessToken(true)}
+                        className={cn(
+                          "py-2 px-3 rounded-md text-xs font-medium text-center transition-colors cursor-pointer border",
+                          useBusinessToken
+                            ? "bg-white text-black border-white"
+                            : "bg-transparent text-white border-zinc-700 hover:border-zinc-500"
+                        )}
+                      >
+                        Use Business Token
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="text-xs p-3 rounded bg-zinc-900 border border-zinc-800 text-zinc-400">
+                      🔒 <strong>Business Token</strong> option is only available for paid (Pro) accounts. Please upgrade your subscription to unlock this feature.
+                    </div>
+                  )}
                 </div>
-              </div>
+              )}
 
               <div className="flex items-center justify-between pt-4" style={{ borderTop: `1px solid ${t.outlineVariant}` }}>
                 <div className="space-y-0.5 pr-4">

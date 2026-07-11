@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useSelector } from "react-redux";
+import api from "@/lib/services/api.service";
 import { RootState } from "@/store";
 import { authService } from "@/lib/services/auth.service";
 import { auth } from "@/lib/firebase";
@@ -25,12 +26,28 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [firebaseUser, setFirebaseUser] = useState<any>(null);
 
+  const [enableAi, setEnableAi] = useState(true);
+
   useEffect(() => {
     if (!auth) return;
     const unsubscribe = auth.onAuthStateChanged((user) => {
       setFirebaseUser(user);
     });
     return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const checkAiEnabled = async () => {
+      try {
+        const sysRes = await api.get("/accounts/settings/system/");
+        if (sysRes.data && sysRes.data.enable_ai !== undefined) {
+          setEnableAi(sysRes.data.enable_ai);
+        }
+      } catch (err) {
+        console.error("Error loading system settings in Header:", err);
+      }
+    };
+    checkAiEnabled();
   }, []);
 
   const accountMenuRef = useRef<HTMLDivElement>(null);
@@ -120,7 +137,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
     Settings: [
       { name: "Manage Accounts", href: "/dashboard/settings/accounts" },
       // { name: "Workspace Settings", href: "/dashboard/settings/workspace" },
-      { name: "AI Settings", href: "/dashboard/settings/ai" },
+      ...(enableAi ? [{ name: "AI Settings", href: "/dashboard/settings/ai" }] : []),
     ],
     Refer: [],
     Pricing: [],

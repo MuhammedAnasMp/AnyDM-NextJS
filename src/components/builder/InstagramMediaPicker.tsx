@@ -24,9 +24,6 @@ interface InstagramMediaPickerProps {
   resourceType?: string; // 'media' or 'story'
 }
 
-const INSTAGRAM_TOKEN = 'IGAAUrAi9uIGRBZAFlQVjFrNHNLWlhmTUl4eTl2ZADFFZA2k4TjNlSmJvUXpqY0pWT0RGSDN5YWphUFMxRG5ZAR2lkT3JJSm1PNm0waE9CcHB2SFJBSGhySjRneGNjRlpqZAW9RaWZAiUU11OVRwNmxXb2p6cEVJVE9mU0hZAS2xuNlJ4dwZDZD';
-const INSTAGRAM_USER_ID = '27078812251731733';
-
 
 
 export function InstagramMediaPicker({ open, onClose, onSelect, selectedIds = [], resourceType = 'media' }: InstagramMediaPickerProps) {
@@ -91,8 +88,8 @@ export function InstagramMediaPicker({ open, onClose, onSelect, selectedIds = []
       // 2. Fallback to direct Graph API using active account credentials
       let endpoint = url;
       if (!endpoint) {
-        const targetUserId = activeAccount?.instagram_user_id || activeAccount?.instagram_scoped_id || INSTAGRAM_USER_ID;
-        const targetToken = activeAccount?.access_token || INSTAGRAM_TOKEN;
+        const targetUserId = activeAccount?.instagram_user_id || activeAccount?.instagram_scoped_id;
+        const targetToken = activeAccount?.access_token
         const isBasic = targetToken.startsWith("IGAA");
         const host = isBasic ? "graph.instagram.com" : "graph.facebook.com";
         const urlObj = new URL(`https://${host}/v25.0/${targetUserId}/${resourceType === 'story' ? 'stories' : 'media'}`);

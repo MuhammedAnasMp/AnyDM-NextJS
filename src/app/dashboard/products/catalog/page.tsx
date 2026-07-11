@@ -446,7 +446,7 @@ export default function CatalogPage() {
 
                       {/* Table row action menu */}
                       <td className="px-6 py-3.5 text-right">
-                        <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex justify-end gap-1">
                           <button
                             onClick={() => router.push(`/dashboard/products/catalog/create?edit=${p.id}`)}
                             className="p-1.5 hover:bg-white/5 rounded text-[#c4c7c8] hover:text-white transition-colors border border-transparent hover:border-[#2a2a2a]"

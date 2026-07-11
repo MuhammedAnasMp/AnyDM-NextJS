@@ -5,7 +5,6 @@ import { Topbar } from "@/components/builder/Topbar";
 import { LeftSidebar } from "@/components/builder/LeftSidebar";
 import { Canvas } from "@/components/builder/Canvas";
 import { RightSidebar } from "@/components/builder/RightSidebar";
-import { LivePreview } from "@/components/builder/LivePreview";
 import { InstagramMediaPicker } from "@/components/builder/InstagramMediaPicker";
 import DMContentEditor from "@/components/builder/DMContentEditor";
 import { AnimatePresence } from "framer-motion";
@@ -66,10 +65,7 @@ export default function BuilderPage() {
     localStorage.setItem("showPreview", String(nextVal));
   };
 
-  const handleClosePreview = () => {
-    setShowPreview(false);
-    localStorage.setItem("showPreview", "false");
-  };
+
 
   const [activeEditNodeId, setActiveEditNodeId] = useState<string | null>(null);
   const selectedNodeId = useSelector((state: RootState) => state.flow.selectedNodeId);
@@ -113,8 +109,8 @@ export default function BuilderPage() {
 
   return (
     <div className="flex flex-col h-full w-full overflow-hidden relative z-10">
-      <Topbar 
-        onTogglePreview={handleTogglePreview} 
+      <Topbar
+        onTogglePreview={handleTogglePreview}
         showPreview={showPreview}
       />
       <div className="flex flex-1 overflow-hidden relative">
@@ -122,9 +118,6 @@ export default function BuilderPage() {
         <Canvas />
         <AnimatePresence>
           {selectedNodeId && <RightSidebar />}
-        </AnimatePresence>
-        <AnimatePresence>
-          {showPreview && <LivePreview onClose={handleClosePreview} />}
         </AnimatePresence>
       </div>
 
