@@ -3,12 +3,12 @@
 import React, { use, useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { 
-  Globe, 
-  RefreshCw, 
-  ShoppingBag, 
-  MessageCircle, 
-  ShieldCheck, 
+import {
+  Globe,
+  RefreshCw,
+  ShoppingBag,
+  MessageCircle,
+  ShieldCheck,
   Truck,
   ArrowLeft,
   ChevronLeft,
@@ -68,6 +68,7 @@ interface ProductDetail {
   gallery: GalleryMedia[];
   variants: string[];
   category: string;
+  metadata?: Record<string, any>;
 }
 
 interface RelatedProduct {
@@ -84,12 +85,12 @@ export default function ProductDetailPage({ params }: PageProps) {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [supplier, setSupplier] = useState<SupplierData | null>(null);
   const [settings, setSettings] = useState<WebsiteSettingsData | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<RelatedProduct[]>([]);
-  
+
   // Gallery and options selection states
   const [activeMediaUrl, setActiveMediaUrl] = useState("");
   const [activeMediaType, setActiveMediaType] = useState("IMAGE");
@@ -120,7 +121,7 @@ export default function ProductDetailPage({ params }: PageProps) {
       const response = await api.get(`/accounts/public/store/${username}/product/${productId}/`);
       if (response.data) {
         const rawProduct = response.data.product;
-        
+
         // Normalize variants from response.data.product.variants or metadata.variants
         let parsedVariants: string[] = [];
         if (rawProduct.variants && Array.isArray(rawProduct.variants)) {
@@ -138,15 +139,22 @@ export default function ProductDetailPage({ params }: PageProps) {
 
         // Normalize negotiable / is_negotiable status
         const isNegotiable = rawProduct.negotiable !== undefined ? rawProduct.negotiable : rawProduct.is_negotiable;
-        
+
         // Normalize main_media_url
         const mainMedia = rawProduct.media_url || rawProduct.main_media_url;
+
+        // Normalize technical metadata — strip 'variants' key so it only appears in the size picker
+        const rawMeta: Record<string, any> = rawProduct.metadata && typeof rawProduct.metadata === "object" ? rawProduct.metadata : {};
+        const technicalDetails: Record<string, any> = Object.fromEntries(
+          Object.entries(rawMeta).filter(([k]) => k !== "variants")
+        );
 
         const normalizedProduct = {
           ...rawProduct,
           main_media_url: mainMedia,
           variants: parsedVariants,
-          is_negotiable: isNegotiable
+          is_negotiable: isNegotiable,
+          metadata: technicalDetails,
         };
 
         setProduct(normalizedProduct);
@@ -160,14 +168,14 @@ export default function ProductDetailPage({ params }: PageProps) {
           is_negotiable: rel.negotiable !== undefined ? rel.negotiable : rel.is_negotiable
         }));
         setRelatedProducts(normalizedRelated);
-        
+
         // Initialize active media with main product image
         setActiveMediaUrl(mainMedia);
         setActiveMediaType(
-          normalizedProduct.gallery?.[0]?.media_type || 
+          normalizedProduct.gallery?.[0]?.media_type ||
           (isVideoUrl(mainMedia) ? "VIDEO" : "IMAGE")
         );
-        
+
         // Initialize active variant
         if (normalizedProduct.variants && normalizedProduct.variants.length > 0) {
           setSelectedVariant(normalizedProduct.variants[0]);
@@ -208,6 +216,7 @@ export default function ProductDetailPage({ params }: PageProps) {
   }
 
   const styles: TemplateStyle = getTemplateStyles(settings.template_id, settings.theme_id);
+  const isLight = styles.textColorClass === "text-black" || styles.textColorClass === "text-[#1c1c1c]" || styles.textColorClass === "text-[#2D362E]";
 
   // Generate Social Buttons URLs
   const currentUrl = typeof window !== 'undefined' ? window.location.href : "";
@@ -275,7 +284,7 @@ export default function ProductDetailPage({ params }: PageProps) {
               <p className="text-sm md:text-base text-[#6A786C] leading-relaxed">
                 {product.description || "A sculptural masterpiece of textile design. Hand-tailored and finished with premium organic details. Designed to age with grace and intent."}
               </p>
-              
+
               {product.variants && product.variants.length > 0 && (
                 <div className="space-y-3">
                   <span className="text-[10px] uppercase tracking-[0.15em] font-semibold text-[#2D362E] block">Select Size</span>
@@ -286,13 +295,27 @@ export default function ProductDetailPage({ params }: PageProps) {
                         onClick={() => setSelectedVariant(v)}
                         className={cn(
                           "px-4 py-2 text-xs font-semibold rounded-none border transition-all",
-                          selectedVariant === v 
-                            ? "bg-[#4A5D4E] text-white border-[#4A5D4E]" 
+                          selectedVariant === v
+                            ? "bg-[#4A5D4E] text-white border-[#4A5D4E]"
                             : "bg-transparent text-[#2D362E] border-[#C2C9C3] hover:border-[#4A5D4E]"
                         )}
                       >
                         {v}
                       </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {product.metadata && typeof product.metadata === "object" && Object.keys(product.metadata).length > 0 && (
+                <div className="space-y-3 pt-4 border-t border-[#C2C9C3]/40">
+                  <span className="text-[10px] uppercase tracking-[0.15em] font-semibold text-[#2D362E] block">Specifications</span>
+                  <div className="grid grid-cols-2 gap-4">
+                    {Object.entries(product.metadata).map(([key, value]) => (
+                      <div key={key} className="space-y-1">
+                        <span className="block text-[9px] uppercase tracking-wider text-[#6A786C]">{key}</span>
+                        <span className="block text-xs font-semibold text-[#2D362E]">{String(value)}</span>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -310,7 +333,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                   Acquire Piece
                 </a>
               )}
-              
+
               <div className="grid grid-cols-2 gap-4">
                 {settings.enable_whatsapp_button && (
                   <a
@@ -414,7 +437,7 @@ export default function ProductDetailPage({ params }: PageProps) {
               <span className="font-mono text-[10px] tracking-widest text-[#00f0ff]">COLLECTION_024</span>
             </div>
           </div>
-          
+
           {product.gallery && product.gallery.length > 1 && (
             <div className="grid grid-cols-4 gap-4">
               {product.gallery.slice(0, 4).map((media) => (
@@ -467,8 +490,8 @@ export default function ProductDetailPage({ params }: PageProps) {
                     onClick={() => setSelectedVariant(v)}
                     className={cn(
                       "py-3 border text-xs font-mono transition-all rounded-none",
-                      selectedVariant === v 
-                        ? "border-[#00f0ff] text-[#00f0ff] bg-[#00f0ff]/5" 
+                      selectedVariant === v
+                        ? "border-[#00f0ff] text-[#00f0ff] bg-[#00f0ff]/5"
                         : "border-white/10 hover:border-white/40 text-white"
                     )}
                   >
@@ -490,7 +513,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                 Buy on Instagram
               </a>
             )}
-            
+
             {settings.enable_whatsapp_button && (
               <a
                 href={whatsappUrl}
@@ -508,21 +531,35 @@ export default function ProductDetailPage({ params }: PageProps) {
             <h3 className="text-[10px] tracking-widest text-[#00f0ff] mb-4 border-b border-[#00f0ff]/20 pb-2 uppercase font-bold">PRODUCT SPECIFICATIONS</h3>
             <ul className="flex flex-col gap-3 text-xs text-[#b9cacb]">
               <li className="flex justify-between border-b border-white/5 pb-2">
-                <span>MATERIAL</span>
-                <span className="text-white">{product.category || "SYNTH-FLEECE V2.0"}</span>
+                <span>CATEGORY</span>
+                <span className="text-white">{product.category || "UNASSIGNED"}</span>
               </li>
-              <li className="flex justify-between border-b border-white/5 pb-2">
-                <span>HARDWARE</span>
-                <span className="text-white">YKK AQUAGUARD</span>
-              </li>
-              <li className="flex justify-between border-b border-white/5 pb-2">
-                <span>OPTICS</span>
-                <span className="text-white">360° REACTIVE FIBER</span>
-              </li>
-              <li className="flex justify-between">
-                <span>ORIGIN</span>
-                <span className="text-white">NEO-TOKYO FACILITY</span>
-              </li>
+              {product.metadata && typeof product.metadata === "object" && Object.entries(product.metadata).map(([key, value], idx, arr) => (
+                <li key={key} className={cn("flex justify-between pb-2", idx < arr.length - 1 && "border-b border-white/5")}>
+                  <span className="uppercase">{key}</span>
+                  <span className="text-white">{String(value)}</span>
+                </li>
+              ))}
+              {(!product.metadata || Object.keys(product.metadata).length === 0) && (
+                <>
+                  <li className="flex justify-between border-b border-white/5 pb-2">
+                    <span>MATERIAL</span>
+                    <span className="text-white">{product.category || "SYNTH-FLEECE V2.0"}</span>
+                  </li>
+                  <li className="flex justify-between border-b border-white/5 pb-2">
+                    <span>HARDWARE</span>
+                    <span className="text-white">YKK AQUAGUARD</span>
+                  </li>
+                  <li className="flex justify-between border-b border-white/5 pb-2">
+                    <span>OPTICS</span>
+                    <span className="text-white">360° REACTIVE FIBER</span>
+                  </li>
+                  <li className="flex justify-between">
+                    <span>ORIGIN</span>
+                    <span className="text-white">NEO-TOKYO FACILITY</span>
+                  </li>
+                </>
+              )}
             </ul>
           </div>
         </section>
@@ -541,7 +578,7 @@ export default function ProductDetailPage({ params }: PageProps) {
             ) : (
               <img src={activeMediaUrl} alt={product.title} className="w-full h-full object-cover" />
             )}
-            
+
             {/* Social action buttons overlay */}
             <div className="absolute inset-0 flex flex-col justify-end p-6 bg-gradient-to-t from-black/80 to-transparent">
               <div className="flex flex-col gap-4 self-end mb-8 items-center">
@@ -609,8 +646,8 @@ export default function ProductDetailPage({ params }: PageProps) {
                       onClick={() => setSelectedVariant(v)}
                       className={cn(
                         "h-10 border rounded-lg text-xs font-bold flex items-center justify-center transition-colors",
-                        selectedVariant === v 
-                          ? "border-white bg-white/10" 
+                        selectedVariant === v
+                          ? "border-white bg-white/10"
                           : "border-white/10 hover:bg-white/5"
                       )}
                     >
@@ -644,6 +681,20 @@ export default function ProductDetailPage({ params }: PageProps) {
                 </a>
               )}
             </div>
+
+            {product.metadata && typeof product.metadata === "object" && Object.keys(product.metadata).length > 0 && (
+              <div className="p-4 bg-white/5 border border-white/10 rounded-2xl space-y-2">
+                <span className="text-[10px] uppercase font-bold text-gray-300 block">Specifications</span>
+                <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
+                  {Object.entries(product.metadata).map(([key, value]) => (
+                    <div key={key} className="flex justify-between border-b border-white/5 pb-1">
+                      <span className="text-gray-400 uppercase text-[10px]">{key}</span>
+                      <span className="text-white font-semibold">{String(value)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Reviews Peek box */}
             <div className="p-4 bg-white/5 border border-white/10 rounded-2xl">
@@ -742,8 +793,8 @@ export default function ProductDetailPage({ params }: PageProps) {
                         onClick={() => setSelectedVariant(v)}
                         className={cn(
                           "py-3 border text-xs font-semibold transition-all rounded-none",
-                          isActive 
-                            ? "border-black dark:border-white bg-black dark:bg-white text-white dark:text-black" 
+                          isActive
+                            ? "border-black dark:border-white bg-black dark:bg-white text-white dark:text-black"
                             : "border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 hover:border-black dark:hover:border-white"
                         )}
                       >
@@ -789,7 +840,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                 {product.description || "A masterclass in modern tailoring. This floor-sweeping gown features asymmetrical architectural draping that captures the light as you move. Crafted from our signature heavy-weight silk crepe, it offers a structural silhouette with the fluid breathability of a second skin."}
               </p>
 
-              {/* Accordion 1 */}
+              {/* Accordion 1: Specifications (from real metadata) */}
               <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800">
                 <button
                   onClick={() => setIsDetailsOpen(!isDetailsOpen)}
@@ -799,13 +850,23 @@ export default function ProductDetailPage({ params }: PageProps) {
                   <ChevronRight className={cn("w-4 h-4 transition-transform duration-200", isDetailsOpen && "rotate-90")} />
                 </button>
                 {isDetailsOpen && (
-                  <div className="pt-2 text-xs text-zinc-500 dark:text-zinc-400 font-sans leading-relaxed space-y-1">
-                    <ul className="list-disc list-inside space-y-1">
-                      <li>100% Raw Italian Silk</li>
-                      <li>Internal corset structure</li>
-                      <li>Concealed rear zip</li>
-                      <li>Dry clean only</li>
-                    </ul>
+                  <div className="pt-2 text-xs text-zinc-500 dark:text-zinc-400 font-sans leading-relaxed space-y-2">
+                    {product.metadata && typeof product.metadata === "object" && Object.keys(product.metadata).length > 0 ? (
+                      <ul className="space-y-1">
+                        {Object.entries(product.metadata).map(([key, value]) => (
+                          <li key={key} className="flex justify-between border-b border-zinc-100 dark:border-zinc-800 pb-1">
+                            <span className="uppercase text-[10px] tracking-wider font-semibold">{key}</span>
+                            <span className="text-zinc-800 dark:text-zinc-200 font-medium">{String(value)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <ul className="list-disc list-inside space-y-1">
+                        <li>Premium quality materials</li>
+                        <li>Category: {product.category || "General"}</li>
+                        <li>Stock: {product.stock || "Available"}</li>
+                      </ul>
+                    )}
                   </div>
                 )}
               </div>
@@ -875,7 +936,7 @@ export default function ProductDetailPage({ params }: PageProps) {
     return (
       <div className="max-w-7xl mx-auto px-6 pb-24 mt-8 text-black">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
+
           {/* Left Column: Visuals (7 Columns) */}
           <section className="lg:col-span-7 space-y-6">
             {/* Main Media Player */}
@@ -896,7 +957,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                 {product.gallery.slice(0, 4).map((media) => {
                   const isActive = activeMediaUrl === media.media_url;
                   return (
-                    <div 
+                    <div
                       key={media.id}
                       onClick={() => {
                         setActiveMediaUrl(media.media_url);
@@ -918,7 +979,7 @@ export default function ProductDetailPage({ params }: PageProps) {
           {/* Right Column: Details & Actions (5 Columns) */}
           <section className="lg:col-span-5 space-y-6">
             <div className="bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-6 space-y-6">
-              
+
               {/* Category & Inventory Alert */}
               <div className="flex justify-between items-center">
                 <span className="bg-[#ffe600] text-black border border-black px-2.5 py-0.5 font-bold text-xs uppercase tracking-wider">
@@ -1014,7 +1075,7 @@ export default function ProductDetailPage({ params }: PageProps) {
             <div className="bg-white border-2 border-black shadow-[4px_4px_0px_#000] p-4 text-black space-y-3">
               <h3 className="font-black text-xs flex items-center gap-1.5 uppercase">
                 <span>ℹ</span>
-                <span>Product Details</span>
+                <span>Specifications</span>
               </h3>
               <ul className="space-y-2 text-xs font-bold text-zinc-700">
                 <li className="flex justify-between border-b border-black/10 pb-1.5">
@@ -1022,13 +1083,21 @@ export default function ProductDetailPage({ params }: PageProps) {
                   <span className="text-black font-mono">ANY-{product.id || "0012"}-TX</span>
                 </li>
                 <li className="flex justify-between border-b border-black/10 pb-1.5">
-                  <span>Material:</span>
-                  <span className="text-black">100% Organic Cotton</span>
+                  <span>Category:</span>
+                  <span className="text-black">{product.category || "General"}</span>
                 </li>
-                <li className="flex justify-between">
-                  <span>Origin:</span>
-                  <span className="text-black">Tokyo, Japan</span>
-                </li>
+                {product.metadata && typeof product.metadata === "object" && Object.entries(product.metadata).map(([key, value], idx, arr) => (
+                  <li key={key} className={cn("flex justify-between pb-1.5", idx < arr.length - 1 && "border-b border-black/10")}>
+                    <span>{key}:</span>
+                    <span className="text-black">{String(value)}</span>
+                  </li>
+                ))}
+                {(!product.metadata || Object.keys(product.metadata).length === 0) && (
+                  <li className="flex justify-between">
+                    <span>Stock:</span>
+                    <span className="text-black">{product.stock > 0 ? `${product.stock} units` : "Out of stock"}</span>
+                  </li>
+                )}
               </ul>
             </div>
           </section>
@@ -1042,18 +1111,18 @@ export default function ProductDetailPage({ params }: PageProps) {
               Complete the look
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              
+
               {/* Card 1: Double column (Hoodie) */}
               {relatedProducts[0] && (
-                <div 
+                <div
                   onClick={() => router.push(`/${username}/product/${relatedProducts[0].id}`)}
                   className="md:col-span-2 bg-white border-2 border-black shadow-[4px_4px_0px_#000] group cursor-pointer overflow-hidden relative flex flex-col justify-between"
                 >
                   <div className="w-full h-48 overflow-hidden bg-zinc-100">
-                    <img 
-                      src={relatedProducts[0].main_media_url} 
+                    <img
+                      src={relatedProducts[0].main_media_url}
                       alt={relatedProducts[0].title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                   </div>
                   <div className="p-4 bg-white border-t border-black flex justify-between items-center">
@@ -1065,14 +1134,14 @@ export default function ProductDetailPage({ params }: PageProps) {
 
               {/* Card 2: Single Column (Cap) */}
               {relatedProducts[1] && (
-                <div 
+                <div
                   onClick={() => router.push(`/${username}/product/${relatedProducts[1].id}`)}
                   className="bg-white border-2 border-black shadow-[4px_4px_0px_#000] p-4 flex flex-col justify-between group cursor-pointer"
                 >
                   <div className="h-32 bg-zinc-100 border-2 border-black overflow-hidden mb-3">
-                    <img 
-                      src={relatedProducts[1].main_media_url} 
-                      alt={relatedProducts[1].title} 
+                    <img
+                      src={relatedProducts[1].main_media_url}
+                      alt={relatedProducts[1].title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                     />
                   </div>
@@ -1085,14 +1154,14 @@ export default function ProductDetailPage({ params }: PageProps) {
 
               {/* Card 3: Single Column (Bag) */}
               {relatedProducts[2] && (
-                <div 
+                <div
                   onClick={() => router.push(`/${username}/product/${relatedProducts[2].id}`)}
                   className="bg-white border-2 border-black shadow-[4px_4px_0px_#000] p-4 flex flex-col justify-between group cursor-pointer"
                 >
                   <div className="h-32 bg-zinc-100 border-2 border-black overflow-hidden mb-3">
-                    <img 
-                      src={relatedProducts[2].main_media_url} 
-                      alt={relatedProducts[2].title} 
+                    <img
+                      src={relatedProducts[2].main_media_url}
+                      alt={relatedProducts[2].title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                     />
                   </div>
@@ -1114,7 +1183,7 @@ export default function ProductDetailPage({ params }: PageProps) {
     return (
       <main className={cn("pt-8 md:pt-12 px-6 max-w-7xl mx-auto flex-1 w-full", styles.containerClass)}>
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-start">
-          
+
           {/* Left Column: Media Gallery */}
           <div className="w-full lg:w-[55%] space-y-4 shrink-0">
             {/* Active Display Panel */}
@@ -1169,11 +1238,11 @@ export default function ProductDetailPage({ params }: PageProps) {
                     <span className="text-[10px] uppercase font-bold text-red-500">Sold Out</span>
                   )}
                 </div>
-                
+
                 <h1 className={cn("text-2xl md:text-3xl font-black tracking-tight", styles.fontHeadline, styles.textColorClass)}>
                   {product.title}
                 </h1>
-                
+
                 <div className="flex items-baseline gap-2 pt-1">
                   <span className={cn("text-2xl font-black", styles.priceClass)}>
                     {product.price ? `${product.price} ${product.currency}` : "Price TBD"}
@@ -1191,7 +1260,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                 </div>
               </div>
 
-              <div className="h-px bg-white/5"></div>
+              <div className={cn("h-px", isLight ? "bg-black/10" : "bg-white/5")}></div>
 
               {/* Variants Picker (if available) */}
               {product.variants && product.variants.length > 0 && (
@@ -1208,15 +1277,36 @@ export default function ProductDetailPage({ params }: PageProps) {
                           onClick={() => setSelectedVariant(v)}
                           className={cn(
                             "px-4 py-2 rounded-lg text-xs font-bold border transition-all select-none",
-                            isActive 
-                              ? "bg-white text-black border-white" 
-                              : "bg-white/5 text-white border-white/10 hover:border-white/20"
+                            isLight
+                              ? isActive
+                                ? "bg-black text-white border-black"
+                                : "bg-black/5 text-black border-black/20 hover:border-black/40"
+                              : isActive
+                                ? "bg-white text-black border-white"
+                                : "bg-white/5 text-white border-white/10 hover:border-white/20"
                           )}
                         >
                           {v}
                         </button>
                       );
                     })}
+                  </div>
+                </div>
+              )}
+
+              {/* Specifications — shown inline after size picker */}
+              {product.metadata && typeof product.metadata === "object" && Object.keys(product.metadata).length > 0 && (
+                <div className="space-y-2">
+                  <span className={cn("text-[10px] uppercase tracking-wider font-bold block", styles.textMutedClass)}>
+                    Specifications
+                  </span>
+                  <div className={cn("rounded-lg border divide-y overflow-hidden text-xs", isLight ? "border-black/10 divide-black/10" : "border-white/10 divide-white/5")}>
+                    {Object.entries(product.metadata).map(([key, value]) => (
+                      <div key={key} className={cn("flex justify-between items-center px-3 py-2", isLight ? "bg-black/[0.02]" : "bg-white/[0.02]")}>
+                        <span className={cn("font-semibold uppercase tracking-wide text-[10px]", styles.textMutedClass)}>{key}</span>
+                        <span className={cn("font-bold", styles.textColorClass)}>{String(value)}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
@@ -1268,22 +1358,25 @@ export default function ProductDetailPage({ params }: PageProps) {
         </div>
 
         {/* Product Details Section */}
-        <section className="mt-16 max-w-3xl space-y-4">
-          <h3 className={cn("text-base font-bold uppercase tracking-wider", styles.textColorClass)}>
-            Product Details
-          </h3>
-          <p className={cn("text-sm leading-relaxed whitespace-pre-wrap", styles.textMutedClass)}>
-            {product.description || "No product description provided."}
-          </p>
+        <section className="mt-16 max-w-3xl space-y-6">
+          <div className="space-y-2">
+            <h3 className={cn("text-base font-bold uppercase tracking-wider", styles.textColorClass)}>
+              Product Details
+            </h3>
+            <p className={cn("text-sm leading-relaxed whitespace-pre-wrap", styles.textMutedClass)}>
+              {product.description || "No product description provided."}
+            </p>
+          </div>
         </section>
+        <hr className="w-full mt-6" />
 
         {/* Related Products Grid (if enabled) */}
         {settings.show_related_products && relatedProducts.length > 0 && (
-          <section className="mt-20 pt-12 border-t border-white/5 space-y-6">
+          <section className=" pt-12 border-t border-white/5 space-y-6">
             <h3 className={cn("text-base font-bold uppercase tracking-wider", styles.textColorClass)}>
               Related Products
             </h3>
-            
+
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               {relatedProducts.map((rel) => (
                 <div
@@ -1359,7 +1452,7 @@ export default function ProductDetailPage({ params }: PageProps) {
             {settings.store_name || supplier.full_name || supplier.username}
           </span>
         </div>
-        
+
         {/* Navigation links - Login and Signup hidden for visitors */}
         <nav className="flex items-center gap-4 text-xs font-semibold">
           <Link href={`/${username}`} className={cn("hover:opacity-80 transition-opacity", styles.textMutedClass)}>

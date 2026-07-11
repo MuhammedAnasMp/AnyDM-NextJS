@@ -22,6 +22,7 @@ import {
   BookOpen,
   Bot,
   RefreshCw,
+  Lock,
 } from "lucide-react";
 import Toast from "@/components/Toast";
 import api from "@/lib/services/api.service";
@@ -63,6 +64,7 @@ export default function AISettingsPage() {
   const [showApiKey, setShowApiKey] = useState(false);
   const [isAiModeOn, setIsAiModeOn] = useState(false);
   const [useBusinessToken, setUseBusinessToken] = useState(false);
+  const [selectedTab, setSelectedTab] = useState<"custom" | "subscription">("custom");
   const [enableSubscriptionAi, setEnableSubscriptionAi] = useState(false);
   const [customInstructions, setCustomInstructions] = useState("");
   const [responseStyle, setResponseStyle] = useState("Friendly");
@@ -97,6 +99,7 @@ export default function AISettingsPage() {
     setApiKey(data.api_key || "");
     setIsAiModeOn(data.is_ai_mode_on || false);
     setUseBusinessToken(data.use_business_token || false);
+    setSelectedTab(data.use_business_token ? "subscription" : "custom");
     setEnableSubscriptionAi(data.enable_subscription_ai || false);
     setCustomInstructions(data.custom_instructions || "");
     setResponseStyle(data.response_style || "Friendly");
@@ -235,15 +238,17 @@ export default function AISettingsPage() {
               Configure your automated customer support agent, connect its knowledge, and shape how it replies.
             </p>
           </div>
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="px-4 py-2 rounded-md font-medium text-xs flex items-center gap-1.5 transition-opacity hover:opacity-90 disabled:opacity-50 cursor-pointer"
-            style={{ backgroundColor: t.primary, color: t.onPrimary }}
-          >
-            {isSaving ? <RefreshCw className="w-4 h-4 animate-spin" strokeWidth={1.75} /> : <Save className="w-4 h-4" strokeWidth={1.75} />}
-            <span>Save changes</span>
-          </button>
+          {!(selectedTab === "subscription" && appUser?.plan !== 'pro') && (
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="px-4 py-2 rounded-md font-medium text-xs flex items-center gap-1.5 transition-opacity hover:opacity-90 disabled:opacity-50 cursor-pointer"
+              style={{ backgroundColor: t.primary, color: t.onPrimary }}
+            >
+              {isSaving ? <RefreshCw className="w-4 h-4 animate-spin" strokeWidth={1.75} /> : <Save className="w-4 h-4" strokeWidth={1.75} />}
+              <span>Save changes</span>
+            </button>
+          )}
         </div>
 
         {/* Active account context */}
@@ -269,140 +274,160 @@ export default function AISettingsPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left column */}
-        <div className="lg:col-span-2 flex flex-col gap-6">
-          {/* AI access & activation */}
-          <section className="rounded-lg p-4 md:p-5 space-y-4" style={{ backgroundColor: t.surfaceContainer }}>
-            <SectionHeading icon={Settings2} label="AI access & activation" />
+      {/* Autopilot global toggle card */}
+      <section className="rounded-lg p-4 md:p-5 flex items-center justify-between" style={{ backgroundColor: t.surfaceContainer }}>
+        <div className="space-y-0.5 pr-4">
+          <span className="text-xs font-medium flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5" style={{ color: t.accentCyan }} strokeWidth={1.75} />
+            <span>Enable AI autopilot mode</span>
+          </span>
+          <p className="text-[11px]" style={{ color: t.onSurfaceVariant }}>
+            When on, the AI manages support conversations automatically using the settings below.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={async () => {
+            const nextVal = !isAiModeOn;
+            setIsAiModeOn(nextVal);
+            try {
+              await api.post("/crm/ai-settings/toggle-global/", {
+                is_ai_mode_on: nextVal,
+                ...(activeAccountId ? { account_id: activeAccountId } : {}),
+              });
+              showToast(`AI autopilot mode turned ${nextVal ? "on" : "off"}.`, "success");
+            } catch (err) {
+              console.error("Failed to toggle global AI mode:", err);
+              showToast("Couldn't update the AI mode.", "error");
+            }
+          }}
+          className="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full transition-colors duration-200 focus:outline-none"
+          style={{ backgroundColor: isAiModeOn ? t.lavender : t.surfaceContainerHigh }}
+        >
+          <span
+            className="pointer-events-none inline-block h-4 w-4 mt-0.5 transform rounded-full transition duration-200"
+            style={{ transform: isAiModeOn ? "translateX(18px)" : "translateX(2px)", backgroundColor: isAiModeOn ? t.onPrimary : t.outline }}
+          />
+        </button>
+      </section>
 
-            <div className="space-y-4">
-              {(!enableSubscriptionAi || !useBusinessToken) && (
-                <div>
-                  <div className="flex justify-between items-baseline mb-1.5">
-                    <label className="text-xs font-medium" style={{ color: t.onSurfaceVariant }}>
-                      Gemini API token
-                    </label>
-                    <span className="text-[11px]" style={{ color: t.lavender }}>
-                      Google Gemini keys only
-                    </span>
-                  </div>
-                  <div className="relative">
-                    <input
-                      type={showApiKey ? "text" : "password"}
-                      placeholder="Enter your Gemini API key (e.g., AIzaSy…)"
-                      value={apiKey}
-                      onChange={(e) => setApiKey(e.target.value)}
-                      className="w-full rounded text-xs py-2 pl-3 pr-10 focus:outline-none transition-colors"
-                      style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface, ...monoStat }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowApiKey(!showApiKey)}
-                      className="absolute right-3 top-2 transition-colors"
-                      style={{ color: t.onSurfaceVariant }}
-                    >
-                      {showApiKey ? <EyeOff className="w-4 h-4" strokeWidth={1.75} /> : <Eye className="w-4 h-4" strokeWidth={1.75} />}
-                    </button>
-                  </div>
-                  <div className="flex justify-between items-center mt-1.5">
-                    <p className="text-[11px]" style={{ color: t.onSurfaceVariant }}>
-                      Used to run the support AI. Turns off automatically if the key is invalid or over quota.
-                    </p>
-                    <a
-                      href="https://aistudio.google.com/"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[11px] hover:underline font-medium shrink-0 ml-2"
-                      style={{ color: t.lavender }}
-                    >
-                      Get a Gemini key →
-                    </a>
-                  </div>
-                </div>
-              )}
+      {/* AI access & activation card (always outside the rest of settings grid) */}
+      <section className="rounded-lg p-4 md:p-5 space-y-4" style={{ backgroundColor: t.surfaceContainer }}>
+        <SectionHeading icon={Settings2} label="AI access & activation" />
 
-              {enableSubscriptionAi && (
-                <div className="space-y-2 pt-4" style={{ borderTop: `1px solid ${t.outlineVariant}` }}>
-                  <label className="text-xs font-medium block" style={{ color: t.onSurfaceVariant }}>
-                    AI Subscription Plan
-                  </label>
-                  <p className="text-[11px]" style={{ color: t.onSurfaceVariant }}>
-                    Choose whether to use your own Gemini API key or use the business's master token.
-                  </p>
-                  
-                  {appUser?.plan === 'pro' ? (
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setUseBusinessToken(false)}
-                        className={cn(
-                          "py-2 px-3 rounded-md text-xs font-medium text-center transition-colors cursor-pointer border",
-                          !useBusinessToken
-                            ? "bg-white text-black border-white"
-                            : "bg-transparent text-white border-zinc-700 hover:border-zinc-500"
-                        )}
-                      >
-                        Use My Own Key
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setUseBusinessToken(true)}
-                        className={cn(
-                          "py-2 px-3 rounded-md text-xs font-medium text-center transition-colors cursor-pointer border",
-                          useBusinessToken
-                            ? "bg-white text-black border-white"
-                            : "bg-transparent text-white border-zinc-700 hover:border-zinc-500"
-                        )}
-                      >
-                        Use Business Token
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="text-xs p-3 rounded bg-zinc-900 border border-zinc-800 text-zinc-400">
-                      🔒 <strong>Business Token</strong> option is only available for paid (Pro) accounts. Please upgrade your subscription to unlock this feature.
-                    </div>
-                  )}
-                </div>
-              )}
+        <div className="space-y-4">
+          {enableSubscriptionAi && (
+            <div className="flex bg-[#1c1b1b] p-0.5 rounded-md max-w-xs border border-white/5">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedTab("custom");
+                  setUseBusinessToken(false);
+                }}
+                className={cn(
+                  "flex-1 py-1 px-2.5 rounded-md text-[10px] font-semibold transition-all text-center cursor-pointer",
+                  selectedTab === "custom"
+                    ? "bg-white text-[#111] shadow-sm"
+                    : "text-zinc-400 hover:text-zinc-200"
+                )}
+              >
+                Custom Key
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedTab("subscription");
+                  if (appUser?.plan === 'pro') {
+                    setUseBusinessToken(true);
+                  } else {
+                    setUseBusinessToken(false);
+                  }
+                }}
+                className={cn(
+                  "flex-1 py-1 px-2.5 rounded-md text-[10px] font-semibold transition-all text-center cursor-pointer flex items-center justify-center gap-1",
+                  selectedTab === "subscription"
+                    ? "bg-white text-[#111] shadow-sm"
+                    : "text-zinc-400 hover:text-zinc-200"
+                )}
+              >
+                {appUser?.plan !== 'pro' && <Lock className="w-2.5 h-2.5" />}
+                <span>Subscription AI</span>
+              </button>
+            </div>
+          )}
 
-              <div className="flex items-center justify-between pt-4" style={{ borderTop: `1px solid ${t.outlineVariant}` }}>
-                <div className="space-y-0.5 pr-4">
-                  <span className="text-xs font-medium flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5" style={{ color: t.accentCyan }} strokeWidth={1.75} />
-                    <span>Enable AI autopilot mode</span>
-                  </span>
-                  <p className="text-[11px] max-w-sm" style={{ color: t.onSurfaceVariant }}>
-                    When on, the AI manages support conversations automatically using the settings below.
-                  </p>
-                </div>
+          {(selectedTab === "custom" || !enableSubscriptionAi) ? (
+            <div className="max-w-md">
+              <div className="flex justify-between items-baseline mb-1.5">
+                <label className="text-xs font-medium" style={{ color: t.onSurfaceVariant }}>
+                  Gemini API token
+                </label>
+                <span className="text-[11px]" style={{ color: t.lavender }}>
+                  Google Gemini keys only
+                </span>
+              </div>
+              <div className="relative">
+                <input
+                  type={showApiKey ? "text" : "password"}
+                  placeholder="Enter your Gemini API key (e.g., AIzaSy…)"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  className="w-full rounded text-xs py-2 pl-3 pr-10 focus:outline-none transition-colors"
+                  style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface, ...monoStat }}
+                />
                 <button
                   type="button"
-                  onClick={async () => {
-                    const nextVal = !isAiModeOn;
-                    setIsAiModeOn(nextVal);
-                    try {
-                      await api.post("/crm/ai-settings/toggle-global/", {
-                        is_ai_mode_on: nextVal,
-                        ...(activeAccountId ? { account_id: activeAccountId } : {}),
-                      });
-                      showToast(`AI autopilot mode turned ${nextVal ? "on" : "off"}.`, "success");
-                    } catch (err) {
-                      console.error("Failed to toggle global AI mode:", err);
-                      showToast("Couldn't update the AI mode.", "error");
-                    }
-                  }}
-                  className="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full transition-colors duration-200 focus:outline-none"
-                  style={{ backgroundColor: isAiModeOn ? t.lavender : t.surfaceContainerHigh }}
+                  onClick={() => setShowApiKey(!showApiKey)}
+                  className="absolute right-3 top-2 transition-colors"
+                  style={{ color: t.onSurfaceVariant }}
                 >
-                  <span
-                    className="pointer-events-none inline-block h-4 w-4 mt-0.5 transform rounded-full transition duration-200"
-                    style={{ transform: isAiModeOn ? "translateX(18px)" : "translateX(2px)", backgroundColor: isAiModeOn ? t.onPrimary : t.outline }}
-                  />
+                  {showApiKey ? <EyeOff className="w-4 h-4" strokeWidth={1.75} /> : <Eye className="w-4 h-4" strokeWidth={1.75} />}
                 </button>
               </div>
+              <div className="flex justify-between items-center mt-1.5">
+                <p className="text-[11px]" style={{ color: t.onSurfaceVariant }}>
+                  Used to run the support AI. Turns off automatically if the key is invalid or over quota.
+                </p>
+                <a
+                  href="https://aistudio.google.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[11px] hover:underline font-medium shrink-0 ml-2"
+                  style={{ color: t.lavender }}
+                >
+                  Get a Gemini key →
+                </a>
+              </div>
             </div>
-          </section>
+          ) : (
+            appUser?.plan === 'pro' ? (
+              <div className="p-4 rounded bg-[#b6b2ff]/5 border border-[#b6b2ff]/10 flex flex-col gap-1.5">
+                <div className="flex items-center gap-2 text-xs font-bold text-[#b6b2ff]">
+                  <Sparkles className="w-4 h-4 shrink-0" strokeWidth={2} />
+                  <span>Using Subscription AI Token</span>
+                </div>
+                <p className="text-[11px] leading-relaxed text-[#c4c0ff]/80">
+                  The platform's master Gemini API key is currently managing your support autopilot. You don't need to provide or validate a custom key.
+                </p>
+              </div>
+            ) : (
+              <div className="text-xs p-3 rounded bg-zinc-900 border border-zinc-800 text-zinc-400 max-w-md">
+                🔒 <strong>Business Token</strong> option is only available for paid (Pro) accounts.{" "}
+                <a href="/dashboard/settings/accounts" className="text-[#b6b2ff] hover:underline font-semibold">
+                  Purchase plan to get free AI chatbot access →
+                </a>
+              </div>
+            )
+          )}
+        </div>
+      </section>
+
+      {/* Rest of the settings grid, hidden for unpaid users selecting Subscription AI */}
+      {!(selectedTab === "subscription" && appUser?.plan !== 'pro') && (
+        <div className={cn("transition-all duration-300", isAiModeOn ? "" : "opacity-40 pointer-events-none select-none")}>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left column */}
+            <div className="lg:col-span-2 flex flex-col gap-6">
 
           {/* Agent personality */}
           <section className="rounded-lg p-4 md:p-5 space-y-4" style={{ backgroundColor: t.surfaceContainer }}>
@@ -658,6 +683,8 @@ export default function AISettingsPage() {
           </div>
         </div>
       </div>
+    </div>
+  )}
 
       <Toast isVisible={toast.isVisible} message={toast.message} type={toast.type} onClose={() => setToast((prev) => ({ ...prev, isVisible: false }))} />
     </motion.div>

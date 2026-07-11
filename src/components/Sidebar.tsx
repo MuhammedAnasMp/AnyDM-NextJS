@@ -17,7 +17,8 @@ import {
   X,
   Video,
   Gift,
-  CreditCard
+  CreditCard,
+  ShieldAlert,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -46,12 +47,15 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     if (pathname.startsWith("/dashboard/inbox")) return "Inbox";
     if (pathname.startsWith("/dashboard/games")) return "Games";
     if (pathname.startsWith("/dashboard/settings")) return "Settings";
+    if (pathname.startsWith("/dashboard/admin")) return "Admin Panel";
     if (pathname.startsWith("/dashboard/refer")) return "Refer & Earn";
     if (pathname.startsWith("/dashboard/pricing")) return "Pricing";
     return "Dashboard";
   };
 
   const activeTab = getActiveTab();
+
+  const isAdmin = !!(appUser?.is_superuser || appUser?.is_staff);
 
   const menuItems = [
     { name: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
@@ -63,6 +67,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     { name: "Refer & Earn", icon: Gift, href: "/dashboard/refer" },
     { name: "Pricing", icon: CreditCard, href: "/dashboard/pricing" },
     { name: "Settings", icon: Settings, href: "/dashboard/settings/accounts" },
+    ...(isAdmin ? [{ name: "Admin Panel", icon: ShieldAlert, href: "/dashboard/admin" }] : []),
   ];
 
   const userDisplayName = appUser?.display_name || appUser?.first_name || "Alex Rivera";

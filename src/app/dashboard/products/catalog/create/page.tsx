@@ -225,10 +225,12 @@ export default function ProductCreatePage() {
       }
 
       if (product.metadata && typeof product.metadata === "object") {
-        const metadataArray = Object.entries(product.metadata).map(([key, value]) => ({
-          key,
-          value: String(value)
-        }));
+        const metadataArray = Object.entries(product.metadata)
+          .filter(([key]) => key !== "variants")
+          .map(([key, value]) => ({
+            key,
+            value: String(value)
+          }));
         setMetadata(metadataArray);
       }
     } else {
@@ -1042,7 +1044,7 @@ export default function ProductCreatePage() {
             {/* Technical Specification Details */}
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <h3 className="text-xs font-semibold tracking-wider text-[#c4c7c8] uppercase">Technical details</h3>
+                <h3 className="text-xs font-semibold tracking-wider text-[#c4c7c8] uppercase">Specifications</h3>
                 <button
                   onClick={() => setMetadata([...metadata, { key: "", value: "" }])}
                   className="text-white bg-[#1c1b1b] hover:bg-[#1c1b1b] px-2.5 py-1 rounded-[4px] border border-[#444748]/60 text-[10px] font-medium transition-colors"
