@@ -12,7 +12,9 @@ import {
   Truck,
   ArrowLeft,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Heart,
+  X
 } from "lucide-react";
 import api from "@/lib/services/api.service";
 import { getTemplateStyles, TemplateStyle } from "@/components/templates/TemplateProvider";
@@ -44,6 +46,10 @@ interface WebsiteSettingsData {
   custom_colors: any;
   custom_fonts: any;
   custom_settings: any;
+  cod_enabled?: boolean;
+  online_payment_enabled?: boolean;
+  return_policy?: string;
+  cancellation_policy?: string;
 }
 
 interface GalleryMedia {
@@ -69,6 +75,7 @@ interface ProductDetail {
   variants: string[];
   category: string;
   metadata?: Record<string, any>;
+  cod_enabled?: boolean;
 }
 
 interface RelatedProduct {
@@ -97,6 +104,179 @@ export default function ProductDetailPage({ params }: PageProps) {
   const [selectedVariant, setSelectedVariant] = useState("");
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isShippingOpen, setIsShippingOpen] = useState(false);
+  const [quantity, setQuantity] = useState(1);
+  const [isFavorited, setIsFavorited] = useState(false);
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [checkoutName, setCheckoutName] = useState("");
+  const [checkoutEmail, setCheckoutEmail] = useState("");
+  const [checkoutPhone, setCheckoutPhone] = useState("");
+  const [checkoutAddress, setCheckoutAddress] = useState("");
+  const [checkoutPincode, setCheckoutPincode] = useState("");
+  const [checkoutPlace, setCheckoutPlace] = useState("");
+  const [checkoutDistrict, setCheckoutDistrict] = useState("");
+  const [checkoutState, setCheckoutState] = useState("");
+  const [checkoutPaymentMethod, setCheckoutPaymentMethod] = useState("COD");
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
+
+  useEffect(() => {
+    if (product) {
+      const favs = JSON.parse(localStorage.getItem("anydm_favorites") || "[]");
+      setIsFavorited(favs.includes(product.id));
+    }
+  }, [product]);
+
+  const toggleFavorite = () => {
+    if (!product) return;
+    let favs = JSON.parse(localStorage.getItem("anydm_favorites") || "[]");
+    if (favs.includes(product.id)) {
+      favs = favs.filter((id: number) => id !== product.id);
+      setIsFavorited(false);
+    } else {
+      favs.push(product.id);
+      setIsFavorited(true);
+    }
+    localStorage.setItem("anydm_favorites", JSON.stringify(favs));
+  };
+
+  const openCheckout = () => {
+    if (isOutOfStock) {
+      alert("This product is currently out of stock.");
+      return;
+    }
+    const isCodAvailable = settings?.cod_enabled && product?.cod_enabled;
+    const isOnlineAvailable = !!settings?.online_payment_enabled;
+
+    if (isOnlineAvailable && !isCodAvailable) {
+      setCheckoutPaymentMethod("RAZORPAY");
+    } else if (isCodAvailable) {
+      setCheckoutPaymentMethod("COD");
+    } else {
+      setCheckoutPaymentMethod("COD");
+    }
+    setIsCheckoutOpen(true);
+  };
+
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      if ((window as any).Razorpay) {
+        resolve(true);
+        return;
+      }
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const handleCheckout = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!product || !username) return;
+    if (!checkoutName || !checkoutEmail || !checkoutPhone || !checkoutAddress || !checkoutPincode || !checkoutPlace || !checkoutDistrict || !checkoutState) {
+      alert("Please fill in all fields.");
+      return;
+    }
+    setIsSubmittingOrder(true);
+    try {
+      const res = await api.post("/crm/store/checkout/", {
+        username,
+        items: [{ product_id: product.id, quantity: quantity, variant: selectedVariant }],
+        customer_name: checkoutName,
+        customer_email: checkoutEmail,
+        customer_phone: checkoutPhone,
+        shipping_address: checkoutAddress,
+        shipping_pincode: checkoutPincode,
+        shipping_place: checkoutPlace,
+        shipping_district: checkoutDistrict,
+        shipping_state: checkoutState,
+        payment_method: checkoutPaymentMethod
+      });
+
+      if (checkoutPaymentMethod === "RAZORPAY") {
+        const scriptLoaded = await loadRazorpayScript();
+        if (!scriptLoaded) {
+          alert("Failed to load Razorpay SDK. Check your connection.");
+          setIsSubmittingOrder(false);
+          return;
+        }
+
+        const options = {
+          key: res.data.razorpay_key_id,
+          amount: res.data.amount,
+          currency: res.data.currency,
+          name: settings?.store_name || "AnyDm Store",
+          description: `Order ${res.data.order_id}`,
+          order_id: res.data.razorpay_order_id,
+          handler: async (response: any) => {
+            setIsSubmittingOrder(true);
+            try {
+              const verifyRes = await api.post("/crm/store/checkout/confirm-payment/", {
+                order_id: res.data.order_id,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature
+              });
+              if (verifyRes.data && verifyRes.data.order_id) {
+                // Save order session in local storage
+                const existing = JSON.parse(localStorage.getItem("anydm_customer_orders") || "[]");
+                existing.push({
+                  order_id: res.data.order_id,
+                  tracking_token: res.data.tracking_token,
+                  username: username,
+                  product_name: product.title,
+                  email: checkoutEmail,
+                  phone: checkoutPhone,
+                  timestamp: new Date().toISOString()
+                });
+                localStorage.setItem("anydm_customer_orders", JSON.stringify(existing));
+                alert("Payment verified and order placed successfully!");
+                setIsCheckoutOpen(false);
+                router.push(`/track/${res.data.order_id}`);
+              }
+            } catch (err: any) {
+              alert(err.response?.data?.error || "Payment verification failed.");
+            } finally {
+              setIsSubmittingOrder(false);
+            }
+          },
+          prefill: {
+            name: checkoutName,
+            email: checkoutEmail,
+            contact: checkoutPhone
+          },
+          theme: {
+            color: "#605ca2"
+          }
+        };
+
+        const rzp = new (window as any).Razorpay(options);
+        rzp.open();
+      } else {
+        if (res.data && res.data.order_id) {
+          const existing = JSON.parse(localStorage.getItem("anydm_customer_orders") || "[]");
+          existing.push({
+            order_id: res.data.order_id,
+            tracking_token: res.data.tracking_token,
+            username: username,
+            product_name: product.title,
+            email: checkoutEmail,
+            phone: checkoutPhone,
+            timestamp: new Date().toISOString()
+          });
+          localStorage.setItem("anydm_customer_orders", JSON.stringify(existing));
+          alert("Order placed successfully!");
+          setIsCheckoutOpen(false);
+          // Redirect to order tracking page
+          router.push(`/track/${res.data.order_id}`);
+        }
+      }
+    } catch (err: any) {
+      alert(err.response?.data?.error || "Failed to place order.");
+    } finally {
+      setIsSubmittingOrder(false);
+    }
+  };
 
   useEffect(() => {
     if (username && productId) {
@@ -158,6 +338,7 @@ export default function ProductDetailPage({ params }: PageProps) {
         };
 
         setProduct(normalizedProduct);
+        setQuantity(1);
         setSupplier(response.data.supplier);
         setSettings(response.data.settings);
 
@@ -214,6 +395,8 @@ export default function ProductDetailPage({ params }: PageProps) {
       </div>
     );
   }
+
+  const isOutOfStock = product ? (product.stock <= 0 || product.status === "OUT_OF_STOCK") : true;
 
   const styles: TemplateStyle = getTemplateStyles(settings.template_id, settings.theme_id);
   const isLight = styles.textColorClass === "text-black" || styles.textColorClass === "text-[#1c1c1c]" || styles.textColorClass === "text-[#2D362E]";
@@ -323,19 +506,71 @@ export default function ProductDetailPage({ params }: PageProps) {
             </section>
 
             <section className="space-y-4">
-              {settings.enable_instagram_button && product.instagram_permalink && (
+              {/* Store Policies */}
+              <div className="pt-2 border-t border-[#C2C9C3]/40 space-y-3 text-[#2D362E]">
+                <span className="text-[9px] uppercase tracking-[0.15em] font-semibold text-[#6A786C] block">Store Policies</span>
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-[#6A786C]">Returns &amp; Exchanges</span>
+                    <span className="font-semibold">{settings?.return_policy ? "Accepted" : "Not Accepted"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[#6A786C]">Cancellations</span>
+                    <span className="font-semibold">{settings?.cancellation_policy ? "Allowed" : "Not Allowed"}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quantity Selector */}
+              {!isOutOfStock && (
+                <div className="flex items-center justify-between py-3 border-t border-[#C2C9C3]/40">
+                  <span className="text-[10px] uppercase tracking-[0.15em] font-semibold text-[#2D362E]">Quantity</span>
+                  <div className="flex items-center gap-4">
+                    <button
+                      type="button"
+                      disabled={quantity <= 1}
+                      onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
+                      className={cn("w-8 h-8 border flex items-center justify-center font-bold text-sm transition-all",
+                        quantity <= 1 ? "opacity-30 cursor-not-allowed border-[#C2C9C3] text-[#6A786C]" : "border-[#4A5D4E] text-[#4A5D4E] hover:bg-[#4A5D4E]/5")}
+                    >-</button>
+                    <span className="w-6 text-center text-sm font-black text-[#2D362E]">{quantity}</span>
+                    <button
+                      type="button"
+                      disabled={quantity >= product.stock}
+                      onClick={() => setQuantity(prev => Math.min(product.stock, prev + 1))}
+                      className={cn("w-8 h-8 border flex items-center justify-center font-bold text-sm transition-all",
+                        quantity >= product.stock ? "opacity-30 cursor-not-allowed border-[#C2C9C3] text-[#6A786C]" : "border-[#4A5D4E] text-[#4A5D4E] hover:bg-[#4A5D4E]/5")}
+                    >+</button>
+                  </div>
+                </div>
+              )}
+
+              {/* Buy Now */}
+              <button
+                onClick={openCheckout}
+                disabled={isOutOfStock}
+                className={cn("w-full flex items-center justify-center py-5 font-bold text-xs tracking-widest uppercase rounded-none transition-all",
+                  isOutOfStock
+                    ? "bg-[#C2C9C3]/40 text-[#6A786C] cursor-not-allowed"
+                    : "bg-[#4A5D4E] text-white hover:bg-[#4A5D4E]/90")}
+              >
+                <ShoppingBag className="w-4 h-4 mr-2 shrink-0" />
+                <span>{isOutOfStock ? "Out of Stock" : "Buy Now / Checkout"}</span>
+              </button>
+
+              {settings.enable_instagram_button && product.instagram_permalink && !isOutOfStock && (
                 <a
                   href={product.instagram_permalink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full flex items-center justify-center py-5 bg-[#4A5D4E] text-white font-bold text-xs tracking-widest uppercase rounded-none hover:bg-[#4A5D4E]/90 transition-all shadow-sm"
+                  className="w-full flex items-center justify-center py-5 bg-gradient-to-r from-orange-400 via-red-400 to-pink-500 text-white font-bold text-xs tracking-widest uppercase rounded-none hover:opacity-90 transition-all shadow-sm"
                 >
-                  Acquire Piece
+                  Acquire on Instagram
                 </a>
               )}
 
               <div className="grid grid-cols-2 gap-4">
-                {settings.enable_whatsapp_button && (
+                {settings.enable_whatsapp_button && !isOutOfStock && (
                   <a
                     href={whatsappUrl}
                     target="_blank"
@@ -345,7 +580,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                     WhatsApp
                   </a>
                 )}
-                {product.instagram_permalink && (
+                {product.instagram_permalink && !isOutOfStock && (
                   <a
                     href={product.instagram_permalink}
                     target="_blank"
@@ -502,8 +737,56 @@ export default function ProductDetailPage({ params }: PageProps) {
             </div>
           )}
 
+          {/* Store Policies */}
+          <div className="flex flex-col gap-2 font-mono pt-2 border-t border-white/5">
+            <span className="text-[10px] text-[#b9cacb] uppercase tracking-widest">STORE POLICIES</span>
+            <div className="flex justify-between text-xs">
+              <span className="text-[#b9cacb]">Returns &amp; Exchanges</span>
+              <span className={settings?.return_policy ? "text-[#00f0ff]" : "text-red-400"}>{settings?.return_policy ? "Accepted" : "Not Accepted"}</span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <span className="text-[#b9cacb]">Cancellations</span>
+              <span className={settings?.cancellation_policy ? "text-[#00f0ff]" : "text-red-400"}>{settings?.cancellation_policy ? "Allowed" : "Not Allowed"}</span>
+            </div>
+          </div>
+
+          {/* Quantity Selector */}
+          {!isOutOfStock && (
+            <div className="flex items-center justify-between py-3 border-t border-white/5">
+              <span className="font-mono text-[10px] text-[#b9cacb] uppercase tracking-widest">QUANTITY</span>
+              <div className="flex items-center gap-4">
+                <button type="button" disabled={quantity <= 1}
+                  onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
+                  className={cn("w-8 h-8 border font-mono font-bold text-sm transition-all flex items-center justify-center",
+                    quantity <= 1 ? "opacity-30 cursor-not-allowed border-white/10 text-zinc-600" : "border-[#00f0ff]/40 text-[#00f0ff] hover:bg-[#00f0ff]/5")}>
+                  -
+                </button>
+                <span className="w-6 text-center font-mono font-black text-white text-sm">{quantity}</span>
+                <button type="button" disabled={quantity >= product.stock}
+                  onClick={() => setQuantity(prev => Math.min(product.stock, prev + 1))}
+                  className={cn("w-8 h-8 border font-mono font-bold text-sm transition-all flex items-center justify-center",
+                    quantity >= product.stock ? "opacity-30 cursor-not-allowed border-white/10 text-zinc-600" : "border-[#00f0ff]/40 text-[#00f0ff] hover:bg-[#00f0ff]/5")}>
+                  +
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-col gap-3 pt-4 border-t border-white/5">
-            {settings.enable_instagram_button && product.instagram_permalink && (
+            {/* Primary Buy Button */}
+            <button
+              onClick={openCheckout}
+              disabled={isOutOfStock}
+              className={cn("w-full py-4 text-center font-bold uppercase tracking-widest text-xs rounded-none active:scale-95 transition-transform flex items-center justify-center gap-2",
+                isOutOfStock
+                  ? "bg-zinc-800 text-zinc-500 cursor-not-allowed opacity-60"
+                  : "bg-[#00f0ff] text-black hover:shadow-[0_0_15px_rgba(0,240,255,0.5)]")}
+            >
+              <ShoppingBag className="w-4 h-4 shrink-0" />
+              <span>{isOutOfStock ? "OUT OF STOCK" : "BUY NOW / CHECKOUT"}</span>
+            </button>
+
+            {settings.enable_instagram_button && product.instagram_permalink && !isOutOfStock && (
               <a
                 href={product.instagram_permalink}
                 target="_blank"
@@ -514,7 +797,7 @@ export default function ProductDetailPage({ params }: PageProps) {
               </a>
             )}
 
-            {settings.enable_whatsapp_button && (
+            {settings.enable_whatsapp_button && !isOutOfStock && (
               <a
                 href={whatsappUrl}
                 target="_blank"
@@ -658,9 +941,59 @@ export default function ProductDetailPage({ params }: PageProps) {
               </div>
             )}
 
+            {/* Store Policies */}
+            <div className="space-y-2 text-xs">
+              <span className="text-[10px] uppercase font-bold text-gray-300 block">Store Policies</span>
+              <div className="flex justify-between p-2 bg-white/5 border border-white/10 rounded-xl">
+                <span className="text-gray-400">Returns &amp; Exchanges</span>
+                <span className={settings?.return_policy ? "text-emerald-400 font-semibold" : "text-red-400 font-semibold"}>
+                  {settings?.return_policy ? "Accepted" : "Not Accepted"}
+                </span>
+              </div>
+              <div className="flex justify-between p-2 bg-white/5 border border-white/10 rounded-xl">
+                <span className="text-gray-400">Cancellations</span>
+                <span className={settings?.cancellation_policy ? "text-emerald-400 font-semibold" : "text-red-400 font-semibold"}>
+                  {settings?.cancellation_policy ? "Allowed" : "Not Allowed"}
+                </span>
+              </div>
+            </div>
+
+            {/* Quantity Selector */}
+            {!isOutOfStock && (
+              <div className="flex items-center justify-between py-3 border-t border-white/10">
+                <span className="text-[10px] uppercase font-bold text-gray-300">Quantity</span>
+                <div className="flex items-center gap-4">
+                  <button type="button" disabled={quantity <= 1}
+                    onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
+                    className={cn("w-8 h-8 rounded-full border text-sm font-bold flex items-center justify-center transition-all",
+                      quantity <= 1 ? "opacity-30 cursor-not-allowed border-white/10" : "border-white/20 text-white hover:bg-white/10")}>
+                    -
+                  </button>
+                  <span className="w-6 text-center font-black text-white text-sm">{quantity}</span>
+                  <button type="button" disabled={quantity >= product.stock}
+                    onClick={() => setQuantity(prev => Math.min(product.stock, prev + 1))}
+                    className={cn("w-8 h-8 rounded-full border text-sm font-bold flex items-center justify-center transition-all",
+                      quantity >= product.stock ? "opacity-30 cursor-not-allowed border-white/10" : "border-white/20 text-white hover:bg-white/10")}>
+                    +
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* CTAs */}
             <div className="space-y-3 pt-4">
-              {settings.enable_instagram_button && product.instagram_permalink && (
+              <button
+                onClick={openCheckout}
+                disabled={isOutOfStock}
+                className={cn("w-full h-12 rounded-xl flex items-center justify-center gap-2 text-xs font-bold transition-all",
+                  isOutOfStock
+                    ? "bg-zinc-800 text-zinc-500 cursor-not-allowed opacity-60"
+                    : "bg-white text-black hover:opacity-90 active:scale-95 shadow-md")}
+              >
+                <ShoppingBag className="w-4 h-4 shrink-0" />
+                <span>{isOutOfStock ? "Out of Stock" : "Buy Now / Checkout"}</span>
+              </button>
+              {settings.enable_instagram_button && product.instagram_permalink && !isOutOfStock && (
                 <a
                   href={product.instagram_permalink}
                   target="_blank"
@@ -670,7 +1003,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                   Buy on Instagram
                 </a>
               )}
-              {settings.enable_whatsapp_button && (
+              {settings.enable_whatsapp_button && !isOutOfStock && (
                 <a
                   href={whatsappUrl}
                   target="_blank"
@@ -806,22 +1139,75 @@ export default function ProductDetailPage({ params }: PageProps) {
               </div>
             )}
 
+            {/* Store Policies */}
+            <div className="flex flex-col gap-2">
+              <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 space-y-2 text-xs">
+                <span className="text-xs font-semibold text-zinc-400 uppercase tracking-widest block">Store Policies</span>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Returns &amp; Exchanges</span>
+                  <span className={settings?.return_policy ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "text-red-500 font-semibold"}>
+                    {settings?.return_policy ? "Accepted" : "Not Accepted"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Cancellations</span>
+                  <span className={settings?.cancellation_policy ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "text-red-500 font-semibold"}>
+                    {settings?.cancellation_policy ? "Allowed" : "Not Allowed"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Quantity Selector */}
+            {!isOutOfStock && (
+              <div className="flex items-center justify-between py-3 border-t border-zinc-200 dark:border-zinc-800">
+                <span className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">Quantity</span>
+                <div className="flex items-center gap-4">
+                  <button type="button" disabled={quantity <= 1}
+                    onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
+                    className={cn("w-8 h-8 border rounded font-bold text-sm flex items-center justify-center transition-all",
+                      quantity <= 1
+                        ? "opacity-30 cursor-not-allowed border-zinc-200 dark:border-zinc-800 text-zinc-400"
+                        : "border-zinc-300 dark:border-zinc-700 hover:border-black dark:hover:border-white")}>
+                    -
+                  </button>
+                  <span className="w-6 text-center font-black text-sm text-zinc-900 dark:text-white">{quantity}</span>
+                  <button type="button" disabled={quantity >= product.stock}
+                    onClick={() => setQuantity(prev => Math.min(product.stock, prev + 1))}
+                    className={cn("w-8 h-8 border rounded font-bold text-sm flex items-center justify-center transition-all",
+                      quantity >= product.stock
+                        ? "opacity-30 cursor-not-allowed border-zinc-200 dark:border-zinc-800 text-zinc-400"
+                        : "border-zinc-300 dark:border-zinc-700 hover:border-black dark:hover:border-white")}>
+                    +
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Purchase / Enquire CTAs */}
             <div className="flex flex-col gap-3 pt-2">
-              {settings.enable_instagram_button && product.instagram_permalink && (
+              <button
+                onClick={openCheckout}
+                disabled={isOutOfStock}
+                className={cn("w-full h-14 font-semibold text-xs tracking-widest uppercase flex items-center justify-center gap-2 transition-all active:scale-[0.98]",
+                  isOutOfStock
+                    ? "bg-zinc-200 dark:bg-zinc-800 text-zinc-400 cursor-not-allowed"
+                    : "bg-black dark:bg-white text-white dark:text-black hover:opacity-90")}
+              >
+                <ShoppingBag className="w-4 h-4 shrink-0" />
+                <span>{isOutOfStock ? "OUT OF STOCK" : "BUY NOW / CHECKOUT"}</span>
+              </button>
+              {settings.enable_instagram_button && product.instagram_permalink && !isOutOfStock && (
                 <a
                   href={product.instagram_permalink}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full h-14 bg-black dark:bg-white text-white dark:text-black font-semibold text-xs tracking-widest uppercase flex items-center justify-center gap-2 hover:opacity-90 transition-all active:scale-[0.98]"
                 >
-                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
-                  </svg>
                   <span>PURCHASE ON INSTAGRAM</span>
                 </a>
               )}
-              {settings.enable_whatsapp_button && (
+              {settings.enable_whatsapp_button && !isOutOfStock && (
                 <a
                   href={whatsappUrl}
                   target="_blank"
@@ -1034,9 +1420,61 @@ export default function ProductDetailPage({ params }: PageProps) {
                 </div>
               )}
 
+              {/* Store Policies */}
+              <div className="space-y-2 pt-4 border-t border-black">
+                <span className="text-[10px] font-black uppercase">Store Policies</span>
+                <div className="grid grid-cols-2 gap-2 text-xs font-bold">
+                  <div className="border-2 border-black p-2 flex flex-col gap-0.5">
+                    <span className="text-zinc-500 font-bold text-[9px] uppercase">Returns &amp; Exchanges</span>
+                    <span className={settings?.return_policy ? "text-emerald-600" : "text-red-600"}>
+                      {settings?.return_policy ? "Accepted" : "Not Accepted"}
+                    </span>
+                  </div>
+                  <div className="border-2 border-black p-2 flex flex-col gap-0.5">
+                    <span className="text-zinc-500 font-bold text-[9px] uppercase">Cancellations</span>
+                    <span className={settings?.cancellation_policy ? "text-emerald-600" : "text-red-600"}>
+                      {settings?.cancellation_policy ? "Allowed" : "Not Allowed"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quantity Selector */}
+              {!isOutOfStock && (
+                <div className="flex items-center justify-between py-3 border-t border-black">
+                  <span className="text-[10px] font-black uppercase">Quantity</span>
+                  <div className="flex items-center gap-4">
+                    <button type="button" disabled={quantity <= 1}
+                      onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
+                      className={cn("w-8 h-8 border-2 border-black font-black text-sm flex items-center justify-center shadow-[2px_2px_0px_#000] transition-all",
+                        quantity <= 1 ? "opacity-30 cursor-not-allowed" : "hover:-translate-y-0.5 active:translate-y-0.5 active:shadow-none")}>
+                      -
+                    </button>
+                    <span className="w-6 text-center font-black text-sm text-black">{quantity}</span>
+                    <button type="button" disabled={quantity >= product.stock}
+                      onClick={() => setQuantity(prev => Math.min(product.stock, prev + 1))}
+                      className={cn("w-8 h-8 border-2 border-black font-black text-sm flex items-center justify-center shadow-[2px_2px_0px_#000] transition-all",
+                        quantity >= product.stock ? "opacity-30 cursor-not-allowed" : "hover:-translate-y-0.5 active:translate-y-0.5 active:shadow-none")}>
+                      +
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* CTAs */}
               <div className="space-y-3 pt-4 border-t border-black">
-                {settings.enable_instagram_button && product.instagram_permalink && (
+                <button
+                  onClick={openCheckout}
+                  disabled={isOutOfStock}
+                  className={cn("w-full h-12 border-2 border-black font-black uppercase text-xs tracking-wider flex items-center justify-center gap-2 transition-all",
+                    isOutOfStock
+                      ? "bg-zinc-200 text-zinc-400 cursor-not-allowed"
+                      : "bg-[#0038ff] text-white shadow-[4px_4px_0px_#000] hover:translate-y-0.5 active:translate-y-1 active:shadow-none")}
+                >
+                  <ShoppingBag className="w-4 h-4 shrink-0" />
+                  <span>{isOutOfStock ? "OUT OF STOCK" : "BUY NOW / CHECKOUT"}</span>
+                </button>
+                {settings.enable_instagram_button && product.instagram_permalink && !isOutOfStock && (
                   <a
                     href={product.instagram_permalink}
                     target="_blank"
@@ -1046,7 +1484,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                     <span>BUY ON INSTAGRAM</span>
                   </a>
                 )}
-                {settings.enable_whatsapp_button && (
+                {settings.enable_whatsapp_button && !isOutOfStock && (
                   <a
                     href={whatsappUrl}
                     target="_blank"
@@ -1311,9 +1749,82 @@ export default function ProductDetailPage({ params }: PageProps) {
                 </div>
               )}
 
+              {/* Return & Cancellation Policies */}
+              <div className="space-y-2 pt-1">
+                <span className={cn("text-[10px] uppercase tracking-wider font-bold block", styles.textMutedClass)}>
+                  Store Policies
+                </span>
+                <div className={cn("rounded-lg border p-3 space-y-2.5 text-xs", isLight ? "border-black/10" : "border-white/10")}>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="font-semibold text-zinc-400 text-[10px] uppercase tracking-wider">Return & Exchange Policy</span>
+                    <p className={cn("text-xs leading-normal opacity-95", styles.textColorClass)}>
+                      {settings?.return_policy ? "Returns and exchanges are accepted." : "Returns and exchanges are not accepted."}
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="font-semibold text-zinc-400 text-[10px] uppercase tracking-wider">Cancellation Policy</span>
+                    <p className={cn("text-xs leading-normal opacity-95", styles.textColorClass)}>
+                      {settings?.cancellation_policy ? "Cancellations are allowed before order shipment." : "Cancellations are not allowed once order is placed."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quantity Selector */}
+              {!isOutOfStock && (
+                <div className="flex items-center justify-between py-3.5 border-t border-b border-white/5 my-2">
+                  <span className={cn("text-xs font-bold uppercase tracking-wider", styles.textMutedClass)}>
+                    Quantity
+                  </span>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      disabled={quantity <= 1}
+                      onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
+                      className={cn(
+                        "w-8 h-8 rounded-full border flex items-center justify-center font-bold text-sm transition-all focus:outline-none",
+                        quantity <= 1
+                          ? "opacity-30 cursor-not-allowed border-white/10 text-zinc-550"
+                          : "border-white/20 text-white hover:bg-white/5 active:scale-95"
+                      )}
+                    >
+                      -
+                    </button>
+                    <span className="w-8 text-center text-sm font-black text-white">{quantity}</span>
+                    <button
+                      type="button"
+                      disabled={quantity >= product.stock}
+                      onClick={() => setQuantity(prev => Math.min(product.stock, prev + 1))}
+                      className={cn(
+                        "w-8 h-8 rounded-full border flex items-center justify-center font-bold text-sm transition-all focus:outline-none",
+                        quantity >= product.stock
+                          ? "opacity-30 cursor-not-allowed border-white/10 text-zinc-550"
+                          : "border-white/20 text-white hover:bg-white/5 active:scale-95"
+                      )}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Purchase Trigger Actions - No Add to Cart button required */}
               <div className="space-y-3 pt-3">
-                {settings.enable_instagram_button && product.instagram_permalink && (
+                <button
+                  onClick={openCheckout}
+                  disabled={isOutOfStock}
+                  className={cn(
+                    "w-full flex items-center justify-center gap-2 h-10 rounded-lg text-xs font-bold transition-all active:scale-[0.98]",
+                    isOutOfStock
+                      ? "bg-zinc-800 text-zinc-500 cursor-not-allowed opacity-60 border border-white/5"
+                      : "bg-[#605ca2] text-white hover:bg-[#605ca2]/90"
+                  )}
+                >
+                  <ShoppingBag className="w-5 h-5 shrink-0" />
+                  <span>{isOutOfStock ? "Out of Stock" : "Buy Now / Checkout"}</span>
+                </button>
+
+                {settings.enable_instagram_button && product.instagram_permalink && !isOutOfStock && (
                   <a
                     href={product.instagram_permalink}
                     target="_blank"
@@ -1329,7 +1840,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                   </a>
                 )}
 
-                {settings.enable_whatsapp_button && (
+                {settings.enable_whatsapp_button && !isOutOfStock && (
                   <a
                     href={whatsappUrl}
                     target="_blank"
@@ -1340,6 +1851,21 @@ export default function ProductDetailPage({ params }: PageProps) {
                     <span>Order via WhatsApp</span>
                   </a>
                 )}
+
+                <button
+                  onClick={toggleFavorite}
+                  className={cn(
+                    "w-full flex items-center justify-center gap-2 h-10 rounded-lg text-xs font-bold border transition-all active:scale-[0.98]",
+                    isFavorited
+                      ? "bg-rose-500/10 border-rose-500/30 text-rose-500 hover:bg-rose-500/20"
+                      : isLight
+                        ? "bg-transparent border-black/20 text-black hover:border-black/40 hover:bg-black/5"
+                        : "bg-transparent border-white/20 text-white hover:border-white/40 hover:bg-white/5"
+                  )}
+                >
+                  <Heart className={cn("w-4 h-4 shrink-0", isFavorited && "fill-current")} />
+                  <span>{isFavorited ? "Saved to Favorites" : "Add to Favorites"}</span>
+                </button>
               </div>
 
               {/* Storefront trust features */}
@@ -1462,6 +1988,207 @@ export default function ProductDetailPage({ params }: PageProps) {
       </header>
 
       {renderContent()}
+
+      {/* Checkout Modal */}
+      {isCheckoutOpen && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto text-[#e5e2e1]">
+          <div className={cn("rounded-xl max-w-md w-full p-6 border border-white/10 shadow-2xl relative space-y-4 text-left", isLight ? "bg-white text-zinc-950" : "bg-[#20201f] text-white")}>
+            <button
+              onClick={() => setIsCheckoutOpen(false)}
+              className="absolute top-4 right-4 p-1 rounded-full hover:bg-white/10 transition-colors text-zinc-400 hover:text-white"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <h3 className="text-md font-bold tracking-tight">Checkout Order</h3>
+
+            <form onSubmit={handleCheckout} className="space-y-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-[9px] font-bold uppercase tracking-wider opacity-60">Full Name</label>
+                <input
+                  type="text"
+                  required
+                  value={checkoutName}
+                  onChange={(e) => setCheckoutName(e.target.value)}
+                  placeholder="Enter your name"
+                  className={cn("w-full px-3 py-2 text-xs rounded border outline-none", isLight ? "bg-zinc-100 border-zinc-300 text-black" : "bg-[#0e0e0e] border-[#444748] text-white")}
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[9px] font-bold uppercase tracking-wider opacity-60">Email Address</label>
+                <input
+                  type="email"
+                  required
+                  value={checkoutEmail}
+                  onChange={(e) => setCheckoutEmail(e.target.value)}
+                  placeholder="Enter email address"
+                  className={cn("w-full px-3 py-2 text-xs rounded border outline-none", isLight ? "bg-zinc-100 border-zinc-300 text-black" : "bg-[#0e0e0e] border-[#444748] text-white")}
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[9px] font-bold uppercase tracking-wider opacity-60">Phone Number</label>
+                <input
+                  type="tel"
+                  required
+                  value={checkoutPhone}
+                  onChange={(e) => setCheckoutPhone(e.target.value)}
+                  placeholder="Enter phone number"
+                  className={cn("w-full px-3 py-2 text-xs rounded border outline-none", isLight ? "bg-zinc-100 border-zinc-300 text-black" : "bg-[#0e0e0e] border-[#444748] text-white")}
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[9px] font-bold uppercase tracking-wider opacity-60">Shipping Address</label>
+                <textarea
+                  required
+                  rows={2}
+                  value={checkoutAddress}
+                  onChange={(e) => setCheckoutAddress(e.target.value)}
+                  placeholder="Detailed shipping address"
+                  className={cn("w-full px-3 py-2 text-xs rounded border outline-none resize-none", isLight ? "bg-zinc-100 border-zinc-300 text-black" : "bg-[#0e0e0e] border-[#444748] text-white")}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] font-bold uppercase tracking-wider opacity-60">Pin Code</label>
+                  <input
+                    type="text"
+                    required
+                    value={checkoutPincode}
+                    onChange={(e) => setCheckoutPincode(e.target.value)}
+                    placeholder="Pin Code"
+                    className={cn("w-full px-3 py-2 text-xs rounded border outline-none", isLight ? "bg-zinc-100 border-zinc-300 text-black" : "bg-[#0e0e0e] border-[#444748] text-white")}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] font-bold uppercase tracking-wider opacity-60">Place / City</label>
+                  <input
+                    type="text"
+                    required
+                    value={checkoutPlace}
+                    onChange={(e) => setCheckoutPlace(e.target.value)}
+                    placeholder="Place / City"
+                    className={cn("w-full px-3 py-2 text-xs rounded border outline-none", isLight ? "bg-zinc-100 border-zinc-300 text-black" : "bg-[#0e0e0e] border-[#444748] text-white")}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] font-bold uppercase tracking-wider opacity-60">District</label>
+                  <input
+                    type="text"
+                    required
+                    value={checkoutDistrict}
+                    onChange={(e) => setCheckoutDistrict(e.target.value)}
+                    placeholder="District"
+                    className={cn("w-full px-3 py-2 text-xs rounded border outline-none", isLight ? "bg-zinc-100 border-zinc-300 text-black" : "bg-[#0e0e0e] border-[#444748] text-white")}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] font-bold uppercase tracking-wider opacity-60">State</label>
+                  <input
+                    type="text"
+                    required
+                    value={checkoutState}
+                    onChange={(e) => setCheckoutState(e.target.value)}
+                    placeholder="State"
+                    className={cn("w-full px-3 py-2 text-xs rounded border outline-none", isLight ? "bg-zinc-100 border-zinc-300 text-black" : "bg-[#0e0e0e] border-[#444748] text-white")}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[9px] font-bold uppercase tracking-wider opacity-60">Payment Method</label>
+                {(() => {
+                  const isCodAvailable = settings?.cod_enabled && product?.cod_enabled;
+                  const isOnlineAvailable = !!settings?.online_payment_enabled;
+
+                  if (isCodAvailable && isOnlineAvailable) {
+                    return (
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setCheckoutPaymentMethod("COD")}
+                          className={cn(
+                            "py-2 rounded border text-xs font-semibold transition-all",
+                            checkoutPaymentMethod === "COD"
+                              ? "border-[#605ca2] bg-[#605ca2]/15 text-[#b6b2ff]"
+                              : isLight
+                                ? "border-zinc-300 hover:border-zinc-400 text-black"
+                                : "border-white/10 hover:border-white/20 text-white"
+                          )}
+                        >
+                          Cash on Delivery
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCheckoutPaymentMethod("RAZORPAY")}
+                          className={cn(
+                            "py-2 rounded border text-xs font-semibold transition-all",
+                            checkoutPaymentMethod === "RAZORPAY"
+                              ? "border-[#605ca2] bg-[#605ca2]/15 text-[#b6b2ff]"
+                              : isLight
+                                ? "border-zinc-300 hover:border-zinc-400 text-black"
+                                : "border-white/10 hover:border-white/20 text-white"
+                          )}
+                        >
+                          Online
+                        </button>
+                      </div>
+                    );
+                  } else if (isCodAvailable) {
+                    return (
+                      <div className="flex flex-col">
+                        <button
+                          type="button"
+                          onClick={() => setCheckoutPaymentMethod("COD")}
+                          className={cn(
+                            "py-2 rounded border text-xs font-semibold transition-all border-[#605ca2] bg-[#605ca2]/15 text-[#b6b2ff] text-center w-full"
+                          )}
+                        >
+                          Cash on Delivery
+                        </button>
+                      </div>
+                    );
+                  } else if (isOnlineAvailable) {
+                    return (
+                      <div className="flex flex-col">
+                        <button
+                          type="button"
+                          onClick={() => setCheckoutPaymentMethod("RAZORPAY")}
+                          className={cn(
+                            "py-2 rounded border text-xs font-semibold transition-all border-[#605ca2] bg-[#605ca2]/15 text-[#b6b2ff] text-center w-full"
+                          )}
+                        >
+                          Online
+                        </button>
+                      </div>
+                    );
+                  } else {
+                    return (
+                      <div className="rounded border border-red-500/20 bg-red-500/5 p-3 text-center">
+                        <p className="text-xs font-bold text-red-400">No Payment Methods Available</p>
+                        <p className="text-[10px] text-zinc-400 mt-1">This store is currently not accepting any orders.</p>
+                      </div>
+                    );
+                  }
+                })()}
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSubmittingOrder}
+                className="w-full mt-4 h-10 rounded bg-[#605ca2] hover:bg-[#605ca2]/90 text-white text-xs font-bold transition-all disabled:opacity-50"
+              >
+                {isSubmittingOrder ? "Placing Order..." : "Confirm & Place Order"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Footer (only if not immersive glass which is an h-screen app-style player) */}
       {settings.template_id !== "immersive_glass" && (

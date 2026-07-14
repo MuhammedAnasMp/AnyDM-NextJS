@@ -19,6 +19,7 @@ import {
   Lock,
   MessageSquare,
   Palette,
+  AlertCircle,
 } from "lucide-react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
@@ -126,11 +127,27 @@ export default function WebsiteSettingsPage() {
 
   const [storeName, setStoreName] = useState("");
   const [storeLogo, setStoreLogo] = useState("");
+  const [storeSlug, setStoreSlug] = useState("");
+  const [storeBanner, setStoreBanner] = useState("");
+  const [storeDescription, setStoreDescription] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
+  const [businessAddress, setBusinessAddress] = useState("");
+  const [shippingAddress, setShippingAddress] = useState("");
+  const [privacyPolicy, setPrivacyPolicy] = useState("");
+  const [termsOfService, setTermsOfService] = useState("");
+  const [returnPolicy, setReturnPolicy] = useState(false);
+  const [cancellationPolicy, setCancellationPolicy] = useState(false);
+  const [adminReturnPolicyAllowed, setAdminReturnPolicyAllowed] = useState(false);
+  const [adminCancellationPolicyAllowed, setAdminCancellationPolicyAllowed] = useState(false);
+  const [codEnabled, setCodEnabled] = useState(true);
+  const [onlinePaymentEnabled, setOnlinePaymentEnabled] = useState(true);
   const [showRelatedProducts, setShowRelatedProducts] = useState(true);
   const [enableInstagramButton, setEnableInstagramButton] = useState(true);
   const [enableWhatsAppButton, setEnableWhatsAppButton] = useState(true);
   const [templateId, setTemplateId] = useState("monochrome_precision");
   const [themeId, setThemeId] = useState("ink_black");
+  const [kycStatus, setKycStatus] = useState("PENDING");
 
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -145,6 +162,9 @@ export default function WebsiteSettingsPage() {
   const [toastType, setToastType] = useState<"success" | "error" | "info">("success");
 
   const logoInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
+  const [bannerUploading, setBannerUploading] = useState(false);
+  const [bannerUploadProgress, setBannerUploadProgress] = useState(0);
 
   const showToast = (message: string, type: "success" | "error" | "info" = "success") => {
     setToastMessage(message);
@@ -166,11 +186,42 @@ export default function WebsiteSettingsPage() {
         const d = response.data;
         setStoreName(d.store_name || "");
         setStoreLogo(d.store_logo || "");
+        setStoreSlug(d.store_slug || "");
+        setStoreBanner(d.store_banner || "");
+        setStoreDescription(d.store_description || "");
+        setContactEmail(d.contact_email || "");
+        setContactPhone(d.contact_phone || "");
+        setBusinessAddress(d.business_address || "");
+        setShippingAddress(d.shipping_address || "");
+        const retAllowed = !!d.return_policy;
+        const cancelAllowed = !!d.cancellation_policy;
+        setReturnPolicy(retAllowed);
+        setCancellationPolicy(cancelAllowed);
+        setAdminReturnPolicyAllowed(retAllowed);
+        setAdminCancellationPolicyAllowed(cancelAllowed);
+        setCodEnabled(d.cod_enabled ?? true);
+        setOnlinePaymentEnabled(d.online_payment_enabled ?? true);
         setShowRelatedProducts(d.show_related_products ?? true);
         setEnableInstagramButton(d.enable_instagram_button ?? true);
         setEnableWhatsAppButton(d.enable_whatsapp_button ?? true);
         setTemplateId(d.template_id || "monochrome_precision");
         setThemeId(d.theme_id || "ink_black");
+        setPrivacyPolicy(d.privacy_policy || "");
+        setTermsOfService(d.terms_of_service || "");
+      }
+
+      // Fetch KYC status for the logged-in user
+      try {
+        const kycRes = await api.get("/crm/seller/kyc/");
+        if (kycRes.data && kycRes.data.status) {
+          const status = kycRes.data.status;
+          setKycStatus(status);
+          if (status.toUpperCase() !== "APPROVED") {
+            setCodEnabled(true);
+          }
+        }
+      } catch (kycErr) {
+        console.error("Failed to load KYC status:", kycErr);
       }
     } catch (e) {
       console.error("Failed to fetch settings from backend:", e);
@@ -187,19 +238,33 @@ export default function WebsiteSettingsPage() {
     const payload = {
       store_name: storeName,
       store_logo: storeLogo,
+      store_slug: storeSlug,
+      store_banner: storeBanner,
+      store_description: storeDescription,
+      contact_email: contactEmail,
+      contact_phone: contactPhone,
+      business_address: businessAddress,
+      shipping_address: shippingAddress,
+      cod_enabled: codEnabled,
+      online_payment_enabled: onlinePaymentEnabled,
+      return_policy: returnPolicy,
+      cancellation_policy: cancellationPolicy,
       show_related_products: showRelatedProducts,
       enable_instagram_button: enableInstagramButton,
       enable_whatsapp_button: enableWhatsAppButton,
       template_id: templateId,
       theme_id: themeId,
+      privacy_policy: privacyPolicy,
+      terms_of_service: termsOfService,
     };
 
     try {
       await api.put("/accounts/website-settings/", payload);
       showToast("Store settings saved.", "success");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Save failed:", err);
-      showToast("Couldn't save settings. Try again.", "error");
+      const errMsg = err.response?.data?.error || "Couldn't save settings. Try again.";
+      showToast(errMsg, "error");
     } finally {
       setLoading(false);
     }
@@ -253,6 +318,53 @@ export default function WebsiteSettingsPage() {
     }
   };
 
+  const performBannerUpload = (file: File) => {
+    setBannerUploading(true);
+    setBannerUploadProgress(0);
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", "any_dm_product_upload");
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "https://api.cloudinary.com/v1_1/dx5bqewfx/auto/upload", true);
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        setBannerUploadProgress(Math.round((event.loaded / event.total) * 100));
+      }
+    };
+
+    xhr.onload = () => {
+      setBannerUploading(false);
+      if (xhr.status === 200) {
+        try {
+          const response = JSON.parse(xhr.responseText);
+          setStoreBanner(response.secure_url);
+          showToast("Banner uploaded.", "success");
+        } catch (e) {
+          showToast("Couldn't process the uploaded banner.", "error");
+        }
+      } else {
+        showToast("Banner upload failed.", "error");
+      }
+    };
+
+    xhr.onerror = () => {
+      setBannerUploading(false);
+      showToast("Network error during banner upload.", "error");
+    };
+
+    xhr.send(formData);
+  };
+
+  const handleBannerFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      performBannerUpload(files[0]);
+    }
+  };
+
   const handleTemplateChange = (id: string) => {
     setTemplateId(id);
     const tmpl = TEMPLATE_PRESETS.find((t) => t.id === id);
@@ -273,9 +385,9 @@ export default function WebsiteSettingsPage() {
       <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4">
         <div>
 
-          <h1 className="text-2xl md:text-[28px] font-semibold tracking-[-0.01em] flex items-center gap-2">
+          <h1 className="text-xl font-bold tracking-tight">
             Website configuration
-            <Globe className="w-5 h-5" style={{ color: t.lavender }} strokeWidth={1.75} />
+            {/* <Globe className="w-5 h-5" style={{ color: t.lavender }} strokeWidth={1.75} /> */}
           </h1>
         </div>
         <div className="flex items-center gap-2.5">
@@ -366,6 +478,259 @@ export default function WebsiteSettingsPage() {
                     Supports JPG and PNG. Best aspect ratio is 1:1 square.
                   </p>
                 </Field>
+              </div>
+            </section>
+
+            {/* Store Settings & Policies */}
+            <section className="rounded-lg p-4 md:p-5 space-y-5" style={{ backgroundColor: t.surfaceContainer }}>
+              <SectionHeading icon={Sliders} label="Store settings & logistics" />
+
+              <div className="space-y-4">
+                {/* <Field label="Store URL slug">
+                  <input
+                    type="text"
+                    value={storeSlug}
+                    onChange={(e) => setStoreSlug(e.target.value)}
+                    className="w-full rounded text-sm px-3 py-2 focus:outline-none transition-colors"
+                    style={{
+                      backgroundColor: t.surfaceContainerLowest,
+                      border: `1px solid ${t.outlineVariant}`,
+                      color: t.onSurface,
+                    }}
+                    placeholder="e.g. movieplex_hub"
+                  />
+                  <p className="text-[10px] mt-1 text-zinc-500">
+                    Your store will be live at: {storefrontUrl} (Unique ID. Cannot be changed without admin approval).
+                  </p>
+                </Field> */}
+
+                <Field label="Store Banner Image">
+                  <div className="space-y-3">
+                    {storeBanner && (
+                      <div className="relative w-full h-32 rounded overflow-hidden border" style={{ borderColor: t.outlineVariant }}>
+                        <img src={storeBanner} alt="Store Banner" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                          <span className="text-white text-xs font-semibold">Banner Preview</span>
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        disabled={bannerUploading}
+                        onClick={() => bannerInputRef.current?.click()}
+                        className="flex items-center gap-2 px-3 py-2 rounded text-xs font-semibold transition-all"
+                        style={{
+                          backgroundColor: t.surfaceContainerHigh,
+                          border: `1px solid ${t.outlineVariant}`,
+                          color: t.onSurface,
+                          opacity: bannerUploading ? 0.6 : 1,
+                        }}
+                      >
+                        {bannerUploading ? (
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Upload className="w-3.5 h-3.5" />
+                        )}
+                        <span>{bannerUploading ? `Uploading… ${bannerUploadProgress}%` : "Upload Banner"}</span>
+                      </button>
+                      {storeBanner && !bannerUploading && (
+                        <button
+                          type="button"
+                          onClick={() => setStoreBanner("")}
+                          className="text-xs font-semibold"
+                          style={{ color: t.error }}
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                    <input type="file" ref={bannerInputRef} onChange={handleBannerFileChange} accept="image/*" className="hidden" />
+                  </div>
+                  <p className="text-xs mt-2" style={{ color: t.onSurfaceVariant }}>
+                    Supports JPG and PNG. Recommended aspect ratio is 16:9 or 3:1 for best results.
+                  </p>
+                </Field>
+
+                <Field label="Store description">
+                  <textarea
+                    rows={3}
+                    value={storeDescription}
+                    onChange={(e) => setStoreDescription(e.target.value)}
+                    className="w-full rounded text-sm px-3 py-2 focus:outline-none transition-colors resize-none"
+                    style={{
+                      backgroundColor: t.surfaceContainerLowest,
+                      border: `1px solid ${t.outlineVariant}`,
+                      color: t.onSurface,
+                    }}
+                    placeholder="Short description of your store"
+                  />
+                </Field>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <Field label="Contact Email">
+                    <input
+                      type="email"
+                      value={contactEmail}
+                      onChange={(e) => setContactEmail(e.target.value)}
+                      className="w-full rounded text-sm px-3 py-2 focus:outline-none transition-colors"
+                      style={{
+                        backgroundColor: t.surfaceContainerLowest,
+                        border: `1px solid ${t.outlineVariant}`,
+                        color: t.onSurface,
+                      }}
+                    />
+                  </Field>
+
+                  <Field label="Contact Phone">
+                    <input
+                      type="text"
+                      value={contactPhone}
+                      onChange={(e) => setContactPhone(e.target.value)}
+                      className="w-full rounded text-sm px-3 py-2 focus:outline-none transition-colors"
+                      style={{
+                        backgroundColor: t.surfaceContainerLowest,
+                        border: `1px solid ${t.outlineVariant}`,
+                        color: t.onSurface,
+                      }}
+                    />
+                  </Field>
+                </div>
+
+                <Field label="Business Address">
+                  <textarea
+                    rows={2}
+                    value={businessAddress}
+                    onChange={(e) => setBusinessAddress(e.target.value)}
+                    className="w-full rounded text-sm px-3 py-2 focus:outline-none transition-colors resize-none"
+                    style={{
+                      backgroundColor: t.surfaceContainerLowest,
+                      border: `1px solid ${t.outlineVariant}`,
+                      color: t.onSurface,
+                    }}
+                  />
+                </Field>
+
+                <Field label="Shipping Address">
+                  <textarea
+                    rows={2}
+                    value={shippingAddress}
+                    onChange={(e) => setShippingAddress(e.target.value)}
+                    className="w-full rounded text-sm px-3 py-2 focus:outline-none transition-colors resize-none"
+                    style={{
+                      backgroundColor: t.surfaceContainerLowest,
+                      border: `1px solid ${t.outlineVariant}`,
+                      color: t.onSurface,
+                    }}
+                  />
+                </Field>
+
+                <Field label="Privacy Policy">
+                  <textarea
+                    rows={4}
+                    value={privacyPolicy}
+                    onChange={(e) => setPrivacyPolicy(e.target.value)}
+                    className="w-full rounded text-sm px-3 py-2 focus:outline-none transition-colors"
+                    style={{
+                      backgroundColor: t.surfaceContainerLowest,
+                      border: `1px solid ${t.outlineVariant}`,
+                      color: t.onSurface,
+                    }}
+                    placeholder="Enter Privacy Policy terms for your customers"
+                  />
+                </Field>
+
+                <Field label="Terms of Service">
+                  <textarea
+                    rows={4}
+                    value={termsOfService}
+                    onChange={(e) => setTermsOfService(e.target.value)}
+                    className="w-full rounded text-sm px-3 py-2 focus:outline-none transition-colors"
+                    style={{
+                      backgroundColor: t.surfaceContainerLowest,
+                      border: `1px solid ${t.outlineVariant}`,
+                      color: t.onSurface,
+                    }}
+                    placeholder="Enter Terms of Service terms for your customers"
+                  />
+                </Field>
+
+                <ToggleRow
+                  title="Allow Returns & Exchanges"
+                  description="Allow customers to request returns or exchanges for their orders."
+                  checked={returnPolicy}
+                  onChange={() => setReturnPolicy(!returnPolicy)}
+                  disabled={!adminReturnPolicyAllowed}
+                />
+
+                <ToggleRow
+                  title="Allow Cancellations"
+                  description="Allow customers to cancel their orders before they are shipped."
+                  checked={cancellationPolicy}
+                  onChange={() => setCancellationPolicy(!cancellationPolicy)}
+                  disabled={!adminCancellationPolicyAllowed}
+                />
+
+                <ToggleRow
+                  title="Allow Cash on Delivery (COD)"
+                  description="Enable COD payments for orders in your store (Global policies apply)."
+                  checked={codEnabled}
+                  onChange={() => {
+                    if (kycStatus?.toUpperCase() !== "APPROVED") {
+                      showToast("You cannot disable Cash on Delivery while KYC verification is not completed/approved.", "error");
+                      return;
+                    }
+                    if (!onlinePaymentEnabled && codEnabled) {
+                      showToast("You must keep at least one payment method enabled.", "error");
+                      return;
+                    }
+                    setCodEnabled(!codEnabled);
+                  }}
+                />
+
+                <div className="pt-4 border-t border-white/5 space-y-3">
+                  {kycStatus?.toUpperCase() === "APPROVED" ? (
+                    <ToggleRow
+                      title="Online Payments "
+                      description="Accept credit card, debit card, and UPI payments from customers."
+                      checked={onlinePaymentEnabled}
+                      onChange={() => {
+                        if (!codEnabled && onlinePaymentEnabled) {
+                          showToast("You must keep at least one payment method enabled.", "error");
+                          return;
+                        }
+                        setOnlinePaymentEnabled(!onlinePaymentEnabled);
+                      }}
+                    />
+                  ) : (
+                    <div className="flex justify-between items-center text-xs font-semibold py-2">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-zinc-200">Online Payments </span>
+                        <span className="text-[10px] text-zinc-400 font-normal">Accept credit card, debit card, and UPI payments from customers.</span>
+                      </div>
+                      <span className="px-2 py-0.5 rounded bg-red-500/10 border border-red-500/30 text-red-400 text-[10px] font-bold uppercase">Disabled</span>
+                    </div>
+                  )}
+
+                  {kycStatus?.toUpperCase() !== "APPROVED" && (
+                    <div className="rounded border border-yellow-500/20 bg-yellow-500/5 p-3 flex items-start gap-3">
+                      <AlertCircle className="w-4 h-4 text-yellow-500 shrink-0 mt-0.5" />
+                      <div className="flex-1 space-y-1">
+                        <p className="text-xs font-medium text-yellow-200/90">KYC verification required to accept online payments</p>
+                        <p className="text-[11px] text-zinc-400 leading-relaxed">
+                          Only sellers with an approved KYC verification can accept online payments from their customers. Complete your KYC profile to start receiving online payouts.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => router.push("/dashboard/settings/kyc")}
+                          className="text-[10px] font-bold text-[#b6b2ff] hover:underline text-left mt-1"
+                        >
+                          Complete Seller KYC &rarr;
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </section>
 
@@ -791,15 +1156,17 @@ function ToggleRow({
   checked,
   onChange,
   last = false,
+  disabled = false,
 }: {
   title: string;
   description: string;
   checked: boolean;
   onChange: () => void;
   last?: boolean;
+  disabled?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between py-3.5" style={!last ? { borderBottom: `1px solid ${t.outlineVariant}` } : undefined}>
+    <div className={cn("flex items-center justify-between py-3.5", disabled && "opacity-40")} style={!last ? { borderBottom: `1px solid ${t.outlineVariant}` } : undefined}>
       <div className="pr-4">
         <h4 className="text-xs font-medium" style={{ color: t.onSurface }}>
           {title}
@@ -809,15 +1176,19 @@ function ToggleRow({
         </p>
       </div>
       <button
-        onClick={onChange}
-        className="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full transition-colors duration-200 ease-in-out focus:outline-none"
+        onClick={disabled ? undefined : onChange}
+        disabled={disabled}
+        className={cn(
+          "relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors duration-200 ease-in-out focus:outline-none",
+          disabled ? "cursor-not-allowed" : "cursor-pointer"
+        )}
         style={{ backgroundColor: checked ? t.primary : t.surfaceContainerHigh }}
       >
         <span
           className="pointer-events-none inline-block h-4 w-4 mt-0.5 transform rounded-full transition duration-200 ease-in-out"
           style={{
             transform: checked ? "translateX(18px)" : "translateX(2px)",
-            backgroundColor: checked ? t.onPrimary : t.outline,
+            backgroundColor: checked ? (disabled ? t.outline : t.onPrimary) : t.outline,
           }}
         />
       </button>

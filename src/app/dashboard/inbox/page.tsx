@@ -8,7 +8,8 @@ import api from "@/lib/services/api.service";
 import { authService } from "@/lib/services/auth.service";
 import { cn } from "@/lib/utils";
 import { useSearchParams, useRouter } from "next/navigation";
-import { CheckCircle, Lock } from "lucide-react";
+import { CheckCircle, Lock, Bot } from "lucide-react";
+import { span } from "framer-motion/client";
 
 const PlayableVideoAttachment = ({ url }: { url: string }) => {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -95,9 +96,9 @@ const RichTemplateInput = ({ value, onChange, placeholder, disabled, maxLength }
       <div className="absolute inset-x-2.5 inset-y-1.5 flex items-center text-xs text-white pointer-events-none whitespace-pre overflow-hidden">
         {renderStyledText(value)}
       </div>
-      <input 
-        type="text" 
-        value={value} 
+      <input
+        type="text"
+        value={value}
         disabled={disabled}
         maxLength={maxLength}
         onChange={(e) => onChange(e.target.value)}
@@ -253,7 +254,7 @@ export default function InboxPage() {
   const [isEditingGenericTemplate, setIsEditingGenericTemplate] = useState(false);
   const [showProductCatalogPopup, setShowProductCatalogPopup] = useState(false);
   const [isWithin24hWindow, setIsWithin24hWindow] = useState<boolean>(true);
-  const [focusedField, setFocusedField] = useState<{cardIdx: number, type: 'title' | 'subtitle' | 'btn' | 'btnTempText' | 'btnTempBtn', btnIdx?: number} | null>(null);
+  const [focusedField, setFocusedField] = useState<{ cardIdx: number, type: 'title' | 'subtitle' | 'btn' | 'btnTempText' | 'btnTempBtn', btnIdx?: number } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [productSearchQuery, setProductSearchQuery] = useState("");
   const [showRightPanel, setShowRightPanel] = useState(true);
@@ -365,7 +366,7 @@ export default function InboxPage() {
     const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || "";
     let host = rawApiUrl;
     let isSecure = false;
-    
+
     if (rawApiUrl.startsWith("https://")) {
       host = rawApiUrl.substring(8);
       isSecure = true;
@@ -377,7 +378,7 @@ export default function InboxPage() {
         host = window.location.hostname + (window.location.port ? `:${window.location.port}` : "");
       }
     }
-    
+
     const wsProtocol = isSecure ? "wss://" : "ws://";
     wsUrl = `${wsProtocol}${host}/ws/inbox/?token=${token}`;
 
@@ -402,7 +403,7 @@ export default function InboxPage() {
           // 1. Map backend message format to frontend message format
           const filterUsername = activeAccount?.username;
           const isSelf = message.from?.username === filterUsername || message.from?.id === currentBusInfo?.id;
-          
+
           const formattedMessage = {
             id: message.id,
             sender: message.from?.username || (isSelf ? "You" : "Instagram User"),
@@ -1033,7 +1034,7 @@ export default function InboxPage() {
     if (toGeneric) {
       setShowGenericTemplateForm(true);
       setShowButtonTemplateForm(false);
-      
+
       const firstCard = carouselElements[0] || {
         image_url: "",
         title: "",
@@ -1041,13 +1042,13 @@ export default function InboxPage() {
         price: "",
         buttons: []
       };
-      
+
       const updatedCard = {
         ...firstCard,
         title: btnTempText || firstCard.title,
         buttons: buttonTemplateButtons.length > 0 ? buttonTemplateButtons : firstCard.buttons
       };
-      
+
       setCarouselElements(prev => {
         if (prev.length === 0) return [updatedCard];
         const copy = [...prev];
@@ -1057,7 +1058,7 @@ export default function InboxPage() {
     } else {
       setShowGenericTemplateForm(false);
       setShowButtonTemplateForm(true);
-      
+
       const firstCard = carouselElements[0];
       if (firstCard) {
         setBtnTempText(firstCard.title || "");
@@ -1102,11 +1103,7 @@ export default function InboxPage() {
         {/* Account Header */}
         <div className="px-5 pt-5 pb-3 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#833ab4] via-[#fd1d1d] to-[#fcb045] p-0.5 shrink-0">
-              <div className="w-full h-full rounded-[9px] bg-[#111] flex items-center justify-center">
-                <span className="material-symbols-outlined text-sm text-white" style={{ fontVariationSettings: "'FILL' 1" }}>photo_camera</span>
-              </div>
-            </div>
+
             <div>
               <h2 className="text-sm font-bold text-white leading-none">
                 {businessInfo?.username || activeAccount?.username || "Inbox"}
@@ -1126,9 +1123,7 @@ export default function InboxPage() {
             >
               <span className={`material-symbols-outlined text-[17px] ${loading ? "animate-spin" : ""}`}>refresh</span>
             </button>
-            <button className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 border border-white/[0.07] flex items-center justify-center text-white/50 hover:text-white transition-all active:scale-95">
-              <span className="material-symbols-outlined text-[17px]">edit_square</span>
-            </button>
+
           </div>
         </div>
 
@@ -1206,16 +1201,23 @@ export default function InboxPage() {
                     <div className="flex justify-between items-center mb-0.5">
                       <div className="flex items-center gap-1.5 min-w-0">
                         <span className="text-[13px] font-semibold text-white truncate">{item.name}</span>
-                        {enableAi && globalAIOn && item.is_ai_enabled !== false && (
-                          <span className="material-symbols-outlined text-[12px] text-[#b6b2ff] shrink-0">psychology</span>
-                        )}
+
                       </div>
-                      <span className="text-[10px] text-white/30 shrink-0 ml-2">{item.time}</span>
+
+
+                      <span className="flex gap-1">
+                        <span className="text-[10px] text-white/30 shrink-0 ml-2 p-1p">{item.time}</span>
+                        {enableAi && globalAIOn && item.is_ai_enabled !== false && (
+                          <CheckCircle className="w-3.5 h-3.5 text-white shrink-0" strokeWidth={2} />
+                        )}
+                      </span>
+
                     </div>
                     <p className="text-[11px] text-white/40 truncate">{item.text}</p>
                   </div>
                   {item.badge > 0 && (
                     <div className="w-2 h-2 rounded-full bg-[#b6b2ff] shadow-[0_0_8px_rgba(182,178,255,0.6)] shrink-0" />
+
                   )}
                 </div>
               );
@@ -1247,8 +1249,8 @@ export default function InboxPage() {
               <div className="flex items-center gap-2">
                 {enableAi && globalAIOn && (
                   <label className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#b6b2ff]/10 border border-[#b6b2ff]/20 cursor-pointer select-none">
-                    <span className="material-symbols-outlined text-[14px] text-[#b6b2ff]">psychology</span>
-                    <span className="text-[10px] font-bold text-[#b6b2ff] tracking-wider">AI</span>
+                    {/* <span className="material-symbols-outlined text-[14px] text-[#b6b2ff]">psychology</span> */}
+                    <span className="text-[10px] font-bold text-[#b6b2ff] tracking-wider">AI reply for {selectedConversation.name} </span>
                     <input
                       type="checkbox"
                       checked={selectedConversation.is_ai_enabled !== false}
@@ -1468,7 +1470,7 @@ export default function InboxPage() {
                     <div className="flex items-start gap-3 overflow-x-auto py-2 px-1 max-w-full w-full justify-start md:justify-center snap-x snap-mandatory [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:bg-white/15 [&::-webkit-scrollbar-thumb]:rounded-full">
                       {carouselElements.map((elem, idx) => (
                         <div key={idx} className="w-[248px] shrink-0 bg-[#262626] border border-white/5 rounded-[18px] overflow-hidden snap-start relative shadow-lg flex flex-col justify-between select-none">
-                          
+
                           {/* 1. Editable Image (aspect ratio 1.91:1) */}
                           <label className="block w-full h-[130px] overflow-hidden cursor-pointer relative shrink-0">
                             {elem.image_url ? (
@@ -1484,15 +1486,15 @@ export default function InboxPage() {
                                 Change Image
                               </span>
                             </div>
-                            <input 
-                              type="file" 
-                              accept="image/*" 
+                            <input
+                              type="file"
+                              accept="image/*"
                               onChange={(e) => {
                                 setActiveCardIndex(idx);
                                 handleImageUpload(e);
-                              }} 
-                              className="hidden" 
-                              disabled={uploadingImage} 
+                              }}
+                              className="hidden"
+                              disabled={uploadingImage}
                             />
                           </label>
 
@@ -1502,10 +1504,10 @@ export default function InboxPage() {
                             <div className="min-h-[20px] flex items-center justify-between">
                               {focusedField?.cardIdx === idx && focusedField?.type === 'title' ? (
                                 <div className="w-full flex flex-col">
-                                  <input 
+                                  <input
                                     autoFocus
-                                    type="text" 
-                                    value={elem.title} 
+                                    type="text"
+                                    value={elem.title}
                                     maxLength={80}
                                     onBlur={() => setFocusedField(null)}
                                     onChange={(e) => {
@@ -1519,7 +1521,7 @@ export default function InboxPage() {
                                   <span className="text-[8px] text-white/40 self-end mt-0.5">{elem.title.length}/80</span>
                                 </div>
                               ) : (
-                                <div 
+                                <div
                                   onClick={() => setFocusedField({ cardIdx: idx, type: 'title' })}
                                   className="flex items-center justify-between cursor-pointer w-full py-0.5"
                                 >
@@ -1530,15 +1532,15 @@ export default function InboxPage() {
                                 </div>
                               )}
                             </div>
-                            
+
                             {/* Subtitle */}
                             <div className="min-h-[18px] flex items-center justify-between">
                               {focusedField?.cardIdx === idx && focusedField?.type === 'subtitle' ? (
                                 <div className="w-full flex flex-col">
-                                  <input 
+                                  <input
                                     autoFocus
-                                    type="text" 
-                                    value={elem.subtitle} 
+                                    type="text"
+                                    value={elem.subtitle}
                                     maxLength={80}
                                     onBlur={() => setFocusedField(null)}
                                     onChange={(e) => {
@@ -1552,7 +1554,7 @@ export default function InboxPage() {
                                   <span className="text-[8px] text-white/40 self-end mt-0.5">{elem.subtitle.length}/80</span>
                                 </div>
                               ) : (
-                                <div 
+                                <div
                                   onClick={() => setFocusedField({ cardIdx: idx, type: 'subtitle' })}
                                   className="flex items-center justify-between cursor-pointer w-full py-0.5"
                                 >
@@ -1575,10 +1577,10 @@ export default function InboxPage() {
                                   <span className="text-sm font-semibold text-[#0095f6] truncate max-w-[80%] pointer-events-none select-none text-center">
                                     {(btn.title || "").replace("{{price}}", `${elem.price || ""}`)}
                                   </span>
-                                  
+
                                   {/* Absolute Edit Trigger Controls on the Right Edge of Button Row */}
                                   <div className="absolute right-2 opacity-100 md:opacity-0 md:group-hover/btn:opacity-100 transition-all flex items-center gap-1">
-                                    <button 
+                                    <button
                                       onClick={() => {
                                         setFocusedField({ cardIdx: idx, type: 'btn', btnIdx: bIdx });
                                         setShowRightPanel(true);
@@ -1589,7 +1591,7 @@ export default function InboxPage() {
                                       <span className="material-symbols-outlined text-[11px]">edit</span>
                                     </button>
                                     {!isFirst && (
-                                      <button 
+                                      <button
                                         onClick={() => {
                                           const n = [...carouselElements];
                                           const btns = n[idx].buttons.filter((_: any, i: number) => i !== bIdx);
@@ -1609,7 +1611,7 @@ export default function InboxPage() {
 
                             {/* Add Button action inside card */}
                             {(elem.buttons || []).length < 3 && (
-                              <button 
+                              <button
                                 onClick={() => {
                                   const n = [...carouselElements];
                                   const btns = [...(n[idx].buttons || [])];
@@ -1642,21 +1644,21 @@ export default function InboxPage() {
                   <div className="flex flex-col items-center py-2 space-y-3 w-full">
                     {/* Native Instagram DM Bubble mockup for Action Buttons template */}
                     <div className="w-[248px] shrink-0 bg-[#262626] border border-white/5 rounded-[18px] overflow-hidden relative shadow-lg flex flex-col justify-between select-none">
-                      
+
                       {/* 1. Message Bubble text content (click to edit inline) */}
                       <div className="p-3.5 flex-1 min-w-0">
                         {focusedField?.type === 'btnTempText' ? (
-                          <input 
+                          <input
                             autoFocus
-                            type="text" 
-                            value={btnTempText} 
+                            type="text"
+                            value={btnTempText}
                             onBlur={() => setFocusedField(null)}
                             onChange={(e) => setBtnTempText(e.target.value)}
                             placeholder="Message Text"
                             className="bg-transparent border-none p-0 text-sm text-[#f5f5f5] outline-none focus:ring-0 w-full"
                           />
                         ) : (
-                          <div 
+                          <div
                             onClick={() => setFocusedField({ cardIdx: -999, type: 'btnTempText' })}
                             className="flex items-center justify-between cursor-pointer group/btn-temp-txt w-full py-0.5"
                           >
@@ -1678,10 +1680,10 @@ export default function InboxPage() {
                               <span className="text-sm font-semibold text-[#0095f6] truncate max-w-[80%] pointer-events-none select-none text-center">
                                 {(btn.title || "").replace("{{price}}", selectedProductsForTemplates[0]?.price ? `₹${selectedProductsForTemplates[0].price}` : "")}
                               </span>
-                              
+
                               {/* Absolute Edit Trigger Controls on the Right Edge of Button Row */}
                               <div className="absolute right-2 opacity-100 md:opacity-0 md:group-hover/btn:opacity-100 transition-all flex items-center gap-1">
-                                <button 
+                                <button
                                   onClick={() => {
                                     setFocusedField({ cardIdx: -999, type: 'btnTempBtn', btnIdx: bIdx });
                                     setShowRightPanel(true);
@@ -1692,7 +1694,7 @@ export default function InboxPage() {
                                   <span className="material-symbols-outlined text-[11px]">edit</span>
                                 </button>
                                 {!isFirst && (
-                                  <button 
+                                  <button
                                     onClick={() => {
                                       const btns = buttonTemplateButtons.filter((_: any, i: number) => i !== bIdx);
                                       setButtonTemplateButtons(btns);
@@ -1709,27 +1711,27 @@ export default function InboxPage() {
                         })}
                       </div>
 
-                        {/* Add Button action inside bubble */}
-                        {(buttonTemplateButtons || []).length < 3 && (
-                          <button 
-                            onClick={() => {
-                              const btns = [...buttonTemplateButtons];
-                              btns.push({ type: 'web_url', title: 'New Button', url: 'https://' });
-                              setButtonTemplateButtons(btns);
-                            }}
-                            className="py-2.5 text-center text-[10px] text-[#0095f6] hover:text-[#0095f6]/80 font-bold uppercase transition-all bg-white/[0.01] flex items-center justify-center gap-1"
-                          >
-                            <span className="material-symbols-outlined text-[12px]">add</span>
-                            Add Button
-                          </button>
-                        )}
-                      </div>
+                      {/* Add Button action inside bubble */}
+                      {(buttonTemplateButtons || []).length < 3 && (
+                        <button
+                          onClick={() => {
+                            const btns = [...buttonTemplateButtons];
+                            btns.push({ type: 'web_url', title: 'New Button', url: 'https://' });
+                            setButtonTemplateButtons(btns);
+                          }}
+                          className="py-2.5 text-center text-[10px] text-[#0095f6] hover:text-[#0095f6]/80 font-bold uppercase transition-all bg-white/[0.01] flex items-center justify-center gap-1"
+                        >
+                          <span className="material-symbols-outlined text-[12px]">add</span>
+                          Add Button
+                        </button>
+                      )}
+                    </div>
 
                     {/* Send Button */}
                     <div className="flex gap-2 justify-center pt-1 w-full">
-                      <button 
-                        onClick={() => handleSendButtonTemplate(btnTempText, buttonTemplateButtons)} 
-                        disabled={sending || buttonTemplateButtons.length === 0} 
+                      <button
+                        onClick={() => handleSendButtonTemplate(btnTempText, buttonTemplateButtons)}
+                        disabled={sending || buttonTemplateButtons.length === 0}
                         className="px-5 py-2 rounded-xl bg-white text-black text-xs font-bold hover:bg-white/90 disabled:opacity-40 transition-all"
                       >
                         Send Buttons
@@ -1748,7 +1750,7 @@ export default function InboxPage() {
                           <span className="material-symbols-outlined text-[#8FE3FF] text-lg">settings</span>
                           <span className="text-[10px] font-bold text-white uppercase tracking-wider">Configure Action</span>
                         </div>
-                        <button 
+                        <button
                           onClick={() => setFocusedField(null)}
                           className="w-5 h-5 rounded bg-white/5 text-white/40 hover:text-white flex items-center justify-center transition-colors"
                         >
@@ -1762,8 +1764,8 @@ export default function InboxPage() {
                           const isGeneric = focusedField.type === 'btn';
                           const cardIdx = focusedField.cardIdx;
                           const btnIdx = focusedField.btnIdx ?? 0;
-                          
-                          const btn = isGeneric 
+
+                          const btn = isGeneric
                             ? carouselElements[cardIdx]?.buttons?.[btnIdx]
                             : buttonTemplateButtons[btnIdx];
 
@@ -1778,7 +1780,7 @@ export default function InboxPage() {
                                   <label className="text-[10px] text-[#8FE3FF] font-bold uppercase block">Button Text (Label)</label>
                                   <span className="text-[9px] text-[#8FE3FF]/50 font-semibold">{btn.title.length}/20</span>
                                 </div>
-                                <RichTemplateInput 
+                                <RichTemplateInput
                                   value={btn.title}
                                   maxLength={20}
                                   onChange={(val: string) => {
@@ -1804,7 +1806,7 @@ export default function InboxPage() {
                               {/* URL */}
                               <div>
                                 <label className="text-[10px] text-[#8FE3FF] font-bold uppercase block mb-1.5">Button Action (Link URL)</label>
-                                <input 
+                                <input
                                   type="text"
                                   disabled={isFirst}
                                   value={btn.url || ""}
@@ -1837,7 +1839,7 @@ export default function InboxPage() {
 
                       {/* Footer */}
                       <div className="p-3 border-t border-white/5 bg-[#8FE3FF]/5 flex justify-end">
-                        <button 
+                        <button
                           onClick={() => setFocusedField(null)}
                           className="px-4 py-1.5 bg-[#0095f6] hover:bg-[#0095f6]/95 text-white text-[10px] font-bold rounded-lg shadow-md transition-all active:scale-[0.98]"
                         >
@@ -1924,116 +1926,83 @@ export default function InboxPage() {
             <>
               {/* Profile */}
               <div className="flex flex-col items-center text-center px-5 pt-6 pb-5 border-b border-white/[0.06]">
-                    <img src={selectedConversation.avatar} alt={selectedConversation.name} className="w-20 h-20 rounded-full object-cover border border-white/10 mb-3 shadow-lg" />
-                    <h3 className="text-sm font-bold text-white">@{selectedConversation.name}</h3>
+                <img src={selectedConversation.avatar} alt={selectedConversation.name} className="w-20 h-20 rounded-full object-cover border border-white/10 mb-3 shadow-lg" />
+                <a
+                  href={`https://instagram.com/${selectedConversation.name}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm font-bold text-white">@{selectedConversation.name}</a>
 
-                    {/* Instagram Quick Actions Bar */}
-                    <div className="flex justify-center gap-6 mt-4 w-full">
-                      <a
-                        href={`https://instagram.com/${selectedConversation.name}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex flex-col items-center gap-1 group text-white/60 hover:text-white transition-colors"
-                      >
-                        <div className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-white/10 transition-colors">
-                          <span className="material-symbols-outlined text-[18px]">person</span>
-                        </div>
-                        <span className="text-[10px] font-medium">Profile</span>
-                      </a>
-                      <button className="flex flex-col items-center gap-1 group text-white/60 hover:text-white transition-colors">
-                        <div className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-white/10 transition-colors">
-                          <span className="material-symbols-outlined text-[18px]">notifications</span>
-                        </div>
-                        <span className="text-[10px] font-medium">Mute</span>
-                      </button>
-                      <button className="flex flex-col items-center gap-1 group text-white/60 hover:text-white transition-colors">
-                        <div className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-white/10 transition-colors">
-                          <span className="material-symbols-outlined text-[18px]">search</span>
-                        </div>
-                        <span className="text-[10px] font-medium">Search</span>
-                      </button>
-                    </div>
+
+              </div>
+
+              {/* Conversation Info */}
+              <div className="px-5 py-4 border-b border-white/[0.06] space-y-2.5">
+                <p className="text-[9px] font-bold text-white/25 uppercase tracking-widest mb-3">Conversation Info</p>
+                {[
+                  ["Last Active", selectedConversation.time],
+                  ["24h Window", isWithin24hWindow ? "Open" : "Closed"],
+                  ["Messages", messages.length.toString()],
+                ].map(([label, val]) => (
+                  <div key={label} className="flex justify-between items-center">
+                    <span className="text-[11px] text-white/40">{label}</span>
+                    <span className="text-[11px] text-white font-medium">{val}</span>
                   </div>
+                ))}
+              </div>
 
-                  {/* Toggles (Instagram Details Style) */}
-                  <div className="px-5 py-4 border-b border-white/[0.06] space-y-3.5">
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs text-white/90">Mute messages</span>
-                      <input type="checkbox" className="w-7 h-3.5 rounded-full accent-[#b6b2ff] cursor-pointer" />
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs text-white/90">Mute calls</span>
-                      <input type="checkbox" className="w-7 h-3.5 rounded-full accent-[#b6b2ff] cursor-pointer" />
-                    </div>
+              {/* Enquiries */}
+              <div className="flex-1 px-5 py-4">
+                <p className="text-[9px] font-bold text-white/25 uppercase tracking-widest mb-3">Interested Products</p>
+                {loadingEnquiries ? (
+                  <div className="flex flex-col items-center justify-center gap-2 py-8 text-white/20">
+                    <div className="w-4 h-4 rounded-full border border-white/20 border-t-white animate-spin" />
+                    <span className="text-[9px] uppercase tracking-widest">Loading</span>
                   </div>
-
-                  {/* Conversation Info */}
-                  <div className="px-5 py-4 border-b border-white/[0.06] space-y-2.5">
-                    <p className="text-[9px] font-bold text-white/25 uppercase tracking-widest mb-3">Conversation Info</p>
-                    {[
-                      ["Last Active", selectedConversation.time],
-                      ["24h Window", isWithin24hWindow ? "Open" : "Closed"],
-                      ["Messages", messages.length.toString()],
-                    ].map(([label, val]) => (
-                      <div key={label} className="flex justify-between items-center">
-                        <span className="text-[11px] text-white/40">{label}</span>
-                        <span className="text-[11px] text-white font-medium">{val}</span>
-                      </div>
-                    ))}
+                ) : enquiries.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center gap-2 py-8 border border-dashed border-white/[0.06] rounded-xl text-white/20">
+                    <span className="material-symbols-outlined text-2xl">shopping_bag</span>
+                    <span className="text-[11px]">No items tracked</span>
                   </div>
-
-                  {/* Enquiries */}
-                  <div className="flex-1 px-5 py-4">
-                    <p className="text-[9px] font-bold text-white/25 uppercase tracking-widest mb-3">Interested Products</p>
-                    {loadingEnquiries ? (
-                      <div className="flex flex-col items-center justify-center gap-2 py-8 text-white/20">
-                        <div className="w-4 h-4 rounded-full border border-white/20 border-t-white animate-spin" />
-                        <span className="text-[9px] uppercase tracking-widest">Loading</span>
-                      </div>
-                    ) : enquiries.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center gap-2 py-8 border border-dashed border-white/[0.06] rounded-xl text-white/20">
-                        <span className="material-symbols-outlined text-2xl">shopping_bag</span>
-                        <span className="text-[11px]">No items tracked</span>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {enquiries.map((enquiry: any) =>
-                          enquiry.products?.map((ep: any) => {
-                            const isSel = selectedProductsForTemplates.some(p => p.id === ep.product_id);
-                            return (
-                              <div
-                                key={ep.enquiry_product_id}
-                                onClick={() => handleToggleProductForSend(ep)}
-                                className={cn("group flex gap-3 p-3 rounded-xl border cursor-pointer transition-all relative", isSel ? "bg-[#b6b2ff]/10 border-[#b6b2ff]/30" : "bg-white/[0.02] border-white/[0.06] hover:border-white/15")}
-                              >
-                                {ep.main_media_url ? (
-                                  <img src={ep.main_media_url} className="w-10 h-10 rounded-lg object-cover border border-white/10 shrink-0" alt="" />
-                                ) : (
-                                  <div className="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
-                                    <span className="material-symbols-outlined text-sm text-white/20">shopping_bag</span>
-                                  </div>
-                                )}
-                                <div className="flex-1 min-w-0 pr-5">
-                                  <p className="text-[11px] font-semibold text-white truncate">{ep.title}</p>
-                                  {ep.price && <p className="text-[10px] font-bold text-[#b6b2ff] mt-0.5">₹{ep.price}</p>}
-                                  <div className="flex gap-1 mt-1">
-                                    <span className={cn("px-1.5 py-0.5 rounded text-[8px] font-bold uppercase", enquiry.status === "OPEN" ? "bg-emerald-500/10 text-emerald-400" : "bg-white/5 text-white/30")}>{enquiry.status}</span>
-                                    {ep.confidence_score != null && <span className="px-1.5 py-0.5 rounded bg-[#8fe3ff]/10 text-[#8fe3ff] text-[8px] font-bold">{Math.round(ep.confidence_score * 100)}%</span>}
-                                  </div>
-                                </div>
-                                {isSel && <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-[#b6b2ff] text-black text-[8px] font-bold flex items-center justify-center">{selectedProductsForTemplates.findIndex(p => p.id === ep.product_id) + 1}</span>}
-                                {!isSel && (
-                                  <button onClick={(e) => { e.stopPropagation(); handleDeleteEnquiryProduct(ep.enquiry_product_id); }} className="absolute top-2 right-2 w-5 h-5 rounded bg-red-500/10 text-red-400 items-center justify-center hidden group-hover:flex hover:bg-red-500 hover:text-white transition-all">
-                                    <span className="material-symbols-outlined text-[11px]">delete</span>
-                                  </button>
-                                )}
+                ) : (
+                  <div className="space-y-2">
+                    {enquiries.map((enquiry: any) =>
+                      enquiry.products?.map((ep: any) => {
+                        const isSel = selectedProductsForTemplates.some(p => p.id === ep.product_id);
+                        return (
+                          <div
+                            key={ep.enquiry_product_id}
+                            onClick={() => handleToggleProductForSend(ep)}
+                            className={cn("group flex gap-3 p-3 rounded-xl border cursor-pointer transition-all relative", isSel ? "bg-[#b6b2ff]/10 border-[#b6b2ff]/30" : "bg-white/[0.02] border-white/[0.06] hover:border-white/15")}
+                          >
+                            {ep.main_media_url ? (
+                              <img src={ep.main_media_url} className="w-10 h-10 rounded-lg object-cover border border-white/10 shrink-0" alt="" />
+                            ) : (
+                              <div className="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                                <span className="material-symbols-outlined text-sm text-white/20">shopping_bag</span>
                               </div>
-                            );
-                          })
-                        )}
-                      </div>
+                            )}
+                            <div className="flex-1 min-w-0 pr-5">
+                              <p className="text-[11px] font-semibold text-white truncate">{ep.title}</p>
+                              {ep.price && <p className="text-[10px] font-bold text-[#b6b2ff] mt-0.5">₹{ep.price}</p>}
+                              <div className="flex gap-1 mt-1">
+                                <span className={cn("px-1.5 py-0.5 rounded text-[8px] font-bold uppercase", enquiry.status === "OPEN" ? "bg-emerald-500/10 text-emerald-400" : "bg-white/5 text-white/30")}>{enquiry.status}</span>
+                                {ep.confidence_score != null && <span className="px-1.5 py-0.5 rounded bg-[#8fe3ff]/10 text-[#8fe3ff] text-[8px] font-bold">{Math.round(ep.confidence_score * 100)}%</span>}
+                              </div>
+                            </div>
+                            {isSel && <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-[#b6b2ff] text-black text-[8px] font-bold flex items-center justify-center">{selectedProductsForTemplates.findIndex(p => p.id === ep.product_id) + 1}</span>}
+                            {!isSel && (
+                              <button onClick={(e) => { e.stopPropagation(); handleDeleteEnquiryProduct(ep.enquiry_product_id); }} className="absolute top-2 right-2 w-5 h-5 rounded bg-red-500/10 text-red-400 items-center justify-center hidden group-hover:flex hover:bg-red-500 hover:text-white transition-all">
+                                <span className="material-symbols-outlined text-[11px]">delete</span>
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })
                     )}
                   </div>
+                )}
+              </div>
             </>
           ) : (
             <div className="flex-1 flex items-center justify-center text-white/15 text-[11px] font-semibold uppercase tracking-widest text-center px-5">
