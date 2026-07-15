@@ -76,6 +76,7 @@ interface ProductDetail {
   category: string;
   metadata?: Record<string, any>;
   cod_enabled?: boolean;
+  status?: string;
 }
 
 interface RelatedProduct {

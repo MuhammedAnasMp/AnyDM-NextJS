@@ -299,11 +299,13 @@ export default function CatalogPage() {
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="bg-[#131313] border-b border-[#2a2a2a] text-[#8e9192] font-medium tracking-wide">
-                <th className="px-6 py-3.5 w-[45%]">Product name</th>
-                <th className="px-6 py-3.5 text-center w-[12%]">Inquiries</th>
-                <th className="px-6 py-3.5 text-center w-[12%]">Clicks</th>
-                <th className="px-6 py-3.5 text-center w-[15%]">Conversion rate</th>
-                <th className="px-6 py-3.5 w-[11%]">Status</th>
+                <th className="px-6 py-3.5 w-[30%]">Product name</th>
+                <th className="px-6 py-3.5 w-[12%]">Price</th>
+                <th className="px-6 py-3.5 w-[10%]">Stock</th>
+                <th className="px-6 py-3.5 text-center w-[10%]">Inquiries</th>
+                <th className="px-6 py-3.5 text-center w-[10%]">Clicks</th>
+                <th className="px-6 py-3.5 text-center w-[13%]">Conversion rate</th>
+                <th className="px-6 py-3.5 w-[10%]">Status</th>
                 <th className="px-6 py-3.5 text-right w-[5%]">Actions</th>
               </tr>
             </thead>
@@ -318,6 +320,8 @@ export default function CatalogPage() {
                         <div className="h-2.5 bg-[#20201f] w-1/4 rounded" />
                       </div>
                     </td>
+                    <td className="px-6 py-4"><div className="h-3.5 bg-[#20201f] w-12 rounded" /></td>
+                    <td className="px-6 py-4"><div className="h-3.5 bg-[#20201f] w-8 rounded" /></td>
                     <td className="px-6 py-4"><div className="h-3.5 bg-[#20201f] w-8 mx-auto rounded" /></td>
                     <td className="px-6 py-4"><div className="h-3.5 bg-[#20201f] w-8 mx-auto rounded" /></td>
                     <td className="px-6 py-4">
@@ -332,7 +336,7 @@ export default function CatalogPage() {
                 ))
               ) : filteredProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-14 text-[#c4c7c8]">
+                  <td colSpan={8} className="text-center py-14 text-[#c4c7c8]">
                     <div className="flex flex-col items-center justify-center gap-3 max-w-sm mx-auto">
                       <div className="w-10 h-10 rounded-full bg-[#131313] border border-[#2a2a2a] flex items-center justify-center text-[#8e9192]">
                         <AlertCircle className="w-5 h-5" strokeWidth={1.5} />
@@ -401,15 +405,25 @@ export default function CatalogPage() {
                           <div className="space-y-0.5 min-w-0">
                             <p className="font-medium text-white truncate flex items-center gap-1.5">
                               {titleText}
-                              {isInstagramProduct && (
+                              {/* {isInstagramProduct && (
                                 <InstagramIcon className="w-3.5 h-3.5 text-pink-500 shrink-0 inline" />
-                              )}
+                              )} */}
                             </p>
                             <p className="text-[10px] text-[#8e9192] truncate">
                               SKU: {skuCode} • Updated {formatUpdatedTime(p.updated_at)}
                             </p>
                           </div>
                         </div>
+                      </td>
+
+                      {/* Price Column */}
+                      <td className="px-6 py-3.5 font-medium text-white">
+                        {p.price !== null && p.price !== undefined ? `${Number(p.price).toFixed(2)} ${p.currency || 'KWD'}` : '—'}
+                      </td>
+
+                      {/* Stock Column */}
+                      <td className="px-6 py-3.5 font-medium text-white">
+                        {p.stock !== null && p.stock !== undefined ? p.stock : '—'}
                       </td>
 
                       {/* Inquiries */}

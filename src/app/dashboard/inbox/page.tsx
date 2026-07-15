@@ -1,16 +1,16 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
 import api from "@/lib/services/api.service";
 import { authService } from "@/lib/services/auth.service";
 import { cn } from "@/lib/utils";
 import { useSearchParams, useRouter } from "next/navigation";
-import { CheckCircle, Lock, Bot } from "lucide-react";
+import { CheckCircle, Lock, Bot, X, Pencil, Plus } from "lucide-react";
 import { span } from "framer-motion/client";
-
+import Toast from "@/components/Toast";
 const PlayableVideoAttachment = ({ url }: { url: string }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -119,6 +119,16 @@ export default function InboxPage() {
   const appUser = useSelector((state: RootState) => state.auth.user);
   const isPremiumActive = appUser?.is_premium_active ?? true;
 
+  const [toast, setToast] = useState({ isVisible: false, message: "", type: "success" as "success" | "error" | "info" });
+  const showToast = (message: string, type: "success" | "error" | "info" = "success") => {
+    setToast({ isVisible: true, message, type });
+  };
+
+  const instagramAccounts = useSelector((state: RootState) => state.auth.instagramAccounts);
+  const activeAccount = instagramAccounts.find(
+    (acc: any) => acc.id === appUser?.active_instagram_account_id
+  ) || instagramAccounts[0];
+
 
   if (!isPremiumActive) {
     return (
@@ -183,7 +193,6 @@ export default function InboxPage() {
   const nameParam = searchParams.get("name");
   const avatarParam = searchParams.get("avatar");
 
-  const [activeFilter, setActiveFilter] = useState("Primary");
   const [showChatOnMobile, setShowChatOnMobile] = useState(false);
   const [conversations, setConversations] = useState<any[]>(() => {
     return globalConversationsCache?.conversations || [];
@@ -259,6 +268,33 @@ export default function InboxPage() {
   const [productSearchQuery, setProductSearchQuery] = useState("");
   const [showRightPanel, setShowRightPanel] = useState(true);
 
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.innerWidth < 1280) {
+      setShowRightPanel(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selectedConversation) {
+      const params = new URLSearchParams(window.location.search);
+      params.set("recipient_id", selectedConversation.recipient_id);
+      params.delete("username");
+      params.delete("name");
+      params.delete("avatar");
+      router.replace(`/dashboard/inbox?${params.toString()}`, { scroll: false });
+    } else {
+      const params = new URLSearchParams(window.location.search);
+      if (params.has("recipient_id")) {
+        params.delete("recipient_id");
+        params.delete("username");
+        params.delete("name");
+        params.delete("avatar");
+        const search = params.toString();
+        router.replace(`/dashboard/inbox${search ? `?${search}` : ""}`, { scroll: false });
+      }
+    }
+  }, [selectedConversation, router]);
+
   const filteredConversations = conversations.filter((c) =>
     c.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -268,6 +304,7 @@ export default function InboxPage() {
   );
 
   useEffect(() => {
+    setSelectedProductsForTemplates([]);
     const fetchProducts = async () => {
       try {
         const res = await api.get("/products/");
@@ -280,7 +317,7 @@ export default function InboxPage() {
       }
     };
     fetchProducts();
-  }, []);
+  }, [activeAccount?.id]);
 
   useEffect(() => {
     if (recipientIdParam && conversations.length > 0) {
@@ -320,10 +357,7 @@ export default function InboxPage() {
   }, [recipientIdParam, usernameParam, nameParam, avatarParam, conversations.length]);
 
 
-  const instagramAccounts = useSelector((state: RootState) => state.auth.instagramAccounts);
-  const activeAccount = instagramAccounts.find(
-    (acc: any) => acc.id === appUser?.active_instagram_account_id
-  ) || instagramAccounts[0];
+
 
   const prevAccountUsernameRef = useRef<string | undefined>(undefined);
 
@@ -380,7 +414,7 @@ export default function InboxPage() {
     }
 
     const wsProtocol = isSecure ? "wss://" : "ws://";
-    wsUrl = `${wsProtocol}${host}/ws/inbox/?token=${token}`;
+    wsUrl = `${wsProtocol}${host}/ws/inbox/?token=${token}&instagram_id=${activeAccount.id}`;
 
     console.log("[WebSocket] Connecting to", wsUrl);
     const socket = new WebSocket(wsUrl);
@@ -400,8 +434,19 @@ export default function InboxPage() {
           const currentSelConv = selectedConversationRef.current;
           const currentBusInfo = businessInfoRef.current;
 
-          // 1. Map backend message format to frontend message format
+          // Verify if this message belongs to the current active account
           const filterUsername = activeAccount?.username;
+          if (filterUsername && message.from?.username && message.to?.username) {
+            const hasActiveAccountParticipant =
+              message.from.username === filterUsername ||
+              message.to.username === filterUsername;
+            if (!hasActiveAccountParticipant) {
+              console.log("[WebSocket] Ignored message for a different connected account:", message.from.username, "to", message.to.username);
+              return;
+            }
+          }
+
+          // 1. Map backend message format to frontend message format
           const isSelf = message.from?.username === filterUsername || message.from?.id === currentBusInfo?.id;
 
           const formattedMessage = {
@@ -417,7 +462,15 @@ export default function InboxPage() {
               ? `https://ui-avatars.com/api/?name=Admin&background=000&color=fff`
               : currentSelConv?.avatar || `https://ui-avatars.com/api/?name=User&background=random&color=fff`,
             created_time: message.created_time,
-            attachments: message.attachments,
+            attachments: (() => {
+              if (!message.attachments) return null;
+              // Backend sends an array for template attachments
+              if (Array.isArray(message.attachments)) {
+                return { data: message.attachments };
+              }
+              // Inbound messages already have { data: [...] } shape
+              return message.attachments;
+            })(),
             shares: message.shares,
             story: message.story
           };
@@ -443,11 +496,15 @@ export default function InboxPage() {
             const index = prevConvs.findIndex((c) => String(c.recipient_id) === String(recipient_id));
             if (index !== -1) {
               const updatedConvs = [...prevConvs];
+              const isSelected = currentSelConv && String(currentSelConv.recipient_id) === String(recipient_id);
+              const isUnread = !isSelf && !isSelected;
+
               updatedConvs[index] = {
                 ...updatedConvs[index],
                 text: formattedMessage.text || "Sent an attachment",
                 updated_time: message.created_time,
-                time: "Just now"
+                time: "Just now",
+                badge: isUnread ? (updatedConvs[index].badge || 0) + 1 : 0
               };
               // Re-sort conversations by updated_time descending
               updatedConvs.sort((a, b) => new Date(b.updated_time || 0).getTime() - new Date(a.updated_time || 0).getTime());
@@ -542,7 +599,7 @@ export default function InboxPage() {
             time: timeFormatted,
             text: latestMessage || "No messages yet",
             avatar: c.profile_pic || `https://ui-avatars.com/api/?name=${username}&background=random&color=fff`,
-            badge: 0,
+            badge: c.unread_count || 0,
             status: "Active",
             updated_time: c.updated_time,
             is_within_24h_window: c.is_within_24h_window,
@@ -802,44 +859,54 @@ export default function InboxPage() {
 
   const handleSendMessage = async (messagePayload: any) => {
     if (!selectedConversation) return;
-    try {
-      setSending(true);
-      const payload = {
-        recipient_id: selectedConversation.recipient_id,
-        message: messagePayload
-      };
 
-      const isTemp = selectedConversation.id.startsWith("temp_");
-      const url = isTemp
-        ? `/crm/conversations/new/send/`
-        : `/crm/conversations/${selectedConversation.id}/send/`;
+    const tempId = `optimistic_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const localMsg = {
+      id: tempId,
+      sender: "You",
+      text: messagePayload.text || "",
+      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      isSelf: true,
+      isAi: false,
+      avatar: `https://ui-avatars.com/api/?name=Admin&background=000&color=fff`,
+      created_time: new Date().toISOString(),
+      attachments: messagePayload.attachment ? { data: [messagePayload.attachment] } : null,
+      status: "sending" as "sending" | "sent" | "error"
+    };
 
-      const res = await api.post(url, payload);
+    setMessages((prev) => [...prev, localMsg]);
 
-      const localMsg = {
-        id: res.data.message_id || `local_${Date.now()}`,
-        sender: "You",
-        text: messagePayload.text || "[Template Message]",
-        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        isSelf: true,
-        isAi: false,
-        avatar: `https://ui-avatars.com/api/?name=Admin&background=000&color=fff`,
-        created_time: new Date().toISOString(),
-        attachments: messagePayload.attachment ? { data: [messagePayload.attachment] } : null
-      };
+    const isTemp = selectedConversation.id.startsWith("temp_");
+    const url = isTemp
+      ? `/crm/conversations/new/send/`
+      : `/crm/conversations/${selectedConversation.id}/send/`;
+    const payload = {
+      recipient_id: selectedConversation.recipient_id,
+      message: messagePayload
+    };
 
-      setMessages((prev) => {
-        if (prev.some((m) => m.id === localMsg.id)) return prev;
-        return [...prev, localMsg];
+    api.post(url, payload)
+      .then((res) => {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === tempId
+              ? { ...m, id: res.data.message_id || m.id, status: "sent" }
+              : m
+          )
+        );
+        fetchConversations(true);
+      })
+      .catch((err) => {
+        console.error("Error sending message:", err);
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === tempId
+              ? { ...m, status: "error" }
+              : m
+          )
+        );
+        showToast("Failed to send message.", "error");
       });
-
-      await fetchConversations();
-    } catch (err) {
-      console.error("Error sending message:", err);
-      alert("Failed to send message.");
-    } finally {
-      setSending(false);
-    }
   };
 
   const handleSendTextMessage = async () => {
@@ -850,7 +917,7 @@ export default function InboxPage() {
   };
 
   const handleSendButtonTemplate = async (text: string, buttons: any[]) => {
-    const priceVal = selectedProductsForTemplates[0]?.price ? `₹${selectedProductsForTemplates[0].price}` : "";
+    const priceVal = selectedProductsForTemplates[0]?.price ? `${selectedProductsForTemplates[0].price} ${selectedProductsForTemplates[0].currency || 'KWD'}` : "";
     const processedText = (text || "").replace("{{price}}", priceVal);
     const processedButtons = (buttons || []).map((btn: any) => ({
       ...btn,
@@ -867,13 +934,13 @@ export default function InboxPage() {
         }
       }
     };
-    await handleSendMessage(messagePayload);
     setShowButtonTemplateForm(false);
+    await handleSendMessage(messagePayload);
   };
 
   const handleSendGenericTemplate = async (elements: any[]) => {
     const processedElements = elements.map(el => {
-      const priceVal = el.price ? `₹${el.price}` : "";
+      const priceVal = el.price ? `${el.price} ${el.currency || 'KWD'}` : "";
       const processedButtons = (el.buttons || []).map((btn: any) => ({
         ...btn,
         title: (btn.title || "").replace("{{price}}", priceVal)
@@ -894,8 +961,8 @@ export default function InboxPage() {
         }
       }
     };
-    await handleSendMessage(messagePayload);
     setShowGenericTemplateForm(false);
+    await handleSendMessage(messagePayload);
   };
 
   const updateTemplatesFromSelection = (selectedProds: any[]) => {
@@ -922,7 +989,7 @@ export default function InboxPage() {
       const prodUrl = `${window.location.origin}/${username}/product/${p.id}`;
       return {
         type: 'web_url',
-        title: `🛒 Buy: ₹${p.price || ''}`.slice(0, 20),
+        title: `🛒 Buy: ${p.price || ''} ${p.currency || 'KWD'}`.slice(0, 20),
         url: prodUrl
       };
     });
@@ -938,6 +1005,7 @@ export default function InboxPage() {
         subtitle: (p.description || 'Premium quality item.').slice(0, 80),
         image_url: p.media_url || p.main_media_url || '',
         price: p.price || '',
+        currency: p.currency || 'KWD',
         default_action: {
           type: 'web_url',
           url: prodUrl
@@ -958,12 +1026,6 @@ export default function InboxPage() {
     });
     setCarouselElements(newElements);
     setActiveCardIndex(0);
-
-    // Automatically open the template form
-    setShowGenericTemplateForm(true);
-    setShowButtonTemplateForm(false);
-    setIsEditingGenericTemplate(false);
-    setIsEditingButtonTemplate(false);
   };
 
   const handleToggleProductForSend = (ep: any) => {
@@ -971,8 +1033,9 @@ export default function InboxPage() {
       id: ep.product_id,
       title: ep.title,
       price: ep.price,
+      currency: ep.currency || 'KWD',
       main_media_url: ep.main_media_url,
-      description: "Check out this product!"
+      description: ep.description || "Check out this product!"
     };
 
     setSelectedProductsForTemplates(prev => {
@@ -1023,8 +1086,9 @@ export default function InboxPage() {
         throw new Error(data.error?.message || "Upload failed");
       }
     } catch (err) {
-      console.error("Error uploading image to Cloudinary:", err);
-      alert("Failed to upload image to Cloudinary.");
+      console.error("Error uploading image :", err);
+
+      showToast("Failed to upload image .", "error");
     } finally {
       setUploadingImage(false);
     }
@@ -1098,18 +1162,18 @@ export default function InboxPage() {
       className="flex h-full overflow-hidden bg-[#0d0d0d] font-sans text-white"
     >
       {/* ─── LEFT PANE: Conversation List ─────────────────────────────── */}
-      <aside className={`w-full lg:w-[320px] xl:w-[360px] flex flex-col border-r border-white/[0.06] bg-[#111111] shrink-0 ${showChatOnMobile ? "hidden lg:flex" : "flex"}`}>
+      <aside className={`w-full lg:w-[280px] xl:w-[300px] flex flex-col border-r border-white/[0.06] bg-[#111111] shrink-0 ${showChatOnMobile ? "hidden lg:flex" : "flex"}`}>
 
         {/* Account Header */}
-        <div className="px-5 pt-5 pb-3 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-2.5">
+        <div className="px-4 pt-4 pb-2 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2">
 
             <div>
-              <h2 className="text-sm font-bold text-white leading-none">
+              <h2 className="text-xs font-bold text-white leading-none">
                 {businessInfo?.username || activeAccount?.username || "Inbox"}
               </h2>
               {enableAi && (
-                <span className={`text-[9px] font-bold uppercase tracking-widest mt-0.5 block ${globalAIOn ? "text-[#b6b2ff]" : "text-white/30"}`}>
+                <span className={`text-[8px] font-bold uppercase tracking-widest mt-0.5 block ${globalAIOn ? "text-[#b6b2ff]" : "text-white/30"}`}>
                   AI {globalAIOn ? "ON" : "OFF"}
                 </span>
               )}
@@ -1119,50 +1183,35 @@ export default function InboxPage() {
             <button
               onClick={() => { fetchConversations(); if (selectedConversation) fetchMessages(selectedConversation.id); }}
               disabled={loading}
-              className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 border border-white/[0.07] flex items-center justify-center text-white/50 hover:text-white transition-all active:scale-95 disabled:opacity-40"
+              className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 border border-white/[0.07] flex items-center justify-center text-white/50 hover:text-white transition-all active:scale-95 disabled:opacity-40"
             >
-              <span className={`material-symbols-outlined text-[17px] ${loading ? "animate-spin" : ""}`}>refresh</span>
+              <span className={`material-symbols-outlined text-[15px] ${loading ? "animate-spin" : ""}`}>refresh</span>
             </button>
 
           </div>
         </div>
 
         {/* Search */}
-        <div className="px-4 pb-3 shrink-0">
-          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.07] focus-within:border-white/20 focus-within:bg-white/[0.06] transition-all">
-            <span className="material-symbols-outlined text-[16px] text-white/30">search</span>
+        <div className="px-3.5 pb-2.5 shrink-0">
+          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.07] focus-within:border-white/20 focus-within:bg-white/[0.06] transition-all">
+            <span className="material-symbols-outlined text-[14px] text-white/30">search</span>
             <input
               type="text"
               placeholder="Search conversations..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-transparent text-xs text-white placeholder-white/25 outline-none w-full"
+              className="bg-transparent text-[11px] text-white placeholder-white/25 outline-none w-full"
             />
             {searchQuery && (
               <button onClick={() => setSearchQuery("")} className="text-white/30 hover:text-white transition-colors">
-                <span className="material-symbols-outlined text-[14px]">close</span>
+                <span className="material-symbols-outlined text-[12px]">close</span>
               </button>
             )}
           </div>
         </div>
 
         {/* Filter Pills */}
-        <div className="px-4 pb-3 flex gap-1.5 shrink-0">
-          {["Primary", "General", "Requests"].map((f) => (
-            <button
-              key={f}
-              onClick={() => setActiveFilter(f)}
-              className={cn(
-                "px-3 py-1 rounded-full text-[10px] font-bold tracking-wide transition-all",
-                activeFilter === f
-                  ? "bg-white text-black shadow-md"
-                  : "bg-white/5 text-white/40 hover:text-white hover:bg-white/10 border border-white/[0.06]"
-              )}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
+
 
         {/* Conversation Items */}
         <div className="flex-1 overflow-y-auto px-2 pb-4 space-y-0.5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full">
@@ -1182,17 +1231,22 @@ export default function InboxPage() {
               return (
                 <div
                   key={item.id}
-                  onClick={() => { setSelectedConversation(item); setShowChatOnMobile(true); setIsWithin24hWindow(item.is_within_24h_window !== false); }}
+                  onClick={() => {
+                    setSelectedConversation(item);
+                    setShowChatOnMobile(true);
+                    setIsWithin24hWindow(item.is_within_24h_window !== false);
+                    setConversations((prev) => prev.map((c) => c.id === item.id ? { ...c, badge: 0 } : c));
+                  }}
                   className={cn(
-                    "flex items-center gap-3 px-3 py-3 rounded-xl cursor-pointer transition-all duration-150 group select-none",
+                    "flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg cursor-pointer transition-all duration-150 group select-none",
                     isSelected ? "bg-white/[0.09] border border-white/10" : "hover:bg-white/[0.04] border border-transparent"
                   )}
                 >
                   {/* Avatar */}
                   <div className="relative shrink-0">
-                    <img src={item.avatar} alt={item.name} className="w-11 h-11 rounded-full object-cover border border-white/10" />
+                    <img src={item.avatar} alt={item.name} className="w-9 h-9 rounded-full object-cover border border-white/10" />
                     <span className={cn(
-                      "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#111]",
+                      "absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#111]",
                       item.is_within_24h_window !== false ? "bg-emerald-500" : "bg-red-500"
                     )} />
                   </div>
@@ -1200,23 +1254,22 @@ export default function InboxPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-center mb-0.5">
                       <div className="flex items-center gap-1.5 min-w-0">
-                        <span className="text-[13px] font-semibold text-white truncate">{item.name}</span>
-
+                        <span className={cn("text-[12px] truncate", item.badge > 0 ? "font-bold text-white" : "font-medium text-white/70")}>{item.name}</span>
                       </div>
 
 
                       <span className="flex gap-1">
-                        <span className="text-[10px] text-white/30 shrink-0 ml-2 p-1p">{item.time}</span>
+                        <span className={cn("text-[9px] shrink-0 ml-2 p-1p", item.badge > 0 ? "font-bold text-[#b6b2ff]" : "text-white/30")}>{item.time}</span>
                         {enableAi && globalAIOn && item.is_ai_enabled !== false && (
                           <CheckCircle className="w-3.5 h-3.5 text-white shrink-0" strokeWidth={2} />
                         )}
                       </span>
 
                     </div>
-                    <p className="text-[11px] text-white/40 truncate">{item.text}</p>
+                    <p className={cn("text-[10px] truncate", item.badge > 0 ? "font-bold text-white/90" : "font-normal text-white/40")}>{item.text}</p>
                   </div>
                   {item.badge > 0 && (
-                    <div className="w-2 h-2 rounded-full bg-[#b6b2ff] shadow-[0_0_8px_rgba(182,178,255,0.6)] shrink-0" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#b6b2ff] shadow-[0_0_8px_rgba(182,178,255,0.6)] shrink-0" />
 
                   )}
                 </div>
@@ -1231,26 +1284,26 @@ export default function InboxPage() {
         {selectedConversation ? (
           <>
             {/* Chat Header */}
-            <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/[0.06] bg-[#111]/80 backdrop-blur-md shrink-0">
-              <div className="flex items-center gap-3">
-                <button onClick={() => setShowChatOnMobile(false)} className="lg:hidden w-8 h-8 rounded-lg bg-white/5 border border-white/[0.07] flex items-center justify-center text-white/60 hover:text-white transition-all">
-                  <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.06] bg-[#11]/80 backdrop-blur-md shrink-0">
+              <div className="flex items-center gap-2.5">
+                <button onClick={() => setShowChatOnMobile(false)} className="lg:hidden w-7 h-7 rounded-lg bg-white/5 border border-white/[0.07] flex items-center justify-center text-white/60 hover:text-white transition-all">
+                  <span className="material-symbols-outlined text-[16px]">arrow_back</span>
                 </button>
                 <div className="relative">
-                  <img src={selectedConversation.avatar} alt={selectedConversation.name} className="w-9 h-9 rounded-full object-cover border border-white/10" />
-                  <span className={cn("absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#111]", isWithin24hWindow ? "bg-emerald-500" : "bg-red-500")} />
+                  <img src={selectedConversation.avatar} alt={selectedConversation.name} className="w-8 h-8 rounded-full object-cover border border-white/10" />
+                  <span className={cn("absolute -bottom-0.5 -right-0.5 w-2 w-2 rounded-full border-2 border-[#111]", isWithin24hWindow ? "bg-emerald-500" : "bg-red-500")} />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-white leading-tight">{selectedConversation.name}</h3>
-                  <span className="text-[10px] text-white/35">{isWithin24hWindow ? "Within 24h window · Can message" : "24h window closed"}</span>
+                  <h3 className="text-xs font-semibold text-white leading-tight">{selectedConversation.name}</h3>
+                  <span className="text-[9px] text-white/35">{isWithin24hWindow ? "Within 24h window · Can message" : "24h window closed"}</span>
                 </div>
               </div>
 
               <div className="flex items-center gap-2">
                 {enableAi && globalAIOn && (
-                  <label className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#b6b2ff]/10 border border-[#b6b2ff]/20 cursor-pointer select-none">
+                  <label className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-[#b6b2ff]/10 border border-[#b6b2ff]/20 cursor-pointer select-none">
                     {/* <span className="material-symbols-outlined text-[14px] text-[#b6b2ff]">psychology</span> */}
-                    <span className="text-[10px] font-bold text-[#b6b2ff] tracking-wider">AI reply for {selectedConversation.name} </span>
+                    <span className="text-[9px] font-bold text-[#b6b2ff] tracking-wider">AI reply for {selectedConversation.name} </span>
                     <input
                       type="checkbox"
                       checked={selectedConversation.is_ai_enabled !== false}
@@ -1266,25 +1319,25 @@ export default function InboxPage() {
                         });
                         try { await api.post(`/crm/customers/${selectedConversation.recipient_id}/toggle-ai/`, { is_ai_enabled: v }); } catch { }
                       }}
-                      className="w-7 h-3.5 rounded-full accent-[#b6b2ff] cursor-pointer"
+                      className="w-6 h-3 rounded-full accent-[#b6b2ff] cursor-pointer"
                     />
                   </label>
                 )}
                 <button
                   onClick={() => fetchMessages(selectedConversation.id)}
                   disabled={loadingMessages}
-                  className="w-8 h-8 rounded-lg bg-white/5 border border-white/[0.07] flex items-center justify-center text-white/50 hover:text-white transition-all active:scale-95 disabled:opacity-40"
+                  className="w-7 h-7 rounded-lg bg-white/5 border border-white/[0.07] flex items-center justify-center text-white/50 hover:text-white transition-all active:scale-95 disabled:opacity-40"
                 >
-                  <span className={`material-symbols-outlined text-[17px] ${loadingMessages ? "animate-spin" : ""}`}>refresh</span>
+                  <span className={`material-symbols-outlined text-[15px] ${loadingMessages ? "animate-spin" : ""}`}>refresh</span>
                 </button>
                 <button
                   onClick={() => setShowRightPanel(!showRightPanel)}
                   className={cn(
-                    "w-8 h-8 rounded-lg border flex items-center justify-center transition-all",
+                    "w-7 h-7 rounded-lg border flex items-center justify-center transition-all",
                     showRightPanel ? "bg-[#b6b2ff]/10 border-[#b6b2ff]/20 text-[#b6b2ff]" : "bg-white/5 border-white/[0.07] text-white/50 hover:text-white"
                   )}
                 >
-                  <span className="material-symbols-outlined text-[17px]">dock_to_right</span>
+                  <span className="material-symbols-outlined text-[15px]">dock_to_right</span>
                 </button>
               </div>
             </div>
@@ -1293,7 +1346,7 @@ export default function InboxPage() {
             <div
               ref={messagesContainerRef}
               onScroll={handleScroll}
-              className="flex-1 overflow-y-auto px-5 py-5 space-y-3 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full"
+              className="flex-1 overflow-y-auto px-4 py-4 space-y-2.5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full"
             >
               {loadingMore && (
                 <div className="flex items-center justify-center gap-2 py-2 text-white/25">
@@ -1313,7 +1366,17 @@ export default function InboxPage() {
                   <span className="text-xs font-medium">No messages yet</span>
                 </div>
               ) : (
-                messages.map((msg, idx) => (
+                (() => {
+                  const seen = new Set();
+                  return messages.filter((msg, mIdx) => {
+                    const key = msg.id && !msg.id.startsWith("optimistic_")
+                      ? msg.id
+                      : `opt-${msg.created_time || ''}-${msg.text || ''}-${mIdx}`;
+                    if (seen.has(key)) return false;
+                    seen.add(key);
+                    return true;
+                  });
+                })().map((msg, idx) => (
                   <div key={msg.id || idx} className={`flex gap-2.5 max-w-[75%] ${msg.isSelf ? "ml-auto flex-row-reverse" : ""}`}>
                     {!msg.isSelf && (
                       <img src={msg.avatar || selectedConversation.avatar} alt={msg.sender} className="w-7 h-7 rounded-full object-cover border border-white/10 shrink-0 self-end" />
@@ -1325,56 +1388,230 @@ export default function InboxPage() {
                           <span className="text-[8px] font-bold uppercase tracking-widest">AnyDM AI</span>
                         </div>
                       )}
-                      {(msg.text || (!msg.attachments?.data && !msg.shares?.data && !msg.story)) && (
-                        <div className={cn(
-                          "px-4 py-2.5 rounded-2xl text-[13px] leading-relaxed break-words max-w-full",
-                          msg.isSelf
-                            ? "bg-white text-black rounded-br-md font-medium"
-                            : "bg-white/[0.07] border border-white/[0.08] text-white/90 rounded-bl-md"
-                        )}>
-                          <p className="whitespace-pre-wrap">{msg.text}</p>
-                        </div>
-                      )}
+                      {(() => {
+                        const hasTemplateAttachment = msg.attachments?.data?.some(
+                          (att: any) =>
+                            att.generic_template ||
+                            att.button_template ||
+                            att.type === "template"
+                        );
+                        return (msg.text && !hasTemplateAttachment) || (!msg.attachments?.data && !msg.shares?.data && !msg.story) ? (
+                          <div className={cn(
+                            "px-3 py-2 rounded-xl text-[12px] leading-relaxed break-words max-w-full",
+                            msg.isSelf
+                              ? "bg-white text-black rounded-br-md font-medium"
+                              : "bg-white/[0.07] border border-white/[0.08] text-white/90 rounded-bl-md"
+                          )}>
+                            <p className="whitespace-pre-wrap">{msg.text}</p>
+                          </div>
+                        ) : null;
+                      })()}
 
-                      {/* Attachments */}
                       {msg.attachments?.data && msg.attachments.data.length > 0 && (
-                        <div className="flex gap-2 overflow-x-auto py-1 max-w-full [&::-webkit-scrollbar]:hidden snap-x snap-mandatory">
+                        <div className="flex gap-2 overflow-x-auto py-1 max-w-full snap-x snap-mandatory [&::-webkit-scrollbar]:hidden">
                           {msg.attachments.data.map((att: any, aIdx: number) => {
-                            if (att.generic_template) {
-                              const imageUrl = att.generic_template.media_url || att.generic_template.image_url;
-                              return (
-                                <div key={aIdx} className="w-52 shrink-0 rounded-2xl overflow-hidden border border-white/10 bg-white/[0.03] snap-start">
-                                  {imageUrl && <img src={imageUrl} className="w-full h-28 object-cover" alt="" />}
-                                  <div className="p-3">
-                                    <p className="text-xs font-semibold text-white">{att.generic_template.title}</p>
-                                    {att.generic_template.subtitle && <p className="text-[11px] text-white/40 mt-0.5">{att.generic_template.subtitle}</p>}
+                            // 1. Handle optimistic/local button & generic templates
+                            if (att.type === "template" && att.payload) {
+                              if (att.payload.template_type === "generic" && att.payload.elements) {
+                                return att.payload.elements.map((el: any, elIdx: number) => {
+                                  const imageUrl = el.image_url || el.media_url;
+                                  return (
+                                    <div
+                                      key={`${aIdx}-${elIdx}`}
+                                      className="w-40 shrink-0 rounded-2xl overflow-hidden border border-[#2b2b2b] bg-[#1a1a1a] snap-start"
+                                    >
+                                      {imageUrl && (
+                                        <img src={imageUrl} className="w-full h-24 object-cover" alt="" />
+                                      )}
+                                      <div className="p-2.5">
+                                        <p className="text-[13px] font-semibold text-white leading-4">
+                                          {el.title}
+                                        </p>
+                                        {el.subtitle && (
+                                          <p className="mt-1 text-[11px] text-[#A8A8A8] leading-4">
+                                            {el.subtitle}
+                                          </p>
+                                        )}
+                                      </div>
+                                      {el.buttons?.length > 0 && (
+                                        <div className="border-t border-[#2b2b2b] divide-y divide-[#2b2b2b]">
+                                          {el.buttons.map((btn: any, bIdx: number) => (
+                                            <a
+                                              key={bIdx}
+                                              href={btn.url || "#"}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="block py-2 text-center text-[12px] font-semibold text-[#3797F0] hover:bg-[#262626] transition-colors"
+                                            >
+                                              {btn.title}
+                                            </a>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                });
+                              }
+
+                              if (att.payload.template_type === "button") {
+                                return (
+                                  <div
+                                    key={aIdx}
+                                    className="w-44 shrink-0 rounded-2xl overflow-hidden border border-[#2b2b2b] bg-[#1a1a1a] snap-start flex flex-col justify-between"
+                                  >
+                                    <div className="p-3">
+                                      <p className="text-[13px] font-semibold text-white leading-5">
+                                        {att.payload.text}
+                                      </p>
+                                    </div>
+                                    {att.payload.buttons?.length > 0 && (
+                                      <div className="border-t border-[#2b2b2b] divide-y divide-[#2b2b2b]">
+                                        {att.payload.buttons.map((btn: any, bIdx: number) => (
+                                          <a
+                                            key={bIdx}
+                                            href={btn.url || "#"}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="block py-2 text-center text-[12px] font-semibold text-[#3797F0] hover:bg-[#262626] transition-colors"
+                                          >
+                                            {btn.title}
+                                          </a>
+                                        ))}
+                                      </div>
+                                    )}
                                   </div>
-                                  {att.generic_template.cta && (
-                                    <div className="border-t border-white/[0.06] divide-y divide-white/[0.06]">
-                                      {att.generic_template.cta.map((cta: any, cIdx: number) => (
-                                        <a key={cIdx} href={cta.url || "#"} target="_blank" rel="noopener noreferrer" className="block py-2 text-center text-[11px] font-bold text-[#8fe3ff] hover:bg-white/5 transition-colors">{cta.title}</a>
+                                );
+                              }
+                            }
+
+                            // 2. Handle backend button template
+                            if (att.button_template) {
+                              return (
+                                <div
+                                  key={aIdx}
+                                  className="w-44 shrink-0 rounded-2xl overflow-hidden border border-[#2b2b2b] bg-[#1a1a1a] snap-start flex flex-col justify-between"
+                                >
+                                  <div className="p-3">
+                                    <p className="text-[13px] font-semibold text-white leading-5">
+                                      {att.button_template.text}
+                                    </p>
+                                  </div>
+                                  {att.button_template.buttons?.length > 0 && (
+                                    <div className="border-t border-[#2b2b2b] divide-y divide-[#2b2b2b]">
+                                      {att.button_template.buttons.map((btn: any, bIdx: number) => (
+                                        <a
+                                          key={bIdx}
+                                          href={btn.url || "#"}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="block py-2 text-center text-[12px] font-semibold text-[#3797F0] hover:bg-[#262626] transition-colors"
+                                        >
+                                          {btn.title}
+                                        </a>
                                       ))}
                                     </div>
                                   )}
                                 </div>
                               );
                             }
-                            if (att.image_data) return (
-                              <a key={aIdx} href={att.image_data.url} target="_blank" rel="noopener noreferrer" className="block rounded-2xl overflow-hidden max-w-[220px] shrink-0 snap-start border border-white/10">
-                                <img src={att.image_data.preview_url || att.image_data.url} alt="" className="w-full h-auto max-h-52 object-cover" referrerPolicy="no-referrer" />
-                              </a>
-                            );
-                            if (att.video_data) return (
-                              <div key={aIdx} className="rounded-2xl overflow-hidden max-w-[220px] shrink-0 snap-start border border-white/10">
-                                <PlayableVideoAttachment url={att.video_data.url} />
-                              </div>
-                            );
-                            if (att.audio_data) return (
-                              <div key={aIdx} className="flex items-center gap-2 bg-white/[0.04] border border-white/10 rounded-2xl px-3 py-2 snap-start">
-                                <span className="material-symbols-outlined text-white/50 text-lg">mic</span>
-                                <audio src={att.audio_data.url} controls className="w-40" />
-                              </div>
-                            );
+
+                            if (att.generic_template) {
+                              const imageUrl =
+                                att.generic_template.media_url ||
+                                att.generic_template.image_url;
+
+                              return (
+                                <div
+                                  key={aIdx}
+                                  className="w-40 shrink-0 rounded-2xl overflow-hidden border border-[#2b2b2b] bg-[#1a1a1a] snap-start"
+                                >
+                                  {imageUrl && (
+                                    <img
+                                      src={imageUrl}
+                                      alt=""
+                                      className="w-full h-24 object-cover"
+                                    />
+                                  )}
+
+                                  <div className="p-2.5">
+                                    <p className="text-[13px] font-semibold text-white leading-4">
+                                      {att.generic_template.title}
+                                    </p>
+
+                                    {att.generic_template.subtitle && (
+                                      <p className="mt-1 text-[11px] text-[#A8A8A8] leading-4">
+                                        {att.generic_template.subtitle}
+                                      </p>
+                                    )}
+                                  </div>
+
+                                  {att.generic_template.cta?.length > 0 && (
+                                    <div className="border-t border-[#2b2b2b] divide-y divide-[#2b2b2b]">
+                                      {att.generic_template.cta.map(
+                                        (cta: any, cIdx: number) => (
+                                          <a
+                                            key={cIdx}
+                                            href={cta.url || "#"}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="block py-2 text-center text-[12px] font-semibold text-[#3797F0] hover:bg-[#262626] transition-colors"
+                                          >
+                                            {cta.title}
+                                          </a>
+                                        )
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            }
+
+                            if (att.image_data)
+                              return (
+                                <a
+                                  key={aIdx}
+                                  href={att.image_data.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="block w-40 shrink-0 rounded-2xl overflow-hidden border border-[#2b2b2b] bg-[#1a1a1a] snap-start"
+                                >
+                                  <img
+                                    src={att.image_data.preview_url || att.image_data.url}
+                                    alt=""
+                                    className="w-full h-auto max-h-48 object-cover"
+                                    referrerPolicy="no-referrer"
+                                  />
+                                </a>
+                              );
+
+                            if (att.video_data)
+                              return (
+                                <div
+                                  key={aIdx}
+                                  className="w-40 shrink-0 rounded-2xl overflow-hidden border border-[#2b2b2b] bg-[#1a1a1a] snap-start"
+                                >
+                                  <PlayableVideoAttachment url={att.video_data.url} />
+                                </div>
+                              );
+
+                            if (att.audio_data)
+                              return (
+                                <div
+                                  key={aIdx}
+                                  className="w-40 shrink-0 flex items-center gap-2 rounded-2xl border border-[#2b2b2b] bg-[#1a1a1a] px-3 py-2 snap-start"
+                                >
+                                  <span className="material-symbols-outlined text-[#A8A8A8] text-lg">
+                                    mic
+                                  </span>
+
+                                  <audio
+                                    src={att.audio_data.url}
+                                    controls
+                                    className="w-full"
+                                  />
+                                </div>
+                              );
+
                             return null;
                           })}
                         </div>
@@ -1404,53 +1641,26 @@ export default function InboxPage() {
                         </div>
                       )}
 
-                      <span className="text-[9px] text-white/20 px-1">{msg.time}</span>
+                      <div className="flex items-center gap-1.5 px-1 mt-0.5">
+                        <span className="text-[9px] text-white/20">{msg.time}</span>
+                        {msg.status === "sending" && (
+                          <div className="w-2 h-2 rounded-full border border-white/20 border-t-white/60 animate-spin shrink-0" />
+                        )}
+                        {msg.status === "error" && (
+                          <span className="text-[8px] text-red-400 font-bold uppercase tracking-wider">Failed</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))
               )}
             </div>
 
-            {/* Product Catalog Popup */}
-            {showProductCatalogPopup && (
-              <div className="border-t border-white/[0.06] bg-[#111]/95 backdrop-blur-xl p-4 max-h-64 overflow-y-auto space-y-3 shrink-0 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full">
-                <div className="flex justify-between items-center">
-                  <h4 className="text-[11px] font-bold text-[#b6b2ff] uppercase tracking-widest">Product Catalog</h4>
-                  <button onClick={() => setShowProductCatalogPopup(false)} className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center text-white/40 hover:text-white transition-colors">
-                    <span className="material-symbols-outlined text-sm">close</span>
-                  </button>
-                </div>
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.07] focus-within:border-white/20 transition-all">
-                  <span className="material-symbols-outlined text-[13px] text-white/30">search</span>
-                  <input type="text" placeholder="Search products..." value={productSearchQuery} onChange={(e) => setProductSearchQuery(e.target.value)} className="bg-transparent text-[11px] text-white placeholder-white/25 outline-none w-full" />
-                </div>
-                {filteredProducts.length === 0 ? (
-                  <p className="text-center text-xs text-white/20 py-6">No products found</p>
-                ) : (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2.5">
-                    {filteredProducts.map((prod: any) => {
-                      const isSel = selectedProductsForTemplates.some(p => p.id === prod.id);
-                      return (
-                        <div key={prod.id} onClick={() => handleToggleProductForSend({ product_id: prod.id, title: prod.title, price: prod.price, main_media_url: prod.media_url || prod.main_media_url })}
-                          className={cn("relative flex flex-col gap-1.5 p-2 rounded-xl border cursor-pointer transition-all", isSel ? "bg-[#b6b2ff]/10 border-[#b6b2ff]/40" : "bg-white/[0.02] border-white/[0.06] hover:border-white/15")}
-                        >
-                          <div className="aspect-square rounded-lg overflow-hidden bg-white/5">
-                            {(prod.media_url || prod.main_media_url) ? <img src={prod.media_url || prod.main_media_url} className="w-full h-full object-cover" alt={prod.title} /> : <div className="w-full h-full flex items-center justify-center"><span className="material-symbols-outlined text-white/20">shopping_bag</span></div>}
-                          </div>
-                          <p className="text-[10px] font-semibold text-white truncate">{prod.title}</p>
-                          <p className="text-[9px] font-bold text-[#b6b2ff]">₹{prod.price}</p>
-                          {isSel && <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-[#b6b2ff] text-black text-[8px] font-bold flex items-center justify-center shadow">{selectedProductsForTemplates.findIndex(p => p.id === prod.id) + 1}</span>}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
+
 
             {/* Template Forms */}
             {(showButtonTemplateForm || showGenericTemplateForm) && (
-              <div className="relative border-t border-white/[0.06] bg-[#111]/95 backdrop-blur-xl p-4 space-y-3 shrink-0">
+              <div className="relative border-t border-white/[0.06] bg-[#121212] p-4 space-y-3 shrink-0 animate-in slide-in-from-bottom duration-200">
                 <div className="flex justify-between items-center">
                   <div className="flex gap-1.5">
                     {[["Image Slider", true, showGenericTemplateForm], ["Action Buttons", false, showButtonTemplateForm]].map(([label, isGeneric, isActive]: any) => (
@@ -1459,33 +1669,85 @@ export default function InboxPage() {
                       >{label}</button>
                     ))}
                   </div>
-                  <button onClick={() => { setShowButtonTemplateForm(false); setShowGenericTemplateForm(false); setSelectedProductsForTemplates([]); }} className="w-6 h-6 rounded-md bg-white/5 text-white/40 hover:text-white flex items-center justify-center transition-colors">
-                    <span className="material-symbols-outlined text-sm">close</span>
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => setShowProductCatalogPopup(true)}
+                      className="flex items-center gap-0.5 px-2 rounded-md bg-white/5 border border-white/10 text-[9px] font-bold text-[#b6b2ff] hover:bg-white/10 hover:text-white transition-all cursor-pointer h-6"
+                    >
+                      {/* <span className="material-symbols-outlined text-[10px]">add</span> */}
+                      Edit Items
+                    </button>
+                    <button onClick={() => { setShowButtonTemplateForm(false); setShowGenericTemplateForm(false); setSelectedProductsForTemplates([]); }} className="w-6 h-6 rounded-md bg-white/5 text-white/40 hover:text-white flex items-center justify-center transition-colors cursor-pointer">
+                      <span className="material-symbols-outlined text-sm">close</span>
+                    </button>
+                  </div>
                 </div>
 
                 {showGenericTemplateForm && (
                   <div className="flex flex-col items-center py-2 space-y-3 w-full">
-                    {/* Horizontal scrollable carousel with directly editable mockups matching Instagram's native look */}
-                    <div className="flex items-start gap-3 overflow-x-auto py-2 px-1 max-w-full w-full justify-start md:justify-center snap-x snap-mandatory [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:bg-white/15 [&::-webkit-scrollbar-thumb]:rounded-full">
+                    <div className="flex items-start gap-2 overflow-x-auto py-2 px-1 max-w-full w-full justify-start md:justify-center snap-x snap-mandatory [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:bg-white/15 [&::-webkit-scrollbar-thumb]:rounded-full">
                       {carouselElements.map((elem, idx) => (
-                        <div key={idx} className="w-[248px] shrink-0 bg-[#262626] border border-white/5 rounded-[18px] overflow-hidden snap-start relative shadow-lg flex flex-col justify-between select-none">
+                        <div
+                          key={idx}
+                          className="
+                                  w-48
+                                  shrink-0
+                                  bg-[#1a1a1a]
+                                  border
+                                  border-[#2b2b2b]
+                                  rounded-2xl
+                                  overflow-hidden
+                                  snap-start
+                                  relative
+                                  flex
+                                  flex-col
+                                  justify-between
+                                  select-none
+                                "
+                        >
+                          {/* Remove Card Button */}
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              const newElements = carouselElements.filter((_, i) => i !== idx);
+                              setCarouselElements(newElements);
+                              if (newElements.length === 0) {
+                                setShowGenericTemplateForm(false);
+                                setSelectedProductsForTemplates([]);
+                              }
+                            }}
+                            className="absolute top-1.5 right-1.5 z-20 w-5 h-5 rounded-full bg-black/60 hover:bg-black/85 flex items-center justify-center text-white/70 hover:text-white transition-all cursor-pointer"
+                            title="Remove Card"
+                          >
+                            <X className="w-3 h-3 text-white" />
+                          </button>
 
-                          {/* 1. Editable Image (aspect ratio 1.91:1) */}
-                          <label className="block w-full h-[130px] overflow-hidden cursor-pointer relative shrink-0">
+                          {/* Image */}
+                          <label className="block w-full h-24 overflow-hidden cursor-pointer relative shrink-0">
                             {elem.image_url ? (
-                              <img src={elem.image_url} className="w-full h-full object-cover" alt="" />
+                              <img
+                                src={elem.image_url}
+                                className="w-full h-full object-cover"
+                                alt=""
+                              />
                             ) : (
                               <div className="w-full h-full bg-white/5 flex items-center justify-center">
-                                <span className="material-symbols-outlined text-white/20 text-xl">image</span>
+                                <span className="material-symbols-outlined text-white/20 text-xl">
+                                  image
+                                </span>
                               </div>
                             )}
+
                             <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                              <span className="text-[9px] font-bold text-white bg-black/60 px-1.5 py-0.5 rounded border border-white/10 flex items-center gap-1 shadow-sm">
-                                <span className="material-symbols-outlined text-[10px]">edit</span>
-                                Change Image
+                              <span className="text-[9px] font-semibold text-white bg-black/60 px-1.5 py-0.5 rounded border border-white/10 flex items-center gap-1">
+                                <span className="material-symbols-outlined text-[10px]">
+                                  edit
+                                </span>
+                                Change
                               </span>
                             </div>
+
                             <input
                               type="file"
                               accept="image/*"
@@ -1498,12 +1760,15 @@ export default function InboxPage() {
                             />
                           </label>
 
-                          {/* 2. Left-Aligned Text Content (Instagram Style padding & styling) */}
-                          <div className="px-3.5 py-3 space-y-1.5 flex-1 min-w-0 relative group/text">
+
+                          {/* Content */}
+                          <div className="px-2.5 py-2.5 space-y-1 flex-1 min-w-0 relative">
+
                             {/* Title */}
-                            <div className="min-h-[20px] flex items-center justify-between">
-                              {focusedField?.cardIdx === idx && focusedField?.type === 'title' ? (
-                                <div className="w-full flex flex-col">
+                            <div className="min-h-[18px]">
+                              {focusedField?.cardIdx === idx &&
+                                focusedField?.type === "title" ? (
+                                <div className="flex flex-col">
                                   <input
                                     autoFocus
                                     type="text"
@@ -1512,31 +1777,58 @@ export default function InboxPage() {
                                     onBlur={() => setFocusedField(null)}
                                     onChange={(e) => {
                                       const n = [...carouselElements];
-                                      n[idx] = { ...n[idx], title: e.target.value.slice(0, 80) };
+                                      n[idx] = {
+                                        ...n[idx],
+                                        title: e.target.value.slice(0, 80),
+                                      };
                                       setCarouselElements(n);
                                     }}
                                     placeholder="Edit Title"
-                                    className="bg-transparent border-none p-0 text-sm font-semibold text-white outline-none focus:ring-0 w-full"
+                                    className="
+                                          bg-transparent
+                                          border-none
+                                          p-0
+                                          text-[13px]
+                                          font-semibold
+                                          text-white
+                                          outline-none
+                                          focus:ring-0
+                                          w-full
+                                        "
                                   />
-                                  <span className="text-[8px] text-white/40 self-end mt-0.5">{elem.title.length}/80</span>
+
+                                  <span className="text-[8px] text-white/40 text-right">
+                                    {elem.title.length}/80
+                                  </span>
                                 </div>
                               ) : (
                                 <div
-                                  onClick={() => setFocusedField({ cardIdx: idx, type: 'title' })}
-                                  className="flex items-center justify-between cursor-pointer w-full py-0.5"
+                                  onClick={() =>
+                                    setFocusedField({
+                                      cardIdx: idx,
+                                      type: "title",
+                                    })
+                                  }
+                                  className="cursor-pointer"
                                 >
-                                  <span className="text-sm font-semibold text-white truncate">
-                                    {(elem.title || "Edit Title").replace("{{price}}", elem.price ? `₹${elem.price}` : "")}
+                                  <span className="text-[13px] font-semibold text-white leading-4 truncate block hover:border rounded border-gray-400">
+                                    {(elem.title || "Edit Title").replace(
+                                      "{{price}}",
+                                      elem.price
+                                        ? `${elem.price} ${elem.currency || "KWD"}`
+                                        : ""
+                                    )}
                                   </span>
-                                  <span className="material-symbols-outlined text-[10px] text-white/40 opacity-100 md:opacity-0 md:group-hover/text:opacity-100 transition-opacity ml-1">edit</span>
                                 </div>
                               )}
                             </div>
 
+
                             {/* Subtitle */}
-                            <div className="min-h-[18px] flex items-center justify-between">
-                              {focusedField?.cardIdx === idx && focusedField?.type === 'subtitle' ? (
-                                <div className="w-full flex flex-col">
+                            <div className="min-h-[18px]">
+                              {focusedField?.cardIdx === idx &&
+                                focusedField?.type === "subtitle" ? (
+                                <div className="flex flex-col">
                                   <input
                                     autoFocus
                                     type="text"
@@ -1545,63 +1837,131 @@ export default function InboxPage() {
                                     onBlur={() => setFocusedField(null)}
                                     onChange={(e) => {
                                       const n = [...carouselElements];
-                                      n[idx] = { ...n[idx], subtitle: e.target.value.slice(0, 80) };
+                                      n[idx] = {
+                                        ...n[idx],
+                                        subtitle: e.target.value.slice(0, 80),
+                                      };
                                       setCarouselElements(n);
                                     }}
                                     placeholder="Edit Description"
-                                    className="bg-transparent border-none p-0 text-xs text-[#8e8e93] outline-none focus:ring-0 w-full"
+                                    className="
+                      bg-transparent
+                      border-none
+                      p-0
+                      text-[11px]
+                      text-[#A8A8A8]
+                      outline-none
+                      focus:ring-0
+                      w-full
+                    "
                                   />
-                                  <span className="text-[8px] text-white/40 self-end mt-0.5">{elem.subtitle.length}/80</span>
+
+                                  <span className="text-[8px] text-white/40 text-right">
+                                    {elem.subtitle.length}/80
+                                  </span>
                                 </div>
                               ) : (
                                 <div
-                                  onClick={() => setFocusedField({ cardIdx: idx, type: 'subtitle' })}
-                                  className="flex items-center justify-between cursor-pointer w-full py-0.5"
+                                  onClick={() =>
+                                    setFocusedField({
+                                      cardIdx: idx,
+                                      type: "subtitle",
+                                    })
+                                  }
+                                  className="cursor-pointer"
                                 >
-                                  <span className="text-xs text-[#8e8e93] line-clamp-2 leading-snug">
-                                    {(elem.subtitle || "Edit Description").replace("{{price}}", elem.price ? `₹${elem.price}` : "")}
+                                  <span className="text-[11px] text-[#A8A8A8] leading-4 line-clamp-2 hover:border rounded border-gray-400">
+                                    {(elem.subtitle || "Edit Description").replace(
+                                      "{{price}}",
+                                      elem.price
+                                        ? `${elem.price} ${elem.currency || "KWD"}`
+                                        : ""
+                                    )}
                                   </span>
-                                  <span className="material-symbols-outlined text-[10px] text-white/40 opacity-100 md:opacity-0 md:group-hover/text:opacity-100 transition-opacity ml-1">edit</span>
                                 </div>
                               )}
                             </div>
+
+
+                            {/* Price */}
+                            {elem.price && (
+                              <div className="text-[11px] font-semibold text-[#b6b2ff] pt-1">
+                                {elem.price} {elem.currency || "KWD"}
+                              </div>
+                            )}
+
                           </div>
 
-                          {/* 3. Action Buttons List (Stacked, border divider, Instagram blue link color) */}
-                          <div className="border-t border-[#363636] divide-y divide-[#363636] flex flex-col shrink-0">
+
+                          {/* Buttons */}
+                          <div className="border-t border-[#2b2b2b] divide-y divide-[#2b2b2b] flex flex-col shrink-0">
+
                             {(elem.buttons || []).map((btn: any, bIdx: number) => {
                               const isFirst = bIdx === 0;
+
                               return (
-                                <div key={bIdx} className="py-2.5 flex items-center justify-center px-4 relative group/btn hover:bg-white/[0.02] transition-colors min-h-[40px]">
-                                  {/* Centered Button Title View */}
-                                  <span className="text-sm font-semibold text-[#0095f6] truncate max-w-[80%] pointer-events-none select-none text-center">
-                                    {(btn.title || "").replace("{{price}}", `${elem.price || ""}`)}
+                                <div
+                                  key={bIdx}
+                                  className="
+                    h-10
+                    flex
+                    items-center
+                    justify-center
+                    relative
+                    group/btn
+                    hover:bg-[#262626]
+                    transition
+                  "
+                                >
+
+                                  <span className="
+                    text-[12px]
+                    font-semibold
+                    text-[#3797F0]
+                    truncate
+                    max-w-[80%]
+                  ">
+                                    {(btn.title || "").replace(
+                                      "{{price}}",
+                                      `${elem.price || ""}`
+                                    )}
                                   </span>
 
-                                  {/* Absolute Edit Trigger Controls on the Right Edge of Button Row */}
-                                  <div className="absolute right-2 opacity-100 md:opacity-0 md:group-hover/btn:opacity-100 transition-all flex items-center gap-1">
+
+                                  <div className="absolute right-1.5 flex items-center">
                                     <button
                                       onClick={() => {
-                                        setFocusedField({ cardIdx: idx, type: 'btn', btnIdx: bIdx });
+                                        setFocusedField({
+                                          cardIdx: idx,
+                                          type: "btn",
+                                          btnIdx: bIdx,
+                                        });
                                         setShowRightPanel(true);
                                       }}
-                                      className="w-5 h-5 rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white flex items-center justify-center transition-colors"
+                                      className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
                                       title="Edit Button"
                                     >
-                                      <span className="material-symbols-outlined text-[11px]">edit</span>
+                                      <Pencil className="w-3.5 h-3.5 text-white/50" />
                                     </button>
+
                                     {!isFirst && (
                                       <button
                                         onClick={() => {
                                           const n = [...carouselElements];
-                                          const btns = n[idx].buttons.filter((_: any, i: number) => i !== bIdx);
-                                          n[idx] = { ...n[idx], buttons: btns };
+                                          const btns =
+                                            n[idx].buttons.filter(
+                                              (_: any, i: number) => i !== bIdx
+                                            );
+                                          n[idx] = {
+                                            ...n[idx],
+                                            buttons: btns,
+                                          };
                                           setCarouselElements(n);
                                         }}
-                                        className="w-5 h-5 rounded-full bg-red-500/10 hover:bg-red-500 hover:text-white text-red-400 flex items-center justify-center transition-colors"
+                                        className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
                                         title="Remove Button"
                                       >
-                                        <span className="material-symbols-outlined text-[11px]">close</span>
+                                        <X className="w-3.5 h-3.5 text-red-400" />
                                       </button>
                                     )}
                                   </div>
@@ -1609,33 +1969,49 @@ export default function InboxPage() {
                               );
                             })}
 
-                            {/* Add Button action inside card */}
+
+                            {/* Add Button */}
                             {(elem.buttons || []).length < 3 && (
                               <button
                                 onClick={() => {
                                   const n = [...carouselElements];
                                   const btns = [...(n[idx].buttons || [])];
-                                  btns.push({ type: 'web_url', title: 'New Button', url: 'https://' });
-                                  n[idx] = { ...n[idx], buttons: btns };
+
+                                  btns.push({
+                                    type: "web_url",
+                                    title: "New Button",
+                                    url: "https://",
+                                  });
+
+                                  n[idx] = {
+                                    ...n[idx],
+                                    buttons: btns,
+                                  };
+
                                   setCarouselElements(n);
                                 }}
-                                className="py-2.5 text-center text-[10px] text-[#0095f6] hover:text-[#0095f6]/80 font-bold uppercase transition-all bg-white/[0.01] flex items-center justify-center gap-1"
+                                className="
+                  h-10
+                  flex
+                  items-center
+                  justify-center
+                  gap-1
+                  text-[11px]
+                  font-semibold
+                  text-[#3797F0]
+                  hover:bg-[#262626]
+                  transition
+                "
                               >
-                                <span className="material-symbols-outlined text-[12px]">add</span>
+                                <Plus className="w-3 h-3 text-[#3797F0]" />
                                 Add Button
                               </button>
                             )}
+
                           </div>
 
                         </div>
                       ))}
-                    </div>
-
-                    {/* Send Button */}
-                    <div className="flex gap-2 justify-center pt-1 w-full">
-                      <button onClick={() => handleSendGenericTemplate(carouselElements)} disabled={sending} className="px-5 py-2 rounded-xl bg-white text-black text-xs font-bold hover:bg-white/90 disabled:opacity-40 transition-all">
-                        Send Slider ({carouselElements.length} Cards)
-                      </button>
                     </div>
                   </div>
                 )}
@@ -1663,9 +2039,9 @@ export default function InboxPage() {
                             className="flex items-center justify-between cursor-pointer group/btn-temp-txt w-full py-0.5"
                           >
                             <span className="text-sm text-[#f5f5f5] break-words whitespace-pre-wrap flex-1">
-                              {(btnTempText || "Message text...").replace("{{price}}", selectedProductsForTemplates[0]?.price ? `₹${selectedProductsForTemplates[0].price}` : "")}
+                              {(btnTempText || "Message text...").replace("{{price}}", selectedProductsForTemplates[0]?.price ? `${selectedProductsForTemplates[0].price} ${selectedProductsForTemplates[0].currency || 'KWD'}` : "")}
                             </span>
-                            <span className="material-symbols-outlined text-[10px] text-white/30 opacity-100 md:opacity-0 md:group-hover/btn-temp-txt:opacity-100 transition-opacity ml-1 shrink-0">edit</span>
+                            <Pencil className="w-2.5 h-2.5 text-white/30 opacity-100 md:opacity-0 md:group-hover/btn-temp-txt:opacity-100 transition-opacity ml-1 shrink-0" />
                           </div>
                         )}
                       </div>
@@ -1678,20 +2054,20 @@ export default function InboxPage() {
                             <div key={bIdx} className="py-2.5 flex items-center justify-center px-4 relative group/btn hover:bg-white/[0.02] transition-colors min-h-[40px]">
                               {/* Centered Button Title View */}
                               <span className="text-sm font-semibold text-[#0095f6] truncate max-w-[80%] pointer-events-none select-none text-center">
-                                {(btn.title || "").replace("{{price}}", selectedProductsForTemplates[0]?.price ? `₹${selectedProductsForTemplates[0].price}` : "")}
+                                {(btn.title || "").replace("{{price}}", selectedProductsForTemplates[0]?.price ? `${selectedProductsForTemplates[0].price} ${selectedProductsForTemplates[0].currency || 'KWD'}` : "")}
                               </span>
 
                               {/* Absolute Edit Trigger Controls on the Right Edge of Button Row */}
-                              <div className="absolute right-2 opacity-100 md:opacity-0 md:group-hover/btn:opacity-100 transition-all flex items-center gap-1">
+                              <div className="absolute right-2 flex items-center gap-1">
                                 <button
                                   onClick={() => {
                                     setFocusedField({ cardIdx: -999, type: 'btnTempBtn', btnIdx: bIdx });
                                     setShowRightPanel(true);
                                   }}
-                                  className="w-5 h-5 rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white flex items-center justify-center transition-colors"
+                                  className="w-6 h-6 rounded-full hover:bg-white/10 flex items-center justify-center transition-colors cursor-pointer"
                                   title="Edit Button"
                                 >
-                                  <span className="material-symbols-outlined text-[11px]">edit</span>
+                                  <Pencil className="w-3.5 h-3.5 text-white/50" />
                                 </button>
                                 {!isFirst && (
                                   <button
@@ -1699,10 +2075,10 @@ export default function InboxPage() {
                                       const btns = buttonTemplateButtons.filter((_: any, i: number) => i !== bIdx);
                                       setButtonTemplateButtons(btns);
                                     }}
-                                    className="w-5 h-5 rounded-full bg-red-500/10 hover:bg-red-500 hover:text-white text-red-400 flex items-center justify-center transition-colors"
+                                    className="w-6 h-6 rounded-full hover:bg-white/10 flex items-center justify-center transition-colors cursor-pointer"
                                     title="Remove Button"
                                   >
-                                    <span className="material-symbols-outlined text-[11px]">close</span>
+                                    <X className="w-3.5 h-3.5 text-red-400" />
                                   </button>
                                 )}
                               </div>
@@ -1721,47 +2097,35 @@ export default function InboxPage() {
                           }}
                           className="py-2.5 text-center text-[10px] text-[#0095f6] hover:text-[#0095f6]/80 font-bold uppercase transition-all bg-white/[0.01] flex items-center justify-center gap-1"
                         >
-                          <span className="material-symbols-outlined text-[12px]">add</span>
+                          <Plus className="w-3 h-3 text-[#0095f6]" />
                           Add Button
                         </button>
                       )}
                     </div>
 
-                    {/* Send Button */}
-                    <div className="flex gap-2 justify-center pt-1 w-full">
-                      <button
-                        onClick={() => handleSendButtonTemplate(btnTempText, buttonTemplateButtons)}
-                        disabled={sending || buttonTemplateButtons.length === 0}
-                        className="px-5 py-2 rounded-xl bg-white text-black text-xs font-bold hover:bg-white/90 disabled:opacity-40 transition-all"
-                      >
-                        Send Buttons
-                      </button>
-                    </div>
                   </div>
                 )}
 
                 {/* Floating Action Settings Popover (styled like Canvas trigger settings) */}
-                {focusedField && (focusedField.type === 'btn' || focusedField.type === 'btnTempBtn') && (
+                {focusedField && (focusedField.type === "btn" || focusedField.type === "btnTempBtn") && (
                   <div className="absolute inset-0 bg-black/55 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="w-[340px] flex flex-col rounded-2xl bg-[#0F0F1A]/95 backdrop-blur-3xl border border-[#8FE3FF]/30 shadow-[0_32px_80px_-16px_rgba(0,0,0,0.65),0_0_0_1px_rgba(143,227,255,0.18)] ring-1 ring-[#8FE3FF]/15 overflow-hidden animate-in zoom-in-95 duration-200">
-                      {/* Drag Header look */}
-                      <div className="flex items-center justify-between p-3.5 border-b border-white/5 bg-[#8FE3FF]/5">
-                        <div className="flex items-center gap-2">
-                          <span className="material-symbols-outlined text-[#8FE3FF] text-lg">settings</span>
-                          <span className="text-[10px] font-bold text-white uppercase tracking-wider">Configure Action</span>
-                        </div>
+                    <div className="w-[320px] rounded-xl bg-[#121212] border border-white/10">
+                      {/* Header */}
+                      <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+                        <h3 className="text-sm font-semibold text-white">Button Settings</h3>
+
                         <button
                           onClick={() => setFocusedField(null)}
-                          className="w-5 h-5 rounded bg-white/5 text-white/40 hover:text-white flex items-center justify-center transition-colors"
+                          className="text-white/60 hover:text-white"
                         >
-                          <span className="material-symbols-outlined text-xs">close</span>
+                          <span className="material-symbols-outlined text-lg">close</span>
                         </button>
                       </div>
 
                       {/* Body */}
-                      <div className="p-4 space-y-4 text-left">
+                      <div className="p-4 space-y-4">
                         {(() => {
-                          const isGeneric = focusedField.type === 'btn';
+                          const isGeneric = focusedField.type === "btn";
                           const cardIdx = focusedField.cardIdx;
                           const btnIdx = focusedField.btnIdx ?? 0;
 
@@ -1769,81 +2133,98 @@ export default function InboxPage() {
                             ? carouselElements[cardIdx]?.buttons?.[btnIdx]
                             : buttonTemplateButtons[btnIdx];
 
-                          if (!btn) return <p className="text-xs text-white/40">No action selected.</p>;
+                          if (!btn)
+                            return <p className="text-xs text-gray-400">No button selected.</p>;
+
                           const isFirst = btnIdx === 0;
 
                           return (
-                            <div className="space-y-4">
-                              {/* Label */}
+                            <>
                               <div>
-                                <div className="flex justify-between items-center mb-1">
-                                  <label className="text-[10px] text-[#8FE3FF] font-bold uppercase block">Button Text (Label)</label>
-                                  <span className="text-[9px] text-[#8FE3FF]/50 font-semibold">{btn.title.length}/20</span>
-                                </div>
+                                <label className="block text-xs text-gray-300 mb-1">
+                                  Button Text
+                                </label>
+
                                 <RichTemplateInput
                                   value={btn.title}
                                   maxLength={20}
+                                  placeholder="Button Label"
                                   onChange={(val: string) => {
                                     if (isGeneric) {
                                       const n = [...carouselElements];
                                       const btns = [...n[cardIdx].buttons];
-                                      btns[btnIdx] = { ...btns[btnIdx], title: val.slice(0, 20) };
+                                      btns[btnIdx] = {
+                                        ...btns[btnIdx],
+                                        title: val.slice(0, 20),
+                                      };
                                       n[cardIdx] = { ...n[cardIdx], buttons: btns };
                                       setCarouselElements(n);
                                     } else {
                                       const btns = [...buttonTemplateButtons];
-                                      btns[btnIdx] = { ...btns[btnIdx], title: val.slice(0, 20) };
+                                      btns[btnIdx] = {
+                                        ...btns[btnIdx],
+                                        title: val.slice(0, 20),
+                                      };
                                       setButtonTemplateButtons(btns);
                                     }
                                   }}
-                                  placeholder="Button Label"
                                 />
-                                <p className="text-[9px] text-white/35 mt-1.5 leading-relaxed">
-                                  Use <code className="text-red-400 font-semibold">{"{{"}price{"}}"}</code> to insert the product price. E.g. <code className="text-[#8FE3FF]">Buy at {"{{"}price{"}}"}</code>.
+
+                                <p className="mt-1 text-[10px] text-gray-500">
+                                  Use <code>{"{{price}}"}</code> to display the product price.
                                 </p>
                               </div>
 
-                              {/* URL */}
                               <div>
-                                <label className="text-[10px] text-[#8FE3FF] font-bold uppercase block mb-1.5">Button Action (Link URL)</label>
+                                <label className="block text-xs text-gray-300 mb-1">
+                                  Button URL
+                                </label>
+
                                 <input
                                   type="text"
                                   disabled={isFirst}
                                   value={btn.url || ""}
+                                  placeholder="https://example.com"
                                   onChange={(e) => {
                                     if (isGeneric) {
                                       const n = [...carouselElements];
                                       const btns = [...n[cardIdx].buttons];
-                                      btns[btnIdx] = { ...btns[btnIdx], url: e.target.value };
+                                      btns[btnIdx] = {
+                                        ...btns[btnIdx],
+                                        url: e.target.value,
+                                      };
                                       n[cardIdx] = { ...n[cardIdx], buttons: btns };
                                       setCarouselElements(n);
                                     } else {
                                       const btns = [...buttonTemplateButtons];
-                                      btns[btnIdx] = { ...btns[btnIdx], url: e.target.value };
+                                      btns[btnIdx] = {
+                                        ...btns[btnIdx],
+                                        url: e.target.value,
+                                      };
                                       setButtonTemplateButtons(btns);
                                     }
                                   }}
-                                  placeholder="https://yourstore.com/checkout"
-                                  className="w-full bg-[#11111a] border border-[#8FE3FF]/20 rounded-md px-3 py-2 text-xs text-white outline-none focus:border-[#8FE3FF]/45 disabled:opacity-40"
+                                  className="w-full rounded-md border border-white/10 bg-[#1b1b1b] px-3 py-2 text-sm text-white outline-none focus:border-blue-500 disabled:opacity-50"
                                 />
+
                                 {isFirst && (
-                                  <p className="text-[9px] text-[#8e8e93] mt-1.5 leading-relaxed">
-                                    ℹ️ The first action link is automatically tied to the storefront checkout link.
+                                  <p className="mt-1 text-[10px] text-gray-500">
+                                    The first button always uses the checkout URL.
                                   </p>
                                 )}
                               </div>
-                            </div>
+                            </>
                           );
                         })()}
                       </div>
 
                       {/* Footer */}
-                      <div className="p-3 border-t border-white/5 bg-[#8FE3FF]/5 flex justify-end">
+                      <div className="flex justify-end border-t border-white/10 px-4 py-3">
                         <button
                           onClick={() => setFocusedField(null)}
-                          className="px-4 py-1.5 bg-[#0095f6] hover:bg-[#0095f6]/95 text-white text-[10px] font-bold rounded-lg shadow-md transition-all active:scale-[0.98]"
+                          className="rounded-md bg-blue-600 px-4 py-2 text-xs font-medium text-white hover:bg-blue-700"
                         >
-                          Done & Save
+                          Save
                         </button>
                       </div>
                     </div>
@@ -1853,43 +2234,76 @@ export default function InboxPage() {
             )}
 
             {/* Input Bar */}
-            <div className="px-4 py-3 border-t border-white/[0.06] bg-[#0d0d0d] shrink-0">
+            <div className="px-3.5 py-2.5 border-t border-white/[0.06] bg-[#0d0d0d] shrink-0">
               {!isWithin24hWindow ? (
-                <div className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl bg-red-500/5 border border-red-500/20 text-red-300/80">
+                <div className="flex items-center justify-between gap-2.5 px-2.5 py-2 rounded-lg bg-red-500/5 border border-red-500/20 text-red-300/80">
                   <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-red-400 text-[18px]">warning</span>
-                    <span className="text-[11px] font-medium">24h messaging window closed</span>
+                    <span className="material-symbols-outlined text-red-400 text-[16px]">warning</span>
+                    <span className="text-[10px] font-medium">24h messaging window closed</span>
                   </div>
-                  <a href={`https://ig.me/m/${selectedConversation.name}`} target="_blank" rel="noopener noreferrer" className="shrink-0 px-3 py-1 rounded-lg bg-[#e1306c] hover:bg-[#c13584] text-white text-[10px] font-bold tracking-wide uppercase transition-all flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[13px]">open_in_new</span>
+                  <a href={`https://ig.me/m/${selectedConversation.name}`} target="_blank" rel="noopener noreferrer" className="shrink-0 px-2.5 py-0.5 rounded-md bg-[#e1306c] hover:bg-[#c13584] text-white text-[9px] font-bold tracking-wide uppercase transition-all flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[11px]">open_in_new</span>
                     Instagram
                   </a>
                 </div>
               ) : (
-                <div className="flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all bg-white/[0.04] border-white/[0.08] focus-within:border-white/20">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl border transition-all bg-white/[0.04] border-white/[0.08] focus-within:border-white/20">
                   <button className="text-white/40 hover:text-white transition-colors shrink-0">
-                    <span className="material-symbols-outlined text-[22px]">sentiment_satisfied</span>
+                    <span className="material-symbols-outlined text-[18px]">sentiment_satisfied</span>
                   </button>
                   <input
-                    className="flex-1 bg-transparent text-sm text-white placeholder-white/25 outline-none"
+                    className="flex-1 bg-transparent text-xs text-white placeholder-white/25 outline-none"
                     placeholder="Message..."
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendTextMessage(); } }}
                   />
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button onClick={() => { setShowProductCatalogPopup(!showProductCatalogPopup); setShowButtonTemplateForm(false); setShowGenericTemplateForm(false); }} className={cn("transition-all hover:scale-110", showProductCatalogPopup ? "text-[#b6b2ff]" : "text-white/40 hover:text-white")}>
-                      <span className="material-symbols-outlined text-[22px]">shopping_bag</span>
-                    </button>
-                    <button onClick={() => { setShowGenericTemplateForm(!showGenericTemplateForm); setShowButtonTemplateForm(false); setShowProductCatalogPopup(false); }} className={cn("transition-all hover:scale-110", showGenericTemplateForm ? "text-[#b6b2ff]" : "text-white/40 hover:text-white")}>
-                      <span className="material-symbols-outlined text-[22px]">view_carousel</span>
-                    </button>
+                  <div className="flex items-center gap-1.5 shrink-0">
+
+                    {!(showGenericTemplateForm || showButtonTemplateForm) && (
+                      <button onClick={() => { setShowProductCatalogPopup(!showProductCatalogPopup); setShowButtonTemplateForm(false); setShowGenericTemplateForm(false); }} className={cn("transition-all hover:scale-110", showProductCatalogPopup ? "text-[#b6b2ff]" : "text-white/40 hover:text-white")}>
+                        <span className="material-symbols-outlined text-[18px]">shopping_bag</span>
+                      </button>
+                    )}
                     <button
-                      onClick={handleSendTextMessage}
-                      disabled={sending || !inputText.trim()}
-                      className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-black hover:bg-white/90 active:scale-95 transition-all disabled:opacity-30 shadow-sm"
+                      onClick={async () => {
+                        if (sending) return;
+                        if (showGenericTemplateForm || showButtonTemplateForm) {
+                          if (inputText.trim()) {
+                            await handleSendTextMessage();
+                          }
+                          if (showGenericTemplateForm) {
+                            await handleSendGenericTemplate(carouselElements);
+                          } else if (showButtonTemplateForm) {
+                            await handleSendButtonTemplate(btnTempText, buttonTemplateButtons);
+                          }
+                        } else {
+                          await handleSendTextMessage();
+                        }
+                      }}
+                      disabled={
+                        showGenericTemplateForm
+                          ? false
+                          : showButtonTemplateForm
+                            ? buttonTemplateButtons.length === 0
+                            : !inputText.trim()
+                      }
+                      className={cn(
+                        "w-7 h-7 rounded-full flex items-center justify-center active:scale-95 transition-all shadow-sm cursor-pointer",
+                        sending ? "opacity-40 cursor-not-allowed" : "disabled:opacity-30",
+                        (showGenericTemplateForm || showButtonTemplateForm)
+                          ? "bg-[#b6b2ff] text-black hover:bg-[#b6b2ff]/90"
+                          : "bg-white text-black hover:bg-white/90"
+                      )}
+                      title={
+                        showGenericTemplateForm
+                          ? "Send Product Slider"
+                          : showButtonTemplateForm
+                            ? "Send Action Buttons"
+                            : "Send Message"
+                      }
                     >
-                      <span className="material-symbols-outlined text-[17px]" style={{ fontVariationSettings: "'FILL' 1" }}>send</span>
+                      <span className="material-symbols-outlined text-[15px]" style={{ fontVariationSettings: "'FILL' 1" }}>send</span>
                     </button>
                   </div>
                 </div>
@@ -1909,13 +2323,13 @@ export default function InboxPage() {
 
       {/* ─── RIGHT PANE: Context Panel ────────────────────────────────── */}
       {/* Backdrop for mobile */}
-      {showRightPanel && (
+      {showRightPanel && selectedConversation && (
         <div className="xl:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-25" onClick={() => setShowRightPanel(false)} />
       )}
-      {showRightPanel && (
+      {showRightPanel && selectedConversation && (
         <aside className={`
           fixed xl:relative top-[100px] xl:top-0 right-0 h-[calc(100vh-100px)] xl:h-full z-30
-          w-80 xl:w-80
+          w-72 xl:w-72
           border-l border-white/[0.06] bg-[#111]
           flex flex-col shrink-0 overflow-y-auto
           [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full
@@ -1984,7 +2398,7 @@ export default function InboxPage() {
                             )}
                             <div className="flex-1 min-w-0 pr-5">
                               <p className="text-[11px] font-semibold text-white truncate">{ep.title}</p>
-                              {ep.price && <p className="text-[10px] font-bold text-[#b6b2ff] mt-0.5">₹{ep.price}</p>}
+                              {ep.price && <p className="text-[10px] font-bold text-[#b6b2ff] mt-0.5">{ep.price} {ep.currency || 'KWD'}</p>}
                               <div className="flex gap-1 mt-1">
                                 <span className={cn("px-1.5 py-0.5 rounded text-[8px] font-bold uppercase", enquiry.status === "OPEN" ? "bg-emerald-500/10 text-emerald-400" : "bg-white/5 text-white/30")}>{enquiry.status}</span>
                                 {ep.confidence_score != null && <span className="px-1.5 py-0.5 rounded bg-[#8fe3ff]/10 text-[#8fe3ff] text-[8px] font-bold">{Math.round(ep.confidence_score * 100)}%</span>}
@@ -2009,9 +2423,250 @@ export default function InboxPage() {
               Select a conversation
             </div>
           )}
+          {/* Product Catalog Modal Popup */}
+          <AnimatePresence>
+            {showProductCatalogPopup && (
+              <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                <div className="relative w-full max-w-2xl bg-[#121212] border border-white/10 rounded-2xl flex flex-col h-[520px] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+                  {/* Header */}
+                  <div className="flex justify-between items-center px-5 py-4 border-b border-white/5 shrink-0 bg-[#161616]/20">
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[#b6b2ff] text-xl">shopping_bag</span>
+                      <h3 className="text-sm font-semibold text-white">Product Catalog</h3>
+                    </div>
+                    <button
+                      onClick={() => setShowProductCatalogPopup(false)}
+                      className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-white transition-colors cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-base">close</span>
+                    </button>
+                  </div>
+
+                  {/* Search Bar */}
+                  <div className="px-5 py-3 border-b border-white/5 bg-[#161616]/10 shrink-0">
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.03] border border-white/[0.07] focus-within:border-white/20 transition-all">
+                      <span className="material-symbols-outlined text-base text-white/30">search</span>
+                      <input
+                        type="text"
+                        placeholder="Search catalog products..."
+                        value={productSearchQuery}
+                        onChange={(e) => setProductSearchQuery(e.target.value)}
+                        className="bg-transparent text-xs text-white placeholder-white/25 outline-none w-full border-none p-0 focus:ring-0"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Product Grid Area */}
+                  <div className="flex-1 overflow-y-auto min-h-0 p-5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-white/15 [&::-webkit-scrollbar-thumb]:rounded-full">
+                    {filteredProducts.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-20 text-white/20 gap-2">
+                        <span className="material-symbols-outlined text-4xl">shopping_bag</span>
+                        <p className="text-xs font-semibold">No products found</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                        {filteredProducts.map((prod: any) => {
+                          const isSel = selectedProductsForTemplates.some(p => p.id === prod.id);
+                          const mainMedia = prod.media_url || prod.main_media_url || prod.gallery?.[0]?.media_url;
+                          return (
+                            <div
+                              key={prod.id}
+                              onClick={() => handleToggleProductForSend({
+                                product_id: prod.id,
+                                title: prod.title,
+                                price: prod.price,
+                                currency: prod.currency,
+                                description: prod.description,
+                                main_media_url: mainMedia
+                              })}
+                              className={cn(
+                                "relative flex flex-col gap-2 p-3 rounded-2xl border cursor-pointer transition-all select-none hover:scale-[1.02] active:scale-95 duration-200",
+                                isSel ? "bg-[#b6b2ff]/10 border-[#b6b2ff]/40 shadow-lg shadow-[#b6b2ff]/5" : "bg-white/[0.02] border-white/[0.06] hover:border-white/15"
+                              )}
+                            >
+                              <div className="aspect-square rounded-xl overflow-hidden bg-white/5 shrink-0 border border-white/[0.03]">
+                                {mainMedia ? (
+                                  <img src={mainMedia} className="w-full h-full object-cover" alt={prod.title} />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center bg-white/[0.01]">
+                                    <span className="material-symbols-outlined text-white/10 text-2xl">shopping_bag</span>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex flex-col gap-0.5 flex-1 justify-between">
+                                <div>
+                                  <p className="text-[11px] font-bold text-white line-clamp-1 w-full leading-tight">{prod.title}</p>
+                                  <p className="text-[10px] text-white/40 line-clamp-2 w-full leading-normal mt-0.5">{prod.description || "No description"}</p>
+                                </div>
+                                <p className="text-[10px] font-extrabold text-[#b6b2ff] mt-1.5">{prod.price ? `${prod.price} ${prod.currency || 'KWD'}` : 'Price TBD'}</p>
+                              </div>
+                              {isSel && (
+                                <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#b6b2ff] text-black text-[9px] font-black flex items-center justify-center shadow-lg border border-black/10">
+                                  {selectedProductsForTemplates.findIndex(p => p.id === prod.id) + 1}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Footer */}
+                  <div className="px-5 py-4 border-t border-white/5 bg-[#161616]/20 flex justify-end items-center shrink-0">
+                    <div className="flex gap-2">
+                      {selectedProductsForTemplates.length > 0 && (
+                        <button
+                          onClick={() => setSelectedProductsForTemplates([])}
+                          className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white text-[11px] font-bold tracking-wide transition-all uppercase cursor-pointer"
+                        >
+                          Clear Selection
+                        </button>
+                      )}
+                      <button
+                        onClick={() => {
+                          setShowProductCatalogPopup(false);
+                          if (selectedProductsForTemplates.length > 0) {
+                            setShowGenericTemplateForm(true);
+                          }
+                        }}
+                        className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#8e8aff] to-[#706bff] hover:from-[#7e7aff] hover:to-[#605bff] text-white text-[11px] font-black tracking-wide transition-all uppercase cursor-pointer shadow-lg active:scale-95"
+                      >
+                        Done
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </AnimatePresence>
         </aside>
+      )}
+
+      {/* Product Catalog Modal Popup */}
+      <AnimatePresence>
+        {showProductCatalogPopup && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+            <div className="relative w-full max-w-2xl bg-[#121212] border border-white/10 rounded-2xl flex flex-col h-[520px] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+              {/* Header */}
+              <div className="flex justify-between items-center px-5 py-4 border-b border-white/5 shrink-0 bg-[#161616]/20">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[#b6b2ff] text-xl">shopping_bag</span>
+                  <h3 className="text-sm font-semibold text-white">Product Catalog</h3>
+                </div>
+                <button
+                  onClick={() => setShowProductCatalogPopup(false)}
+                  className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-white transition-colors cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-base">close</span>
+                </button>
+              </div>
+
+              {/* Search Bar */}
+              <div className="px-5 py-3 border-b border-white/5 bg-[#161616]/10 shrink-0">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.03] border border-white/[0.07] focus-within:border-white/20 transition-all">
+                  <span className="material-symbols-outlined text-base text-white/30">search</span>
+                  <input
+                    type="text"
+                    placeholder="Search catalog products..."
+                    value={productSearchQuery}
+                    onChange={(e) => setProductSearchQuery(e.target.value)}
+                    className="bg-transparent text-xs text-white placeholder-white/25 outline-none w-full border-none p-0 focus:ring-0"
+                  />
+                </div>
+              </div>
+
+              {/* Product Grid Area */}
+              <div className="flex-1 overflow-y-auto min-h-0 p-5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-white/15 [&::-webkit-scrollbar-thumb]:rounded-full">
+                {filteredProducts.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20 text-white/20 gap-2">
+                    <span className="material-symbols-outlined text-4xl">shopping_bag</span>
+                    <p className="text-xs font-semibold">No products found</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    {filteredProducts.map((prod: any) => {
+                      const isSel = selectedProductsForTemplates.some(p => p.id === prod.id);
+                      const mainMedia = prod.media_url || prod.main_media_url || prod.gallery?.[0]?.media_url;
+                      return (
+                        <div
+                          key={prod.id}
+                          onClick={() => handleToggleProductForSend({
+                            product_id: prod.id,
+                            title: prod.title,
+                            price: prod.price,
+                            currency: prod.currency,
+                            description: prod.description,
+                            main_media_url: mainMedia
+                          })}
+                          className={cn(
+                            "relative flex flex-col gap-2 p-1 rounded-2xl border cursor-pointer transition-all select-none hover:scale-[1.02] active:scale-95 duration-200",
+                            isSel ? "bg-[#b6b2ff]/10 border-[#b6b2ff]/40 shadow-lg shadow-[#b6b2ff]/5" : "bg-white/[0.02] border-white/[0.06] hover:border-white/15"
+                          )}
+                        >
+                          <div className="aspect-square rounded-xl overflow-hidden bg-white/5 shrink-0 border border-white/[0.03]">
+                            {mainMedia ? (
+                              <img src={mainMedia} className="w-full h-full object-cover" alt={prod.title} />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-white/[0.01]">
+                                <span className="material-symbols-outlined text-white/10 text-2xl">shopping_bag</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex flex-col gap-0.5 flex-1 justify-between">
+                            <div>
+                              <p className="text-[11px] font-bold text-white line-clamp-1 w-full leading-tight">{prod.title}</p>
+                              <p className="text-[10px] text-white/40 line-clamp-2 w-full leading-normal mt-0.5">{prod.description || "No description"}</p>
+                            </div>
+                            <p className="text-[10px] font-extrabold text-[#b6b2ff] mt-1.5">{prod.price ? `${prod.price} ${prod.currency || 'KWD'}` : 'Price TBD'}</p>
+                          </div>
+                          {isSel && (
+                            <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#b6b2ff] text-black text-[9px] font-black flex items-center justify-center shadow-lg border border-black/10">
+                              {selectedProductsForTemplates.findIndex(p => p.id === prod.id) + 1}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="px-5 py-4 border-t border-white/5 bg-[#161616]/20 flex justify-end items-center shrink-0">
+                <div className="flex gap-2">
+                  {selectedProductsForTemplates.length > 0 && (
+                    <button
+                      onClick={() => setSelectedProductsForTemplates([])}
+                      className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white text-[11px] font-bold tracking-wide transition-all uppercase cursor-pointer"
+                    >
+                      Clear Selection
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      setShowProductCatalogPopup(false);
+                      if (selectedProductsForTemplates.length > 0) {
+                        setShowGenericTemplateForm(true);
+                      }
+                    }}
+                    className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#8e8aff] to-[#706bff] hover:from-[#7e7aff] hover:to-[#605bff] text-white text-[11px] font-black tracking-wide transition-all uppercase cursor-pointer shadow-lg active:scale-95"
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </AnimatePresence>
+      {toast.isVisible && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(prev => ({ ...prev, isVisible: false }))}
+        />
       )}
     </motion.div>
   );
 }
-

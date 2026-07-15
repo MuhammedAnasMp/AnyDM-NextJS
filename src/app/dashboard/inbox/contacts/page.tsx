@@ -159,7 +159,7 @@ export default function ContactsPage() {
   // Navigate to Individual Chat
   const handleStartChat = (contact: Contact) => {
     if (!contact.is_within_23h_window) return;
-    const url = `/dashboard/inbox?recipient_id=${contact.instagram_scoped_id}&username=${contact.username}&name=${encodeURIComponent(contact.full_name || contact.username)}&avatar=${encodeURIComponent(contact.profile_pic || "")}`;
+    const url = `/dashboard/inbox?recipient_id=${contact.instagram_scoped_id}`;
     router.push(url);
   };
 
@@ -190,19 +190,25 @@ export default function ContactsPage() {
   };
 
   // Individual selection toggle
-  const handleToggleSelect = (instagram_scoped_id: string) => {
+  const handleToggleSelect = (contact: Contact) => {
+    if (!contact.is_within_24h_window) return;
     const newSelected = new Set(selectedContacts);
-    if (newSelected.has(instagram_scoped_id)) {
-      newSelected.delete(instagram_scoped_id);
+    if (newSelected.has(contact.instagram_scoped_id)) {
+      newSelected.delete(contact.instagram_scoped_id);
     } else {
-      newSelected.add(instagram_scoped_id);
+      newSelected.add(contact.instagram_scoped_id);
     }
     setSelectedContacts(newSelected);
   };
 
   // Select all toggler on active page
   const handleToggleSelectAll = () => {
-    const activePageIds = contacts.map(c => c.instagram_scoped_id);
+    const activePageIds = contacts
+      .filter(c => c.is_within_24h_window)
+      .map(c => c.instagram_scoped_id);
+
+    if (activePageIds.length === 0) return;
+
     const allSelected = activePageIds.every(id => selectedContacts.has(id));
     const newSelected = new Set(selectedContacts);
 
@@ -211,15 +217,6 @@ export default function ContactsPage() {
     } else {
       activePageIds.forEach(id => newSelected.add(id));
     }
-    setSelectedContacts(newSelected);
-  };
-
-  // Select only users with active 24h window
-  const handleSelectActiveWindow = () => {
-    const activeIds = contacts
-      .filter(c => c.is_within_24h_window)
-      .map(c => c.instagram_scoped_id);
-    const newSelected = new Set(activeIds);
     setSelectedContacts(newSelected);
   };
 
@@ -330,15 +327,15 @@ export default function ContactsPage() {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="space-y-6 relative text-white"
+      className="space-y-4 relative text-white"
     >
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+          <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
             Contacts & CRM Leads
           </h1>
-          <p className="text-sm text-white/60 mt-1">
+          <p className="text-xs text-white/60 mt-0.5">
             Analyze, segment, and interact with Instagram users synced through automated workflows and message history.
           </p>
         </div>
@@ -346,9 +343,9 @@ export default function ContactsPage() {
           <button
             onClick={() => fetchContacts(false)}
             disabled={isFetching}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-semibold text-white/80 hover:text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-semibold text-white/80 hover:text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
           >
-            <span className={`material-symbols-outlined text-sm ${isFetching ? 'animate-spin' : ''}`}>refresh</span>
+            <span className={`material-symbols-outlined text-[13px] ${isFetching ? 'animate-spin' : ''}`}>refresh</span>
             Refresh
           </button>
         </div>
@@ -361,11 +358,11 @@ export default function ContactsPage() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="bg-gradient-to-r from-[#B6B2FF]/10 to-[#8FE3FF]/10 border border-[#B6B2FF]/30 p-4 rounded-xl flex flex-col md:flex-row justify-between items-center gap-4 shadow-lg backdrop-blur-md relative overflow-hidden"
+            className="bg-gradient-to-r from-[#B6B2FF]/10 to-[#8FE3FF]/10 border border-[#B6B2FF]/30 p-3 rounded-lg flex flex-col md:flex-row justify-between items-center gap-3 shadow-lg backdrop-blur-md relative overflow-hidden"
           >
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-[#B6B2FF]">group</span>
-              <span className="text-xs text-white">
+              <span className="material-symbols-outlined text-[#B6B2FF] text-lg">group</span>
+              <span className="text-[11px] text-white">
                 <strong className="text-[#B6B2FF] font-bold">{selectedContacts.size}</strong> contacts selected.
                 (Broadcasts will filter and send only to users within their active 24h window).
               </span>
@@ -373,19 +370,13 @@ export default function ContactsPage() {
             <div className="flex gap-2 shrink-0">
               <button
                 onClick={() => setSelectedContacts(new Set())}
-                className="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs font-semibold text-white transition-all cursor-pointer"
+                className="px-2.5 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-md text-[11px] font-semibold text-white transition-all cursor-pointer"
               >
                 Clear Selection
               </button>
               <button
-                onClick={() => handleSelectActiveWindow()}
-                className="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs font-semibold text-[#8FE3FF] transition-all cursor-pointer"
-              >
-                Select Active Only
-              </button>
-              <button
                 onClick={() => setShowBroadcastModal(true)}
-                className="px-4 py-1.5 bg-gradient-to-r from-[#8e8aff] to-[#706bff] hover:from-[#7e7aff] hover:to-[#605bff] text-white text-xs font-bold rounded-lg shadow-lg active:scale-95 transition-all cursor-pointer"
+                className="px-3.5 py-1 bg-gradient-to-r from-[#8e8aff] to-[#706bff] hover:from-[#7e7aff] hover:to-[#605bff] text-white text-[11px] font-bold rounded-md shadow-lg active:scale-95 transition-all cursor-pointer"
               >
                 Send Broadcast
               </button>
@@ -395,15 +386,15 @@ export default function ContactsPage() {
       </AnimatePresence>
 
       {/* Control Panel (Search, Filters, Sort) */}
-      <div className="flex flex-col gap-4 bg-white/[0.02] border border-white/5 p-4 rounded-xl backdrop-blur-md relative overflow-hidden">
+      <div className="flex flex-col gap-3 bg-white/[0.02] border border-white/5 p-3 rounded-lg backdrop-blur-md relative overflow-hidden">
         {/* Sleek horizontal progress loading bar */}
         {isFetching && !loading && (
           <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#B6B2FF] to-[#8FE3FF] animate-pulse" />
         )}
 
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           {/* Search bar */}
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.03] border border-white/10 focus-within:border-white/20 transition-all w-full md:max-w-xs">
+          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-white/[0.03] border border-white/10 focus-within:border-white/20 transition-all w-full md:max-w-xs">
             <span className="material-symbols-outlined text-sm text-white/40">search</span>
             <input
               type="text"
@@ -416,14 +407,14 @@ export default function ContactsPage() {
 
           {/* Sort Selection */}
           <div className="flex items-center gap-2">
-            <span className="text-xs text-white/50">Sort By</span>
+            <span className="text-[11px] text-white/50">Sort By</span>
             <select
               value={sortBy}
               onChange={(e) => {
                 setSortBy(e.target.value);
                 setPage(1);
               }}
-              className="bg-white/[0.04] border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none cursor-pointer focus:border-white/20"
+              className="bg-white/[0.04] border border-white/10 rounded-md px-2.5 py-1.5 text-xs text-white outline-none cursor-pointer focus:border-white/20"
             >
               <option value="-last_interaction_at" className="bg-[#121212]">Last Active (Newest)</option>
               <option value="last_interaction_at" className="bg-[#121212]">Last Active (Oldest)</option>
@@ -473,19 +464,24 @@ export default function ContactsPage() {
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="bg-white/[0.03] border-b border-white/10 text-white/50 font-semibold uppercase tracking-wider">
-                <th className="px-4 py-4 text-center w-12">
+                <th className="px-3 py-2.5 text-center w-12">
                   <input
                     type="checkbox"
-                    checked={contacts.length > 0 && contacts.every(c => selectedContacts.has(c.instagram_scoped_id))}
+                    checked={
+                      contacts.length > 0 &&
+                      contacts.some(c => c.is_within_24h_window) &&
+                      contacts.filter(c => c.is_within_24h_window).every(c => selectedContacts.has(c.instagram_scoped_id))
+                    }
+                    disabled={contacts.length === 0 || !contacts.some(c => c.is_within_24h_window)}
                     onChange={() => handleToggleSelectAll()}
-                    className="accent-[#B6B2FF] cursor-pointer w-4 h-4 rounded"
+                    className="accent-[#B6B2FF] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer w-4 h-4 rounded"
                   />
                 </th>
-                <th className="px-6 py-4">User Details</th>
-                <th className="px-6 py-4">Rating (Lead Score)</th>
-                <th className="px-6 py-4">Activity & Metrics</th>
-                <th className="px-6 py-4">Window Status</th>
-                <th className="px-6 py-4 text-right">Actions</th>
+                <th className="px-4 py-2.5">User Details</th>
+                <th className="px-4 py-2.5">Rating (Lead Score)</th>
+                <th className="px-4 py-2.5">Activity & Metrics</th>
+                <th className="px-4 py-2.5">Window Status</th>
+                <th className="px-4 py-2.5 text-right">Actions</th>
               </tr>
             </thead>
 
@@ -495,30 +491,30 @@ export default function ContactsPage() {
                 // Skeletons during the actual initial page load to prevent erratic jumps
                 Array.from({ length: 5 }).map((_, idx) => (
                   <tr key={idx} className="border-b border-white/5">
-                    <td className="px-4 py-6 text-center"><div className="w-4 h-4 bg-white/5 animate-pulse rounded mx-auto" /></td>
-                    <td className="px-6 py-6">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-white/5 animate-pulse" />
-                        <div className="space-y-2">
-                          <div className="h-3 w-28 bg-white/5 animate-pulse rounded" />
-                          <div className="h-2 w-16 bg-white/5 animate-pulse rounded" />
+                    <td className="px-3 py-3 text-center"><div className="w-4 h-4 bg-white/5 animate-pulse rounded mx-auto" /></td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-full bg-white/5 animate-pulse" />
+                        <div className="space-y-2.5">
+                          <div className="h-2.5 w-24 bg-white/5 animate-pulse rounded" />
+                          <div className="h-2 w-14 bg-white/5 animate-pulse rounded" />
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-6">
-                      <div className="h-3 w-24 bg-white/5 animate-pulse rounded" />
+                    <td className="px-4 py-3">
+                      <div className="h-2.5 w-20 bg-white/5 animate-pulse rounded" />
                     </td>
-                    <td className="px-6 py-6">
+                    <td className="px-4 py-3">
                       <div className="space-y-2">
-                        <div className="h-3 w-20 bg-white/5 animate-pulse rounded" />
-                        <div className="h-2 w-12 bg-white/5 animate-pulse rounded" />
+                        <div className="h-2.5 w-16 bg-white/5 animate-pulse rounded" />
+                        <div className="h-2 w-10 bg-white/5 animate-pulse rounded" />
                       </div>
                     </td>
-                    <td className="px-6 py-6">
-                      <div className="h-5 w-20 bg-white/5 animate-pulse rounded-full" />
+                    <td className="px-4 py-3">
+                      <div className="h-4 w-16 bg-white/5 animate-pulse rounded-full" />
                     </td>
-                    <td className="px-6 py-6 text-right">
-                      <div className="h-8 w-24 bg-white/5 animate-pulse rounded-lg ml-auto" />
+                    <td className="px-4 py-3 text-right">
+                      <div className="h-7 w-20 bg-white/5 animate-pulse rounded-md ml-auto" />
                     </td>
                   </tr>
                 ))
@@ -542,31 +538,32 @@ export default function ContactsPage() {
                         }`}
                     >
                       {/* Checkbox Column */}
-                      <td className="px-4 py-4 text-center">
+                      <td className="px-3 py-2.5 text-center">
                         <input
                           type="checkbox"
                           checked={isChecked}
-                          onChange={() => handleToggleSelect(contact.instagram_scoped_id)}
-                          className="accent-[#B6B2FF] cursor-pointer w-4 h-4 rounded"
+                          disabled={!contact.is_within_24h_window}
+                          onChange={() => handleToggleSelect(contact)}
+                          className="accent-[#B6B2FF] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer w-4 h-4 rounded"
                         />
                       </td>
 
                       {/* User Details */}
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
+                      <td className="px-4 py-2.5">
+                        <div className="flex items-center gap-2.5">
                           <img
                             src={
                               contact.profile_pic ||
                               `https://ui-avatars.com/api/?name=${contact.username}&background=random&color=fff`
                             }
                             alt={contact.username}
-                            className="w-10 h-10 rounded-full border border-white/10 object-cover bg-white/5"
+                            className="w-9 h-9 rounded-full border border-white/10 object-cover bg-white/5"
                           />
                           <div>
-                            <div className="font-bold text-white text-sm">
+                            <div className="font-bold text-white text-xs">
                               {contact.full_name || contact.username}
                             </div>
-                            <div className="text-white/40 text-xs">
+                            <div className="text-white/40 text-[10px]">
                               @{contact.username}
                             </div>
                           </div>
@@ -574,13 +571,13 @@ export default function ContactsPage() {
                       </td>
 
                       {/* Rating (Lead Score) */}
-                      <td className="px-6 py-4">
-                        <div className="space-y-1.5 w-32">
-                          <div className="flex justify-between font-medium text-[11px]">
+                      <td className="px-4 py-2.5">
+                        <div className="space-y-1 w-28">
+                          <div className="flex justify-between font-medium text-[10px]">
                             <span className="text-white/50">Lead Score</span>
                             <span className="text-white">{contact.lead_score}%</span>
                           </div>
-                          <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
+                          <div className="w-full bg-white/10 rounded-full h-1 overflow-hidden">
                             <div
                               className="bg-gradient-to-r from-[#B6B2FF] to-[#8FE3FF] h-full rounded-full transition-all duration-500"
                               style={{ width: `${Math.max(5, Math.min(100, contact.lead_score))}%` }}
@@ -590,8 +587,8 @@ export default function ContactsPage() {
                       </td>
 
                       {/* Activity & Metrics */}
-                      <td className="px-6 py-4">
-                        <div className="space-y-1 text-white/70">
+                      <td className="px-4 py-2.5">
+                        <div className="space-y-0.5 text-white/70 text-[11px]">
                           <div>
                             <strong className="text-white font-semibold">
                               {contact.total_interactions}
@@ -604,7 +601,7 @@ export default function ContactsPage() {
                             </strong>{" "}
                             enquiries
                           </div>
-                          <div className="text-[10px] text-white/40">
+                          <div className="text-[9px] text-white/40">
                             Active:{" "}
                             {contact.last_interaction_at
                               ? new Date(contact.last_interaction_at).toLocaleDateString([], {
@@ -619,9 +616,9 @@ export default function ContactsPage() {
                       </td>
 
                       {/* Window Status */}
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-2.5">
                         <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 bg-white/5 rounded-full border text-[10px] font-semibold uppercase tracking-wider ${win.badgeClass}`}
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 bg-white/5 rounded-full border text-[9px] font-semibold uppercase tracking-wider ${win.badgeClass}`}
                         >
                           <span className={`w-1.5 h-1.5 rounded-full ${win.indicatorClass}`} />
                           {win.text}
@@ -629,11 +626,11 @@ export default function ContactsPage() {
                       </td>
 
                       {/* Actions */}
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-4 py-2.5 text-right">
                         <button
                           onClick={() => handleStartChat(contact)}
                           disabled={!contact.is_within_23h_window}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all relative overflow-hidden group/btn ${contact.is_within_23h_window
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all relative overflow-hidden group/btn ${contact.is_within_23h_window
                               ? "bg-gradient-to-r from-[#8e8aff] to-[#706bff] hover:from-[#7e7aff] hover:to-[#605bff] text-white cursor-pointer active:scale-95 shadow-md shadow-purple-900/20"
                               : "bg-white/5 border border-white/10 text-white/30 cursor-not-allowed"
                             }`}
@@ -652,7 +649,7 @@ export default function ContactsPage() {
 
         {/* Pagination Controls */}
         {!loading && totalPages > 0 && (
-          <div className="px-6 py-4 flex items-center justify-between border-t border-white/5 bg-white/[0.02]">
+          <div className="px-4 py-3 flex items-center justify-between border-t border-white/5 bg-white/[0.02]">
             <div className="text-white/40 text-[11px]">
               Showing <span className="text-white font-medium">{(page - 1) * limit + 1}</span> to{" "}
               <span className="text-white font-medium">{Math.min(page * limit, count)}</span> of{" "}

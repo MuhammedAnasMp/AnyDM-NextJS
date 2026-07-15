@@ -495,7 +495,7 @@ export default function SellerOrdersPage() {
                           onChange={async (e) => {
                             const newStatus = e.target.value;
                             await handleStatusChange(selectedOrder.order_id, newStatus);
-                            setSelectedOrder(prev => ({ ...prev, order_status: newStatus }));
+                            setSelectedOrder((prev: any) => ({ ...prev, order_status: newStatus }));
                           }}
                           className="bg-[#0e0e0e] border border-[#444748] rounded text-xs px-2 py-2 outline-none text-[#e5e2e1] w-full"
                         >
