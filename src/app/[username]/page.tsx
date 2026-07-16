@@ -204,6 +204,20 @@ export default function StorefrontPage({ params }: PageProps) {
     }
   }, [username]);
 
+  useEffect(() => {
+    const handleScroll = (e: Event) => {
+      const target = e.target as HTMLElement;
+      if (target && target.closest && target.closest(".premium-glass-popup")) {
+        return;
+      }
+      setHoveredProduct(null);
+    };
+    window.addEventListener("scroll", handleScroll, { capture: true, passive: true });
+    return () => {
+      window.removeEventListener("scroll", handleScroll, { capture: true });
+    };
+  }, []);
+
   const fetchStorefrontData = async () => {
     setLoading(true);
     setError(null);
@@ -361,11 +375,6 @@ export default function StorefrontPage({ params }: PageProps) {
                       }}
                     />
                   )}
-                  {product.is_negotiable && (
-                    <span className={cn("absolute top-3 left-3 text-[9px] tracking-wider font-extrabold uppercase px-2 py-0.5 rounded shadow", styles.badgeClass)}>
-                      Negotiable
-                    </span>
-                  )}
                   {product.stock <= 3 && product.stock > 0 && (
                     <span className="absolute bottom-3 left-3 bg-red-600 text-white text-[8px] tracking-widest font-black uppercase px-2 py-0.5 rounded shadow">
                       Only {product.stock} Left
@@ -374,24 +383,25 @@ export default function StorefrontPage({ params }: PageProps) {
                 </div>
 
                 {/* Details */}
-                <div className="p-3 flex-1 flex flex-col justify-between space-y-3">
-                  <div className="space-y-1">
-                    <h3 
-                      className={cn("text-xs font-bold line-clamp-1 truncate transition-colors", styles.textColorClass)}
-                      onMouseEnter={(e) => handleProductHoverStart(product, e)}
-                    >
-                      {product.title}
-                    </h3>
-                    <p className={cn("text-[10px] line-clamp-2 leading-relaxed h-8 overflow-hidden", styles.textMutedClass)}>
-                      {product.description || "No description provided."}
-                    </p>
-                  </div>
-                  
-                  <div className="flex justify-between items-baseline pt-2 border-t border-white/5 shrink-0">
-                    <span className={cn("text-sm font-black", styles.priceClass)}>
-                      {product.price ? `${product.price} ${product.currency}` : "TBD"}
-                    </span>
-                    <span className={cn("text-[9px] uppercase font-bold flex items-center gap-0.5 group-hover:translate-x-1 transition-transform", styles.textMutedClass)}>
+                <div className="px-1 pt-2.5 pb-1 flex flex-col space-y-1">
+                  <h3 
+                    className={cn("text-xs font-bold line-clamp-1 truncate transition-colors", styles.textColorClass)}
+                    onMouseEnter={(e) => handleProductHoverStart(product, e)}
+                  >
+                    {product.title}
+                  </h3>
+                  <div className="flex justify-between items-baseline">
+                    <div className="flex items-baseline gap-1.5">
+                      <span className={cn("text-sm font-black", styles.priceClass)}>
+                        {product.price ? `${product.price} ${product.currency}` : "TBD"}
+                      </span>
+                      {product.is_negotiable && (
+                        <span className={cn("text-[9px] tracking-wider font-extrabold uppercase px-1.5 py-0.5 rounded", styles.badgeClass)}>
+                          Nego
+                        </span>
+                      )}
+                    </div>
+                    <span className={cn("text-[9px] uppercase font-bold flex items-center gap-0.5 group-hover:translate-x-1 transition-transform shrink-0", styles.textMutedClass)}>
                       Details <ArrowRight className="w-3 h-3 stroke-[2.5px]" />
                     </span>
                   </div>
@@ -403,8 +413,19 @@ export default function StorefrontPage({ params }: PageProps) {
       </main>
 
       {/* Footer */}
-      <footer className={cn("mt-16 border-t border-white/5 pt-8 text-center text-[10px]", styles.containerClass, styles.textMutedClass)}>
+      <footer className={cn("mt-16 border-t border-white/5 pt-8 pb-12 text-center text-[10px] space-y-3", styles.containerClass, styles.textMutedClass)}>
         <p>© 2026 {settings.store_name || supplier.full_name || supplier.username}. Powered by AnyDM Automation.</p>
+        
+        {/* Contact Info rendered directly as text */}
+        {(settings.contact_email || settings.contact_phone || settings.shipping_address) && (
+          <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-zinc-400 opacity-80">
+            {settings.contact_email && <span>Email: {settings.contact_email}</span>}
+            {settings.contact_phone && <span>Phone: {settings.contact_phone}</span>}
+            {settings.shipping_address && <span>Address: {settings.shipping_address}</span>}
+          </div>
+        )}
+
+        {/* Clickable Policy Links */}
         <div className="flex justify-center gap-4 mt-2">
           <button onClick={() => setActivePolicyModal("privacy")} className="hover:underline focus:outline-none">Privacy Policy</button>
           <button onClick={() => setActivePolicyModal("terms")} className="hover:underline focus:outline-none">Terms of Service</button>
@@ -428,13 +449,14 @@ export default function StorefrontPage({ params }: PageProps) {
             </div>
             <div className="text-xs text-zinc-350 leading-relaxed whitespace-pre-wrap pt-2 text-left">
               {activePolicyModal === "privacy" 
-                ? (settings.privacy_policy || `We value your privacy. Your personal information, including name, email, and shipping details, is exclusively used to fulfill your orders and enhance your custom shopping experience with ${settings.store_name || supplier.full_name || supplier.username}.`)
-                : (settings.terms_of_service || `By browsing this store and placing orders, you agree to comply with and be bound by the terms and conditions set forth by ${settings.store_name || supplier.full_name || supplier.username}. All items ordered are subjected to availability, return, and cancellation policies.`)
+                ? (settings.privacy_policy || `We value your privacy. Your personal information, including name, email, and shipping details, is exclusively used to fulfill your orders and enhance your custom shopping experience.`)
+                : (settings.terms_of_service || `By browsing this store and placing orders, you agree to comply with and be bound by our terms and conditions. All items ordered are subjected to availability, return, and cancellation policies.`)
               }
             </div>
           </div>
         </div>
       )}
+
 
       {/* Interactive Hover Detail Popup */}
       {hoveredProduct && hoverPosition && (() => {
@@ -447,28 +469,103 @@ export default function StorefrontPage({ params }: PageProps) {
         const cardLeft = hoverPosition.x;
         const cardCenter = cardLeft + hoverPosition.width / 2;
 
-        // Prefer above, fallback below if not enough room
-        let top: number;
-        if (cardTop - POPUP_HEIGHT - GAP >= 8) {
-          top = cardTop - POPUP_HEIGHT - GAP;
-        } else {
-          top = cardTop + hoverPosition.height + GAP;
-        }
-        top = Math.max(8, Math.min(viewportH - POPUP_HEIGHT - 8, top));
+        // Position directly on top of the hovered card (overlaying it)
+        let top = cardTop;
+        let left = cardLeft + (hoverPosition.width - POPUP_WIDTH) / 2;
 
-        // Center horizontally over card, clamp to viewport
-        let left = cardCenter - POPUP_WIDTH / 2;
+        // Clamp to viewport boundaries
+        top = Math.max(8, Math.min(viewportH - POPUP_HEIGHT - 8, top));
         left = Math.max(8, Math.min(viewportW - POPUP_WIDTH - 8, left));
+
+        const templateId = settings.template_id;
+        const themeId = settings.theme_id;
+
+        const bodyClassLower = styles.bodyClass.toLowerCase();
+        const isLightTheme = 
+          bodyClassLower.includes("text-black") || 
+          bodyClassLower.includes("text-[#131313]") || 
+          bodyClassLower.includes("text-[#111111]") || 
+          bodyClassLower.includes("text-[#2d362e]") || 
+          bodyClassLower.includes("text-[#2b221a]") || 
+          bodyClassLower.includes("text-[#1c1c1c]");
+
+        const textPrimary = isLightTheme ? "text-zinc-900" : "text-white";
+        const textMuted = isLightTheme ? "text-zinc-600" : "text-zinc-400";
+        const textSubtle = isLightTheme ? "text-zinc-500" : "text-zinc-500";
+
+        const isRounded = templateId === "glass_monochrome" || templateId === "immersive_glass" || !templateId;
+        const roundedClass = isRounded ? "rounded-2xl" : "rounded-none";
+        const isBrutalist = templateId === "neo_brutalist";
+
+        // Clean up hover states and transitions from dynamic cardClass
+        let cleanCardClass = styles.cardClass
+          .split(" ")
+          .filter(c => !c.startsWith("hover:") && !c.startsWith("transition") && !c.startsWith("duration"))
+          .join(" ");
+
+        // Ensure the popup background is opaque so it's readable over the card grid underneath
+        if (cleanCardClass.includes("bg-transparent")) {
+          cleanCardClass = cleanCardClass.replace("bg-transparent", isLightTheme ? "bg-white" : "bg-[#121216]");
+        }
+
+        // Clean up buttonClass to extract background/border/text classes for compact selected buttons
+        const cleanBtnClass = styles.buttonClass
+          .split(" ")
+          .filter(c => !c.startsWith("py-") && !c.startsWith("px-") && !c.startsWith("py-[") && !c.startsWith("px-[") && !c.startsWith("hover:") && !c.startsWith("transition") && !c.startsWith("duration"))
+          .join(" ");
+
+        const btnUnselected = isBrutalist
+          ? "bg-white text-black border-2 border-black hover:bg-zinc-100"
+          : "bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-current opacity-75 hover:opacity-100";
+
+        const btnSelected = isBrutalist
+          ? "bg-black text-white border-2 border-black scale-105"
+          : cn(cleanBtnClass, "scale-105 font-bold border-none");
+
+        const btnRounded = isRounded ? "rounded-full" : "rounded-none";
+        const sizeBtnRounded = isRounded ? "rounded-md" : "rounded-none";
+
+        let starColor = "fill-amber-400 text-amber-400";
+        if (templateId === "cyber_neon_dark") {
+          if (themeId === "matrix_green") starColor = "fill-[#00ff00] text-[#00ff00]";
+          else if (themeId === "synthwave_sunset") starColor = "fill-[#ff24e4] text-[#ff24e4]";
+          else starColor = "fill-[#00dbe9] text-[#00dbe9]";
+        } else if (isBrutalist) {
+          starColor = themeId === "brutalist_blue" ? "fill-white text-white" : "fill-black text-black";
+        }
+
+        let accentTextClass = "text-[#b6b2ff]";
+        if (templateId === "cyber_neon_dark") {
+          accentTextClass = themeId === "matrix_green" ? "text-[#00ff00]" : themeId === "synthwave_sunset" ? "text-[#ff24e4]" : "text-[#00dbe9]";
+        } else if (isBrutalist) {
+          accentTextClass = themeId === "brutalist_blue" ? "text-white underline" : "text-[#0038ff]";
+        } else if (isLightTheme) {
+          accentTextClass = "text-[#605ca2]";
+        }
+
+        // Action details button styled exactly like template primary button
+        const detailBtnClass = cn(
+          "w-full mt-4 py-2.5 px-4 text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-[0.98] shrink-0",
+          styles.buttonClass
+            .split(" ")
+            .filter(c => !c.startsWith("py-") && !c.startsWith("px-") && !c.startsWith("py-[") && !c.startsWith("px-["))
+            .join(" ")
+        );
 
         return (
           <div
-            className="fixed z-50 w-[330px] premium-glass-popup rounded-2xl overflow-hidden p-4 text-white flex flex-col pointer-events-auto"
+            className={cn(
+              "premium-glass-popup fixed z-50 w-[330px] p-4 flex flex-col pointer-events-auto",
+              cleanCardClass,
+              textPrimary,
+              styles.fontBody
+            )}
             style={{ top: `${top}px`, left: `${left}px` }}
             onMouseEnter={handlePopupMouseEnter}
             onMouseLeave={handlePopupMouseLeave}
           >
           {/* Header Image/Video */}
-          <div className="relative h-40 w-full rounded-xl overflow-hidden mb-3 bg-white/5 border border-white/10 shrink-0">
+          <div className={cn("relative h-40 w-full overflow-hidden mb-3 shrink-0 border", isRounded ? "rounded-xl" : "rounded-none", isBrutalist ? "border-2 border-black" : "border-current/10 bg-current/5")}>
             {isVideoUrl(hoveredProduct.main_media_url) ? (
               <video
                 src={hoveredProduct.main_media_url}
@@ -490,28 +587,28 @@ export default function StorefrontPage({ params }: PageProps) {
             )}
             
             {/* Price Badge */}
-            <div className="absolute bottom-2 right-2 px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-md border border-white/10 text-xs font-bold">
+            <div className={cn("absolute bottom-2 right-2 px-2.5 py-1 text-xs font-bold border shadow", styles.badgeClass)}>
               {hoveredProduct.price ? `${hoveredProduct.price} ${hoveredProduct.currency}` : "TBD"}
             </div>
           </div>
 
           {/* Product details */}
           <div className="flex-grow flex flex-col min-h-0 overflow-y-auto pr-1">
-            <h4 className="text-sm font-bold text-white line-clamp-1 mb-1">{hoveredProduct.title}</h4>
+            <h4 className={cn("text-sm font-bold line-clamp-1 mb-1", styles.fontHeadline, textPrimary)}>{hoveredProduct.title}</h4>
             
             {/* Rating */}
             <div className="flex items-center gap-1 mb-2.5">
               {[1, 2, 3, 4, 5].map((star) => (
                 <Star
                   key={star}
-                  className="w-3.5 h-3.5 fill-amber-400 text-amber-400 rating-star-interactive cursor-pointer"
+                  className={cn("w-3.5 h-3.5 rating-star-interactive cursor-pointer", starColor)}
                 />
               ))}
-              <span className="text-[10px] text-zinc-400 ml-1">(4.8 / 5)</span>
+              <span className={cn("text-[10px] ml-1", textMuted)}>(4.8 / 5)</span>
             </div>
 
             {/* Description with Read More */}
-            <p className="text-[11px] text-zinc-400 line-clamp-2 leading-relaxed mb-3">
+            <p className={cn("text-[11px] line-clamp-2 leading-relaxed mb-3", textMuted)}>
               {hoveredProduct.description || "No description provided."}
             </p>
             
@@ -527,7 +624,7 @@ export default function StorefrontPage({ params }: PageProps) {
                   {/* Colors */}
                   {colors.length > 0 && (
                     <div>
-                      <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block mb-1">Color</span>
+                      <span className={cn("text-[10px] font-bold uppercase tracking-wider block mb-1", textMuted)}>Color</span>
                       <div className="flex flex-wrap gap-1.5">
                         {colors.map((color: string) => {
                           const isSelected = selectedColor === color;
@@ -536,10 +633,9 @@ export default function StorefrontPage({ params }: PageProps) {
                               key={color}
                               onClick={() => setSelectedColor(color)}
                               className={cn(
-                                "h-6 px-2.5 rounded-full text-[10px] font-semibold border transition-all flex items-center justify-center gap-1",
-                                isSelected 
-                                  ? "bg-white text-black border-white scale-105" 
-                                  : "bg-white/5 text-zinc-300 border-white/10 hover:bg-white/10"
+                                "h-6 px-2.5 text-[10px] font-semibold border transition-all flex items-center justify-center gap-1",
+                                isSelected ? btnSelected : btnUnselected,
+                                btnRounded
                               )}
                             >
                               <span 
@@ -554,31 +650,24 @@ export default function StorefrontPage({ params }: PageProps) {
                     </div>
                   )}
 
-                  {/* Sizes & Size Chart */}
+                  {/* Sizes */}
                   {sizes.length > 0 && (
                     <div>
                       <div className="flex justify-between items-center mb-1">
-                        <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Size</span>
-                        <button
-                          onClick={() => setIsSizeChartOpen(!isSizeChartOpen)}
-                          className="flex items-center gap-1 text-[9px] text-[#b6b2ff] font-bold hover:underline"
-                        >
-                          <Ruler className="w-3 h-3" /> Size Guide
-                        </button>
+                        <span className={cn("text-[10px] font-bold uppercase tracking-wider", textMuted)}>Size</span>
                       </div>
 
                       <div className="flex flex-wrap gap-1.5">
-                        {sizes.map((size: string, idx: number) => {
+                        {sizes.map((size: string) => {
                           const isSelected = selectedSize === size;
                           return (
                             <button
                               key={size}
                               onClick={() => setSelectedSize(size)}
                               className={cn(
-                                "h-6 px-3 rounded-md text-[10px] font-bold border transition-all",
-                                isSelected 
-                                  ? "bg-white text-black border-white scale-105" 
-                                  : "bg-white/5 text-zinc-300 border-white/10 hover:bg-white/10"
+                                "h-6 px-3 text-[10px] font-bold border transition-all",
+                                isSelected ? btnSelected : btnUnselected,
+                                sizeBtnRounded
                               )}
                             >
                               {size}
@@ -589,60 +678,7 @@ export default function StorefrontPage({ params }: PageProps) {
                     </div>
                   )}
 
-                  {/* Size Guide panel inside popup */}
-                  {isSizeChartOpen && (
-                    <div className="rounded-lg border border-white/5 bg-black/40 p-2.5 text-[10px] animate-[popupScaleIn_0.2s_ease-out]">
-                      <div className="flex justify-between items-center mb-1.5 pb-1 border-b border-white/5">
-                        <span className="font-bold text-zinc-300">Size Chart Reference</span>
-                        <button onClick={() => setIsSizeChartOpen(false)}>
-                          <X className="w-3 h-3 text-zinc-400 hover:text-white" />
-                        </button>
-                      </div>
-                      <table className="w-full text-left text-zinc-400">
-                        <thead>
-                          <tr className="border-b border-white/5 text-zinc-500 font-bold">
-                            <th className="pb-1">Size</th>
-                            <th className="pb-1">Chest</th>
-                            <th className="pb-1">Length</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {sizes.map((sz: string, idx: number) => (
-                            <tr key={sz} className="border-b last:border-0 border-white/5">
-                              <td className="py-1 text-white font-bold">{sz}</td>
-                              <td className="py-1">{90 + idx * 4} cm</td>
-                              <td className="py-1">{66 + idx * 2} cm</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
 
-                  {/* Technical Details for Selected Size */}
-                  {selectedSize && (() => {
-                    const sizeIndex = sizes.indexOf(selectedSize) + 1;
-                    const techDetailVal = meta[String(sizeIndex)];
-                    if (!techDetailVal) return null;
-                    const parsedPairs = parseTechnicalDetails(techDetailVal);
-
-                    return (
-                      <div className="rounded-xl border border-[#b6b2ff]/20 bg-[#b6b2ff]/5 p-3 space-y-2 mt-2 transition-all">
-                        <div className="flex items-center gap-1.5">
-                          <Sparkles className="w-3.5 h-3.5 text-[#b6b2ff]" />
-                          <span className="text-[10px] font-bold text-[#b6b2ff] uppercase tracking-wider">Specs for Size {selectedSize}</span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2 text-[10px]">
-                          {parsedPairs.map((pair, pIdx) => (
-                            <div key={pIdx} className="bg-white/5 border border-white/5 rounded-md p-1.5 flex flex-col gap-0.5">
-                              <span className="text-[9px] text-zinc-500 font-medium">{pair.key}</span>
-                              <span className="text-zinc-200 font-bold">{pair.value}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })()}
                 </div>
               );
             })()}
@@ -651,7 +687,7 @@ export default function StorefrontPage({ params }: PageProps) {
           {/* Action button redirecting to PDP */}
           <button
             onClick={() => router.push(`/${username}/product/${hoveredProduct.id}`)}
-            className="w-full mt-4 py-2 bg-white hover:bg-zinc-200 text-black text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all active:scale-[0.98] shrink-0"
+            className={detailBtnClass}
           >
             <span>View Full Details</span>
             <ArrowRight className="w-3.5 h-3.5" />

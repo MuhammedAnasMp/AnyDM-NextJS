@@ -156,6 +156,7 @@ export default function WebsiteSettingsPage() {
 
   const [previewMode, setPreviewMode] = useState<"catalog" | "pdp">("pdp");
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop");
+  const [activePreviewModal, setActivePreviewModal] = useState<string | null>(null);
 
   const [toastMessage, setToastMessage] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
@@ -933,142 +934,188 @@ export default function WebsiteSettingsPage() {
                 </div>
 
                 {/* Store content viewport */}
-                <div className={cn("h-[calc(100%-80px)] overflow-y-auto custom-scrollbar p-4 flex flex-col", previewStyles.bodyClass, previewStyles.fontBody)}>
-                  {/* Store header */}
-                  <div className={cn("pb-3 mb-6 border-b flex items-center justify-between", previewStyles.navClass)}>
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full overflow-hidden bg-white/10 flex items-center justify-center border border-white/15">
-                        {storeLogo ? (
-                          <img alt="Logo" className="w-full h-full object-cover" src={storeLogo} />
-                        ) : (
-                          <ShoppingBag className="w-3.5 h-3.5" strokeWidth={1.75} />
-                        )}
+                <div className="relative h-[calc(100%-80px)] w-full">
+                  <div className={cn("h-full overflow-y-auto custom-scrollbar p-4 flex flex-col justify-between", previewStyles.bodyClass, previewStyles.fontBody)}>
+                    <div>
+                      {/* Store header */}
+                      <div className={cn("pb-3 mb-6 border-b flex items-center justify-between", previewStyles.navClass)}>
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full overflow-hidden bg-white/10 flex items-center justify-center border border-white/15">
+                            {storeLogo ? (
+                              <img alt="Logo" className="w-full h-full object-cover" src={storeLogo} />
+                            ) : (
+                              <ShoppingBag className="w-3.5 h-3.5" strokeWidth={1.75} />
+                            )}
+                          </div>
+                          <span className={cn("font-medium tracking-tight text-xs", previewStyles.textColorClass)}>{storeName || "Elena Rossi"}</span>
+                        </div>
+                        <div className="flex gap-3 text-[10px] font-medium">
+                          <span>Shop</span>
+                          <span>Story</span>
+                        </div>
                       </div>
-                      <span className={cn("font-medium tracking-tight text-xs", previewStyles.textColorClass)}>{storeName || "Elena Rossi"}</span>
+
+                      {previewMode === "catalog" ? (
+                        <div className="space-y-6">
+                          <div className="space-y-4">
+                            <div className="text-center py-2 space-y-1">
+                              <h2 className={cn("text-lg font-semibold leading-tight", previewStyles.fontHeadline, previewStyles.textColorClass)}>
+                                {storeName || "Elena Rossi"}
+                              </h2>
+                              <p className={cn("text-[10px] max-w-[200px] mx-auto leading-normal", previewStyles.textMutedClass)}>
+                                Signature collections curated with delicate precision.
+                              </p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                              {[1, 2].map((idx) => (
+                                <div key={idx} className={cn("flex flex-col p-2 rounded-md border", previewStyles.cardClass)}>
+                                  <div className="aspect-[4/5] rounded overflow-hidden relative bg-zinc-800">
+                                    <img src={`https://picsum.photos/seed/product_${idx}/200/250`} alt="Mock product" className="w-full h-full object-cover opacity-80" />
+                                  </div>
+                                  <div className="pt-2 flex flex-col gap-1">
+                                    <span className={cn("font-medium truncate text-[10px]", previewStyles.textColorClass)}>
+                                      {idx === 1 ? "Signature silk wrap" : "Linen summer trouser"}
+                                    </span>
+                                    <span className={cn("font-bold text-[10px] tracking-tight", previewStyles.priceClass)} style={monoStat}>
+                                      {idx === 1 ? "420.00 USD" : "180.00 USD"}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-5">
+                          <div className="space-y-4">
+                            <div className={cn("flex gap-3", previewDevice === "mobile" ? "flex-col" : "flex-row")}>
+                              <div className={cn("aspect-square rounded-md overflow-hidden bg-zinc-900 border border-white/10 shrink-0", previewDevice === "mobile" ? "w-full" : "w-[45%]")}>
+                                <img src="https://picsum.photos/seed/product_1/400/500" alt="Mock product detail" className="w-full h-full object-cover opacity-80" />
+                              </div>
+                              <div className="flex-1 space-y-3 w-full">
+                                <div className="space-y-1">
+                                  <span
+                                    className="text-[9px] px-1.5 py-0.5 rounded font-semibold uppercase tracking-wide inline-block"
+                                    style={{ backgroundColor: "rgba(143,227,255,0.1)", border: "1px solid rgba(143,227,255,0.2)", color: t.accentCyan }}
+                                  >
+                                    New arrival
+                                  </span>
+                                  <h2 className={cn("text-xs font-semibold tracking-tight leading-tight", previewStyles.textColorClass)}>
+                                    Elena Rossi signature silk wrap
+                                  </h2>
+                                  <p className={cn("font-bold text-xs", previewStyles.priceClass)} style={monoStat}>
+                                    420.00 USD
+                                  </p>
+                                </div>
+                                <div className="space-y-1">
+                                  <span className={cn("text-[9px] font-medium block", previewStyles.textMutedClass)}>Select size</span>
+                                  <div className="flex gap-1">
+                                    {["S", "M", "L"].map((v, i) => (
+                                      <span
+                                        key={v}
+                                        className={cn(
+                                          "w-6 h-6 flex items-center justify-center text-[10px] border font-medium rounded",
+                                          i === 0 ? "bg-white text-black border-white" : "bg-white/5 text-white border-white/10"
+                                        )}
+                                      >
+                                        {v}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                                <div className="space-y-1.5 pt-1">
+                                  {enableInstagramButton && (
+                                    <button className={cn("w-full py-2 font-medium text-[10px] flex items-center justify-center gap-1.5 rounded cursor-pointer", previewStyles.instagramButtonClass)}>
+                                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+                                        <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+                                        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                                        <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+                                      </svg>
+                                      <span>Purchase on Instagram</span>
+                                    </button>
+                                  )}
+                                  {enableWhatsAppButton && (
+                                    <button className={cn("w-full py-2 font-medium text-[10px] flex items-center justify-center gap-1.5 rounded cursor-pointer", previewStyles.whatsappButtonClass)}>
+                                      <MessageSquare className="w-3 h-3" strokeWidth={1.75} />
+                                      <span>Order via WhatsApp</span>
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            {showRelatedProducts && (
+                              <div className="pt-4 border-t border-white/5 space-y-2">
+                                <h4 className={cn("text-[9px] font-medium", previewStyles.textColorClass)}>You might also like</h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div className={cn("p-1.5 rounded flex items-center gap-2", previewStyles.cardClass)}>
+                                    <div className="w-7 h-9 bg-zinc-800 rounded overflow-hidden shrink-0">
+                                      <img src="https://picsum.photos/seed/product_2/100/120" className="w-full h-full object-cover" alt="Related" />
+                                    </div>
+                                    <div className="overflow-hidden space-y-0.5">
+                                      <span className={cn("font-medium truncate text-[10px] block", previewStyles.textColorClass)}>Linen trouser</span>
+                                      <span className={cn("font-bold text-[9px]", previewStyles.priceClass)} style={monoStat}>180 USD</span>
+                                    </div>
+                                  </div>
+                                  <div className={cn("p-1.5 rounded flex items-center gap-2", previewStyles.cardClass)}>
+                                    <div className="w-7 h-9 bg-zinc-800 rounded overflow-hidden shrink-0">
+                                      <img src="https://picsum.photos/seed/product_3/100/120" className="w-full h-full object-cover" alt="Related" />
+                                    </div>
+                                    <div className="overflow-hidden space-y-0.5">
+                                      <span className={cn("font-medium truncate text-[10px] block", previewStyles.textColorClass)}>Cotton cap</span>
+                                      <span className={cn("font-bold text-[9px]", previewStyles.priceClass)} style={monoStat}>60 USD</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <div className="flex gap-3 text-[10px] font-medium">
-                      <span>Shop</span>
-                      <span>Story</span>
+
+                    {/* Unified Storefront Preview Footer */}
+                    <div className={cn("text-center py-4 border-t border-white/5 text-[9px] mt-8 space-y-2 shrink-0", previewStyles.textMutedClass)}>
+                      <p>© 2026 {storeName || "Elena Rossi"}. Powered by AnyDM.</p>
+                      
+                      {/* Contact Info rendered directly as text */}
+                      {(contactEmail || contactPhone || shippingAddress) && (
+                        <div className="flex flex-wrap justify-center gap-x-3 gap-y-0.5 opacity-80">
+                          {contactEmail && <span>Email: {contactEmail}</span>}
+                          {contactPhone && <span>Phone: {contactPhone}</span>}
+                          {shippingAddress && <span>Address: {shippingAddress}</span>}
+                        </div>
+                      )}
+
+                      {/* Clickable Policy Links */}
+                      <div className="flex justify-center gap-3 mt-1.5">
+                        <button onClick={() => setActivePreviewModal("privacy")} className="hover:underline focus:outline-none">Privacy Policy</button>
+                        <button onClick={() => setActivePreviewModal("terms")} className="hover:underline focus:outline-none">Terms of Service</button>
+                      </div>
                     </div>
                   </div>
 
-                  {previewMode === "catalog" ? (
-                    <div className="space-y-6 flex-1 flex flex-col justify-between">
-                      <div className="space-y-4">
-                        <div className="text-center py-2 space-y-1">
-                          <h2 className={cn("text-lg font-semibold leading-tight", previewStyles.fontHeadline, previewStyles.textColorClass)}>
-                            {storeName || "Elena Rossi"}
-                          </h2>
-                          <p className={cn("text-[10px] max-w-[200px] mx-auto leading-normal", previewStyles.textMutedClass)}>
-                            Signature collections curated with delicate precision.
-                          </p>
+                  {/* Preview Modal Overlay inside frame */}
+                  {activePreviewModal && (
+                    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-3">
+                      <div className="w-full max-w-[260px] rounded-lg border border-white/10 p-3.5 shadow-2xl bg-[#1e1e24] text-white space-y-3 max-h-[85%] overflow-y-auto custom-scrollbar">
+                        <div className="flex justify-between items-center pb-1.5 border-b border-white/5">
+                          <span className="text-[9px] font-bold uppercase tracking-wider text-[#b6b2ff]">
+                            {activePreviewModal === "privacy" ? "Privacy Policy" : "Terms of Service"}
+                          </span>
+                          <button 
+                            onClick={() => setActivePreviewModal(null)} 
+                            className="p-0.5 rounded hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          {[1, 2].map((idx) => (
-                            <div key={idx} className={cn("flex flex-col p-2 rounded-md border", previewStyles.cardClass)}>
-                              <div className="aspect-[4/5] rounded overflow-hidden relative bg-zinc-800">
-                                <img src={`https://picsum.photos/seed/product_${idx}/200/250`} alt="Mock product" className="w-full h-full object-cover opacity-80" />
-                              </div>
-                              <div className="pt-2 flex flex-col gap-1">
-                                <span className={cn("font-medium truncate text-[10px]", previewStyles.textColorClass)}>
-                                  {idx === 1 ? "Signature silk wrap" : "Linen summer trouser"}
-                                </span>
-                                <span className={cn("font-bold text-[10px] tracking-tight", previewStyles.priceClass)} style={monoStat}>
-                                  {idx === 1 ? "420.00 USD" : "180.00 USD"}
-                                </span>
-                              </div>
-                            </div>
-                          ))}
+                        <div className="text-[9px] text-zinc-305 leading-relaxed whitespace-pre-wrap pt-1 text-left">
+                          {activePreviewModal === "privacy" 
+                            ? (privacyPolicy || "We value your privacy. Your personal information is exclusively used to fulfill your orders.")
+                            : (termsOfService || "By browsing this store and placing orders, you agree to comply with our terms and conditions.")
+                          }
                         </div>
-                      </div>
-                      <div className={cn("text-center py-4 border-t border-white/5 text-[9px] mt-auto", previewStyles.textMutedClass)}>
-                        © 2026 {storeName || "Elena Rossi"}. Powered by AnyDM.
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-5 flex-1 flex flex-col justify-between">
-                      <div className="space-y-4">
-                        <div className={cn("flex gap-3", previewDevice === "mobile" ? "flex-col" : "flex-row")}>
-                          <div className={cn("aspect-square rounded-md overflow-hidden bg-zinc-900 border border-white/10 shrink-0", previewDevice === "mobile" ? "w-full" : "w-[45%]")}>
-                            <img src="https://picsum.photos/seed/product_1/400/500" alt="Mock product detail" className="w-full h-full object-cover opacity-80" />
-                          </div>
-                          <div className="flex-1 space-y-3 w-full">
-                            <div className="space-y-1">
-                              <span
-                                className="text-[9px] px-1.5 py-0.5 rounded font-semibold uppercase tracking-wide inline-block"
-                                style={{ backgroundColor: "rgba(143,227,255,0.1)", border: "1px solid rgba(143,227,255,0.2)", color: t.accentCyan }}
-                              >
-                                New arrival
-                              </span>
-                              <h2 className={cn("text-xs font-semibold tracking-tight leading-tight", previewStyles.textColorClass)}>
-                                Elena Rossi signature silk wrap
-                              </h2>
-                              <p className={cn("font-bold text-xs", previewStyles.priceClass)} style={monoStat}>
-                                420.00 USD
-                              </p>
-                            </div>
-                            <div className="space-y-1">
-                              <span className={cn("text-[9px] font-medium block", previewStyles.textMutedClass)}>Select size</span>
-                              <div className="flex gap-1">
-                                {["S", "M", "L"].map((v, i) => (
-                                  <span
-                                    key={v}
-                                    className={cn(
-                                      "w-6 h-6 flex items-center justify-center text-[10px] border font-medium rounded",
-                                      i === 0 ? "bg-white text-black border-white" : "bg-white/5 text-white border-white/10"
-                                    )}
-                                  >
-                                    {v}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                            <div className="space-y-1.5 pt-1">
-                              {enableInstagramButton && (
-                                <button className={cn("w-full py-2 font-medium text-[10px] flex items-center justify-center gap-1.5 rounded cursor-pointer", previewStyles.instagramButtonClass)}>
-                                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-                                    <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
-                                    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-                                    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
-                                  </svg>
-                                  <span>Purchase on Instagram</span>
-                                </button>
-                              )}
-                              {enableWhatsAppButton && (
-                                <button className={cn("w-full py-2 font-medium text-[10px] flex items-center justify-center gap-1.5 rounded cursor-pointer", previewStyles.whatsappButtonClass)}>
-                                  <MessageSquare className="w-3 h-3" strokeWidth={1.75} />
-                                  <span>Order via WhatsApp</span>
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        {showRelatedProducts && (
-                          <div className="pt-4 border-t border-white/5 space-y-2">
-                            <h4 className={cn("text-[9px] font-medium", previewStyles.textColorClass)}>You might also like</h4>
-                            <div className="grid grid-cols-2 gap-3">
-                              <div className={cn("p-1.5 rounded flex items-center gap-2", previewStyles.cardClass)}>
-                                <div className="w-7 h-9 bg-zinc-800 rounded overflow-hidden shrink-0">
-                                  <img src="https://picsum.photos/seed/product_2/100/120" className="w-full h-full object-cover" alt="Related" />
-                                </div>
-                                <div className="overflow-hidden space-y-0.5">
-                                  <span className={cn("font-medium truncate text-[10px] block", previewStyles.textColorClass)}>Linen trouser</span>
-                                  <span className={cn("font-bold text-[9px]", previewStyles.priceClass)} style={monoStat}>180 USD</span>
-                                </div>
-                              </div>
-                              <div className={cn("p-1.5 rounded flex items-center gap-2", previewStyles.cardClass)}>
-                                <div className="w-7 h-9 bg-zinc-800 rounded overflow-hidden shrink-0">
-                                  <img src="https://picsum.photos/seed/product_3/100/120" className="w-full h-full object-cover" alt="Related" />
-                                </div>
-                                <div className="overflow-hidden space-y-0.5">
-                                  <span className={cn("font-medium truncate text-[10px] block", previewStyles.textColorClass)}>Cotton cap</span>
-                                  <span className={cn("font-bold text-[9px]", previewStyles.priceClass)} style={monoStat}>60 USD</span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
                       </div>
                     </div>
                   )}

@@ -141,6 +141,7 @@ export function getTemplateStyles(templateId: string, themeId: string): Template
   if (templateId === "monochrome_precision") {
     const isWhite = themeId === "paper_white";
     const isGray = themeId === "cool_gray";
+    const isLight = isWhite || isGray;
 
     return {
       bodyClass: isWhite 
@@ -148,28 +149,28 @@ export function getTemplateStyles(templateId: string, themeId: string): Template
         : isGray 
           ? "bg-[#f8f9fa] text-black" 
           : "bg-black text-[#ededed]",
-      navClass: isWhite
+      navClass: isLight
         ? "bg-white border-b border-black/10"
         : "bg-black border-b border-white/10",
-      cardClass: isWhite
+      cardClass: isLight
         ? "bg-transparent border border-black/10 rounded-none hover:border-black transition-all duration-200"
         : "bg-transparent border border-white/10 rounded-none hover:border-white transition-all duration-200",
-      buttonClass: isWhite
+      buttonClass: isLight
         ? "bg-black text-white rounded-none py-3.5 px-8 text-xs font-bold uppercase hover:bg-black/90 transition-all"
         : "bg-white text-black rounded-none py-3.5 px-8 text-xs font-bold uppercase hover:bg-[#eaeaea] transition-all",
-      badgeClass: isWhite
+      badgeClass: isLight
         ? "border border-black text-black px-2 py-0.5 text-[9px] uppercase font-mono"
         : "border border-white text-white px-2 py-0.5 text-[9px] uppercase font-mono",
-      textColorClass: isWhite ? "text-black" : "text-white",
+      textColorClass: isLight ? "text-black" : "text-white",
       textMutedClass: "text-zinc-500 font-mono",
-      priceClass: isWhite ? "text-black font-bold font-mono" : "text-white font-bold font-mono",
+      priceClass: isLight ? "text-black font-bold font-mono" : "text-white font-bold font-mono",
       fontHeadline: "font-mono uppercase tracking-tighter",
       fontBody: "font-mono",
       containerClass: "max-w-7xl mx-auto px-8",
-      whatsappButtonClass: isWhite 
+      whatsappButtonClass: isLight 
         ? "border border-black text-black text-xs font-bold uppercase py-3.5 hover:bg-black/5 transition-all text-center rounded-none"
         : "border border-white text-white text-xs font-bold uppercase py-3.5 hover:bg-white/5 transition-all text-center rounded-none",
-      instagramButtonClass: isWhite
+      instagramButtonClass: isLight
         ? "bg-black text-white text-xs font-bold uppercase py-3.5 hover:bg-black/90 transition-all text-center rounded-none"
         : "bg-white text-black text-xs font-bold uppercase py-3.5 hover:bg-[#eaeaea] transition-all text-center rounded-none",
       logoWrapperClass: "w-8 h-8 rounded-none overflow-hidden bg-transparent border border-current flex items-center justify-center"

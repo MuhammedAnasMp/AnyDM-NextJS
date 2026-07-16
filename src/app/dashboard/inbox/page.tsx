@@ -2665,6 +2665,7 @@ export default function InboxPage() {
           message={toast.message}
           type={toast.type}
           onClose={() => setToast(prev => ({ ...prev, isVisible: false }))}
+          isVisible={toast.isVisible}
         />
       )}
     </motion.div>
