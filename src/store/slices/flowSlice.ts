@@ -51,56 +51,78 @@ const deleteNodeRecursively = (state: FlowState, nodeId: string) => {
 
 const syncLinkedNodes = (state: FlowState, nodeId: string) => {
     const node = state.nodes.find(n => n.id === nodeId);
-    if (!node || node.type !== 'action') return;
+    if (!node) return;
 
-    const format = node.data?.dm_format;
     const activeEvents: { payload: string; label: string }[] = [];
 
-    if (format === 'quick_reply') {
-        const titles: string[] = node.data?.quick_replies_titles || [];
-        titles.forEach((title) => {
-            const payload = `QR_${title.toUpperCase().replace(/\s+/g, '_')}`;
-            activeEvents.push({ payload, label: title });
-        });
-    } else if (format === 'button_template') {
-        let buttons: any[] = [];
-        const btnsJson = node.data?.button_template_buttons_json;
-        if (typeof btnsJson === 'string' && btnsJson.trim()) {
-            try { buttons = JSON.parse(btnsJson); } catch (e) { }
-        } else if (Array.isArray(btnsJson)) {
-            buttons = btnsJson;
-        }
-
-        const seenPayloads = new Set<string>();
-        buttons.forEach((btn) => {
-            if (btn.type !== 'web_url' && btn.type !== 'product' && btn.payload) {
-                if (!seenPayloads.has(btn.payload)) {
-                    seenPayloads.add(btn.payload);
-                    activeEvents.push({ payload: btn.payload, label: btn.title || btn.payload });
+    if (node.type === 'trigger') {
+        if (node.data?.is_icebreaker_trigger) {
+            const icebreakers = node.data?.icebreakers || [];
+            icebreakers.forEach((ib: any) => {
+                if (ib.question && ib.payload) {
+                    activeEvents.push({ payload: ib.payload, label: ib.question });
                 }
-            }
-        });
-    } else if (format === 'generic_template') {
-        let elements: any[] = [];
-        const elemsJson = node.data?.generic_template_elements_json;
-        if (typeof elemsJson === 'string' && elemsJson.trim()) {
-            try { elements = JSON.parse(elemsJson); } catch (e) { }
-        } else if (Array.isArray(elemsJson)) {
-            elements = elemsJson;
+            });
+        } else if (node.data?.is_menu_trigger) {
+            const items = node.data?.persistent_menu_items || [];
+            items.forEach((item: any) => {
+                if (item.type === 'postback' && item.title && item.payload) {
+                    activeEvents.push({ payload: item.payload, label: item.title });
+                }
+            });
+        } else {
+            return;
         }
+    } else if (node.type === 'action') {
+        const format = node.data?.dm_format;
+        if (format === 'quick_reply') {
+            const titles: string[] = node.data?.quick_replies_titles || [];
+            titles.forEach((title) => {
+                const payload = `QR_${title.toUpperCase().replace(/\s+/g, '_')}`;
+                activeEvents.push({ payload, label: title });
+            });
+        } else if (format === 'button_template') {
+            let buttons: any[] = [];
+            const btnsJson = node.data?.button_template_buttons_json;
+            if (typeof btnsJson === 'string' && btnsJson.trim()) {
+                try { buttons = JSON.parse(btnsJson); } catch (e) { }
+            } else if (Array.isArray(btnsJson)) {
+                buttons = btnsJson;
+            }
 
-        const seenPayloads = new Set<string>();
-        elements.forEach((elem) => {
-            (elem.buttons || []).forEach((btn: any) => {
+            const seenPayloads = new Set<string>();
+            buttons.forEach((btn) => {
                 if (btn.type !== 'web_url' && btn.type !== 'product' && btn.payload) {
-                    const payload = btn.payload;
-                    if (!seenPayloads.has(payload)) {
-                        seenPayloads.add(payload);
-                        activeEvents.push({ payload, label: btn.title || payload });
+                    if (!seenPayloads.has(btn.payload)) {
+                        seenPayloads.add(btn.payload);
+                        activeEvents.push({ payload: btn.payload, label: btn.title || btn.payload });
                     }
                 }
             });
-        });
+        } else if (format === 'generic_template') {
+            let elements: any[] = [];
+            const elemsJson = node.data?.generic_template_elements_json;
+            if (typeof elemsJson === 'string' && elemsJson.trim()) {
+                try { elements = JSON.parse(elemsJson); } catch (e) { }
+            } else if (Array.isArray(elemsJson)) {
+                elements = elemsJson;
+            }
+
+            const seenPayloads = new Set<string>();
+            elements.forEach((elem) => {
+                (elem.buttons || []).forEach((btn: any) => {
+                    if (btn.type !== 'web_url' && btn.type !== 'product' && btn.payload) {
+                        const payload = btn.payload;
+                        if (!seenPayloads.has(payload)) {
+                            seenPayloads.add(payload);
+                            activeEvents.push({ payload, label: btn.title || payload });
+                        }
+                    }
+                });
+            });
+        }
+    } else {
+        return;
     }
 
     // Get current connected reply nodes for this node (via labeled edges)

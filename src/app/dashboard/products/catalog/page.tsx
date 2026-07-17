@@ -418,7 +418,7 @@ export default function CatalogPage() {
 
                       {/* Price Column */}
                       <td className="px-6 py-3.5 font-medium text-white">
-                        {p.price !== null && p.price !== undefined ? `${Number(p.price).toFixed(2)} ${p.currency || 'KWD'}` : '—'}
+                        {p.price !== null && p.price !== undefined ? `${Number(p.price).toFixed(2)} ${p.currency || '₹'}` : '—'}
                       </td>
 
                       {/* Stock Column */}

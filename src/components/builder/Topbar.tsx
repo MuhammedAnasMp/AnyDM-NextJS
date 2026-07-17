@@ -6,13 +6,14 @@ import { RootState } from '@/store';
 import { undo, redo, selectNode, setFlow } from '@/store/slices/flowSlice';
 import { Undo, Redo, Settings, Eye, EyeOff, Loader2, ArrowLeft } from 'lucide-react';
 import api from '@/lib/services/api.service';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Toast from '../Toast';
 
 export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () => void, showPreview: boolean }) {
   const flow = useSelector((state: RootState) => state.flow);
   const dispatch = useDispatch();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [isSaving, setIsSaving] = React.useState(false);
   const [toast, setToast] = React.useState<{ message: string; type: 'success' | 'error' | 'info'; visible: boolean }>({
@@ -45,8 +46,10 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
           id: String(response.data.id),
         }));
         setToast({ message: `Successfully saved as ${status}! Redirecting...`, type: 'success', visible: true });
+        const fromParam = searchParams.get('from');
+        const redirectUrl = fromParam === 'wellcome' ? '/dashboard/inbox/wellcome' : '/dashboard/automation';
         setTimeout(() => {
-          router.push('/dashboard/automation');
+          router.push(redirectUrl);
         }, 1200);
       } else {
         setToast({ message: "Failed to save. Invalid response.", type: 'error', visible: true });
@@ -95,9 +98,12 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
       <div className="h-16 px-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => router.push('/dashboard/automation')}
+            onClick={() => {
+              const fromParam = searchParams.get('from');
+              router.push(fromParam === 'wellcome' ? '/dashboard/inbox/wellcome' : '/dashboard/automation');
+            }}
             className="p-1.5 rounded-full hover:bg-white/5 text-white/60 hover:text-white transition-all cursor-pointer mr-1 flex items-center justify-center"
-            title="Back to Automations"
+            title="Back"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>

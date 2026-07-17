@@ -1328,5 +1328,61 @@
         }
       ]
     }
+  },
+  "21": {
+    "target": {
+      "mode": "every",
+      "media_type": null,
+      "campaign_id": null,
+      "priority": 100,
+      "stop_on_match": false,
+      "status": "active",
+      "deduplication": false
+    },
+    "condition": {
+      "match_type": "any",
+      "keywords": [],
+      "follower_gate": false,
+      "follower_gate_messages": []
+    },
+    "actions": [
+      {
+        "action_type": "send_dm",
+        "dm_format": "text",
+        "message_mode": "fixed",
+        "messages": [
+          "Hello! Customize this reply flow for your Icebreaker question click."
+        ],
+        "parent_event": "SUPPORT"
+      }
+    ]
+  },
+  "22": {
+    "target": {
+      "mode": "every",
+      "media_type": null,
+      "campaign_id": null,
+      "priority": 100,
+      "stop_on_match": false,
+      "status": "active",
+      "deduplication": false
+    },
+    "condition": {
+      "match_type": "any",
+      "keywords": [],
+      "follower_gate": false,
+      "follower_gate_messages": []
+    },
+    "actions": [
+      {
+        "action_type": "send_dm",
+        "dm_format": "text",
+        "message_mode": "fixed",
+        "messages": [
+          "Hello! Customize this reply flow for your Persistent Menu button click."
+        ],
+        "parent_event": "TALK_TO_SALES"
+      }
+    ]
   }
 }

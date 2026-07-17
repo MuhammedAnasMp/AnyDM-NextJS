@@ -42,6 +42,8 @@ const TEMPLATE_CATEGORIES = [
     Components: [
       UserDM.ButtonTemplate,
       UserDM.WelcomeAutoReply,
+      UserDM.IceBreakerReplyFlow,
+      UserDM.PersistentMenuReplyFlow,
     ]
   },
   {

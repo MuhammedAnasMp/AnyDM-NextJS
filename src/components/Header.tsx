@@ -128,6 +128,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
     Inbox: [
       { name: "Inbox", href: "/dashboard/inbox" },
       { name: "Contacts", href: "/dashboard/inbox/contacts" },
+      { name: "Wellcome", href: "/dashboard/inbox/wellcome" },
     ],
     Games: [
       { name: "Spin-to-Win", href: "/dashboard/games/spin" },

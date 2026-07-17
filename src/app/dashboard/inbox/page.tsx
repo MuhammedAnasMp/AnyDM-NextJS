@@ -917,7 +917,7 @@ export default function InboxPage() {
   };
 
   const handleSendButtonTemplate = async (text: string, buttons: any[]) => {
-    const priceVal = selectedProductsForTemplates[0]?.price ? `${selectedProductsForTemplates[0].price} ${selectedProductsForTemplates[0].currency || 'KWD'}` : "";
+    const priceVal = selectedProductsForTemplates[0]?.price ? `${selectedProductsForTemplates[0].price} ${selectedProductsForTemplates[0].currency || '₹'}` : "";
     const processedText = (text || "").replace("{{price}}", priceVal);
     const processedButtons = (buttons || []).map((btn: any) => ({
       ...btn,
@@ -940,7 +940,7 @@ export default function InboxPage() {
 
   const handleSendGenericTemplate = async (elements: any[]) => {
     const processedElements = elements.map(el => {
-      const priceVal = el.price ? `${el.price} ${el.currency || 'KWD'}` : "";
+      const priceVal = el.price ? `${el.price} ${el.currency || '₹'}` : "";
       const processedButtons = (el.buttons || []).map((btn: any) => ({
         ...btn,
         title: (btn.title || "").replace("{{price}}", priceVal)
@@ -989,7 +989,7 @@ export default function InboxPage() {
       const prodUrl = `${window.location.origin}/${username}/product/${p.id}`;
       return {
         type: 'web_url',
-        title: `🛒 Buy: ${p.price || ''} ${p.currency || 'KWD'}`.slice(0, 20),
+        title: `🛒 Buy: ${p.price || ''} ${p.currency || '₹'}`.slice(0, 20),
         url: prodUrl
       };
     });
@@ -1005,7 +1005,7 @@ export default function InboxPage() {
         subtitle: (p.description || 'Premium quality item.').slice(0, 80),
         image_url: p.media_url || p.main_media_url || '',
         price: p.price || '',
-        currency: p.currency || 'KWD',
+        currency: p.currency || '₹',
         default_action: {
           type: 'web_url',
           url: prodUrl
@@ -1033,7 +1033,7 @@ export default function InboxPage() {
       id: ep.product_id,
       title: ep.title,
       price: ep.price,
-      currency: ep.currency || 'KWD',
+      currency: ep.currency || '₹',
       main_media_url: ep.main_media_url,
       description: ep.description || "Check out this product!"
     };
@@ -1815,7 +1815,7 @@ export default function InboxPage() {
                                     {(elem.title || "Edit Title").replace(
                                       "{{price}}",
                                       elem.price
-                                        ? `${elem.price} ${elem.currency || "KWD"}`
+                                        ? `${elem.price} ${elem.currency || "₹"}`
                                         : ""
                                     )}
                                   </span>
@@ -1874,7 +1874,7 @@ export default function InboxPage() {
                                     {(elem.subtitle || "Edit Description").replace(
                                       "{{price}}",
                                       elem.price
-                                        ? `${elem.price} ${elem.currency || "KWD"}`
+                                        ? `${elem.price} ${elem.currency || "₹"}`
                                         : ""
                                     )}
                                   </span>
@@ -1886,7 +1886,7 @@ export default function InboxPage() {
                             {/* Price */}
                             {elem.price && (
                               <div className="text-[11px] font-semibold text-[#b6b2ff] pt-1">
-                                {elem.price} {elem.currency || "KWD"}
+                                {elem.price} {elem.currency || "₹"}
                               </div>
                             )}
 
@@ -2039,7 +2039,7 @@ export default function InboxPage() {
                             className="flex items-center justify-between cursor-pointer group/btn-temp-txt w-full py-0.5"
                           >
                             <span className="text-sm text-[#f5f5f5] break-words whitespace-pre-wrap flex-1">
-                              {(btnTempText || "Message text...").replace("{{price}}", selectedProductsForTemplates[0]?.price ? `${selectedProductsForTemplates[0].price} ${selectedProductsForTemplates[0].currency || 'KWD'}` : "")}
+                              {(btnTempText || "Message text...").replace("{{price}}", selectedProductsForTemplates[0]?.price ? `${selectedProductsForTemplates[0].price} ${selectedProductsForTemplates[0].currency || '₹'}` : "")}
                             </span>
                             <Pencil className="w-2.5 h-2.5 text-white/30 opacity-100 md:opacity-0 md:group-hover/btn-temp-txt:opacity-100 transition-opacity ml-1 shrink-0" />
                           </div>
@@ -2054,7 +2054,7 @@ export default function InboxPage() {
                             <div key={bIdx} className="py-2.5 flex items-center justify-center px-4 relative group/btn hover:bg-white/[0.02] transition-colors min-h-[40px]">
                               {/* Centered Button Title View */}
                               <span className="text-sm font-semibold text-[#0095f6] truncate max-w-[80%] pointer-events-none select-none text-center">
-                                {(btn.title || "").replace("{{price}}", selectedProductsForTemplates[0]?.price ? `${selectedProductsForTemplates[0].price} ${selectedProductsForTemplates[0].currency || 'KWD'}` : "")}
+                                {(btn.title || "").replace("{{price}}", selectedProductsForTemplates[0]?.price ? `${selectedProductsForTemplates[0].price} ${selectedProductsForTemplates[0].currency || '₹'}` : "")}
                               </span>
 
                               {/* Absolute Edit Trigger Controls on the Right Edge of Button Row */}
@@ -2398,7 +2398,7 @@ export default function InboxPage() {
                             )}
                             <div className="flex-1 min-w-0 pr-5">
                               <p className="text-[11px] font-semibold text-white truncate">{ep.title}</p>
-                              {ep.price && <p className="text-[10px] font-bold text-[#b6b2ff] mt-0.5">{ep.price} {ep.currency || 'KWD'}</p>}
+                              {ep.price && <p className="text-[10px] font-bold text-[#b6b2ff] mt-0.5">{ep.price} {ep.currency || '₹'}</p>}
                               <div className="flex gap-1 mt-1">
                                 <span className={cn("px-1.5 py-0.5 rounded text-[8px] font-bold uppercase", enquiry.status === "OPEN" ? "bg-emerald-500/10 text-emerald-400" : "bg-white/5 text-white/30")}>{enquiry.status}</span>
                                 {ep.confidence_score != null && <span className="px-1.5 py-0.5 rounded bg-[#8fe3ff]/10 text-[#8fe3ff] text-[8px] font-bold">{Math.round(ep.confidence_score * 100)}%</span>}
@@ -2498,7 +2498,7 @@ export default function InboxPage() {
                                   <p className="text-[11px] font-bold text-white line-clamp-1 w-full leading-tight">{prod.title}</p>
                                   <p className="text-[10px] text-white/40 line-clamp-2 w-full leading-normal mt-0.5">{prod.description || "No description"}</p>
                                 </div>
-                                <p className="text-[10px] font-extrabold text-[#b6b2ff] mt-1.5">{prod.price ? `${prod.price} ${prod.currency || 'KWD'}` : 'Price TBD'}</p>
+                                <p className="text-[10px] font-extrabold text-[#b6b2ff] mt-1.5">{prod.price ? `${prod.price} ${prod.currency || '₹'}` : 'Price TBD'}</p>
                               </div>
                               {isSel && (
                                 <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#b6b2ff] text-black text-[9px] font-black flex items-center justify-center shadow-lg border border-black/10">
@@ -2618,7 +2618,7 @@ export default function InboxPage() {
                               <p className="text-[11px] font-bold text-white line-clamp-1 w-full leading-tight">{prod.title}</p>
                               <p className="text-[10px] text-white/40 line-clamp-2 w-full leading-normal mt-0.5">{prod.description || "No description"}</p>
                             </div>
-                            <p className="text-[10px] font-extrabold text-[#b6b2ff] mt-1.5">{prod.price ? `${prod.price} ${prod.currency || 'KWD'}` : 'Price TBD'}</p>
+                            <p className="text-[10px] font-extrabold text-[#b6b2ff] mt-1.5">{prod.price ? `${prod.price} ${prod.currency || '₹'}` : 'Price TBD'}</p>
                           </div>
                           {isSel && (
                             <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#b6b2ff] text-black text-[9px] font-black flex items-center justify-center shadow-lg border border-black/10">

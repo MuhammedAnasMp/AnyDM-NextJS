@@ -57,3 +57,29 @@ export function WelcomeAutoReply() {
   );
 }
 
+export function IceBreakerReplyFlow() {
+  const dispatch = useDispatch();
+  return (
+    <TemplateItem
+      title="Welcome Message Flow"
+      desc="Reply to Icebreaker questions"
+      icon={Hand}
+      templateId="21"
+      onClick={() => dispatch(addDefaultFlowTemplate({ ruleType: 'dm_automation', name: 'Welcome Message Flow: SUPPORT', templateId: '21' }))}
+    />
+  );
+}
+
+export function PersistentMenuReplyFlow() {
+  const dispatch = useDispatch();
+  return (
+    <TemplateItem
+      title="Persistent Menu Flow"
+      desc="Reply to Persistent Menu buttons"
+      icon={Menu}
+      templateId="22"
+      onClick={() => dispatch(addDefaultFlowTemplate({ ruleType: 'dm_automation', name: 'Persistent Menu Flow: TALK_TO_SALES', templateId: '22' }))}
+    />
+  );
+}
+

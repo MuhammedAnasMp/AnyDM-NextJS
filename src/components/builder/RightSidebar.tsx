@@ -6,7 +6,7 @@ import { RootState } from '@/store';
 import { updateNodeData, selectNode, updateFlowName, openMediaPicker } from '@/store/slices/flowSlice';
 import { AUTOMATION_MANIFESTS, TEMPLATE_OVERRIDES } from '@/lib/manifest';
 import { Input, Select, Switch } from '@/components/ui/InputForm';
-import { X, ExternalLink, GripHorizontal, Sparkles, ChevronDown, ChevronRight, LayoutGrid, MessageSquare, Zap, Paperclip } from 'lucide-react';
+import { X, ExternalLink, GripHorizontal, Sparkles, ChevronDown, ChevronRight, LayoutGrid, MessageSquare, Zap, Paperclip, Settings } from 'lucide-react';
 import { motion, useDragControls, useAnimation } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import api from '@/lib/services/api.service';
@@ -46,6 +46,8 @@ export function RightSidebar() {
   const selectedNodeRect = useSelector((state: RootState) => state.flow.selectedNodeRect);
   const flow = useSelector((state: RootState) => state.flow);
   const triggerNode = flow.nodes.find(n => n.type === 'trigger');
+  const isProfileFlow = triggerNode?.data?.is_icebreaker_trigger || triggerNode?.data?.is_menu_trigger;
+  const isSelectedProfileTrigger = selectedNode?.type === 'trigger' && (selectedNode.data?.is_icebreaker_trigger || selectedNode.data?.is_menu_trigger);
 
   const [showAdvanced, setShowAdvanced] = React.useState(false);
   const [dmFormatDropdownOpen, setDmFormatDropdownOpen] = React.useState(false);
@@ -238,14 +240,28 @@ export function RightSidebar() {
 
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         {isGlobal && (
-          <div className="space-y-6">
+          <div className="space-y-6 animate-fadeIn">
             <Input
               label="Campaign Name"
               value={flow.name || ''}
               onChange={(e) => dispatch(updateFlowName(e.target.value))}
-              placeholder="e.g. Summer Sale 2026"
+              placeholder="e.g. Welcome Message Flow"
+              disabled={isProfileFlow}
             />
-            {triggerNode ? (
+            {isProfileFlow ? (
+              <div className="bg-[#8FE3FF]/5 border border-[#8FE3FF]/20 rounded-xl p-4 space-y-3">
+                <div className="flex items-center gap-2 text-[#8FE3FF]">
+                  <Settings className="w-4 h-4 shrink-0" />
+                  <span className="text-xs font-bold uppercase tracking-wider">Welcome Experience Flow</span>
+                </div>
+                <p className="text-xs text-zinc-400 leading-relaxed">
+                  This flow is connected to your active Instagram Welcome configuration. Trigger properties, schedules, and status are managed directly from the Welcome Experience settings page.
+                </p>
+                <div className="text-[10px] text-zinc-505 font-mono pt-1">
+                  Flow Name: {flow.name}
+                </div>
+              </div>
+            ) : triggerNode ? (
               <>
                 <Input
                   label="Campaign ID (Unique Slug)"
@@ -303,7 +319,43 @@ export function RightSidebar() {
             )}
           </div>
         )}
-        {!isGlobal && definitions.map((def) => {
+        {isSelectedProfileTrigger && (
+          <div className="bg-black/35 border border-white/5 rounded-xl p-4 space-y-4 animate-fadeIn">
+            <div className="flex items-center gap-2 text-[#8FE3FF]">
+              <Settings className="w-4 h-4 shrink-0" />
+              <span className="text-xs font-bold uppercase tracking-wider">Trigger Settings Locked</span>
+            </div>
+            <p className="text-xs text-zinc-405 leading-relaxed">
+              This trigger node represents the active questions/buttons on your Instagram profile Welcome Experience.
+            </p>
+            <p className="text-xs text-zinc-405 leading-relaxed">
+              To update active options, layouts, or question text, please visit the Inbox Welcome configuration page.
+            </p>
+            <div className="pt-2 border-t border-white/5 flex flex-col gap-2">
+              <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Active Options:</span>
+              <div className="flex flex-col gap-1.5">
+                {selectedNode.data?.is_icebreaker_trigger ? (
+                  (selectedNode.data?.icebreakers || []).map((ib: any, idx: number) => (
+                    <div key={idx} className="bg-white/5 border border-white/10 rounded-lg p-2.5 text-left text-xs font-semibold text-white flex items-center justify-between gap-3">
+                      <span>{ib.question || `Question ${idx + 1}`}</span>
+                      <span className="text-[8px] bg-[#8FE3FF]/15 text-[#8FE3FF] border border-[#8FE3FF]/20 px-1 py-0.2 rounded font-mono shrink-0 uppercase">{ib.payload}</span>
+                    </div>
+                  ))
+                ) : (
+                  (selectedNode.data?.persistent_menu_items || []).map((item: any, idx: number) => (
+                    <div key={idx} className="bg-white/5 border border-white/10 rounded-lg p-2.5 text-left text-xs font-semibold text-white flex items-center justify-between gap-3">
+                      <span className="truncate">{item.title || `Button ${idx + 1}`}</span>
+                      <span className="text-[8px] bg-purple-500/15 text-purple-400 border border-purple-500/20 px-1 py-0.2 rounded font-mono shrink-0 uppercase">
+                        {item.type === 'web_url' ? 'URL' : item.payload || 'POSTBACK'}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+        {!isGlobal && !isSelectedProfileTrigger && definitions.map((def) => {
           // Check dependencies
           if (def.dependsOn) {
             const depVal = selectedNode?.data[def.dependsOn.field];

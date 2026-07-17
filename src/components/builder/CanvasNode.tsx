@@ -125,9 +125,15 @@ export function CanvasNode({ id }: { id: string }) {
             customTitle = 'Reply to Comment';
         }
     } else if (node.type === 'trigger') {
-        const isDM = node.ruleType?.includes('dm');
-        const isStory = node.ruleType?.includes('story');
-        customTitle = isDM ? 'DM Incoming Trigger' : (isStory ? 'Story Reply Trigger' : 'Comments on Post/Reel');
+        if (node.data?.is_icebreaker_trigger) {
+            customTitle = 'Welcome Message Suggested Questions';
+        } else if (node.data?.is_menu_trigger) {
+            customTitle = 'Persistent Menu Navigation';
+        } else {
+            const isDM = node.ruleType?.includes('dm');
+            const isStory = node.ruleType?.includes('story');
+            customTitle = isDM ? 'DM Incoming Trigger' : (isStory ? 'Story Reply Trigger' : 'Comments on Post/Reel');
+        }
     }
 
     if (node.type === 'action' && node.data?.is_placeholder) {
@@ -429,6 +435,60 @@ export function CanvasNode({ id }: { id: string }) {
 
                 {/* Node Content Variations based on type and dynamic data */}
                 {node.type === 'trigger' && (() => {
+                    if (node.data?.is_icebreaker_trigger) {
+                        return (
+                            <div className="flex flex-col gap-3 text-xs w-full">
+                                <div className="bg-black/35 border border-white/5 rounded-xl p-3 flex flex-col gap-2">
+                                    <span className="text-[10px] font-bold text-[#8FE3FF] uppercase tracking-widest block mb-1">💬 Suggested Questions (Icebreakers)</span>
+                                    {node.data?.welcome_prompt && (
+                                        <div className="text-[10px] text-zinc-400 italic mb-1.5 font-medium border-b border-white/5 pb-1">
+                                            &quot;{node.data.welcome_prompt}&quot;
+                                        </div>
+                                    )}
+                                    <div className="flex flex-col gap-1.5">
+                                        {(node.data?.icebreakers || []).map((ib: any, idx: number) => (
+                                            <div key={idx} className="bg-white/5 border border-[#444748] rounded-lg p-2.5 text-left text-xs font-semibold text-white flex items-center justify-between gap-3">
+                                                <span>{ib.question || `Question ${idx + 1}`}</span>
+                                                <span className="text-[8px] bg-[#8FE3FF]/10 text-[#8FE3FF] border border-[#8FE3FF]/20 px-1 py-0.2 rounded font-mono shrink-0 uppercase">{ib.payload}</span>
+                                            </div>
+                                        ))}
+                                        {(!node.data?.icebreakers || node.data.icebreakers.length === 0) && (
+                                            <span className="text-zinc-550 italic text-[11px]">No questions configured.</span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    }
+
+                    if (node.data?.is_menu_trigger) {
+                        return (
+                            <div className="flex flex-col gap-3 text-xs w-full">
+                                <div className="bg-black/35 border border-white/5 rounded-xl p-3 flex flex-col gap-2">
+                                    <span className="text-[10px] font-bold text-[#C084FC] uppercase tracking-widest block mb-1">🍔 Persistent Menu Actions</span>
+                                    {node.data?.composer_input_disabled && (
+                                        <span className="text-[8.5px] px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400 self-start uppercase font-bold tracking-wider mb-1">
+                                            Composer Input Disabled
+                                        </span>
+                                    )}
+                                    <div className="flex flex-col gap-1.5">
+                                        {(node.data?.persistent_menu_items || []).map((item: any, idx: number) => (
+                                            <div key={idx} className="bg-white/5 border border-[#444748] rounded-lg p-2.5 text-left text-xs font-semibold text-white flex items-center justify-between gap-3">
+                                                <span className="truncate">{item.title || `Button ${idx + 1}`}</span>
+                                                <span className="text-[8px] bg-purple-500/10 text-purple-400 border border-purple-500/20 px-1 py-0.2 rounded font-mono shrink-0 uppercase">
+                                                    {item.type === 'web_url' ? 'URL' : item.payload || 'POSTBACK'}
+                                                </span>
+                                            </div>
+                                        ))}
+                                        {(!node.data?.persistent_menu_items || node.data.persistent_menu_items.length === 0) && (
+                                            <span className="text-zinc-550 italic text-[11px]">No menu buttons configured.</span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    }
+
                     let displayTarget = 'Every Post / Reel';
                     if (node.ruleType?.includes('story')) {
                         displayTarget = (node.data?.target_mode === 'selected') ? 'Selected Stories Only' : 'Every Story';

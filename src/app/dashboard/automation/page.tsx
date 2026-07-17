@@ -288,10 +288,21 @@ export default function AutomationsDashboard() {
 
                         {/* Minimal Compact Switch */}
                         <button
-                          onClick={() => handleToggle(item.id, item.status)}
+                          onClick={() => {
+                            if (item.name.startsWith("Welcome Message Flow: ") || item.name.startsWith("Persistent Menu Flow: ")) {
+                              setToast({
+                                message: "Status managed by Welcome Profile config. It cannot be disabled here.",
+                                type: "info",
+                                visible: true
+                              });
+                              return;
+                            }
+                            handleToggle(item.id, item.status);
+                          }}
                           disabled={togglingId === item.id}
-                          className={`w-8 h-4.5 rounded-full p-0.5 transition-colors relative flex items-center cursor-pointer outline-none border border-transparent shrink-0 ${item.status === "active" ? "bg-white" : "bg-[#20201f] border-[#444748]"
-                            }`}
+                          className={`w-8 h-4.5 rounded-full p-0.5 transition-colors relative flex items-center cursor-pointer outline-none border border-transparent shrink-0 ${
+                            item.status === "active" ? "bg-white" : "bg-[#20201f] border-[#444748]"
+                          } ${(item.name.startsWith("Welcome Message Flow: ") || item.name.startsWith("Persistent Menu Flow: ")) ? "opacity-50 cursor-not-allowed" : ""}`}
                         >
                           <div className={`w-3 h-3 rounded-full shadow-sm transform transition-transform duration-100 ${item.status === "active" ? "translate-x-3.5 bg-[#131313]" : "translate-x-0 bg-[#8e9192]"
                             } flex items-center justify-center`}>
@@ -307,6 +318,11 @@ export default function AutomationsDashboard() {
                         <span className={`px-1.5 py-0.2 text-[8px] font-bold rounded-sm uppercase tracking-wider border ${getRuleTypeBadgeStyles(item.rule_type)}`}>
                           {formatRuleType(item.rule_type)}
                         </span>
+                        {(item.name.startsWith("Welcome Message Flow: ") || item.name.startsWith("Persistent Menu Flow: ")) && (
+                          <span className="px-1.5 py-0.2 text-[8px] font-bold rounded-sm uppercase tracking-wider border border-[#8FE3FF]/20 text-[#8FE3FF] bg-[#8FE3FF]/5">
+                            Welcome Experience
+                          </span>
+                        )}
                         <span className="text-[10px] text-[#c4c7c8] flex items-center gap-1 font-medium">
                           <CheckCircle2 className="w-3 h-3 text-[#8FE3FF]" />
                           {item.count} runs
@@ -360,10 +376,24 @@ export default function AutomationsDashboard() {
                         <span>Edit</span>
                       </Link>
                       <button
-                        onClick={() => handleDelete(item.id)}
+                        onClick={() => {
+                          if (item.name.startsWith("Welcome Message Flow: ") || item.name.startsWith("Persistent Menu Flow: ")) {
+                            setToast({
+                              message: "This flow is managed by your Welcome Profile. Delete the profile settings in Inbox Welcome page to remove it.",
+                              type: "info",
+                              visible: true
+                            });
+                            return;
+                          }
+                          handleDelete(item.id);
+                        }}
                         disabled={deletingId === item.id}
-                        className="p-1.5 bg-[#131313] hover:bg-rose-950/10 border border-[#444748] hover:border-rose-900/30 rounded text-[#e5e2e1] hover:text-rose-400 transition-colors flex items-center justify-center disabled:opacity-50"
-                        title="Delete automation"
+                        className={`p-1.5 border border-[#444748] rounded transition-colors flex items-center justify-center disabled:opacity-50 ${
+                          (item.name.startsWith("Welcome Message Flow: ") || item.name.startsWith("Persistent Menu Flow: "))
+                            ? "bg-[#131313] text-zinc-600 border-[#2b2b2b] cursor-not-allowed opacity-50"
+                            : "bg-[#131313] hover:bg-rose-950/10 hover:border-rose-900/30 text-[#e5e2e1] hover:text-rose-400"
+                        }`}
+                        title={(item.name.startsWith("Welcome Message Flow: ") || item.name.startsWith("Persistent Menu Flow: ")) ? "Managed by Welcome Profile" : "Delete automation"}
                       >
                         {deletingId === item.id ? (
                           <Loader2 className="w-3 h-3 animate-spin" />
