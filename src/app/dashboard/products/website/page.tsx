@@ -20,6 +20,7 @@ import {
   MessageSquare,
   Palette,
   AlertCircle,
+  X,
 } from "lucide-react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";

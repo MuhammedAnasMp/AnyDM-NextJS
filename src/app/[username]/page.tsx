@@ -38,6 +38,9 @@ interface WebsiteSettingsData {
   custom_settings: any;
   privacy_policy?: string;
   terms_of_service?: string;
+  contact_email?: string;
+  contact_phone?: string;
+  shipping_address?: string;
 }
 
 interface ProductData {

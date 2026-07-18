@@ -323,7 +323,7 @@ function PhonePreview({
                                 <h3 className="text-[9px] font-bold text-white leading-none">More Options</h3>
                                 <p className="text-[7px] text-zinc-500 font-medium mt-0.5">Custom shortcuts suggested by {username}</p>
 
-                                <div className="w-full flex flex-wrap justify-center gap-1.5 my-3">
+                                <div className="w-full flex flex-col items-center gap-1.5 my-3">
                                     {itemsList.filter((item: any) => item.title && item.title.trim() !== '').map((item: any, idx: number) => (
                                         <div
                                             key={idx}
@@ -658,6 +658,18 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
         }
     }, [node, mounted, activeAccountId, username, websiteUrl, fetchSettingsFromAPI]);
 
+    // Sync with URL query parameter on mount/load
+    React.useEffect(() => {
+        if (mounted && !nodeId && typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            const openTab = params.get('open');
+            if (openTab === 'icebreakers' || openTab === 'persistent_menu') {
+                setModalTab(openTab);
+                setIsEditModalOpen(true);
+            }
+        }
+    }, [mounted, nodeId, welcomePrompt, iceBreakers, persistentMenuItems, composerInputDisabled]);
+
     // Force modal open when embedded via React Flow node context
     React.useEffect(() => {
         if (nodeId) {
@@ -688,12 +700,26 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
         setModalTab(tab);
         setValidationError(null);
         setIsEditModalOpen(true);
+
+        // Update URL query parameters to show the open mode
+        if (typeof window !== 'undefined') {
+            const url = new URL(window.location.href);
+            url.searchParams.set('open', tab);
+            window.history.pushState({}, '', url.toString());
+        }
     };
 
     const onCloseModal = () => {
         setIsEditModalOpen(false);
         if (nodeId && onClose) {
             onClose();
+        }
+
+        // Remove URL query parameter when modal closes
+        if (typeof window !== 'undefined') {
+            const url = new URL(window.location.href);
+            url.searchParams.delete('open');
+            window.history.pushState({}, '', url.toString());
         }
     };
 
@@ -936,6 +962,13 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
             if (nodeId && onClose) {
                 onClose();
             }
+
+            // Remove URL query parameter when modal closes via delete
+            if (typeof window !== 'undefined') {
+                const url = new URL(window.location.href);
+                url.searchParams.delete('open');
+                window.history.pushState({}, '', url.toString());
+            }
         } catch (err: any) {
             const errMsg = err.response?.data?.error || err.message || "Failed to delete settings from Instagram.";
             setValidationError(errMsg);
@@ -1176,7 +1209,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                 type="button"
                                 onClick={handleDelete}
                                 disabled={isDeleting || isSaving}
-                                className="mr-auto px-4 py-1.5 border border-red-500/30 text-red-500 hover:bg-red-500/10 text-xs font-semibold rounded-md transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                                className="mr-auto px-4 py-1.5 border border-red-500/30 text-red-500 hover:bg-red-500/10 text-xs font-semibold rounded transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
                             >
                                 {isDeleting ? (
                                     <>
@@ -1184,14 +1217,14 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                         Deleting...
                                     </>
                                 ) : (
-                                    modalTab === 'icebreakers' ? "Delete Message" : "Delete Menu"
+                                    modalTab === 'icebreakers' ? "Delete Message Flow" : "Delete Menu Flow"
                                 )}
                             </button>
                             <button
                                 type="button"
                                 onClick={onCloseModal}
                                 disabled={isSaving || isDeleting}
-                                className="px-4 py-1.5 border border-[#444748] hover:bg-[#202020] text-xs font-semibold rounded-md transition-colors cursor-pointer text-white disabled:opacity-50"
+                                className="px-4 py-1.5 border border-[#444748] hover:bg-[#202020] text-xs font-semibold rounded transition-colors cursor-pointer text-white disabled:opacity-50"
                             >
                                 Cancel
                             </button>
@@ -1199,7 +1232,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                 type="button"
                                 onClick={handleSave}
                                 disabled={isSaving || isDeleting}
-                                className="px-4 py-1.5 bg-sky-500 hover:bg-sky-600 text-white text-xs font-semibold rounded-md transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                                className="px-4 py-1.5 bg-sky-500 hover:bg-sky-600 text-white text-xs font-semibold rounded transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
                             >
                                 {isSaving ? (
                                     <>
@@ -1260,14 +1293,14 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                 <button
                                     type="button"
                                     onClick={() => handleEditPayloadFlow('icebreakers_flow', 'icebreakers')}
-                                    className="px-3.5 py-2 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold rounded-lg shadow-md active:scale-95 transition-all cursor-pointer"
+                                    className="px-3.5 py-2 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold rounded shadow-md active:scale-95 transition-all cursor-pointer"
                                 >
                                     Edit Flow
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => openEditModal('icebreakers')}
-                                    className="flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-zinc-200 text-black text-xs font-bold rounded-lg shadow-md active:scale-95 transition-all cursor-pointer"
+                                    className="flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-zinc-200 text-black text-xs font-bold rounded shadow-md active:scale-95 transition-all cursor-pointer"
                                 >
                                     <Edit2 className="w-3.5 h-3.5" />
                                     Edit
@@ -1278,7 +1311,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                 type="button"
                                 onClick={() => handleCreateSample('icebreakers')}
                                 disabled={isSampleLoading.icebreakers}
-                                className="flex items-center gap-1.5 px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold rounded-lg shadow-md active:scale-95 transition-all cursor-pointer shrink-0 disabled:opacity-50"
+                                className="flex items-center gap-1.5 px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold rounded shadow-md active:scale-95 transition-all cursor-pointer shrink-0 disabled:opacity-50"
                             >
                                 {isSampleLoading.icebreakers ? (
                                     <div className="w-3.5 h-3.5 text-white border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -1318,14 +1351,14 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                 <button
                                     type="button"
                                     onClick={() => handleEditPayloadFlow('persistent_menu_flow', 'persistent_menu')}
-                                    className="px-3.5 py-2 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold rounded-lg shadow-md active:scale-95 transition-all cursor-pointer"
+                                    className="px-3.5 py-2 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold rounded shadow-md active:scale-95 transition-all cursor-pointer"
                                 >
                                     Edit Flow
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => openEditModal('persistent_menu')}
-                                    className="flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-zinc-200 text-black text-xs font-bold rounded-lg shadow-md active:scale-95 transition-all cursor-pointer shrink-0"
+                                    className="flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-zinc-200 text-black text-xs font-bold rounded shadow-md active:scale-95 transition-all cursor-pointer shrink-0"
                                 >
                                     <Edit2 className="w-3.5 h-3.5" />
                                     Edit
@@ -1336,7 +1369,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                 type="button"
                                 onClick={() => handleCreateSample('persistent_menu')}
                                 disabled={isSampleLoading.persistent_menu}
-                                className="flex items-center gap-1.5 px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold rounded-lg shadow-md active:scale-95 transition-all cursor-pointer shrink-0 disabled:opacity-50"
+                                className="flex items-center gap-1.5 px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold rounded shadow-md active:scale-95 transition-all cursor-pointer shrink-0 disabled:opacity-50"
                             >
                                 {isSampleLoading.persistent_menu ? (
                                     <div className="w-3.5 h-3.5 border-2 text-white border-white

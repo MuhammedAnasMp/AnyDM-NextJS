@@ -336,7 +336,7 @@ export default function BuilderPage() {
       } else {
         dispatch(setFlow({
           id: `node-f-${Date.now()}`,
-          name: 'New Automation Flow',
+          name: 'New Flow',
           nodes: [],
           edges: [],
           selectedNodeId: null,

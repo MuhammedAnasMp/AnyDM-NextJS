@@ -2978,7 +2978,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                       { value: 'image', label: 'Image', icon: ImageIcon },
                       { value: 'video', label: 'Video', icon: Film },
                       { value: 'audio', label: 'Audio', icon: Headphones },
-                      { value: 'file', label: 'File', icon: Paperclip },
+                      // { value: 'file', label: 'File', icon: Paperclip },
                       { value: 'sticker', label: 'Sticker', icon: Heart },
                       { value: 'MEDIA_SHARE', label: 'Media Share', icon: Share2 }
                     ].map(tab => {

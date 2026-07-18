@@ -138,7 +138,7 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
             </button>
           </div>
 
-          <button
+          {/* <button
             onClick={onTogglePreview}
             className={`h-10 px-4 rounded-full border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${showPreview
               ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/20 shadow-sm'
@@ -147,7 +147,7 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
           >
             {showPreview ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
             <span>{showPreview ? 'Hide Preview' : 'Show Preview'}</span>
-          </button>
+          </button> */}
           <button
             onClick={() => handleSave('draft')}
             disabled={isSaving}

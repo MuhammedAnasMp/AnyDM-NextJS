@@ -40,7 +40,7 @@ export default function Toast({ message, type = "error", isVisible, onClose }: T
           initial={{ opacity: 0, y: 10, x: 20, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, x: 0, scale: 1 }}
           exit={{ opacity: 0, scale: 0.98, x: 20, transition: { duration: 0.2 } }}
-          className="fixed top-8 right-8 z-[9999] pointer-events-none"
+          className="fixed top-20 right-8 z-[9999] pointer-events-none"
         >
           <div className="pointer-events-auto bg-black/80 backdrop-blur-2xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] rounded-xl py-3 pl-4 pr-3 flex items-center gap-3 min-w-[320px] max-w-[420px] relative overflow-hidden group">
              {/* Left accent glow */}

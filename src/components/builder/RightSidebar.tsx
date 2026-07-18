@@ -78,7 +78,7 @@ export function RightSidebar() {
       if (currentIds.length === 0) {
         const isStory = selectedNode.ruleType?.includes('story');
         const endpoint = isStory ? '/accounts/instagram/stories/' : '/accounts/instagram/media-list/';
-        
+
         api.get(endpoint).then(res => {
           if (res.data && res.data.data && res.data.data.length > 0) {
             const latestItem = res.data.data[0];
@@ -134,13 +134,13 @@ export function RightSidebar() {
 
   const ruleType = selectedNode?.ruleType || triggerNode?.ruleType || 'comment_automation';
   const templateId = selectedNode?.templateId || triggerNode?.templateId;
-  
+
   let definitions = !isGlobal && selectedNode ? (AUTOMATION_MANIFESTS[ruleType]?.nodeDefinitions[selectedNode.type] || []) : [];
-  
+
   if (selectedNode && templateId && TEMPLATE_OVERRIDES[templateId]?.hiddenFields?.[selectedNode.type]) {
-    const hiddenList = TEMPLATE_OVERRIDES[templateId].hiddenFields![selectedNode.type].filter(name => 
-      name !== 'dm_format' && 
-      name !== 'rate_limit_limit' && 
+    const hiddenList = TEMPLATE_OVERRIDES[templateId].hiddenFields![selectedNode.type].filter(name =>
+      name !== 'dm_format' &&
+      name !== 'rate_limit_limit' &&
       name !== 'rate_limit_window_seconds'
     );
     definitions = definitions.filter(def => !hiddenList.includes(def.name));
@@ -150,7 +150,7 @@ export function RightSidebar() {
     const format = selectedNode.data?.dm_format;
     const actionType = selectedNode.data?.action_type || 'reply_comment';
     const isEcommerceTemplate = !!(selectedNode.ruleType && selectedNode.ruleType.includes('product_inquiry'));
-    
+
     if (actionType === 'send_dm') {
       if (isEcommerceTemplate) {
         definitions = [];
@@ -158,7 +158,7 @@ export function RightSidebar() {
         if (!format) {
           definitions = definitions.filter(def => def.name === 'action_type' || def.name === 'dm_format');
         } else if (format !== 'text') {
-          definitions = definitions.filter(def => 
+          definitions = definitions.filter(def =>
             def.name !== 'messages' &&
             def.name !== 'quick_reply_text' &&
             def.name !== 'quick_replies_titles' &&
@@ -197,7 +197,7 @@ export function RightSidebar() {
   };
 
   return (
-    <motion.div 
+    <motion.div
       id="settings-sidebar"
       drag={!!selectedNodeRect}
       dragControls={dragControls}
@@ -211,12 +211,12 @@ export function RightSidebar() {
       style={style}
       className={cn(
         "w-80 flex flex-col z-50 overflow-hidden",
-        selectedNodeRect 
-          ? "rounded-2xl bg-[#0F0F1A]/95 backdrop-blur-3xl border-[1px] border-[#8FE3FF]/30 shadow-[0_32px_80px_-16px_rgba(0,0,0,0.6),0_0_0_1px_rgba(143,227,255,0.15)] ring-1 ring-[#8FE3FF]/10" 
+        selectedNodeRect
+          ? "rounded-2xl bg-[#0F0F1A]/95 backdrop-blur-3xl border-[1px] border-[#8FE3FF]/30 shadow-[0_32px_80px_-16px_rgba(0,0,0,0.6),0_0_0_1px_rgba(143,227,255,0.15)] ring-1 ring-[#8FE3FF]/10"
           : "h-full rounded-none bg-[#1c1b1b]/95 backdrop-blur-xl border-l border-white/10 shadow-2xl"
       )}
     >
-      <div 
+      <div
         className={cn(
           "flex items-center justify-between p-3 border-b border-white/5",
           selectedNodeRect && "cursor-grab active:cursor-grabbing bg-[#8FE3FF]/5"
@@ -229,8 +229,8 @@ export function RightSidebar() {
             {isGlobal ? 'Global Settings' : `${selectedNode?.type} Settings`}
           </h3>
         </div>
-        <button 
-          onClick={() => dispatch(selectNode(null))} 
+        <button
+          onClick={() => dispatch(selectNode(null))}
           onPointerDown={(e) => e.stopPropagation()}
           className="p-1 rounded-md hover:bg-white/10 text-on-surface-variant transition-colors"
         >
@@ -263,14 +263,14 @@ export function RightSidebar() {
               </div>
             ) : triggerNode ? (
               <>
-                <Input
+                {/* <Input
                   label="Campaign ID (Unique Slug)"
                   value={triggerNode.data.campaign_id || ''}
                   onChange={(e) => handleGlobalTriggerUpdate('campaign_id', e.target.value.toLowerCase().replace(/[^a-z0-9-_]+/g, '-'))}
                   placeholder="e.g. summer-sale-2026"
-                />
-                
-                <Select
+                /> */}
+
+                {/* <Select
                   label="Campaign Status"
                   value={triggerNode.data.status || 'draft'}
                   onChange={(e) => handleGlobalTriggerUpdate('status', e.target.value)}
@@ -280,7 +280,7 @@ export function RightSidebar() {
                   <option value="paused">Paused</option>
                   <option value="completed">Completed</option>
                   <option value="archived">Archived</option>
-                </Select>
+                </Select> */}
 
                 <div className="border-t border-white/5 pt-4 space-y-4">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-white">Campaign Schedule</h4>
@@ -296,7 +296,7 @@ export function RightSidebar() {
                     value={triggerNode.data.end_at ? triggerNode.data.end_at.substring(0, 16) : ''}
                     onChange={(e) => handleGlobalTriggerUpdate('end_at', e.target.value ? new Date(e.target.value).toISOString() : null)}
                   />
-                  <Select
+                  {/* <Select
                     label="Timezone"
                     value={triggerNode.data.timezone || 'UTC'}
                     onChange={(e) => handleGlobalTriggerUpdate('timezone', e.target.value)}
@@ -310,7 +310,7 @@ export function RightSidebar() {
                     <option value="Asia/Kolkata">Asia/Kolkata (IST)</option>
                     <option value="Asia/Singapore">Asia/Singapore (SGT)</option>
                     <option value="Asia/Dubai">Asia/Dubai (GST)</option>
-                  </Select>
+                  </Select> */}
                 </div>
 
               </>
@@ -338,16 +338,16 @@ export function RightSidebar() {
                   (selectedNode.data?.icebreakers || []).map((ib: any, idx: number) => (
                     <div key={idx} className="bg-white/5 border border-white/10 rounded-lg p-2.5 text-left text-xs font-semibold text-white flex items-center justify-between gap-3">
                       <span>{ib.question || `Question ${idx + 1}`}</span>
-                      <span className="text-[8px] bg-[#8FE3FF]/15 text-[#8FE3FF] border border-[#8FE3FF]/20 px-1 py-0.2 rounded font-mono shrink-0 uppercase">{ib.payload}</span>
+                      {/* <span className="text-[8px] bg-[#8FE3FF]/15 text-[#8FE3FF] border border-[#8FE3FF]/20 px-1 py-0.2 rounded font-mono shrink-0 uppercase">{ib.payload}</span> */}
                     </div>
                   ))
                 ) : (
                   (selectedNode.data?.persistent_menu_items || []).map((item: any, idx: number) => (
                     <div key={idx} className="bg-white/5 border border-white/10 rounded-lg p-2.5 text-left text-xs font-semibold text-white flex items-center justify-between gap-3">
                       <span className="truncate">{item.title || `Button ${idx + 1}`}</span>
-                      <span className="text-[8px] bg-purple-500/15 text-purple-400 border border-purple-500/20 px-1 py-0.2 rounded font-mono shrink-0 uppercase">
+                      {/* <span className="text-[8px] bg-purple-500/15 text-purple-400 border border-purple-500/20 px-1 py-0.2 rounded font-mono shrink-0 uppercase">
                         {item.type === 'web_url' ? 'URL' : item.payload || 'POSTBACK'}
-                      </span>
+                      </span> */}
                     </div>
                   ))
                 )}
@@ -468,7 +468,7 @@ export function RightSidebar() {
                           if (def.name === 'target_mode' && newVal === 'selected' && selectedNode) {
                             const isStory = selectedNode.ruleType?.includes('story');
                             const endpoint = isStory ? '/accounts/instagram/stories/' : '/accounts/instagram/media-list/';
-                            
+
                             api.get(endpoint).then(res => {
                               if (res.data && res.data.data && res.data.data.length > 0) {
                                 const latestItem = res.data.data[0];
@@ -523,7 +523,7 @@ export function RightSidebar() {
                       </Select>
                     </>
                   )}
-                  
+
                   {showEditButton && (
                     <button
                       onClick={() => {
@@ -578,24 +578,24 @@ export function RightSidebar() {
                       </span>
                     ))}
                   </div>
-                  <Input 
-                    placeholder="Type keyword and press Enter" 
+                  <Input
+                    placeholder="Type keyword and press Enter"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && e.currentTarget.value) {
                         handleUpdate(def.name, [...(value || []), e.currentTarget.value]);
                         e.currentTarget.value = '';
                       }
-                    }} 
+                    }}
                   />
                 </div>
               );
             case 'message_list':
-               return (
+              return (
                 <div key={def.name} className="space-y-2">
                   <label className="text-label-sm text-on-surface-variant uppercase tracking-wider">{def.label}</label>
                   <div className="space-y-2">
                     {(value || ['']).map((msg: string, idx: number) => (
-                       <div key={idx} className="flex gap-2">
+                      <div key={idx} className="flex gap-2">
                         <textarea
                           className="flex min-h-[60px] w-full rounded-md bg-surface-container border border-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:border-white/20 transition-all resize-y"
                           value={msg}
@@ -606,9 +606,9 @@ export function RightSidebar() {
                           }}
                         />
                         <button className="text-on-surface-variant hover:text-error pt-2 pointer-events-auto cursor-pointer" onClick={() => {
-                           const newMsgs = [...value];
-                           newMsgs.splice(idx, 1);
-                           handleUpdate(def.name, newMsgs);
+                          const newMsgs = [...value];
+                          newMsgs.splice(idx, 1);
+                          handleUpdate(def.name, newMsgs);
                         }}>
                           <X className="h-4 w-4" />
                         </button>
@@ -619,70 +619,70 @@ export function RightSidebar() {
                     </button>
                   </div>
                 </div>
-               );
-             case 'resource_picker': {
-               const detailsKey = `${def.name}_details`;
-               const valueDetails = selectedNode?.data[detailsKey] || [];
-               const hasError = def.name === 'media_ids' && selectedNode?.data.target_mode === 'selected' && (!value || value.length === 0);
-               return (
-                 <div key={def.name} className="space-y-2">
-                   <label className="text-label-sm text-on-surface-variant uppercase tracking-wider">{def.label}</label>
-                   <div onClick={() => selectedNode && dispatch(openMediaPicker({
-                     nodeId: selectedNode.id,
-                     fieldKey: def.name,
-                     resourceType: (def.resourceType as string) === 'story' ? 'story' : 'media'
-                   }))} className={cn(
-                     "flex h-10 w-full items-center justify-between rounded-md bg-surface-container border px-3 cursor-pointer hover:bg-surface-container-highest transition-colors",
-                     hasError ? "border-red-500/50 hover:border-red-500/80" : "border-white/10"
-                   )}>
-                     <span className={cn("text-sm", hasError ? "text-red-400 font-medium" : "text-on-surface-variant")}>
-                       {value?.length ? `${value.length} items selected` : '⚠️ Select at least 1 media...'}
-                     </span>
-                     <ExternalLink className={cn("h-4 w-4", hasError ? "text-red-400" : "text-on-surface-variant")} />
-                   </div>
-                   {hasError && (
-                     <p className="text-[10px] text-red-400 font-medium">At least one media item must be selected to save.</p>
-                   )}
-                   {valueDetails.length > 0 && (
-                     <div className="flex gap-2 overflow-x-auto py-1 scrollbar-thin">
-                       {valueDetails.map((m: any) => (
-                         <div key={m.id} className="relative w-12 h-12 rounded-lg overflow-hidden bg-white/5 border border-white/10 shrink-0">
-                           <img src={m.thumbnail_url || m.media_url} alt="" className="w-full h-full object-cover" />
-                         </div>
-                       ))}
-                     </div>
-                   )}
-                 </div>
-               );
-             }
-             case 'textarea': {
-               let isInvalidJson = false;
-               if (value && (def.name.endsWith('_json') || def.name.includes('weights'))) {
-                 try {
-                   JSON.parse(value);
-                 } catch (e) {
-                   isInvalidJson = true;
-                 }
-               }
-               return (
-                 <div key={def.name} className="flex flex-col gap-1 w-full">
-                   <label className="text-label-sm text-on-surface-variant uppercase tracking-wider">{def.label}</label>
-                   <textarea
-                     className={cn(
-                       "flex min-h-[120px] w-full rounded-md bg-[#1c1b1b] border px-3 py-2 text-xs text-white placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-1 transition-all font-mono resize-y",
-                       isInvalidJson 
-                         ? "border-red-500/50 focus:border-red-500 focus:ring-red-500/20" 
-                         : "border-white/10 focus:border-white/20 focus:ring-white/20"
-                     )}
-                     value={value || ''}
-                     onChange={(e) => handleUpdate(def.name, e.target.value)}
-                     placeholder={def.placeholder}
-                   />
-                   {isInvalidJson && <p className="text-[11px] text-red-400 font-medium">⚠️ Invalid JSON format</p>}
-                   {def.helperText && <p className="text-xs text-on-surface-variant/70">{def.helperText}</p>}
-                 </div>
-               );
-             }
+              );
+            case 'resource_picker': {
+              const detailsKey = `${def.name}_details`;
+              const valueDetails = selectedNode?.data[detailsKey] || [];
+              const hasError = def.name === 'media_ids' && selectedNode?.data.target_mode === 'selected' && (!value || value.length === 0);
+              return (
+                <div key={def.name} className="space-y-2">
+                  <label className="text-label-sm text-on-surface-variant uppercase tracking-wider">{def.label}</label>
+                  <div onClick={() => selectedNode && dispatch(openMediaPicker({
+                    nodeId: selectedNode.id,
+                    fieldKey: def.name,
+                    resourceType: (def.resourceType as string) === 'story' ? 'story' : 'media'
+                  }))} className={cn(
+                    "flex h-10 w-full items-center justify-between rounded-md bg-surface-container border px-3 cursor-pointer hover:bg-surface-container-highest transition-colors",
+                    hasError ? "border-red-500/50 hover:border-red-500/80" : "border-white/10"
+                  )}>
+                    <span className={cn("text-sm", hasError ? "text-red-400 font-medium" : "text-on-surface-variant")}>
+                      {value?.length ? `${value.length} items selected` : '⚠️ Select at least 1 media...'}
+                    </span>
+                    <ExternalLink className={cn("h-4 w-4", hasError ? "text-red-400" : "text-on-surface-variant")} />
+                  </div>
+                  {hasError && (
+                    <p className="text-[10px] text-red-400 font-medium">At least one media item must be selected to save.</p>
+                  )}
+                  {valueDetails.length > 0 && (
+                    <div className="flex gap-2 overflow-x-auto py-1 scrollbar-thin">
+                      {valueDetails.map((m: any) => (
+                        <div key={m.id} className="relative w-12 h-12 rounded-lg overflow-hidden bg-white/5 border border-white/10 shrink-0">
+                          <img src={m.thumbnail_url || m.media_url} alt="" className="w-full h-full object-cover" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+            case 'textarea': {
+              let isInvalidJson = false;
+              if (value && (def.name.endsWith('_json') || def.name.includes('weights'))) {
+                try {
+                  JSON.parse(value);
+                } catch (e) {
+                  isInvalidJson = true;
+                }
+              }
+              return (
+                <div key={def.name} className="flex flex-col gap-1 w-full">
+                  <label className="text-label-sm text-on-surface-variant uppercase tracking-wider">{def.label}</label>
+                  <textarea
+                    className={cn(
+                      "flex min-h-[120px] w-full rounded-md bg-[#1c1b1b] border px-3 py-2 text-xs text-white placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-1 transition-all font-mono resize-y",
+                      isInvalidJson
+                        ? "border-red-500/50 focus:border-red-500 focus:ring-red-500/20"
+                        : "border-white/10 focus:border-white/20 focus:ring-white/20"
+                    )}
+                    value={value || ''}
+                    onChange={(e) => handleUpdate(def.name, e.target.value)}
+                    placeholder={def.placeholder}
+                  />
+                  {isInvalidJson && <p className="text-[11px] text-red-400 font-medium">⚠️ Invalid JSON format</p>}
+                  {def.helperText && <p className="text-xs text-on-surface-variant/70">{def.helperText}</p>}
+                </div>
+              );
+            }
             default:
               return null;
           }

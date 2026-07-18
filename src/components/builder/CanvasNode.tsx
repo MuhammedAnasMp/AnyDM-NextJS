@@ -449,7 +449,7 @@ export function CanvasNode({ id }: { id: string }) {
                                         {(node.data?.icebreakers || []).map((ib: any, idx: number) => (
                                             <div key={idx} className="bg-white/5 border border-[#444748] rounded-lg p-2.5 text-left text-xs font-semibold text-white flex items-center justify-between gap-3">
                                                 <span>{ib.question || `Question ${idx + 1}`}</span>
-                                                <span className="text-[8px] bg-[#8FE3FF]/10 text-[#8FE3FF] border border-[#8FE3FF]/20 px-1 py-0.2 rounded font-mono shrink-0 uppercase">{ib.payload}</span>
+                                                {/* <span className="text-[8px] bg-[#8FE3FF]/10 text-[#8FE3FF] border border-[#8FE3FF]/20 px-1 py-0.2 rounded font-mono shrink-0 uppercase">{ib.payload}</span> */}
                                             </div>
                                         ))}
                                         {(!node.data?.icebreakers || node.data.icebreakers.length === 0) && (
@@ -475,9 +475,9 @@ export function CanvasNode({ id }: { id: string }) {
                                         {(node.data?.persistent_menu_items || []).map((item: any, idx: number) => (
                                             <div key={idx} className="bg-white/5 border border-[#444748] rounded-lg p-2.5 text-left text-xs font-semibold text-white flex items-center justify-between gap-3">
                                                 <span className="truncate">{item.title || `Button ${idx + 1}`}</span>
-                                                <span className="text-[8px] bg-purple-500/10 text-purple-400 border border-purple-500/20 px-1 py-0.2 rounded font-mono shrink-0 uppercase">
+                                                {/* <span className="text-[8px] bg-purple-500/10 text-purple-400 border border-purple-500/20 px-1 py-0.2 rounded font-mono shrink-0 uppercase">
                                                     {item.type === 'web_url' ? 'URL' : item.payload || 'POSTBACK'}
-                                                </span>
+                                                </span> */}
                                             </div>
                                         ))}
                                         {(!node.data?.persistent_menu_items || node.data.persistent_menu_items.length === 0) && (
@@ -774,7 +774,7 @@ export function CanvasNode({ id }: { id: string }) {
                                                 let url = '';
                                                 let isSticker = false;
                                                 let isMediaShare = false;
-                                                
+
                                                 if (typeof item === 'string') {
                                                     url = item;
                                                     if (item.match(/\.(mp4|mov|avi|webm)/i)) {
