@@ -191,6 +191,7 @@ export default function StorefrontPage({ params }: PageProps) {
   const [isTrackingOpen, setIsTrackingOpen] = useState(false);
   const [inputOrderId, setInputOrderId] = useState("");
   const [localOrders, setLocalOrders] = useState<any[]>([]);
+  const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null);
   const [activePolicyModal, setActivePolicyModal] = useState<"privacy" | "terms" | null>(null);
 
   useEffect(() => {
@@ -759,10 +760,40 @@ export default function StorefrontPage({ params }: PageProps) {
                     <button
                       key={idx}
                       onClick={() => router.push(`/track/${order.order_id}`)}
-                      className="w-full flex items-center justify-between text-left p-2.5 rounded bg-[#0e0e0e] border border-[#444748]/30 hover:border-[#605ca2] transition-colors"
+                      className="w-full flex items-center justify-between text-left p-2.5 rounded bg-[#0e0e0e] border border-[#444748]/30 hover:border-[#605ca2] transition-colors relative group"
                     >
                       <div className="space-y-0.5">
-                        <span className="text-[11px] font-mono font-bold text-[#b6b2ff] block">{order.order_id}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[11px] font-mono font-bold text-[#b6b2ff] block">{order.order_id}</span>
+                          <span
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const oid = order.order_id;
+                              if (navigator.clipboard && navigator.clipboard.writeText) {
+                                navigator.clipboard.writeText(oid);
+                              } else {
+                                const ta = document.createElement("textarea");
+                                ta.value = oid;
+                                ta.style.position = "fixed";
+                                ta.style.opacity = "0";
+                                document.body.appendChild(ta);
+                                ta.select();
+                                document.execCommand("copy");
+                                document.body.removeChild(ta);
+                              }
+                              setCopiedOrderId(order.order_id);
+                              setTimeout(() => setCopiedOrderId(null), 2000);
+                            }}
+                            title="Copy Order ID"
+                            className="p-1 rounded bg-white/5 hover:bg-white/10 active:scale-95 transition-all text-zinc-400 hover:text-white cursor-pointer"
+                          >
+                            {copiedOrderId === order.order_id ? (
+                              <span className="text-emerald-400 text-[8px] font-bold">Copied!</span>
+                            ) : (
+                              <span className="opacity-60 text-[9.5px]">📋</span>
+                            )}
+                          </span>
+                        </div>
                         {order.product_name && <span className="text-[9px] text-zinc-400 block truncate max-w-[200px]">{order.product_name}</span>}
                       </div>
                       <span className="text-[9px] text-zinc-500 shrink-0">

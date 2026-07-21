@@ -14,6 +14,8 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
   const dispatch = useDispatch();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const appUser = useSelector((state: RootState) => state.auth.user);
+  const activeAccountId = appUser?.active_instagram_account_id;
 
   const [isSaving, setIsSaving] = React.useState(false);
   const [toast, setToast] = React.useState<{ message: string; type: 'success' | 'error' | 'info'; visible: boolean }>({
@@ -30,6 +32,54 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
     setIsSaving(true);
     setToast({ message: `Saving automation as ${status}...`, type: 'info', visible: true });
     try {
+      // Special check for Welcome Message Flow or Persistent Menu Flow when Set Live
+      if (status === 'active' && activeAccountId) {
+        const isIcebreakers = flow.name === "Welcome Message Flow";
+        const isMenu = flow.name === "Persistent Menu Flow";
+        if (isIcebreakers || isMenu) {
+          const triggerNode = flow.nodes.find(n => n.type === 'trigger');
+          if (triggerNode) {
+            if (isIcebreakers) {
+              const icebreakers = triggerNode.data?.icebreakers || [];
+              const welcomePrompt = triggerNode.data?.welcome_prompt || "Tap to send a question suggested by us";
+              // Save to Instagram API
+              await api.post(`/crm/messenger-profile/ice-breakers/`, {
+                account_id: activeAccountId,
+                ice_breakers: icebreakers
+              });
+              // Cache locally
+              const storageKey = `anydm_welcome_settings_${activeAccountId}`;
+              localStorage.setItem(storageKey, JSON.stringify({
+                welcomePrompt,
+                iceBreakers: icebreakers,
+                composerInputDisabled: triggerNode.data?.composer_input_disabled || false,
+                persistentMenuItems: triggerNode.data?.persistent_menu_items || [],
+                isSaved: { icebreakers: true, persistent_menu: false }
+              }));
+            } else if (isMenu) {
+              const menuItems = triggerNode.data?.persistent_menu_items || [];
+              const composerDisabled = triggerNode.data?.composer_input_disabled || false;
+              const welcomePrompt = triggerNode.data?.welcome_prompt || "Tap to send a question suggested by us";
+              // Save to Instagram API
+              await api.post(`/crm/messenger-profile/persistent-menu/`, {
+                account_id: activeAccountId,
+                composer_input_disabled: composerDisabled,
+                call_to_actions: menuItems
+              });
+              // Cache locally
+              const storageKey = `anydm_welcome_settings_${activeAccountId}`;
+              localStorage.setItem(storageKey, JSON.stringify({
+                welcomePrompt,
+                iceBreakers: triggerNode.data?.icebreakers || [],
+                composerInputDisabled: composerDisabled,
+                persistentMenuItems: menuItems,
+                isSaved: { icebreakers: false, persistent_menu: true }
+              }));
+            }
+          }
+        }
+      }
+
       const isIntegerId = /^\d+$/.test(String(flow.id));
       const payload = {
         id: isIntegerId ? parseInt(String(flow.id), 10) : null,
@@ -46,8 +96,7 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
           id: String(response.data.id),
         }));
         setToast({ message: `Successfully saved as ${status}! Redirecting...`, type: 'success', visible: true });
-        const fromParam = searchParams.get('from');
-        const redirectUrl = fromParam === 'wellcome' ? '/dashboard/inbox/wellcome' : '/dashboard/automation';
+        const redirectUrl = '/dashboard/automation';
         setTimeout(() => {
           router.push(redirectUrl);
         }, 1200);

@@ -8,7 +8,10 @@ import { CanvasNode, CanvasEdges } from './CanvasNode';
 import { NodeType, FlowState } from '@/lib/types';
 import { Xwrapper, useXarrow } from 'react-xarrows';
 import { CanvasContext } from './CanvasContext';
-import { Minus, Plus } from 'lucide-react';
+import { Minus, Plus, Sparkles, Menu as MenuIcon, Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { useSearchParams, useRouter } from 'next/navigation';
+import api from '@/lib/services/api.service';
 
 // Initial dummy data matching the screenshot
 const screenshotFlow: FlowState = {
@@ -63,19 +66,186 @@ function XarrowUpdater({ trigger }: { trigger: any }) {
 
 export function Canvas() {
   const dispatch = useDispatch();
+  const router = useRouter();
   const flow = useSelector((state: RootState) => state.flow);
   const containerRef = React.useRef<HTMLDivElement>(null);
   
   const [pan, setPan] = React.useState({ x: 0, y: 0 });
   const [scale, setScale] = React.useState(1);
   const [isPanning, setIsPanning] = React.useState(false);
-  
-  // Initialize with sample items if empty
+
+  const searchParams = useSearchParams();
+  const openTab = searchParams.get('canvas_init');
+  const appUser = useSelector((state: RootState) => state.auth.user);
+  const activeAccountId = appUser?.active_instagram_account_id;
+  const [isInitializing, setIsInitializing] = React.useState(false);
+  const [cardPosition, setCardPosition] = React.useState({ x: 300, y: 150 });
+  const isDraggingCard = React.useRef(false);
+
+  // Clear flow in Redux if openTab changes to initialize overlay
   React.useEffect(() => {
-    if (flow.nodes.length === 0) {
+    if (openTab) {
+      dispatch(setFlow({
+        id: '',
+        name: openTab === 'icebreakers' ? 'Welcome Message Flow' : 'Persistent Menu Flow',
+        nodes: [],
+        edges: [],
+        selectedNodeId: null,
+        mediaPicker: null
+      }));
+    }
+  }, [openTab, dispatch]);
+  
+  const welcomeParam = searchParams.get('welcome');
+  const isWelcomeFlow = flow.name === 'Welcome Message Flow' || flow.name === 'Persistent Menu Flow' || !!welcomeParam;
+
+  // Initialize with sample items if empty and not in Welcome tab config
+  React.useEffect(() => {
+    if (flow.nodes.length === 0 && !openTab && !isWelcomeFlow) {
       dispatch(setFlow(screenshotFlow));
     }
-  }, [dispatch, flow.nodes.length]);
+  }, [dispatch, flow.nodes.length, openTab, isWelcomeFlow]);
+
+  const handleInitializeWelcomeExperience = async () => {
+    if (!activeAccountId || !openTab) return;
+    setIsInitializing(true);
+    try {
+      if (openTab === 'icebreakers') {
+        const sampleIB = [
+          { question: "How can I contact support?", payload: "SUPPORT" }
+        ];
+        // 1. Cache locally
+        const storageKey = `anydm_welcome_settings_${activeAccountId}`;
+        localStorage.setItem(storageKey, JSON.stringify({
+          welcomePrompt: "Tap to send a question suggested by us",
+          iceBreakers: sampleIB,
+          composerInputDisabled: false,
+          persistentMenuItems: [],
+          isSaved: { icebreakers: false, persistent_menu: false }
+        }));
+        
+        // 2. Build initial template nodes client-side
+        const triggerId = `node-t-${Date.now()}`;
+        const triggerData = {
+          is_icebreaker_trigger: true,
+          welcome_prompt: "Tap to send a question suggested by us",
+          icebreakers: sampleIB
+        };
+        const triggerNode = {
+          id: triggerId,
+          type: 'trigger' as const,
+          position: { x: 100, y: 200 },
+          data: triggerData
+        };
+
+        const actionId = `node-a-${Date.now()}-0`;
+        const actionNode = {
+          id: actionId,
+          type: 'action' as const,
+          position: { x: 600, y: 150 },
+          ruleType: 'dm_automation',
+          data: {
+            action_type: 'send_dm',
+            dm_format: 'text',
+            message_mode: 'fixed',
+            messages: [`Hello! Customize this reply for: "${sampleIB[0].question}"`],
+            parent_event: sampleIB[0].payload,
+            parent_label: sampleIB[0].question,
+            is_placeholder: true
+          }
+        };
+
+        const edge = {
+          id: `edge-${Date.now()}-0`,
+          source: triggerId,
+          target: actionId,
+          label: sampleIB[0].question
+        };
+
+        // 3. Dispatch directly to UI/Redux flow store (keep in UI)
+        dispatch(setFlow({
+          id: '', // Empty ID: not in DB yet
+          name: 'Welcome Message Flow',
+          nodes: [triggerNode, actionNode],
+          edges: [edge],
+          selectedNodeId: null,
+          mediaPicker: null
+        }));
+
+        // Client-side redirect to open sidebar panel
+        router.push(`/dashboard/automations?welcome=icebreakers&from=wellcome`);
+      } else {
+        const sampleMenu = [
+          { type: 'postback', title: 'Talk to Sales', payload: 'TALK_TO_SALES' }
+        ];
+        // 1. Cache locally
+        const storageKey = `anydm_welcome_settings_${activeAccountId}`;
+        localStorage.setItem(storageKey, JSON.stringify({
+          welcomePrompt: "Tap to send a question suggested by us",
+          iceBreakers: [],
+          composerInputDisabled: false,
+          persistentMenuItems: sampleMenu,
+          isSaved: { icebreakers: false, persistent_menu: false }
+        }));
+        
+        // 2. Build initial template nodes client-side
+        const triggerId = `node-t-${Date.now()}`;
+        const triggerData = {
+          is_menu_trigger: true,
+          composer_input_disabled: false,
+          persistent_menu_items: sampleMenu
+        };
+        const triggerNode = {
+          id: triggerId,
+          type: 'trigger' as const,
+          position: { x: 100, y: 200 },
+          data: triggerData
+        };
+
+        const actionId = `node-a-${Date.now()}-0`;
+        const actionNode = {
+          id: actionId,
+          type: 'action' as const,
+          position: { x: 600, y: 150 },
+          ruleType: 'dm_automation',
+          data: {
+            action_type: 'send_dm',
+            dm_format: 'text',
+            message_mode: 'fixed',
+            messages: [`Hello! Customize this reply for: "${sampleMenu[0].title}"`],
+            parent_event: sampleMenu[0].payload,
+            parent_label: sampleMenu[0].title,
+            is_placeholder: true
+          }
+        };
+
+        const edge = {
+          id: `edge-${Date.now()}-0`,
+          source: triggerId,
+          target: actionId,
+          label: sampleMenu[0].title
+        };
+
+        // 3. Dispatch directly to UI/Redux flow store (keep in UI)
+        dispatch(setFlow({
+          id: '', // Empty ID: not in DB yet
+          name: 'Persistent Menu Flow',
+          nodes: [triggerNode, actionNode],
+          edges: [edge],
+          selectedNodeId: null,
+          mediaPicker: null
+        }));
+
+        // Client-side redirect to open sidebar panel
+        router.push(`/dashboard/automations?welcome=persistent_menu&from=wellcome`);
+      }
+    } catch (e: any) {
+      console.error("Failed to initialize welcome experience:", e);
+      alert("Failed to initialize: " + (e.response?.data?.error || e.message));
+    } finally {
+      setIsInitializing(false);
+    }
+  };
 
   React.useEffect(() => {
     const container = containerRef.current;
@@ -203,6 +373,70 @@ export function Canvas() {
           ))}
           <CanvasEdges />
         </Xwrapper>
+
+        {/* Welcome Flow Initializer Overlay - Draggable & Zoomable */}
+        {openTab && flow.nodes.length === 0 && (
+          <motion.div
+            drag
+            dragMomentum={false}
+            onDragStart={() => {
+              isDraggingCard.current = true;
+            }}
+            onDragEnd={(e, info) => {
+              setCardPosition(prev => ({
+                x: prev.x + info.offset.x / scale,
+                y: prev.y + info.offset.y / scale
+              }));
+              setTimeout(() => { isDraggingCard.current = false; }, 50);
+            }}
+            initial={{ x: cardPosition.x * scale + pan.x, y: cardPosition.y * scale + pan.y, scale }}
+            animate={{ x: cardPosition.x * scale + pan.x, y: cardPosition.y * scale + pan.y, scale }}
+            transition={{ duration: 0 }}
+            style={{ transformOrigin: '0 0', zIndex: 10 }}
+            className="absolute max-w-sm w-[320px] p-6 rounded-[1.25rem] bg-[#1c1b1b]/90 border border-white/10 shadow-2xl text-center space-y-5 backdrop-blur-md pointer-events-auto cursor-grab active:cursor-grabbing select-none"
+          >
+            <div className="w-12 h-12 mx-auto rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white shrink-0">
+              {openTab === 'icebreakers' ? (
+                <Sparkles className="w-6 h-6 text-[#8FE3FF]" />
+              ) : (
+                <MenuIcon className="w-6 h-6 text-[#C084FC]" />
+              )}
+            </div>
+            <div className="space-y-1.5 pointer-events-none">
+              <h3 className="text-sm font-bold text-white leading-snug">
+                {openTab === 'icebreakers' ? 'Welcome Questions' : 'Persistent Menu'}
+              </h3>
+              <p className="text-[11px] text-zinc-400 leading-normal">
+                {openTab === 'icebreakers'
+                  ? 'No welcome questions automation flow has been created. Click below to initialize the sample questions flow.'
+                  : 'No persistent menu automation flow has been created. Click below to initialize the sample options flow.'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (isDraggingCard.current) return;
+                handleInitializeWelcomeExperience();
+              }}
+              disabled={isInitializing}
+              className="w-full py-2 px-4 bg-sky-500 hover:bg-sky-600 disabled:opacity-50 text-white rounded-xl text-xs font-bold tracking-tight transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-sky-500/20"
+            >
+              {isInitializing ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Initializing...</span>
+                </>
+              ) : (
+                <>
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Initialize Flow Template</span>
+                </>
+              )}
+            </button>
+          </motion.div>
+        )}
 
         {/* Zoom Controls Overlay */}
         <div 

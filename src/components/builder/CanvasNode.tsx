@@ -111,9 +111,29 @@ export function CanvasNode({ id }: { id: string }) {
 
             // Special theming for Trigger Event Reply nodes
             if (node.data?.parent_event) {
-                customPill = 'EVENT REPLY';
-                customPillColor = 'bg-[#8FE3FF] text-[#0a3240] leading-none font-bold';
-                customTitle = `Reply: ${node.data.parent_label || 'Event'}`;
+                if (node.data.parent_event === 'TRACK_ORDER') {
+                    if (node.data.is_track_prompt) {
+                        customPill = 'TRACK PROMPT';
+                        customPillColor = 'bg-indigo-600 text-white font-bold leading-none uppercase tracking-widest hidden';
+                        customTitle = '💬 Ask for Order ID';
+                    } else if (node.data.is_track_input) {
+                        customPill = 'CUSTOMER REPLY';
+                        customPillColor = 'bg-indigo-500/90 text-white font-bold leading-none uppercase tracking-widest hidden';
+                        customTitle = '📥 User Sends Order ID';
+                    } else if (node.data.is_track_response) {
+                        customPill = 'DYNAMIC REPLY';
+                        customPillColor = 'bg-emerald-600 text-white font-bold leading-none uppercase tracking-widest hidden';
+                        customTitle = '📊 Returns Details / Error';
+                    } else {
+                        customPill = 'TRACK ORDER';
+                        customPillColor = 'bg-indigo-600 text-white font-bold leading-none uppercase tracking-widest hidden';
+                        customTitle = '🔍 Order Tracking';
+                    }
+                } else {
+                    customPill = 'EVENT REPLY';
+                    customPillColor = 'bg-[#8FE3FF] text-[#0a3240] leading-none font-bold';
+                    customTitle = `Reply: ${node.data.parent_label || 'Event'}`;
+                }
             }
         } else if (node.data?.action_type === 'reply_story') {
             customPill = 'REPLY STORY';
@@ -136,7 +156,16 @@ export function CanvasNode({ id }: { id: string }) {
         }
     }
 
-    if (node.type === 'action' && node.data?.is_placeholder) {
+    const d = node.data || {};
+    const hasConfiguredData =
+        (d.messages && d.messages.length > 0) ||
+        (d.dm_format && d.dm_format !== 'text') ||
+        (d.quick_replies_titles && d.quick_replies_titles.length > 0) ||
+        (d.button_template_buttons_json && String(d.button_template_buttons_json).trim() !== '') ||
+        (d.generic_template_elements_json && String(d.generic_template_elements_json).trim() !== '') ||
+        (d.action_type && d.action_type !== 'send_dm');
+
+    if (node.type === 'action' && node.data?.is_placeholder && !hasConfiguredData && node.data?.parent_event !== 'TRACK_ORDER') {
         const isSendDM = node.data.action_type === 'send_dm';
 
         // ONLY ONE output wireframe -> show direct card (bypass placeholder rendering)
@@ -196,13 +225,11 @@ export function CanvasNode({ id }: { id: string }) {
                                                 window.dispatchEvent(new CustomEvent('update-xarrow'));
                                             }, 50);
 
-                                            if (opt.value !== 'text') {
-                                                setTimeout(() => {
-                                                    window.dispatchEvent(new CustomEvent('open-dm-format-editor', {
-                                                        detail: { nodeId: node.id }
-                                                    }));
-                                                }, 50);
-                                            }
+                                            setTimeout(() => {
+                                                window.dispatchEvent(new CustomEvent('open-dm-format-editor', {
+                                                    detail: { nodeId: node.id }
+                                                }));
+                                            }, 50);
                                         }}
                                         className="w-full px-3 py-2.5 text-center text-xs hover:bg-white/5 transition-colors cursor-pointer text-zinc-200 font-semibold"
                                     >
@@ -385,6 +412,13 @@ export function CanvasNode({ id }: { id: string }) {
                     id: node.id,
                     rect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height }
                 }));
+                if ((node.type === 'action' || node.type === 'condition') && node.data?.parent_event !== 'TRACK_ORDER') {
+                    setTimeout(() => {
+                        window.dispatchEvent(new CustomEvent('open-dm-format-editor', {
+                            detail: { nodeId: node.id }
+                        }));
+                    }, 50);
+                }
             }}
             className={cn(
                 "absolute flex flex-col w-[320px] rounded-[1.25rem] border-[1px] cursor-pointer shadow-2xl pointer-events-auto transition-colors",
@@ -397,7 +431,7 @@ export function CanvasNode({ id }: { id: string }) {
                     : "hover:bg-[#1c1b1b]/70"
             )}
         >
-            {node.type === 'action' && (
+            {node.type === 'action' && node.data?.parent_event !== 'TRACK_ORDER' && (
                 <button
                     type="button"
                     onClick={(e) => {
@@ -490,12 +524,13 @@ export function CanvasNode({ id }: { id: string }) {
                     }
 
                     let displayTarget = 'Every Post / Reel';
+                    const isSelectedMode = (node.data?.target_mode || node.data?.mode) === 'selected';
                     if (node.ruleType?.includes('story')) {
-                        displayTarget = (node.data?.target_mode === 'selected') ? 'Selected Stories Only' : 'Every Story';
+                        displayTarget = isSelectedMode ? 'Selected Stories Only' : 'Every Story';
                     } else if (node.ruleType?.includes('dm')) {
                         displayTarget = 'Every DM';
                     } else {
-                        displayTarget = (node.data?.target_mode === 'selected') ? 'Selected Media Only' : 'Every Post / Reel';
+                        displayTarget = isSelectedMode ? 'Selected Media Only' : 'Every Post / Reel';
                     }
                     return (
                         <div className="flex flex-col gap-3 text-xs">
@@ -537,7 +572,15 @@ export function CanvasNode({ id }: { id: string }) {
 
                 {node.type === 'condition' && (
                     <div className="flex flex-col gap-3 text-xs">
-                        <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col gap-2">
+                        <div
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                window.dispatchEvent(new CustomEvent('open-dm-format-editor', {
+                                    detail: { nodeId: node.id }
+                                }));
+                            }}
+                            className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col gap-2 hover:bg-[#CECBF6]/5 hover:border-[#CECBF6]/40 cursor-pointer transition-all"
+                        >
                             <div className="flex items-center justify-between">
                                 <span className="text-[10px] uppercase font-bold text-[#c4c7c8] tracking-widest">Match Type</span>
                                 <span className="text-[10px] px-2 py-0.5 rounded-[4px] font-bold bg-[#E6F1FB] text-[#185FA5] uppercase">
@@ -564,7 +607,15 @@ export function CanvasNode({ id }: { id: string }) {
                             </p>
                         </div>
 
-                        <div className="bg-[#2a2a2a]/30 border border-white/5 rounded-xl p-2.5 flex flex-col gap-1.5">
+                        <div
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                window.dispatchEvent(new CustomEvent('open-dm-format-editor', {
+                                    detail: { nodeId: node.id }
+                                }));
+                            }}
+                            className="bg-[#2a2a2a]/30 border border-white/5 rounded-xl p-2.5 flex flex-col gap-1.5 hover:bg-[#CECBF6]/5 hover:border-[#CECBF6]/40 cursor-pointer transition-all"
+                        >
                             <div className="flex items-center justify-between">
                                 <span className="text-[#c4c7c8] text-[10px]">Follower Gate</span>
                                 <div className={cn("px-2 py-0.5 rounded-full text-[9px] font-bold", node.data?.follower_gate ? "bg-[#FCEBEB] text-[#A32D2D]" : "bg-white/5 text-white/40")}>
@@ -604,7 +655,47 @@ export function CanvasNode({ id }: { id: string }) {
                     </div>
                 )}
 
-                {node.type === 'action' && (
+                {node.type === 'action' && node.data?.parent_event === 'TRACK_ORDER' && (
+                    <div className="flex flex-col gap-2.5 text-xs font-semibold">
+                        {node.data.is_track_prompt && (
+                            <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col gap-1.5 animate-fadeIn">
+                                {/* <span className="text-[9px] text-zinc-500 uppercase tracking-widest font-extrabold">System DM Prompt</span> */}
+                                <p className="text-zinc-200 font-mono text-[10.5px] bg-black/35 p-2.5 rounded border border-white/5 whitespace-pre-line leading-relaxed">
+                                    &quot;Please reply with your Order ID to track your order. 📦&quot;
+                                </p>
+                            </div>
+                        )}
+
+                        {node.data.is_track_input && (
+                            <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col gap-2.5 animate-fadeIn">
+                                {/* <span className="text-[9px] text-zinc-500 uppercase tracking-widest font-extrabold">Expected Action</span> */}
+                                <div className="text-zinc-305 font-medium text-[10.5px] flex flex-col gap-1.5 bg-black/25 p-2.5 rounded border border-white/5">
+                                    <div>• Customer replies with Order ID</div>
+                                    <div>• Session captures input dynamically</div>
+                                </div>
+                            </div>
+                        )}
+
+                        {node.data.is_track_response && (
+                            <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col gap-2.5 animate-fadeIn">
+                                {/* <span className="text-[9px] text-zinc-500 uppercase tracking-widest font-extrabold font-extrabold block mb-0.5">Database Check Responses</span> */}
+                                <div className="grid grid-cols-1 gap-2 text-[9px] font-semibold leading-relaxed">
+                                    <div className="text-green-200 font-medium text-[10.5px] flex flex-col gap-1.5 bg-black/25 p-2.5 rounded border border-white/5">
+                                        Returns live order status
+                                    </div>
+                                    <div className='w-full flex justify-center text-[12.5px]'>
+                                        or
+                                    </div>
+                                    <div className="text-red-200 font-medium text-[10.5px] flex flex-col gap-1.5 bg-black/25 p-2.5 rounded border border-white/5">
+                                        Prompts customer to check ID and retry
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {node.type === 'action' && node.data?.parent_event !== 'TRACK_ORDER' && (
                     <div className="flex flex-col gap-3 text-xs">
                         <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col gap-2">
                             <div className="flex items-center justify-between">
@@ -619,7 +710,15 @@ export function CanvasNode({ id }: { id: string }) {
                             </div>
 
                             {node.data?.messages?.length > 0 && (node.data?.action_type !== 'send_dm' || node.data?.dm_format === 'text') && (
-                                <div className="bg-[#262626]/50 p-2 rounded-lg border border-white/5">
+                                <div
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        window.dispatchEvent(new CustomEvent('open-dm-format-editor', {
+                                            detail: { nodeId: node.id }
+                                        }));
+                                    }}
+                                    className="bg-[#262626]/50 p-2 rounded-lg border border-white/5 hover:border-[#8FE3FF]/45 hover:bg-[#8FE3FF]/5 cursor-pointer transition-all"
+                                >
                                     <span className="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest block mb-0.5">
                                         Messages
                                     </span>
@@ -992,20 +1091,25 @@ export function CanvasEdges() {
                     } : undefined}
                 />
             ))}
-            {selectedNodeId && selectedNodeId !== 'global' && (
-                <Xarrow
-                    key={`settings-edge-${selectedNodeId}`}
-                    start={selectedNodeId}
-                    end="settings-sidebar"
-                    color="#8FE3FF"
-                    strokeWidth={1.5 * scale}
-                    path="straight"
-                    dashness={{ strokeLen: 4, nonStrokeLen: 4 }}
-                    showHead={false}
-                    startAnchor="right"
-                    endAnchor="left"
-                />
-            )}
+            {(() => {
+                const selectedNode = nodes.find(n => n.id === selectedNodeId);
+                const showSettingsEdge = selectedNodeId && selectedNodeId !== 'global' && selectedNode && selectedNode.type !== 'action' && selectedNode.type !== 'condition';
+                if (!showSettingsEdge) return null;
+                return (
+                    <Xarrow
+                        key={`settings-edge-${selectedNodeId}`}
+                        start={selectedNodeId}
+                        end="settings-sidebar"
+                        color="#8FE3FF"
+                        strokeWidth={1.5 * scale}
+                        path="straight"
+                        dashness={{ strokeLen: 4, nonStrokeLen: 4 }}
+                        showHead={false}
+                        startAnchor="right"
+                        endAnchor="left"
+                    />
+                );
+            })()}
         </>
     );
 }

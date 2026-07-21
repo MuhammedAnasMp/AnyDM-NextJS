@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { useRouter } from 'next/navigation';
 import { RootState } from '@/store';
-import { updateNodeData } from '@/store/slices/flowSlice';
+import { updateNodeData, setFlow } from '@/store/slices/flowSlice';
 import {
     X, Plus, Trash2, Check, ChevronLeft, ChevronRight,
     MessageSquare, Info, Smartphone, Sliders, Menu as MenuIcon,
@@ -377,11 +377,13 @@ function PhonePreview({
 interface DMContentEditorProps {
     nodeId?: string;
     onClose?: () => void;
+    defaultTab?: 'icebreakers' | 'persistent_menu';
 }
 
-export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProps) {
+export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMContentEditorProps) {
     const dispatch = useDispatch();
     const router = useRouter();
+    const currentFlowId = useSelector((state: RootState) => state.flow.id);
     const [mounted, setMounted] = React.useState(false);
 
     React.useEffect(() => {
@@ -412,16 +414,18 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
     const [iceBreakers, setIceBreakers] = React.useState<IceBreakerItem[]>([]);
     const [composerInputDisabled, setComposerInputDisabled] = React.useState(false);
     const [persistentMenuItems, setPersistentMenuItems] = React.useState<MenuItem[]>([]);
+    const [orderTrackRetryLimit, setOrderTrackRetryLimit] = React.useState(3);
 
     // --- Temporary Form State (Inside Modal Overlay) ---
     const [tempWelcomePrompt, setTempWelcomePrompt] = React.useState('');
     const [tempIceBreakers, setTempIceBreakers] = React.useState<IceBreakerItem[]>([]);
     const [tempComposerInputDisabled, setTempComposerInputDisabled] = React.useState(false);
     const [tempPersistentMenuItems, setTempPersistentMenuItems] = React.useState<MenuItem[]>([]);
+    const [tempOrderTrackRetryLimit, setTempOrderTrackRetryLimit] = React.useState(3);
 
     // --- View State ---
     const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
-    const [modalTab, setModalTab] = React.useState<'icebreakers' | 'persistent_menu'>('icebreakers');
+    const [modalTab, setModalTab] = React.useState<'icebreakers' | 'persistent_menu'>(defaultTab || 'icebreakers');
     const [validationError, setValidationError] = React.useState<string | null>(null);
     const [successMessage, setSuccessMessage] = React.useState<string | null>(null);
     const [isSaving, setIsSaving] = React.useState(false);
@@ -434,6 +438,10 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
         icebreakers: false,
         persistent_menu: false
     });
+
+    // Ref to hold current welcomePrompt for localStorage writes without being a dep
+    const welcomePromptRef = React.useRef(welcomePrompt);
+    React.useEffect(() => { welcomePromptRef.current = welcomePrompt; }, [welcomePrompt]);
 
     // --- Fetch Settings from Graph API (Cache Miss) ---
     const fetchSettingsFromAPI = React.useCallback(async () => {
@@ -457,6 +465,10 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
             const hasIB = remoteIceBreakers.length > 0;
             const hasPM = remotePersistentMenu.length > 0;
 
+            const remoteRetryLimit = pmRes.data.order_track_retry_limit || 3;
+            setOrderTrackRetryLimit(remoteRetryLimit);
+            setTempOrderTrackRetryLimit(remoteRetryLimit);
+
             setIsSavedOnInstagram({
                 icebreakers: hasIB,
                 persistent_menu: hasPM
@@ -466,7 +478,6 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                 setIceBreakers(remoteIceBreakers);
                 setTempIceBreakers(remoteIceBreakers);
             } else {
-                // Populate sample instantly so it displays on mount
                 const sampleIB = [{ question: "How can I contact support?", payload: "SUPPORT" }];
                 setIceBreakers(sampleIB);
                 setTempIceBreakers(sampleIB);
@@ -478,7 +489,6 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                 setComposerInputDisabled(remoteComposerInputDisabled);
                 setTempComposerInputDisabled(remoteComposerInputDisabled);
             } else {
-                // Populate sample instantly so it displays on mount
                 const sampleMenu: MenuItem[] = [{ type: 'postback', title: 'Talk to Sales', payload: 'TALK_TO_SALES' }];
                 setPersistentMenuItems(sampleMenu);
                 setTempPersistentMenuItems(sampleMenu);
@@ -486,10 +496,10 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                 setTempComposerInputDisabled(false);
             }
 
-            // Write to localStorage cache
+            // Write to localStorage cache (use ref to avoid stale closure without re-creating callback)
             const storageKey = `anydm_welcome_settings_${activeAccountId}`;
             const settingsData = {
-                welcomePrompt: welcomePrompt,
+                welcomePrompt: welcomePromptRef.current,
                 iceBreakers: remoteIceBreakers,
                 composerInputDisabled: remoteComposerInputDisabled,
                 persistentMenuItems: remoteMenuItems,
@@ -502,7 +512,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
         } catch (e) {
             console.error("Failed to fetch settings from Graph API", e);
         }
-    }, [activeAccountId, welcomePrompt]);
+    }, [activeAccountId]);
 
     const handleCreateSample = React.useCallback(async (type: 'icebreakers' | 'persistent_menu') => {
         if (!activeAccountId) return;
@@ -512,10 +522,6 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                 const sampleIB = [
                     { question: "How can I contact support?", payload: "SUPPORT" }
                 ];
-                await api.post(`/crm/messenger-profile/ice-breakers/`, {
-                    account_id: activeAccountId,
-                    ice_breakers: sampleIB
-                });
                 setIceBreakers(sampleIB);
                 setTempIceBreakers(sampleIB);
                 setIsSavedOnInstagram(prev => ({ ...prev, icebreakers: true }));
@@ -523,11 +529,6 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                 const sampleMenu: MenuItem[] = [
                     { type: 'postback', title: 'Talk to Sales', payload: 'TALK_TO_SALES' }
                 ];
-                await api.post(`/crm/messenger-profile/persistent-menu/`, {
-                    account_id: activeAccountId,
-                    composer_input_disabled: false,
-                    call_to_actions: sampleMenu
-                });
                 setPersistentMenuItems(sampleMenu);
                 setTempPersistentMenuItems(sampleMenu);
                 setComposerInputDisabled(false);
@@ -629,21 +630,31 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                 fetchSettingsFromAPI();
             }
         } else {
-            // Load welcome prompt / quick replies context from React Flow node
-            activeWelcomePrompt = node.data?.quick_reply_text || 'Tap to send a question suggested by ' + username;
-            const titles = node.data?.quick_replies_titles || [];
-            if (titles.length > 0) {
-                activeIceBreakers = titles.map((title: string) => ({
-                    question: title,
-                    payload: generateCleanPayloadKey(title)
-                }));
-            }
-            activeComposerInputDisabled = !!node.data?.composer_input_disabled;
-            const btnsJson = node.data?.button_template_buttons_json;
-            if (typeof btnsJson === 'string' && btnsJson.trim()) {
-                try { activePersistentMenuItems = JSON.parse(btnsJson); } catch (e) { console.error(e); }
-            } else if (Array.isArray(btnsJson)) {
-                activePersistentMenuItems = btnsJson;
+            if (node.type === 'trigger') {
+                if (node.data?.is_icebreaker_trigger) {
+                    activeWelcomePrompt = node.data?.welcome_prompt || 'Tap to send a question suggested by ' + username;
+                    activeIceBreakers = node.data?.icebreakers || [];
+                } else if (node.data?.is_menu_trigger) {
+                    activeComposerInputDisabled = !!node.data?.composer_input_disabled;
+                    activePersistentMenuItems = node.data?.persistent_menu_items || [];
+                }
+            } else {
+                // Load welcome prompt / quick replies context from React Flow node
+                activeWelcomePrompt = node.data?.quick_reply_text || 'Tap to send a question suggested by ' + username;
+                const titles = node.data?.quick_replies_titles || [];
+                if (titles.length > 0) {
+                    activeIceBreakers = titles.map((title: string) => ({
+                        question: title,
+                        payload: generateCleanPayloadKey(title)
+                    }));
+                }
+                activeComposerInputDisabled = !!node.data?.composer_input_disabled;
+                const btnsJson = node.data?.button_template_buttons_json;
+                if (typeof btnsJson === 'string' && btnsJson.trim()) {
+                    try { activePersistentMenuItems = JSON.parse(btnsJson); } catch (e) { console.error(e); }
+                } else if (Array.isArray(btnsJson)) {
+                    activePersistentMenuItems = btnsJson;
+                }
             }
 
             setWelcomePrompt(activeWelcomePrompt);
@@ -656,7 +667,8 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
             setTempComposerInputDisabled(activeComposerInputDisabled);
             setTempPersistentMenuItems(activePersistentMenuItems);
         }
-    }, [node, mounted, activeAccountId, username, websiteUrl, fetchSettingsFromAPI]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [node, mounted, activeAccountId, username, websiteUrl]);
 
     // Sync with URL query parameter on mount/load
     React.useEffect(() => {
@@ -674,10 +686,18 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
     React.useEffect(() => {
         if (nodeId) {
             setIsEditModalOpen(true);
-            if (node?.data?.dm_format === 'button_template') {
-                setModalTab('persistent_menu');
+            if (node?.type === 'trigger') {
+                if (node.data?.is_menu_trigger) {
+                    setModalTab('persistent_menu');
+                } else {
+                    setModalTab('icebreakers');
+                }
             } else {
-                setModalTab('icebreakers');
+                if (node?.data?.dm_format === 'button_template') {
+                    setModalTab('persistent_menu');
+                } else {
+                    setModalTab('icebreakers');
+                }
             }
         }
     }, [nodeId, node]);
@@ -734,9 +754,16 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
     };
 
     const handleUpdateIcebreakerQuestion = (idx: number, value: string) => {
-        const updated = [...tempIceBreakers];
-        updated[idx].question = value;
-        updated[idx].payload = generateCleanPayloadKey(value); // Automatically computed payload key
+        const updated = tempIceBreakers.map((item, i) => {
+            if (i === idx) {
+                return {
+                    ...item,
+                    question: value,
+                    payload: generateCleanPayloadKey(value)
+                };
+            }
+            return item;
+        });
         setTempIceBreakers(updated);
     };
 
@@ -755,30 +782,63 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
     };
 
     const handleUpdateMenuItemTitle = (idx: number, value: string) => {
-        const updated = [...tempPersistentMenuItems];
-        updated[idx].title = value;
-        if (updated[idx].type === 'postback') {
-            updated[idx].payload = generateCleanPayloadKey(value); // Automatically computed payload key
-        }
+        const updated = tempPersistentMenuItems.map((item, i) => {
+            if (i === idx) {
+                const isTrackOrder = item.type === 'postback' && item.payload === 'TRACK_ORDER';
+                return {
+                    ...item,
+                    title: value,
+                    payload: isTrackOrder ? 'TRACK_ORDER' : (item.type === 'postback' ? generateCleanPayloadKey(value) : item.payload)
+                };
+            }
+            return item;
+        });
         setTempPersistentMenuItems(updated);
     };
 
-    const handleUpdateMenuItemType = (idx: number, value: 'postback' | 'web_url') => {
-        const updated = [...tempPersistentMenuItems];
-        updated[idx].type = value;
-        if (value === 'web_url') {
-            updated[idx].payload = undefined;
-            updated[idx].url = updated[idx].url || 'https://';
-        } else {
-            updated[idx].url = undefined;
-            updated[idx].payload = generateCleanPayloadKey(updated[idx].title);
-        }
+    const handleUpdateMenuItemType = (idx: number, value: 'postback' | 'web_url' | 'track_order' | any) => {
+        const updated = tempPersistentMenuItems.map((item, i) => {
+            if (i === idx) {
+                if (value === 'track_order') {
+                    return {
+                        ...item,
+                        type: 'postback' as const,
+                        payload: 'TRACK_ORDER',
+                        title: item.title || 'Track Order',
+                        url: undefined
+                    };
+                } else if (value === 'web_url') {
+                    return {
+                        ...item,
+                        type: 'web_url' as const,
+                        payload: undefined,
+                        url: item.url || 'https://'
+                    };
+                } else {
+                    const cleanTitle = item.title || 'Option';
+                    return {
+                        ...item,
+                        type: value,
+                        url: undefined,
+                        payload: generateCleanPayloadKey(cleanTitle === 'Track Order' ? 'Option' : cleanTitle)
+                    };
+                }
+            }
+            return item;
+        });
         setTempPersistentMenuItems(updated);
     };
 
     const handleUpdateMenuItemUrl = (idx: number, value: string) => {
-        const updated = [...tempPersistentMenuItems];
-        updated[idx].url = value;
+        const updated = tempPersistentMenuItems.map((item, i) => {
+            if (i === idx) {
+                return {
+                    ...item,
+                    url: value
+                };
+            }
+            return item;
+        });
         setTempPersistentMenuItems(updated);
     };
 
@@ -804,14 +864,6 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                     return;
                 }
 
-                // Standalone API save
-                if (!nodeId && activeAccountId) {
-                    await api.post(`/crm/messenger-profile/ice-breakers/`, {
-                        account_id: activeAccountId,
-                        ice_breakers: tempIceBreakers
-                    });
-                }
-
                 // Commit temporary state to main state
                 setWelcomePrompt(tempWelcomePrompt);
                 setIceBreakers(tempIceBreakers);
@@ -821,10 +873,15 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
 
                 // Redux save (if inside Flow Builder node context)
                 if (nodeId) {
-                    dispatch(updateNodeData({ id: nodeId, key: 'dm_format', value: 'quick_reply' }));
-                    dispatch(updateNodeData({ id: nodeId, key: 'quick_reply_text', value: tempWelcomePrompt }));
-                    dispatch(updateNodeData({ id: nodeId, key: 'quick_replies_titles', value: tempIceBreakers.map(i => i.question) }));
-                    dispatch(updateNodeData({ id: nodeId, key: 'messages', value: [tempWelcomePrompt] }));
+                    if (node?.type === 'trigger') {
+                        dispatch(updateNodeData({ id: nodeId, key: 'welcome_prompt', value: tempWelcomePrompt }));
+                        dispatch(updateNodeData({ id: nodeId, key: 'icebreakers', value: tempIceBreakers }));
+                    } else {
+                        dispatch(updateNodeData({ id: nodeId, key: 'dm_format', value: 'quick_reply' }));
+                        dispatch(updateNodeData({ id: nodeId, key: 'quick_reply_text', value: tempWelcomePrompt }));
+                        dispatch(updateNodeData({ id: nodeId, key: 'quick_replies_titles', value: tempIceBreakers.map(i => i.question) }));
+                        dispatch(updateNodeData({ id: nodeId, key: 'messages', value: [tempWelcomePrompt] }));
+                    }
                 }
             } else {
                 if (tempPersistentMenuItems.length === 0 || tempPersistentMenuItems.some(m => !m.title.trim())) {
@@ -841,18 +898,10 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                     return;
                 }
 
-                // Standalone API save
-                if (!nodeId && activeAccountId) {
-                    await api.post(`/crm/messenger-profile/persistent-menu/`, {
-                        account_id: activeAccountId,
-                        composer_input_disabled: tempComposerInputDisabled,
-                        call_to_actions: tempPersistentMenuItems
-                    });
-                }
-
                 // Commit temporary state to main state
                 setComposerInputDisabled(tempComposerInputDisabled);
                 setPersistentMenuItems(tempPersistentMenuItems);
+                setOrderTrackRetryLimit(tempOrderTrackRetryLimit);
                 nextPM = tempPersistentMenuItems;
                 nextComposer = tempComposerInputDisabled;
 
@@ -860,11 +909,16 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
 
                 // Redux save (if inside Flow Builder node context)
                 if (nodeId) {
-                    dispatch(updateNodeData({ id: nodeId, key: 'dm_format', value: 'button_template' }));
-                    dispatch(updateNodeData({ id: nodeId, key: 'composer_input_disabled', value: tempComposerInputDisabled }));
-                    dispatch(updateNodeData({ id: nodeId, key: 'button_template_text', value: 'Navigation Menu' }));
-                    dispatch(updateNodeData({ id: nodeId, key: 'button_template_buttons_json', value: JSON.stringify(tempPersistentMenuItems) }));
-                    dispatch(updateNodeData({ id: nodeId, key: 'messages', value: ['Navigation Drawer Active'] }));
+                    if (node?.type === 'trigger') {
+                        dispatch(updateNodeData({ id: nodeId, key: 'composer_input_disabled', value: tempComposerInputDisabled }));
+                        dispatch(updateNodeData({ id: nodeId, key: 'persistent_menu_items', value: tempPersistentMenuItems }));
+                    } else {
+                        dispatch(updateNodeData({ id: nodeId, key: 'dm_format', value: 'button_template' }));
+                        dispatch(updateNodeData({ id: nodeId, key: 'composer_input_disabled', value: tempComposerInputDisabled }));
+                        dispatch(updateNodeData({ id: nodeId, key: 'button_template_text', value: 'Navigation Menu' }));
+                        dispatch(updateNodeData({ id: nodeId, key: 'button_template_buttons_json', value: JSON.stringify(tempPersistentMenuItems) }));
+                        dispatch(updateNodeData({ id: nodeId, key: 'messages', value: ['Navigation Drawer Active'] }));
+                    }
                 }
             }
 
@@ -876,6 +930,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                     iceBreakers: nextIB,
                     composerInputDisabled: nextComposer,
                     persistentMenuItems: nextPM,
+                    order_track_retry_limit: tempOrderTrackRetryLimit,
                     isSaved: {
                         icebreakers: modalTab === 'icebreakers' ? true : isSavedOnInstagram.icebreakers,
                         persistent_menu: modalTab === 'persistent_menu' ? true : isSavedOnInstagram.persistent_menu
@@ -908,69 +963,85 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
         setIsDeleting(true);
 
         try {
-            if (!nodeId && activeAccountId) {
-                if (modalTab === 'icebreakers') {
-                    await api.delete(`/crm/messenger-profile/ice-breakers/?account_id=${activeAccountId}`);
-                    // Statically populate sample so it shows instantly in the preview card
-                    const sampleIB = [{ question: "How can I contact support?", payload: "SUPPORT" }];
-                    setIceBreakers(sampleIB);
-                    setTempIceBreakers(sampleIB);
-                    setIsSavedOnInstagram(prev => ({ ...prev, icebreakers: false }));
-                } else {
-                    await api.delete(`/crm/messenger-profile/persistent-menu/?account_id=${activeAccountId}`);
-                    // Statically populate sample so it shows instantly in the preview card
-                    const sampleMenu: MenuItem[] = [{ type: 'postback', title: 'Talk to Sales', payload: 'TALK_TO_SALES' }];
-                    setPersistentMenuItems(sampleMenu);
-                    setTempPersistentMenuItems(sampleMenu);
-                    setComposerInputDisabled(false);
-                    setTempComposerInputDisabled(false);
-                    setIsSavedOnInstagram(prev => ({ ...prev, persistent_menu: false }));
-                }
-            } else {
-                // Local fallback reset
-                if (modalTab === 'icebreakers') {
-                    setIceBreakers([]);
-                    setTempIceBreakers([]);
-                } else {
-                    setPersistentMenuItems([]);
-                    setTempPersistentMenuItems([]);
-                }
-            }
-
-            // Update localStorage cache
-            if (!nodeId) {
-                const storageKey = `anydm_welcome_settings_${activeAccountId || 'default'}`;
-                const settingsData = {
-                    welcomePrompt: welcomePrompt,
-                    iceBreakers: [],
-                    composerInputDisabled: modalTab === 'persistent_menu' ? false : composerInputDisabled,
-                    persistentMenuItems: [],
-                    isSaved: {
-                        icebreakers: modalTab === 'icebreakers' ? false : isSavedOnInstagram.icebreakers,
-                        persistent_menu: modalTab === 'persistent_menu' ? false : isSavedOnInstagram.persistent_menu
+            // 1. Delete setting from Instagram profile API if activeAccountId is available
+            if (activeAccountId) {
+                try {
+                    if (modalTab === 'icebreakers') {
+                        await api.delete(`/crm/messenger-profile/ice-breakers/?account_id=${activeAccountId}`);
+                    } else {
+                        await api.delete(`/crm/messenger-profile/persistent-menu/?account_id=${activeAccountId}`);
                     }
-                };
-                localStorage.setItem(storageKey, JSON.stringify(settingsData));
-                setSuccessMessage("Settings cleared successfully!");
-                setTimeout(() => {
-                    setSuccessMessage(null);
-                }, 3000);
+                } catch (e) {
+                    console.error("Error deleting from Instagram API:", e);
+                }
             }
 
-            // Close Modal
+            // 2. Delete automation record from database if integer ID exists
+            const searchParamsId = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('id') : null;
+            const targetFlowId = currentFlowId || searchParamsId;
+            const isIntegerId = targetFlowId && /^\d+$/.test(String(targetFlowId));
+            if (isIntegerId) {
+                try {
+                    await api.delete(`/automations/${targetFlowId}/`);
+                } catch (e) {
+                    // Quietly ignore if draft rule was not persisted in DB
+                }
+            }
+
+            // 3. Reset local storage cache
+            const storageKey = `anydm_welcome_settings_${activeAccountId || 'default'}`;
+            const cached = localStorage.getItem(storageKey);
+            let prevSaved = { icebreakers: false, persistent_menu: false };
+            if (cached) {
+                try {
+                    const parsed = JSON.parse(cached);
+                    if (parsed.isSaved) prevSaved = parsed.isSaved;
+                } catch (e) {}
+            }
+
+            const settingsData = {
+                welcomePrompt: "Tap to send a question suggested by us",
+                iceBreakers: modalTab === 'icebreakers' ? [] : iceBreakers,
+                composerInputDisabled: modalTab === 'persistent_menu' ? false : composerInputDisabled,
+                persistentMenuItems: modalTab === 'persistent_menu' ? [] : persistentMenuItems,
+                isSaved: {
+                    icebreakers: modalTab === 'icebreakers' ? false : prevSaved.icebreakers,
+                    persistent_menu: modalTab === 'persistent_menu' ? false : prevSaved.persistent_menu
+                }
+            };
+            localStorage.setItem(storageKey, JSON.stringify(settingsData));
+
+            // 4. Update component local states
+            if (modalTab === 'icebreakers') {
+                setIceBreakers([]);
+                setTempIceBreakers([]);
+                setIsSavedOnInstagram(prev => ({ ...prev, icebreakers: false }));
+            } else {
+                setPersistentMenuItems([]);
+                setTempPersistentMenuItems([]);
+                setIsSavedOnInstagram(prev => ({ ...prev, persistent_menu: false }));
+            }
+
+            // 5. Clear Redux flow canvas state
+            dispatch(setFlow({
+                id: '',
+                name: 'New Flow',
+                nodes: [],
+                edges: [],
+                selectedNodeId: null,
+                mediaPicker: null
+            }));
+
+            // 6. Close Modal / Drawer
             setIsEditModalOpen(false);
-            if (nodeId && onClose) {
+            if (onClose) {
                 onClose();
             }
 
-            // Remove URL query parameter when modal closes via delete
-            if (typeof window !== 'undefined') {
-                const url = new URL(window.location.href);
-                url.searchParams.delete('open');
-                window.history.pushState({}, '', url.toString());
-            }
+            // 7. Redirect to dashboard automations listing page
+            router.push('/dashboard/automation');
         } catch (err: any) {
-            const errMsg = err.response?.data?.error || err.message || "Failed to delete settings from Instagram.";
+            const errMsg = err.response?.data?.error || err.message || "Failed to delete flow.";
             setValidationError(errMsg);
         } finally {
             setIsDeleting(false);
@@ -1120,6 +1191,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                         </button>
                                     </div>
 
+
                                     <div className="space-y-3 pt-2">
                                         <div className="flex justify-between items-center">
                                             <h3 className="text-[10px] font-bold text-zinc-400 tracking-wider uppercase">Navigation Menu Buttons ({tempPersistentMenuItems.length}/3)</h3>
@@ -1141,23 +1213,37 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
 
                                                     <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
                                                         <div className="space-y-1">
-                                                            <span className="text-[10px] font-semibold text-zinc-405 block mb-1">Action Link Type</span>
-                                                            <div className="flex rounded-md bg-[#131313] border border-[#444748] p-0.5">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => handleUpdateMenuItemType(idx, 'postback')}
-                                                                    className={cn("flex-1 py-1 text-[9px] font-bold rounded-md transition-colors cursor-pointer", item.type === 'postback' ? "bg-white/10 text-white" : "text-zinc-550 hover:text-[#c4c7c8]")}
+                                                            <label className="text-[10px] font-semibold text-zinc-405 block">
+                                                                Button is for
+                                                            </label>
+
+                                                            <select
+                                                                value={
+                                                                    item.type === "web_url"
+                                                                        ? "web_url"
+                                                                        : item.payload === "TRACK_ORDER"
+                                                                            ? "track_order"
+                                                                            : "postback"
+                                                                }
+                                                                onChange={(e) => handleUpdateMenuItemType(idx, e.target.value)}
+                                                                className="w-full rounded-md bg-[#131313] border border-[#444748] px-2 py-1.5 text-[10px] text-white focus:outline-none focus:border-[#5f6368] cursor-pointer"
+                                                            >
+                                                                <option value="postback">Message Follow-up</option>
+                                                                <option value="web_url">Open Link</option>
+                                                                <option
+                                                                    value="track_order"
+                                                                    disabled={
+                                                                        tempPersistentMenuItems.some(
+                                                                            (menuItem, i) =>
+                                                                                i !== idx &&
+                                                                                menuItem.type === "postback" &&
+                                                                                menuItem.payload === "TRACK_ORDER"
+                                                                        )
+                                                                    }
                                                                 >
-                                                                    Event Key
-                                                                </button>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => handleUpdateMenuItemType(idx, 'web_url')}
-                                                                    className={cn("flex-1 py-1 text-[9px] font-bold rounded-md transition-colors cursor-pointer", item.type === 'web_url' ? "bg-white/10 text-white" : "text-zinc-550 hover:text-[#c4c7c8]")}
-                                                                >
-                                                                    Redirect Link
-                                                                </button>
-                                                            </div>
+                                                                    Track Orders
+                                                                </option>
+                                                            </select>
                                                         </div>
 
                                                         <div className="space-y-1">
@@ -1186,6 +1272,16 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                                                 />
                                                             </div>
                                                         )}
+                                                        {item.type === 'postback' && item.payload === 'TRACK_ORDER' && (
+                                                            <div className="space-y-1 md:col-span-2 bg-[#4f46e5]/10 border border-[#4f46e5]/20 rounded-md p-2.5 text-[10px] text-indigo-300 font-semibold mt-1">
+                                                                Using order number users can track the orders
+                                                            </div>
+                                                        )}
+                                                        {item.type === 'postback' && item.payload !== 'TRACK_ORDER' && (
+                                                            <div className="space-y-1 md:col-span-2 bg-[#4f46e5]/10 border border-[#4f46e5]/20 rounded-md p-2.5 text-[10px] text-indigo-300 font-semibold mt-1">
+                                                                You can for continue the chat with add flow
+                                                            </div>
+                                                        )}
                                                     </div>
 
                                                     <button
@@ -1197,8 +1293,40 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                                     </button>
                                                 </div>
                                             ))}
+
+
                                         </div>
                                     </div>
+
+
+                                    {tempPersistentMenuItems
+                                        .filter(item => item.payload === 'TRACK_ORDER')
+                                        .slice(0, 1)
+                                        .map((item, idx) => (
+
+
+                                            <div key={idx} className="flex items-center justify-between bg-[#0e0e0e] border border-[#444748] rounded-md p-3.5">
+                                                <div>
+                                                    <h4 className="text-xs font-semibold text-white">Order ID Retry Limit</h4>
+                                                    <p className="text-[10px] text-zinc-500 mt-1">Number of attempts before order tracking is automatically cancelled.</p>
+                                                </div>
+                                                <select
+                                                    value={tempOrderTrackRetryLimit}
+                                                    onChange={(e) => setTempOrderTrackRetryLimit(Number(e.target.value))}
+                                                    className="bg-[#131313] border border-[#444748] rounded-md px-2.5 py-1.5 text-xs text-white outline-none focus:border-zinc-300 font-semibold cursor-pointer"
+                                                >
+                                                    <option value={1}>1 Attempt</option>
+                                                    <option value={2}>2 Attempts</option>
+                                                    <option value={3}>3 Attempts</option>
+                                                    <option value={4}>4 Attempts</option>
+                                                    <option value={5}>5 Attempts</option>
+                                                </select>
+                                            </div>
+
+                                        ))}
+
+
+
                                 </div>
                             )}
                         </div>
@@ -1280,123 +1408,127 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
             </div> */}
 
             {/* Simulated Dual Previews */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className={defaultTab ? "flex flex-col gap-6" : "grid grid-cols-1 lg:grid-cols-2 gap-8"}>
                 {/* 1. Icebreakers preview */}
-                <div className="glass-pane p-6 rounded-xl border border-white/10 bg-[#131313]/40 flex flex-col items-center min-h-[640px] hover:border-white/20 transition-all duration-300 relative">
-                    <div className="flex justify-between items-start w-full mb-6 gap-4">
-                        <div className="text-left">
-                            <h3 className="text-base font-bold text-white mb-1.5">Wellcome Message</h3>
-                            <p className="text-xs text-zinc-400 max-w-sm">Suggest up to 4 quick-reply questions shown to users on their initial chat contact.</p>
-                        </div>
-                        {isSavedOnInstagram.icebreakers ? (
-                            <div className="flex items-center gap-2 shrink-0">
-                                <button
-                                    type="button"
-                                    onClick={() => handleEditPayloadFlow('icebreakers_flow', 'icebreakers')}
-                                    className="px-3.5 py-2 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold rounded shadow-md active:scale-95 transition-all cursor-pointer"
-                                >
-                                    Edit Flow
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => openEditModal('icebreakers')}
-                                    className="flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-zinc-200 text-black text-xs font-bold rounded shadow-md active:scale-95 transition-all cursor-pointer"
-                                >
-                                    <Edit2 className="w-3.5 h-3.5" />
-                                    Edit
-                                </button>
+                {(!defaultTab || defaultTab === 'icebreakers') && (
+                    <div className="glass-pane p-6 rounded-xl border border-white/10 bg-[#131313]/40 flex flex-col items-center min-h-[640px] hover:border-white/20 transition-all duration-300 relative">
+                        <div className="flex justify-between items-start w-full mb-6 gap-4">
+                            <div className="text-left">
+                                <h3 className="text-base font-bold text-white mb-1.5">Wellcome Questions</h3>
+                                <p className="text-xs text-zinc-400 max-w-sm">Suggest up to 4 quick-reply questions shown to users on their initial chat contact.</p>
                             </div>
-                        ) : (
-                            <button
-                                type="button"
-                                onClick={() => handleCreateSample('icebreakers')}
-                                disabled={isSampleLoading.icebreakers}
-                                className="flex items-center gap-1.5 px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold rounded shadow-md active:scale-95 transition-all cursor-pointer shrink-0 disabled:opacity-50"
-                            >
-                                {isSampleLoading.icebreakers ? (
-                                    <div className="w-3.5 h-3.5 text-white border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                ) : (
-                                    <Plus className="w-3.5 h-3.5" />
-                                )}
-                                Sample Create
-                            </button>
-                        )}
-                    </div>
+                            {/* {isSavedOnInstagram.icebreakers ? (
+                                <div className="flex items-center gap-2 shrink-0">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleEditPayloadFlow('icebreakers_flow', 'icebreakers')}
+                                        className="px-3.5 py-2 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold rounded shadow-md active:scale-95 transition-all cursor-pointer"
+                                    >
+                                        Edit Flow
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => openEditModal('icebreakers')}
+                                        className="flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-zinc-200 text-black text-xs font-bold rounded shadow-md active:scale-95 transition-all cursor-pointer"
+                                    >
+                                        <Edit2 className="w-3.5 h-3.5" />
+                                        Edit
+                                    </button>
+                                </div>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={() => handleCreateSample('icebreakers')}
+                                    disabled={isSampleLoading.icebreakers}
+                                    className="flex items-center gap-1.5 px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold rounded shadow-md active:scale-95 transition-all cursor-pointer shrink-0 disabled:opacity-50"
+                                >
+                                    {isSampleLoading.icebreakers ? (
+                                        <div className="w-3.5 h-3.5 text-white border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                    ) : (
+                                        <Plus className="w-3.5 h-3.5" />
+                                    )}
+                                    Sample Create
+                                </button>
+                            )} */}
+                        </div>
 
-                    <div className="my-auto shrink-0">
-                        <PhonePreview
-                            type="icebreakers"
-                            promptVal={welcomePrompt}
-                            itemsList={iceBreakers}
-                            composerInputDisabledVal={composerInputDisabled}
-                            profilePic={profilePic}
-                            username={username}
-                            websiteUrl={websiteUrl}
-                            followersCount={followersCount}
-                            postsCount={postsCount}
-                            mutualsText={mutualsText}
-                        />
+                        <div className="my-auto shrink-0">
+                            <PhonePreview
+                                type="icebreakers"
+                                promptVal={welcomePrompt}
+                                itemsList={iceBreakers}
+                                composerInputDisabledVal={composerInputDisabled}
+                                profilePic={profilePic}
+                                username={username}
+                                websiteUrl={websiteUrl}
+                                followersCount={followersCount}
+                                postsCount={postsCount}
+                                mutualsText={mutualsText}
+                            />
+                        </div>
                     </div>
-                </div>
+                )}
 
                 {/* 2. Menu Options preview */}
-                <div className="glass-pane p-6 rounded-xl border border-white/10 bg-[#131313]/40 flex flex-col items-center min-h-[640px] hover:border-white/20 transition-all duration-300 relative">
-                    <div className="flex justify-between items-start w-full mb-6 gap-4">
-                        <div className="text-left">
-                            <h3 className="text-base font-bold text-white mb-1.5">Persistent Navigation Menu</h3>
-                            <p className="text-xs text-zinc-400 max-w-sm">A static navigation drawer providing persistent buttons and redirection links.</p>
-                        </div>
-                        {isSavedOnInstagram.persistent_menu ? (
-                            <div className="flex items-center gap-2 shrink-0">
-                                <button
-                                    type="button"
-                                    onClick={() => handleEditPayloadFlow('persistent_menu_flow', 'persistent_menu')}
-                                    className="px-3.5 py-2 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold rounded shadow-md active:scale-95 transition-all cursor-pointer"
-                                >
-                                    Edit Flow
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => openEditModal('persistent_menu')}
-                                    className="flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-zinc-200 text-black text-xs font-bold rounded shadow-md active:scale-95 transition-all cursor-pointer shrink-0"
-                                >
-                                    <Edit2 className="w-3.5 h-3.5" />
-                                    Edit
-                                </button>
+                {(!defaultTab || defaultTab === 'persistent_menu') && (
+                    <div className="glass-pane p-6 rounded-xl border border-white/10 bg-[#131313]/40 flex flex-col items-center min-h-[640px] hover:border-white/20 transition-all duration-300 relative">
+                        <div className="flex justify-between items-start w-full mb-6 gap-4">
+                            <div className="text-left">
+                                <h3 className="text-base font-bold text-white mb-1.5">Right top Menu</h3>
+                                <p className="text-xs text-zinc-400 max-w-sm">A static navigation drawer providing persistent buttons and redirection links.</p>
                             </div>
-                        ) : (
-                            <button
-                                type="button"
-                                onClick={() => handleCreateSample('persistent_menu')}
-                                disabled={isSampleLoading.persistent_menu}
-                                className="flex items-center gap-1.5 px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold rounded shadow-md active:scale-95 transition-all cursor-pointer shrink-0 disabled:opacity-50"
-                            >
-                                {isSampleLoading.persistent_menu ? (
-                                    <div className="w-3.5 h-3.5 border-2 text-white border-white
+                            {/* {isSavedOnInstagram.persistent_menu ? (
+                                <div className="flex items-center gap-2 shrink-0">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleEditPayloadFlow('persistent_menu_flow', 'persistent_menu')}
+                                        className="px-3.5 py-2 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold rounded shadow-md active:scale-95 transition-all cursor-pointer"
+                                    >
+                                        Edit Flow
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => openEditModal('persistent_menu')}
+                                        className="flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-zinc-200 text-black text-xs font-bold rounded shadow-md active:scale-95 transition-all cursor-pointer shrink-0"
+                                    >
+                                        <Edit2 className="w-3.5 h-3.5" />
+                                        Edit
+                                    </button>
+                                </div>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={() => handleCreateSample('persistent_menu')}
+                                    disabled={isSampleLoading.persistent_menu}
+                                    className="flex items-center gap-1.5 px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold rounded shadow-md active:scale-95 transition-all cursor-pointer shrink-0 disabled:opacity-50"
+                                >
+                                    {isSampleLoading.persistent_menu ? (
+                                        <div className="w-3.5 h-3.5 border-2 text-white border-white
                                      border-t-transparent rounded-full animate-spin" />
-                                ) : (
-                                    <Plus className="w-3.5 h-3.5" />
-                                )}
-                                Sample Create
-                            </button>
-                        )}
-                    </div>
+                                    ) : (
+                                        <Plus className="w-3.5 h-3.5" />
+                                    )}
+                                    Sample Create
+                                </button>
+                            )} */}
+                        </div>
 
-                    <div className="my-auto shrink-0">
-                        <PhonePreview
-                            type="persistent_menu"
-                            promptVal={welcomePrompt}
-                            itemsList={persistentMenuItems}
-                            composerInputDisabledVal={composerInputDisabled}
-                            profilePic={profilePic}
-                            username={username}
-                            websiteUrl={websiteUrl}
-                            followersCount={followersCount}
-                            postsCount={postsCount}
-                            mutualsText={mutualsText}
-                        />
+                        <div className="my-auto shrink-0">
+                            <PhonePreview
+                                type="persistent_menu"
+                                promptVal={welcomePrompt}
+                                itemsList={persistentMenuItems}
+                                composerInputDisabledVal={composerInputDisabled}
+                                profilePic={profilePic}
+                                username={username}
+                                websiteUrl={websiteUrl}
+                                followersCount={followersCount}
+                                postsCount={postsCount}
+                                mutualsText={mutualsText}
+                            />
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
 
             {/* Portal for Edit Modal Popup */}

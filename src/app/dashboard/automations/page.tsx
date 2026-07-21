@@ -7,6 +7,8 @@ import { Canvas } from "@/components/builder/Canvas";
 import { RightSidebar } from "@/components/builder/RightSidebar";
 import { InstagramMediaPicker } from "@/components/builder/InstagramMediaPicker";
 import DMContentEditor from "@/components/builder/DMContentEditor";
+import WelcomeContentEditor from "@/app/dashboard/inbox/wellcome/page";
+import ConditionContentEditor from "@/components/builder/ConditionContentEditor";
 import { AnimatePresence } from "framer-motion";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/store";
@@ -39,6 +41,31 @@ export default function BuilderPage() {
             let name = res.data.name;
             let nodesList = res.data.visual_data.nodes || [];
             let edgesList = res.data.visual_data.edges || [];
+
+            // ... (existing sanitization and welcome flow sync logic below)
+            // Sanitize nodes list: if any action node has configured data, set is_placeholder to false
+            nodesList = nodesList.map((node: any) => {
+              if (node.type === 'action') {
+                const d = node.data || {};
+                const hasConfiguredData =
+                  (d.messages && d.messages.length > 0) ||
+                  (d.dm_format && d.dm_format !== 'text') ||
+                  (d.quick_replies_titles && d.quick_replies_titles.length > 0) ||
+                  (d.button_template_buttons_json && String(d.button_template_buttons_json).trim() !== '') ||
+                  (d.generic_template_elements_json && String(d.generic_template_elements_json).trim() !== '') ||
+                  (d.action_type && d.action_type !== 'send_dm');
+                if (hasConfiguredData) {
+                  return {
+                    ...node,
+                    data: {
+                      ...d,
+                      is_placeholder: false
+                    }
+                  };
+                }
+              }
+              return node;
+            });
 
             // Check if it's a welcome profile flow that needs synchronization
             const isIcebreakers = name === "Welcome Message Flow";
@@ -88,50 +115,19 @@ export default function BuilderPage() {
                 }
               }
 
-              // Update the trigger node data in-place
-              nodesList = nodesList.map((n: any) => {
-                if (n.type === 'trigger') {
-                  if (isIcebreakers) {
-                    return {
-                      ...n,
-                      data: {
-                        ...n.data,
-                        is_icebreaker_trigger: true,
-                        welcome_prompt: welcomePromptVal,
-                        icebreakers: iceBreakersList
-                      }
-                    };
-                  } else {
-                    return {
-                      ...n,
-                      data: {
-                        ...n.data,
-                        is_menu_trigger: true,
-                        composer_input_disabled: composerDisabled,
-                        persistent_menu_items: persistentMenuList
-                      }
-                    };
-                  }
-                }
-                return n;
-              });
+              // If nodesList is empty (newly created automation), auto-generate trigger node
+              if (nodesList.length === 0) {
+                const triggerId = `node-t-${Date.now()}`;
+                const triggerData: any = isIcebreakers
+                  ? { is_icebreaker_trigger: true, welcome_prompt: welcomePromptVal, icebreakers: iceBreakersList }
+                  : { is_menu_trigger: true, composer_input_disabled: composerDisabled, persistent_menu_items: persistentMenuList };
+                nodesList = [{ id: triggerId, type: 'trigger', position: { x: 100, y: 200 }, data: triggerData }];
 
-              // Synced list of active events to map action nodes
-              const activeEvents = isIcebreakers
-                ? iceBreakersList.filter(ib => ib.question && ib.payload).map(ib => ({ payload: ib.payload, label: ib.question }))
-                : persistentMenuList.filter(item => item.type === 'postback' && item.title && item.payload).map(item => ({ payload: item.payload, label: item.title }));
+                const activeEvents = isIcebreakers
+                  ? iceBreakersList.filter((ib: any) => ib.question && ib.payload).map((ib: any) => ({ payload: ib.payload, label: ib.question }))
+                  : persistentMenuList.filter((item: any) => item.type === 'postback' && item.title && item.payload).map((item: any) => ({ payload: item.payload, label: item.title }));
 
-              const triggerNode = nodesList.find((n: any) => n.type === 'trigger');
-              const triggerId = triggerNode ? triggerNode.id : `node-t-${Date.now()}`;
-
-              // Auto-create missing action reply nodes and edges for newly added welcome buttons
-              activeEvents.forEach((ae, idx) => {
-                const hasNode = edgesList.some((e: any) => {
-                  const child = nodesList.find((n: any) => n.id === e.target);
-                  return child?.data?.parent_event === ae.payload;
-                });
-
-                if (!hasNode) {
+                activeEvents.forEach((ae: any, idx: number) => {
                   const actionId = `node-a-${Date.now()}-${idx}`;
                   nodesList.push({
                     id: actionId,
@@ -142,7 +138,7 @@ export default function BuilderPage() {
                       action_type: 'send_dm',
                       dm_format: 'text',
                       message_mode: 'fixed',
-                      messages: [`Hello! Customize this reply flow for: "${ae.label}"`],
+                      messages: [`Hello! Customize this reply for: "${ae.label}"`],
                       parent_event: ae.payload,
                       parent_label: ae.label
                     }
@@ -153,23 +149,20 @@ export default function BuilderPage() {
                     target: actionId,
                     label: ae.label
                   });
-                }
-              });
-
-              // Clean up action reply nodes and edges for removed welcome buttons
-              edgesList = edgesList.filter((e: any) => {
-                if (e.source === triggerId && e.label) {
-                  const childNode = nodesList.find((n: any) => n.id === e.target);
-                  const parentEvent = childNode?.data?.parent_event;
-                  const stillActive = activeEvents.some(ae => ae.payload === parentEvent);
-                  if (!stillActive) {
-                    // Filter out this edge and target node
-                    nodesList = nodesList.filter((n: any) => n.id !== e.target);
-                    return false;
+                });
+              } else {
+                // Update the trigger node data in-place
+                nodesList = nodesList.map((n: any) => {
+                  if (n.type === 'trigger') {
+                    if (isIcebreakers) {
+                      return { ...n, data: { ...n.data, is_icebreaker_trigger: true, welcome_prompt: welcomePromptVal, icebreakers: iceBreakersList } };
+                    } else {
+                      return { ...n, data: { ...n.data, is_menu_trigger: true, composer_input_disabled: composerDisabled, persistent_menu_items: persistentMenuList } };
+                    }
                   }
-                }
-                return true;
-              });
+                  return n;
+                });
+              }
             }
 
             dispatch(setFlow({
@@ -177,6 +170,17 @@ export default function BuilderPage() {
               name: res.data.name,
               nodes: nodesList,
               edges: edgesList,
+              selectedNodeId: null,
+              mediaPicker: null
+            }));
+          } else if (res.data) {
+            // Automation exists but has no visual_data yet (newly created)
+            // Dispatch with empty nodes so Canvas screenshotFlow doesn't hijack
+            dispatch(setFlow({
+              id: res.data.id,
+              name: res.data.name,
+              nodes: [],
+              edges: [],
               selectedNodeId: null,
               mediaPicker: null
             }));
@@ -263,9 +267,7 @@ export default function BuilderPage() {
                   ruleType: 'dm_automation',
                   data: {
                     action_type: 'send_dm',
-                    dm_format: 'text',
-                    message_mode: 'fixed',
-                    messages: [`Hello! Customize this reply flow for: "${ib.question}"`],
+                    is_placeholder: true,
                     parent_event: ib.payload,
                     parent_label: ib.question
                   }
@@ -296,27 +298,97 @@ export default function BuilderPage() {
             let actionIdx = 0;
             persistentMenuList.forEach((item, idx) => {
               if (item.type === 'postback' && item.title && item.payload) {
-                const actionId = `node-a-${Date.now()}-${idx}`;
-                nodesList.push({
-                  id: actionId,
-                  type: 'action',
-                  position: { x: 600, y: 50 + actionIdx * 250 },
-                  ruleType: 'dm_automation',
-                  data: {
-                    action_type: 'send_dm',
-                    dm_format: 'text',
-                    message_mode: 'fixed',
-                    messages: [`Hello! Customize this reply flow for: "${item.title}"`],
-                    parent_event: item.payload,
-                    parent_label: item.title
-                  }
-                });
-                edgesList.push({
-                  id: `edge-${Date.now()}-${idx}`,
-                  source: triggerId,
-                  target: actionId,
-                  label: item.title
-                });
+                if (item.payload === 'TRACK_ORDER') {
+                  const promptId = `${triggerId}-track-prompt`;
+                  const inputId = `${triggerId}-track-input`;
+                  const responseId = `${triggerId}-track-response`;
+
+                  nodesList.push({
+                    id: promptId,
+                    type: 'action',
+                    position: { x: 550, y: 450 + actionIdx * 250 },
+                    ruleType: 'dm_automation',
+                    data: {
+                      action_type: 'send_dm',
+                      dm_format: 'text',
+                      messages: ["Please reply with your Order ID to track your order. 📦"],
+                      parent_event: 'TRACK_ORDER',
+                      parent_label: item.title,
+                      is_track_prompt: true
+                    }
+                  });
+
+                  nodesList.push({
+                    id: inputId,
+                    type: 'action',
+                    position: { x: 900, y: 450 + actionIdx * 250 },
+                    ruleType: 'dm_automation',
+                    data: {
+                      action_type: 'send_dm',
+                      dm_format: 'text',
+                      messages: ["Customer replies with Order ID"],
+                      parent_event: 'TRACK_ORDER',
+                      parent_label: item.title,
+                      is_track_input: true
+                    }
+                  });
+
+                  nodesList.push({
+                    id: responseId,
+                    type: 'action',
+                    position: { x: 1250, y: 450 + actionIdx * 250 },
+                    ruleType: 'dm_automation',
+                    data: {
+                      action_type: 'send_dm',
+                      dm_format: 'text',
+                      messages: ["Returns Live status details"],
+                      parent_event: 'TRACK_ORDER',
+                      parent_label: item.title,
+                      is_track_response: true
+                    }
+                  });
+
+                  edgesList.push({
+                    id: `edge-${triggerId}-prompt`,
+                    source: triggerId,
+                    target: promptId,
+                    label: item.title
+                  });
+
+                  edgesList.push({
+                    id: `edge-prompt-input-${actionIdx}`,
+                    source: promptId,
+                    target: inputId,
+                    label: "Awaiting DM"
+                  });
+
+                  edgesList.push({
+                    id: `edge-input-response-${actionIdx}`,
+                    source: inputId,
+                    target: responseId,
+                    label: "Send Response"
+                  });
+                } else {
+                  const actionId = `node-a-${Date.now()}-${idx}`;
+                  nodesList.push({
+                    id: actionId,
+                    type: 'action',
+                    position: { x: 600, y: 50 + actionIdx * 250 },
+                    ruleType: 'dm_automation',
+                    data: {
+                      action_type: 'send_dm',
+                      is_placeholder: true,
+                      parent_event: item.payload,
+                      parent_label: item.title
+                    }
+                  });
+                  edgesList.push({
+                    id: `edge-${Date.now()}-${idx}`,
+                    source: triggerId,
+                    target: actionId,
+                    label: item.title
+                  });
+                }
                 actionIdx++;
               }
             });
@@ -333,6 +405,8 @@ export default function BuilderPage() {
         };
 
         initializeWelcomeFlow();
+      } else if (searchParams.get('welcome')) {
+        // Do nothing. Keep the client-side template flow that was just initialized/dispatched in Redux by Canvas.tsx
       } else {
         dispatch(setFlow({
           id: `node-f-${Date.now()}`,
@@ -377,11 +451,16 @@ export default function BuilderPage() {
           lastAutoOpenedNodeIdRef.current = selectedNodeId;
           setActiveEditNodeId(selectedNodeId);
         }
+      } else if (selectedNode?.type === 'trigger' && (selectedNode.data?.is_icebreaker_trigger || selectedNode.data?.is_menu_trigger)) {
+        if (lastAutoOpenedNodeIdRef.current !== selectedNodeId) {
+          lastAutoOpenedNodeIdRef.current = selectedNodeId;
+          setActiveEditNodeId(selectedNodeId);
+        }
       }
     } else {
       lastAutoOpenedNodeIdRef.current = null;
     }
-  }, [selectedNodeId, selectedNode?.id, selectedNode?.type, selectedNode?.data?.action_type, selectedNode?.ruleType]);
+  }, [selectedNodeId, selectedNode?.id, selectedNode?.type, selectedNode?.data?.action_type, selectedNode?.ruleType, selectedNode?.data?.is_icebreaker_trigger, selectedNode?.data?.is_menu_trigger]);
 
   useEffect(() => {
     const handleOpenEditor = (e: Event) => {
@@ -422,15 +501,44 @@ export default function BuilderPage() {
       />
 
       <AnimatePresence>
-        {activeEditNodeId && (
-          <DMContentEditor
-            nodeId={activeEditNodeId}
-            onClose={() => {
-              setActiveEditNodeId(null);
-              dispatch(selectNode(null));
-            }}
-          />
-        )}
+        {activeEditNodeId && (() => {
+          const activeEditNode = nodes.find(n => n.id === activeEditNodeId);
+          const isActiveEditTrigger = activeEditNode?.type === 'trigger' && (activeEditNode.data?.is_icebreaker_trigger || activeEditNode.data?.is_menu_trigger);
+
+          if (isActiveEditTrigger) {
+            return (
+              <WelcomeContentEditor
+                nodeId={activeEditNodeId}
+                onClose={() => {
+                  setActiveEditNodeId(null);
+                  dispatch(selectNode(null));
+                }}
+              />
+            );
+          }
+
+          if (activeEditNode?.type === 'condition') {
+            return (
+              <ConditionContentEditor
+                nodeId={activeEditNodeId}
+                onClose={() => {
+                  setActiveEditNodeId(null);
+                  dispatch(selectNode(null));
+                }}
+              />
+            );
+          }
+
+          return (
+            <DMContentEditor
+              nodeId={activeEditNodeId}
+              onClose={() => {
+                setActiveEditNodeId(null);
+                dispatch(selectNode(null));
+              }}
+            />
+          );
+        })()}
       </AnimatePresence>
     </div>
   );

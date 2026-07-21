@@ -149,6 +149,8 @@ export default function WebsiteSettingsPage() {
   const [templateId, setTemplateId] = useState("monochrome_precision");
   const [themeId, setThemeId] = useState("ink_black");
   const [kycStatus, setKycStatus] = useState("PENDING");
+  const [customSettings, setCustomSettings] = useState<any>({});
+  const [orderTrackRetryLimit, setOrderTrackRetryLimit] = useState(3);
 
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -210,6 +212,9 @@ export default function WebsiteSettingsPage() {
         setThemeId(d.theme_id || "ink_black");
         setPrivacyPolicy(d.privacy_policy || "");
         setTermsOfService(d.terms_of_service || "");
+        const cSettings = d.custom_settings || {};
+        setCustomSettings(cSettings);
+        setOrderTrackRetryLimit(cSettings.order_track_retry_limit ?? 3);
       }
 
       // Fetch KYC status for the logged-in user
@@ -258,6 +263,10 @@ export default function WebsiteSettingsPage() {
       theme_id: themeId,
       privacy_policy: privacyPolicy,
       terms_of_service: termsOfService,
+      custom_settings: {
+        ...customSettings,
+        order_track_retry_limit: orderTrackRetryLimit
+      }
     };
 
     try {
@@ -732,6 +741,24 @@ export default function WebsiteSettingsPage() {
                       </div>
                     </div>
                   )}
+                </div>
+
+                <div className="pt-4 border-t border-white/5 flex justify-between items-center text-xs font-semibold py-2">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-zinc-200">Order ID Retry Limit</span>
+                    <span className="text-[10px] text-zinc-400 font-normal">Number of attempts before order tracking is automatically cancelled.</span>
+                  </div>
+                  <select
+                    value={orderTrackRetryLimit}
+                    onChange={(e) => setOrderTrackRetryLimit(Number(e.target.value))}
+                    className="bg-[#131313] border border-[#444748] rounded px-3 py-1.5 text-xs text-white outline-none focus:border-zinc-300 font-semibold cursor-pointer"
+                  >
+                    <option value={1}>1 Attempt</option>
+                    <option value={2}>2 Attempts</option>
+                    <option value={3}>3 Attempts</option>
+                    <option value={4}>4 Attempts</option>
+                    <option value={5}>5 Attempts</option>
+                  </select>
                 </div>
               </div>
             </section>

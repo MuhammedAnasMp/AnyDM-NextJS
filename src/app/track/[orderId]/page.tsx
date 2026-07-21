@@ -3,7 +3,7 @@
 import React, { useState, useEffect, use } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Check, Truck, ArrowLeft, RefreshCw, ShoppingBag } from "lucide-react";
+import { Check, Truck, ArrowLeft, RefreshCw, ShoppingBag, Paperclip, Clipboard, ClipboardList } from "lucide-react";
 import Link from "next/link";
 import api from "@/lib/services/api.service";
 
@@ -27,6 +27,7 @@ export default function OrderTrackingPage({ params }: PageProps) {
   const [order, setOrder] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const getFallbackStorefrontLink = () => {
     if (typeof window !== "undefined") {
@@ -118,11 +119,36 @@ export default function OrderTrackingPage({ params }: PageProps) {
             <span>Shipment Tracker</span>
           </h1>
           <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-            <span className="text-[10px] font-mono bg-white/5 border border-white/10 px-2.5 py-1 rounded text-zinc-400">
-              ID: {order.order_id}
-            </span>
+            <button
+              onClick={() => {
+                const oid = order.order_id;
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                  navigator.clipboard.writeText(oid);
+                } else {
+                  const ta = document.createElement("textarea");
+                  ta.value = oid;
+                  ta.style.position = "fixed";
+                  ta.style.opacity = "0";
+                  document.body.appendChild(ta);
+                  ta.select();
+                  document.execCommand("copy");
+                  document.body.removeChild(ta);
+                }
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+              }}
+              title="Click to copy Order ID"
+              className="text-[10px] font-mono bg-white/5 hover:bg-white/10 active:bg-white/20 border border-white/10 px-2.5 py-1 rounded text-zinc-400 cursor-pointer active:scale-[0.98] transition-all flex items-center gap-1.5 outline-none"
+            >
+              <span>ID: {order.order_id}</span>
+              {copied ? (
+                <span className="text-emerald-400 text-[9px] font-bold">Copied!</span>
+              ) : (
+                <span className="opacity-50 text-[9.5px]"><ClipboardList height={15} width={15} /></span>
+              )}
+            </button>
             {order.store_username && (
-              <Link 
+              <Link
                 href={`/${order.store_username}`}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#605ca2] text-white hover:bg-[#605ca2]/90 transition-all active:scale-[0.98]"
               >

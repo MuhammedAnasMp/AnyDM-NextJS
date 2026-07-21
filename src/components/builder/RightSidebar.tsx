@@ -73,7 +73,7 @@ export function RightSidebar() {
   }, [selectedNodeId, selectedNodeRect, controls]);
 
   React.useEffect(() => {
-    if (selectedNode?.type === 'trigger' && selectedNode.data.target_mode === 'selected') {
+    if (selectedNode?.type === 'trigger' && (selectedNode.data.target_mode || selectedNode.data.mode) === 'selected') {
       const currentIds = selectedNode.data.media_ids || [];
       if (currentIds.length === 0) {
         const isStory = selectedNode.ruleType?.includes('story');
@@ -119,17 +119,14 @@ export function RightSidebar() {
         });
       }
     }
-  }, [selectedNode?.id, selectedNode?.data.target_mode, selectedNode?.data.media_ids, dispatch]);
+  }, [selectedNode?.id, selectedNode?.data.target_mode, selectedNode?.data.mode, selectedNode?.data.media_ids, dispatch]);
 
   if (!selectedNodeId) return null;
   const isGlobal = selectedNodeId === 'global';
   if (!selectedNode && !isGlobal) return null;
 
-  if (selectedNode && selectedNode.type === 'action' && selectedNode.data?.action_type === 'send_dm') {
-    const isEcommerceTemplate = !!(selectedNode.ruleType && selectedNode.ruleType.includes('product_inquiry'));
-    if (isEcommerceTemplate) {
-      return null;
-    }
+  if (selectedNode && (selectedNode.type === 'action' || selectedNode.type === 'condition')) {
+    return null;
   }
 
   const ruleType = selectedNode?.ruleType || triggerNode?.ruleType || 'comment_automation';
@@ -355,7 +352,40 @@ export function RightSidebar() {
             </div>
           </div>
         )}
-        {!isGlobal && !isSelectedProfileTrigger && definitions.map((def) => {
+        {selectedNode && selectedNode.type === 'action' && selectedNode.data?.parent_event === 'TRACK_ORDER' && (
+          // <div className="bg-[#4f46e5]/10 border border-[#4f46e5]/20 rounded-xl p-4 space-y-4 animate-fadeIn">
+          //   <div className="flex items-center gap-2 text-indigo-400">
+          //     <Sparkles className="w-4 h-4 shrink-0 text-indigo-400" />
+          //     <span className="text-xs font-bold uppercase tracking-wider">Dynamic Tracking Flow</span>
+          //   </div>
+          //   <p className="text-xs text-indigo-200 leading-relaxed font-semibold">
+          //     This node represents the live Order Tracking automation flow.
+          //   </p>
+          //   <p className="text-xs text-zinc-400 leading-relaxed">
+          //     When triggered, the system automatically runs the conversational check:
+          //   </p>
+          //   <div className="space-y-3 text-[11px] text-zinc-300 bg-black/40 border border-white/5 p-3 rounded-lg font-mono">
+          //     <div className="flex gap-2">
+          //       <span className="text-indigo-400 font-bold shrink-0">1. Prompt:</span>
+          //       <span>Asks customer to reply with their Order ID.</span>
+          //     </div>
+          //     <div className="flex gap-2">
+          //       <span className="text-indigo-400 font-bold shrink-0">2. Query:</span>
+          //       <span>Looks up order status directly from database.</span>
+          //     </div>
+          //     <div className="flex gap-2">
+          //       <span className="text-indigo-400 font-bold shrink-0">3. Reply:</span>
+          //       <span>Returns status details dynamically.</span>
+          //     </div>
+          //   </div>
+          //   <p className="text-[10px] text-zinc-500 italic leading-normal">
+          //     No manual configuration of message cards or child flows is required here.
+          //   </p>
+          // </div>
+
+          <>No configuration needed</>
+        )}
+        {!isGlobal && !isSelectedProfileTrigger && selectedNode?.data?.parent_event !== 'TRACK_ORDER' && definitions.map((def) => {
           // Check dependencies
           if (def.dependsOn) {
             const depVal = selectedNode?.data[def.dependsOn.field];
@@ -367,7 +397,7 @@ export function RightSidebar() {
           switch (def.type) {
             case 'select': {
               const isDMFormatField = def.name === 'dm_format';
-              const showEditButton = isDMFormatField && value && value !== 'text';
+              const showEditButton = isDMFormatField && value;
               return (
                 <div key={def.name} className="space-y-2 relative">
                   {isDMFormatField ? (
@@ -424,7 +454,7 @@ export function RightSidebar() {
                                 onClick={() => {
                                   handleUpdate(def.name, fmt);
                                   setDmFormatDropdownOpen(false);
-                                  if (fmt !== 'text' && selectedNode) {
+                                  if (selectedNode) {
                                     setTimeout(() => {
                                       window.dispatchEvent(new CustomEvent('open-dm-format-editor', {
                                         detail: { nodeId: selectedNode.id }
@@ -623,7 +653,7 @@ export function RightSidebar() {
             case 'resource_picker': {
               const detailsKey = `${def.name}_details`;
               const valueDetails = selectedNode?.data[detailsKey] || [];
-              const hasError = def.name === 'media_ids' && selectedNode?.data.target_mode === 'selected' && (!value || value.length === 0);
+              const hasError = def.name === 'media_ids' && (selectedNode?.data.target_mode || selectedNode?.data.mode) === 'selected' && (!value || value.length === 0);
               return (
                 <div key={def.name} className="space-y-2">
                   <label className="text-label-sm text-on-surface-variant uppercase tracking-wider">{def.label}</label>
@@ -687,6 +717,19 @@ export function RightSidebar() {
               return null;
           }
         })}
+        {selectedNode && selectedNode.type === 'condition' && (
+          <button
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent('open-dm-format-editor', {
+                detail: { nodeId: selectedNode.id }
+              }));
+            }}
+            className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs shadow-md shadow-indigo-500/10 flex items-center justify-center gap-2 cursor-pointer transition-all border-none mt-4"
+          >
+            <Sparkles className="w-4 h-4 text-amber-400" />
+            Configure Filter & Gate
+          </button>
+        )}
       </div>
     </motion.div>
   );

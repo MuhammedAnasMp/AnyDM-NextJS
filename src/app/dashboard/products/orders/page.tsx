@@ -19,6 +19,7 @@ import {
   ChevronLeft,
   ChevronRight,
   AlertCircle,
+  ClipboardList,
 } from "lucide-react";
 import api from "@/lib/services/api.service";
 import Toast from "@/components/Toast";
@@ -35,7 +36,7 @@ export default function SellerOrdersPage() {
     products_sold: 0,
     low_stock_items: 0,
   });
-
+  const [copied, setCopied] = useState(false)
   const [isLoading, setIsLoading] = useState(true);
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -98,7 +99,7 @@ export default function SellerOrdersPage() {
   }, [searchQuery, selectedFilter]);
 
   const filteredOrders = orders.filter((o) => {
-    const matchesSearch = 
+    const matchesSearch =
       o.order_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       o.customer_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       o.customer_phone?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -194,11 +195,10 @@ export default function SellerOrdersPage() {
               <button
                 key={filter}
                 onClick={() => setSelectedFilter(filter)}
-                className={`px-3 h-7 rounded text-xs font-medium transition-colors ${
-                  selectedFilter === filter
-                    ? "bg-[#20201f] text-white border border-[#2a2a2a] shadow-sm"
-                    : "text-[#c4c7c8] hover:text-white border border-transparent"
-                }`}
+                className={`px-3 h-7 rounded text-xs font-medium transition-colors ${selectedFilter === filter
+                  ? "bg-[#20201f] text-white border border-[#2a2a2a] shadow-sm"
+                  : "text-[#c4c7c8] hover:text-white border border-transparent"
+                  }`}
               >
                 {filter === "All" ? "All orders" : filter}
               </button>
@@ -269,7 +269,7 @@ export default function SellerOrdersPage() {
               ) : (
                 paginatedOrders.map((o) => (
                   <tr key={o.order_id} className="hover:bg-white/[0.01] transition-colors group">
-                    <td 
+                    <td
                       className="px-6 py-3.5 font-mono text-[10px] text-[#b6b2ff] cursor-pointer"
                       onClick={() => setSelectedOrder(o)}
                     >
@@ -350,7 +350,7 @@ export default function SellerOrdersPage() {
               Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredOrders.length)} of {filteredOrders.length} orders
             </p>
             <div className="flex gap-1">
-              <button 
+              <button
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
                 className="w-7 h-7 flex items-center justify-center rounded border border-[#2a2a2a] hover:bg-white/5 transition-colors disabled:opacity-30 disabled:pointer-events-none"
@@ -360,7 +360,7 @@ export default function SellerOrdersPage() {
               <span className="w-7 h-7 flex items-center justify-center rounded bg-white text-black text-xs font-semibold">
                 {currentPage}
               </span>
-              <button 
+              <button
                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                 disabled={currentPage === totalPages}
                 className="w-7 h-7 flex items-center justify-center rounded border border-[#2a2a2a] hover:bg-white/5 transition-colors disabled:opacity-30 disabled:pointer-events-none"
@@ -385,17 +385,41 @@ export default function SellerOrdersPage() {
                 <div>
                   <h3 className="text-sm font-bold flex items-center gap-2">
                     <span>Order Details</span>
-                    <span className="font-mono text-xs px-2 py-0.5 bg-white/5 border border-white/10 rounded text-zinc-400">
+
+                    <div
+                      onClick={() => {
+                        const oid = selectedOrder.order_id;
+                        if (navigator.clipboard && navigator.clipboard.writeText) {
+                          navigator.clipboard.writeText(oid);
+                        } else {
+                          const ta = document.createElement("textarea");
+                          ta.value = oid;
+                          ta.style.position = "fixed";
+                          ta.style.opacity = "0";
+                          document.body.appendChild(ta);
+                          ta.select();
+                          document.execCommand("copy");
+                          document.body.removeChild(ta);
+                        }
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 2000);
+                      }}
+                      className="font-mono text-xs px-2 py-0.5 bg-white/5 border border-white/10 rounded text-zinc-400 flex gap-1 cursor-pointer">
                       {selectedOrder.order_id}
-                    </span>
+                      {copied ? (
+                        <span className="text-emerald-400 text-[9px] font-bold">Copied!</span>
+                      ) : (
+                        <span className="opacity-50 text-[9.5px]"><ClipboardList height={15} width={15} /></span>
+                      )}
+                    </div>
                   </h3>
                   <p className="text-[10px] text-zinc-400 mt-0.5">
                     Placed on {new Date(selectedOrder.created_at).toLocaleString()}
                   </p>
                 </div>
               </div>
-              <button 
-                onClick={() => setSelectedOrder(null)} 
+              <button
+                onClick={() => setSelectedOrder(null)}
                 className="p-1 rounded hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
               >
                 <X className="w-5 h-5" />

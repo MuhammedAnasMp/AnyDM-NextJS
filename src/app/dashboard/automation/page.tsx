@@ -56,7 +56,7 @@ const getTriggerDetails = (item: any) => {
   if (isWelcomeFlow) {
     return {
       icon: <HelpCircle className="w-4 h-4 text-sky-400" />,
-      label: "User Taps Icebreaker",
+      label: "User Taps Options",
       desc: "Starts when a new user selects a preset question in your chat."
     };
   }
@@ -88,6 +88,11 @@ const getTriggerDetails = (item: any) => {
 export default function AutomationsDashboard() {
   const appUser = useSelector((state: RootState) => state.auth.user);
   const activeAccountId = appUser?.active_instagram_account_id;
+  const instagramAccounts = useSelector((state: RootState) => state.auth.instagramAccounts || []);
+
+  const activeAccount = instagramAccounts.find(
+    (acc: any) => acc.id === activeAccountId
+  ) || instagramAccounts[0];
 
   const [automations, setAutomations] = useState<Automation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -240,6 +245,18 @@ export default function AutomationsDashboard() {
           </header>
         </div>
 
+        {activeAccount && activeAccount.is_enabled === false && (
+          <div className="mb-6 p-4 rounded-xl border border-amber-500/20 bg-amber-500/5 text-amber-200 text-xs flex items-center gap-3 shadow-md backdrop-blur-sm">
+            <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
+            <div className="space-y-0.5">
+              <p className="font-bold">Automations are Paused</p>
+              <p className="text-zinc-400">
+                The selected Instagram account <span className="font-mono text-zinc-300">@{activeAccount.username}</span> is currently paused. No automations will run until you resume it in <Link href="/dashboard/settings/accounts" className="text-amber-400 underline hover:text-amber-300">Account Settings</Link>.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Structured Grid Stats Panel */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
           {[
@@ -351,17 +368,17 @@ export default function AutomationsDashboard() {
                           {/* Toggle Switch */}
                           <button
                             onClick={() => {
-                              if (isSpecialFlow) {
-                                setToast({
-                                  message: "Status managed by Welcome Profile config. It cannot be disabled here.",
-                                  type: "info",
-                                  visible: true
-                                });
-                                return;
-                              }
+                              // if (isSpecialFlow) {
+                              //   setToast({
+                              //     message: "Status managed by Welcome Profile config. It cannot be disabled here.",
+                              //     type: "info",
+                              //     visible: true
+                              //   });
+                              //   return;
+                              // }
                               handleToggle(item.id, item.status);
                             }}
-                            disabled={togglingId === item.id || isSpecialFlow}
+                            // disabled={togglingId === item.id || isSpecialFlow}
                             className={`w-9 h-5 rounded-full p-0.5 transition-all relative flex items-center outline-none border ${isActive
                               ? "bg-white border-transparent"
                               : "bg-[#262626] border-[#3a3a3a]"

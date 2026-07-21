@@ -1167,17 +1167,26 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
 
   const updateButton = (idx: number, field: keyof ButtonItem, val: string) => {
     const copy = [...buttonTemplateButtons];
-    copy[idx] = { ...copy[idx], [field]: val } as ButtonItem;
-    // reset conditional values
-    if (field === 'type') {
-      if (val === 'web_url' || val === 'product') {
-        copy[idx].payload = undefined;
-        copy[idx].url = 'https://';
-      } else {
-        copy[idx].url = undefined;
-        const uniqueId = Math.random().toString(36).substring(2, 7).toUpperCase();
-        copy[idx].payload = `TRIGGER_EVENT_${uniqueId}`;
-        copy[idx].title = 'Details';
+    if (field === 'type' && val === 'track_order') {
+      copy[idx] = {
+        ...copy[idx],
+        type: 'postback',
+        payload: 'TRACK_ORDER',
+        url: undefined
+      } as any;
+    } else {
+      copy[idx] = { ...copy[idx], [field]: val } as ButtonItem;
+      // reset conditional values
+      if (field === 'type') {
+        if (val === 'web_url' || val === 'product') {
+          copy[idx].payload = undefined;
+          copy[idx].url = 'https://';
+        } else {
+          copy[idx].url = undefined;
+          const uniqueId = Math.random().toString(36).substring(2, 7).toUpperCase();
+          copy[idx].payload = `TRIGGER_EVENT_${uniqueId}`;
+          copy[idx].title = 'Details';
+        }
       }
     }
     setButtonTemplateButtons(copy);
@@ -1194,7 +1203,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
       default_action: { type: 'web_url', url: 'https://' },
       buttons: [{ type: 'web_url', title: '🛒 Shop Now', url: 'https://' }]
     }]);
-    scrollToCard(newIdx);
+    setTimeout(() => scrollToCard(newIdx), 50);
   };
 
   const removeCarouselCard = (idx: number) => {
@@ -1214,16 +1223,25 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
     const copy = [...carouselElements];
     const card = { ...copy[cardIdx] };
     const btns = [...(card.buttons || [])];
-    btns[btnIdx] = { ...btns[btnIdx], [field]: val } as ButtonItem;
-    if (field === 'type') {
-      if (val === 'web_url' || val === 'product') {
-        btns[btnIdx].payload = undefined;
-        btns[btnIdx].url = 'https://';
-      } else {
-        btns[btnIdx].url = undefined;
-        const uniqueId = Math.random().toString(36).substring(2, 7).toUpperCase();
-        btns[btnIdx].payload = `TRIGGER_EVENT_${uniqueId}`;
-        btns[btnIdx].title = 'Details';
+    if (field === 'type' && val === 'track_order') {
+      btns[btnIdx] = {
+        ...btns[btnIdx],
+        type: 'postback',
+        payload: 'TRACK_ORDER',
+        url: undefined
+      } as any;
+    } else {
+      btns[btnIdx] = { ...btns[btnIdx], [field]: val } as ButtonItem;
+      if (field === 'type') {
+        if (val === 'web_url' || val === 'product') {
+          btns[btnIdx].payload = undefined;
+          btns[btnIdx].url = 'https://';
+        } else {
+          btns[btnIdx].url = undefined;
+          const uniqueId = Math.random().toString(36).substring(2, 7).toUpperCase();
+          btns[btnIdx].payload = `TRIGGER_EVENT_${uniqueId}`;
+          btns[btnIdx].title = 'Details';
+        }
       }
     }
     card.buttons = btns;
@@ -1251,25 +1269,25 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-hidden">
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-hidden text-white font-inter">
       {/* Ethereal Background Glows */}
       <div className="absolute w-[40vw] h-[40vw] rounded-full bg-[#c4c0ff] top-[-20%] left-[-20%] filter blur-[120px] opacity-[0.1] pointer-events-none z-0" />
       <div className="absolute w-[40vw] h-[40vw] rounded-full bg-[#636565] bottom-[-20%] right-[-20%] filter blur-[120px] opacity-[0.1] pointer-events-none z-0" />
 
       {/* Outer Card Wrapper */}
-      <div className="w-full max-w-6xl h-[88vh] max-h-[880px] bg-[#131313]/90 backdrop-blur-3xl border border-white/10 rounded-[32px] overflow-hidden flex flex-col shadow-[0_32px_64px_rgba(0,0,0,0.6)] animate-in fade-in zoom-in duration-300 text-white relative z-10">
+      <div className="w-full max-w-6xl h-[88vh] max-h-[880px] bg-[#131313]/90 backdrop-blur-3xl border border-white/10 rounded-[32px] overflow-hidden flex flex-col shadow-[0_32px_64px_rgba(0,0,0,0.6)] animate-in fade-in zoom-in duration-300 text-white relative z-10 font-inter">
 
         {/* Modal Header with Actions */}
-        <div className="px-8 py-3 border-b border-white/10 flex items-center justify-between shrink-0 bg-transparent">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-white/5 rounded-xl border border-white/10">
-              <Sparkles className="w-4 h-4 text-white" />
+        <div className="px-8 py-4 border-b border-white/10 flex items-center justify-between shrink-0 bg-transparent">
+          <div className="flex items-center gap-3.5">
+            <div className="p-2.5 bg-white/5 rounded-xl border border-white/10">
+              <Sparkles className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className="font-sora text-sm font-semibold text-white tracking-tight leading-tight">
+              <h2 className="font-inter text-base md:text-lg font-bold text-white tracking-tight leading-tight">
                 DM Node Configuration
               </h2>
-              <span className="text-[10px] text-zinc-400 font-medium tracking-wide opacity-80 block mt-0.5 leading-tight">
+              <span className="text-xs text-zinc-400 font-medium tracking-wide block mt-1 leading-tight">
                 {format === 'attachment'
                   ? 'Upload and manage files, images, or documents for Instagram DM automation'
                   : 'Customize your visual Instagram direct message layout and payloads'}
@@ -1277,18 +1295,18 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
             </div>
           </div>
           {/* Header Action Controls */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-3">
             <button
               onClick={handleCancel}
-              className="px-4 py-2 rounded-xl border border-white/10 text-zinc-300 font-medium text-xs hover:bg-white/5 hover:text-white transition-all active:scale-95 cursor-pointer"
+              className="px-4 py-2.5 rounded-xl border border-white/10 text-zinc-300 font-semibold text-xs md:text-sm hover:bg-white/5 hover:text-white transition-all active:scale-95 cursor-pointer"
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
-              className="px-4 py-2 rounded-xl bg-white text-black font-bold text-xs hover:opacity-90 transition-all active:scale-95 flex items-center gap-1.5 shadow-lg shadow-white/5 cursor-pointer"
+              className="px-5 py-2.5 rounded-xl bg-white text-black font-bold text-xs md:text-sm hover:opacity-90 transition-all active:scale-95 flex items-center gap-2 shadow-lg shadow-white/5 cursor-pointer"
             >
-              <Check className="w-3.5 h-3.5 stroke-[3]" /> Save Layout
+              <Check className="w-4 h-4 stroke-[3]" /> Save Layout
             </button>
           </div>
         </div>
@@ -2108,12 +2126,13 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                 <CustomSelect
                                   labelClassName='font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block mb-1.5'
                                   label="Button Type"
-                                  value={btn.type}
+                                  value={btn.type === 'postback' && btn.payload === 'TRACK_ORDER' ? 'track_order' : btn.type}
                                   onChange={(val) => updateButton(idx, 'type', val)}
                                   options={[
                                     { value: 'web_url', label: 'Web URL Link' },
                                     { value: 'postback', label: 'Trigger Chat Event' },
-                                    { value: 'product', label: 'Link Product' }
+                                    { value: 'product', label: 'Link Product' },
+                                    { value: 'track_order', label: '🔍 Track Order (Dynamic)' }
                                   ]}
                                   dropdownId={`btn-type-${idx}`}
                                   openDropdownId={openDropdownId}
@@ -2121,6 +2140,12 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                 />
                               </div>
                             </div>
+
+                            {btn.type === 'postback' && btn.payload === 'TRACK_ORDER' && (
+                              <div className="bg-[#4f46e5]/10 border border-[#4f46e5]/20 rounded-xl p-3 text-xs text-indigo-300 font-medium">
+                                ℹ️ This button will automatically prompt customers to enter their Order ID, check the current order status, and reply dynamically.
+                              </div>
+                            )}
 
                             {btn.type === 'web_url' && (
                               <div>
@@ -2746,13 +2771,14 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                   <CustomSelect
                                     labelClassName='font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block mb-1.5'
                                     label="Button Type"
-                                    value={btn.type}
+                                    value={btn.type === 'postback' && btn.payload === 'TRACK_ORDER' ? 'track_order' : btn.type}
                                     disabled={isFirstButtonProductLocked}
                                     onChange={(val) => updateCarouselButton(activeCardIndex, bi, 'type', val)}
                                     options={[
                                       { value: 'web_url', label: 'Web URL Link' },
                                       { value: 'postback', label: 'Trigger Chat Event' },
-                                      { value: 'product', label: 'Link Product' }
+                                      { value: 'product', label: 'Link Product' },
+                                      { value: 'track_order', label: '🔍 Track Order (Dynamic)' }
                                     ]}
                                     dropdownId={`carousel-btn-type-${activeCardIndex}-${bi}`}
                                     openDropdownId={openDropdownId}
@@ -2761,6 +2787,11 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                 </div>
 
                                 <div className="md:col-span-2">
+                                  {btn.type === 'postback' && btn.payload === 'TRACK_ORDER' && (
+                                    <div className="bg-[#4f46e5]/10 border border-[#4f46e5]/20 rounded-xl p-3 text-xs text-indigo-300 font-medium mb-3">
+                                      ℹ️ This button will automatically prompt customers to enter their Order ID, check the current order status, and reply dynamically.
+                                    </div>
+                                  )}
                                   {btn.type === 'web_url' && (
                                     <div>
                                       <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block mb-1.5">Web Link URL</label>

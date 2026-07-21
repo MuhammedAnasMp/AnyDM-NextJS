@@ -36,7 +36,7 @@ const saveToPast = (state: FlowState) => {
 const deleteNodeRecursively = (state: FlowState, nodeId: string) => {
     // Find all outgoing edges from this node
     const outgoingEdges = state.edges.filter(e => e.source === nodeId);
-    
+
     // Recursively delete all downstream target nodes
     outgoingEdges.forEach(edge => {
         deleteNodeRecursively(state, edge.target);
@@ -136,6 +136,15 @@ const syncLinkedNodes = (state: FlowState, nodeId: string) => {
         if (!stillActive) {
             // Delete the child node and all downstream flows recursively
             deleteNodeRecursively(state, edge.target);
+
+            // Also cleanup prompt/input/response sub-nodes if it was TRACK_ORDER
+            if (parentEvent === 'TRACK_ORDER') {
+                const promptId = `${nodeId}-track-prompt`;
+                const inputId = `${nodeId}-track-input`;
+                const responseId = `${nodeId}-track-response`;
+                state.nodes = state.nodes.filter(n => n.id !== promptId && n.id !== inputId && n.id !== responseId);
+                state.edges = state.edges.filter(e => e.source !== promptId && e.target !== promptId && e.source !== inputId && e.target !== inputId && e.source !== responseId && e.target !== responseId);
+            }
         }
     });
 
@@ -150,28 +159,118 @@ const syncLinkedNodes = (state: FlowState, nodeId: string) => {
         });
 
         if (!hasNode) {
-            const newNodeId = `node-reply-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`;
-            const newNode: FlowNode = {
-                id: newNodeId,
-                type: 'action',
-                position: {
-                    x: node.position.x + 450,
-                    y: node.position.y + idx * 220,
-                },
-                data: {
-                    action_type: 'send_dm',
-                    is_placeholder: true,
-                    parent_event: ae.payload,
-                    parent_label: ae.label,
-                },
-            };
-            state.nodes.push(newNode);
-            state.edges.push({
-                id: `edge-reply-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
-                source: nodeId,
-                target: newNodeId,
-                label: ae.label,
-            });
+            if (ae.payload === 'TRACK_ORDER') {
+                const promptId = `${nodeId}-track-prompt`;
+                const inputId = `${nodeId}-track-input`;
+                const responseId = `${nodeId}-track-response`;
+
+                if (!state.nodes.some(n => n.id === promptId)) {
+                    state.nodes.push({
+                        id: promptId,
+                        type: 'action',
+                        position: {
+                            x: node.position.x + 450,
+                            y: node.position.y + 350 + idx * 220,
+                        },
+                        data: {
+                            action_type: 'send_dm',
+                            dm_format: 'text',
+                            messages: ["Please reply with your Order ID to track your order. 📦"],
+                            parent_event: 'TRACK_ORDER',
+                            parent_label: ae.label,
+                            is_track_prompt: true,
+                        },
+                    });
+                }
+
+                if (!state.nodes.some(n => n.id === inputId)) {
+                    state.nodes.push({
+                        id: inputId,
+                        type: 'action',
+                        position: {
+                            x: node.position.x + 800,
+                            y: node.position.y + 350 + idx * 220,
+                        },
+                        data: {
+                            action_type: 'send_dm',
+                            dm_format: 'text',
+                            messages: ["Customer replies with Order ID"],
+                            parent_event: 'TRACK_ORDER',
+                            parent_label: ae.label,
+                            is_track_input: true,
+                        },
+                    });
+                }
+
+                if (!state.nodes.some(n => n.id === responseId)) {
+                    state.nodes.push({
+                        id: responseId,
+                        type: 'action',
+                        position: {
+                            x: node.position.x + 1150,
+                            y: node.position.y + 350 + idx * 220,
+                        },
+                        data: {
+                            action_type: 'send_dm',
+                            dm_format: 'text',
+                            messages: ["Returns Live status details"],
+                            parent_event: 'TRACK_ORDER',
+                            parent_label: ae.label,
+                            is_track_response: true,
+                        },
+                    });
+                }
+
+                if (!state.edges.some(e => e.source === nodeId && e.target === promptId)) {
+                    state.edges.push({
+                        id: `edge-${nodeId}-prompt-${Date.now()}`,
+                        source: nodeId,
+                        target: promptId,
+                        label: ae.label,
+                    });
+                }
+
+                if (!state.edges.some(e => e.source === promptId && e.target === inputId)) {
+                    state.edges.push({
+                        id: `edge-prompt-input-${Date.now()}`,
+                        source: promptId,
+                        target: inputId,
+                        label: "Awaiting DM",
+                    });
+                }
+
+                if (!state.edges.some(e => e.source === inputId && e.target === responseId)) {
+                    state.edges.push({
+                        id: `edge-input-response-${Date.now()}`,
+                        source: inputId,
+                        target: responseId,
+                        label: "Send Response",
+                    });
+                }
+            } else {
+                const newNodeId = `node-reply-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`;
+                const newNode: FlowNode = {
+                    id: newNodeId,
+                    type: 'action',
+                    position: {
+                        x: node.position.x + 450,
+                        y: node.position.y + idx * 220,
+                    },
+                    data: {
+                        action_type: 'send_dm',
+                        is_placeholder: true,
+                        parent_event: ae.payload,
+                        parent_label: ae.label,
+                    },
+                };
+                state.nodes.push(newNode);
+                state.edges.push({
+                    id: `edge-reply-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
+                    source: nodeId,
+                    target: newNodeId,
+                    label: ae.label,
+                });
+            }
         } else {
             // Update edge label if the button/pill text changed
             const edge = remainingEdges.find(e => {
@@ -234,6 +333,9 @@ export const flowSlice = createSlice({
             const node = state.nodes.find(n => n.id === id);
             if (node) {
                 node.data = { ...node.data, [key]: value };
+                if (node.type === 'action' && key !== 'is_placeholder') {
+                    node.data.is_placeholder = false;
+                }
                 syncLinkedNodes(state, id);
             }
         },
@@ -247,14 +349,14 @@ export const flowSlice = createSlice({
                 // 1. Find all labeled edges from this node (these point to linked reply nodes)
                 const linkedEdges = state.edges.filter(e => e.source === id && e.label);
                 const linkedNodeIds = linkedEdges.map(e => e.target);
- 
+
                 // 2. Cascade-remove linked reply nodes and all their downstream edges and nodes
                 if (linkedNodeIds.length > 0) {
                     linkedNodeIds.forEach(targetId => {
                         deleteNodeRecursively(state, targetId);
                     });
                 }
- 
+
                 // 3. Strip every format-specific key so the new wireframe is blank
                 const {
                     dm_format: _df,
@@ -277,7 +379,7 @@ export const flowSlice = createSlice({
                 syncLinkedNodes(state, id);
             }
         },
- 
+
         // Reset a node back to placeholder and cascade-remove linked reply nodes
         resetToPlaceholder: (state, action: PayloadAction<string>) => {
             saveToPast(state);
@@ -394,8 +496,12 @@ export const flowSlice = createSlice({
             if (caseData.actions) {
                 caseData.actions.forEach((act, i) => {
                     const aId = `node-a-${Date.now()}-${i}`;
+                    const hasConfiguredData =
+                        (act.messages && act.messages.length > 0) ||
+                        (act.dm_format && act.dm_format !== 'text') ||
+                        (act.action_type && act.action_type !== 'send_dm');
                     // Offset vertically for multiple actions
-                    state.nodes.push({ id: aId, type: 'action', position: { x: 1000, y: caseData.giveaway ? 300 + (i * 200) : 150 + (i * 200) }, data: { ...act, is_placeholder: true }, ruleType, templateId: tid });
+                    state.nodes.push({ id: aId, type: 'action', position: { x: 1000, y: caseData.giveaway ? 300 + (i * 200) : 150 + (i * 200) }, data: { ...act, is_placeholder: !hasConfiguredData }, ruleType, templateId: tid });
                     state.edges.push({ id: `edge-${Date.now()}-act-${i}`, source: cId, target: aId });
                 });
             }
