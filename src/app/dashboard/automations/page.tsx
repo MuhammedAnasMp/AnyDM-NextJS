@@ -7,8 +7,9 @@ import { Canvas } from "@/components/builder/Canvas";
 import { RightSidebar } from "@/components/builder/RightSidebar";
 import { InstagramMediaPicker } from "@/components/builder/InstagramMediaPicker";
 import DMContentEditor from "@/components/builder/DMContentEditor";
-import WelcomeContentEditor from "@/app/dashboard/inbox/wellcome/page";
+import WelcomeContentEditor from "@/components/builder/WelcomeContentEditor";
 import ConditionContentEditor from "@/components/builder/ConditionContentEditor";
+import TriggerContentEditor from "@/components/builder/TriggerContentEditor";
 import { AnimatePresence } from "framer-motion";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/store";
@@ -121,7 +122,7 @@ export default function BuilderPage() {
                 const triggerData: any = isIcebreakers
                   ? { is_icebreaker_trigger: true, welcome_prompt: welcomePromptVal, icebreakers: iceBreakersList }
                   : { is_menu_trigger: true, composer_input_disabled: composerDisabled, persistent_menu_items: persistentMenuList };
-                nodesList = [{ id: triggerId, type: 'trigger', position: { x: 100, y: 200 }, data: triggerData }];
+                nodesList = [{ id: triggerId, type: 'trigger', position: { x: 100, y: 200 }, data: triggerData, ruleType: 'dm_automation' }];
 
                 const activeEvents = isIcebreakers
                   ? iceBreakersList.filter((ib: any) => ib.question && ib.payload).map((ib: any) => ({ payload: ib.payload, label: ib.question }))
@@ -155,9 +156,9 @@ export default function BuilderPage() {
                 nodesList = nodesList.map((n: any) => {
                   if (n.type === 'trigger') {
                     if (isIcebreakers) {
-                      return { ...n, data: { ...n.data, is_icebreaker_trigger: true, welcome_prompt: welcomePromptVal, icebreakers: iceBreakersList } };
+                      return { ...n, ruleType: 'dm_automation', data: { ...n.data, is_icebreaker_trigger: true, welcome_prompt: welcomePromptVal, icebreakers: iceBreakersList } };
                     } else {
-                      return { ...n, data: { ...n.data, is_menu_trigger: true, composer_input_disabled: composerDisabled, persistent_menu_items: persistentMenuList } };
+                      return { ...n, ruleType: 'dm_automation', data: { ...n.data, is_menu_trigger: true, composer_input_disabled: composerDisabled, persistent_menu_items: persistentMenuList } };
                     }
                   }
                   return n;
@@ -470,7 +471,11 @@ export default function BuilderPage() {
       }
     };
     window.addEventListener('open-dm-format-editor', handleOpenEditor);
-    return () => window.removeEventListener('open-dm-format-editor', handleOpenEditor);
+    window.addEventListener('open-trigger-editor', handleOpenEditor);
+    return () => {
+      window.removeEventListener('open-dm-format-editor', handleOpenEditor);
+      window.removeEventListener('open-trigger-editor', handleOpenEditor);
+    };
   }, []);
 
   return (
@@ -508,6 +513,18 @@ export default function BuilderPage() {
           if (isActiveEditTrigger) {
             return (
               <WelcomeContentEditor
+                nodeId={activeEditNodeId}
+                onClose={() => {
+                  setActiveEditNodeId(null);
+                  dispatch(selectNode(null));
+                }}
+              />
+            );
+          }
+
+          if (activeEditNode?.type === 'trigger') {
+            return (
+              <TriggerContentEditor
                 nodeId={activeEditNodeId}
                 onClose={() => {
                   setActiveEditNodeId(null);

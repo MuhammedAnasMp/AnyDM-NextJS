@@ -2,9 +2,9 @@
 
 import * as React from 'react';
 import { useState } from 'react';
-import { MessageSquare, Mail, History, ShoppingBag, Trophy, Sparkles, Menu as MenuIcon, Loader2, X } from 'lucide-react';
+import { MessageSquare, Mail, History, ShoppingBag, Trophy, Sparkles, Menu as MenuIcon, Loader2, X, PillIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import DMContentEditor from '@/app/dashboard/inbox/wellcome/page';
+import DMContentEditor from '@/components/builder/WelcomeContentEditor';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/store';
 import { getCategoryForTemplate } from './TemplateItem';
@@ -196,11 +196,13 @@ export function LeftSidebar() {
               >
                 {isLoadingWelcome === 'icebreakers'
                   ? <Loader2 className="w-5 h-5 animate-spin text-[#8FE3FF]" />
-                  : <Sparkles className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />}
+                  : <PillIcon className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />}
               </button>
             </TooltipTrigger>
-            <TooltipContent side="right" className="ml-2 bg-[#0F1011] border border-white/10 text-white font-semibold">
-              <span>✨ Welcome Questions</span>
+            <TooltipContent side="right" className="ml-2 bg-[#0F1011] border border-white/10 text-white font-semibold flex gap-1 justify-center items-center">
+              <PillIcon size={15} />
+              <span>
+                Welcome Questions</span>
             </TooltipContent>
           </Tooltip>
 
@@ -280,13 +282,13 @@ export function LeftSidebar() {
             >
               <div className="px-5 pt-5 pb-4 border-b border-[#2d2d2d] flex items-center justify-between shrink-0">
                 <div>
-                  <h2 className="text-[13px] font-bold text-white tracking-widest uppercase flex items-center gap-2">
+                  <h2 className="text-[13px] font-bold text-white tracking-widest  flex items-center gap-2">
                     {welcomeTab === 'icebreakers'
-                      ? <><Sparkles className="w-4 h-4 text-[#8FE3FF]" /><span>Welcome Questions</span></>
-                      : <><MenuIcon className="w-4 h-4 text-[#C084FC]" /><span>Persistent Menu</span></>}
+                      ? <><PillIcon className="w-4 h-4 text-[#8FE3FF]" /><span>Welcome Questions</span></>
+                      : <><MenuIcon className="w-4 h-4 text-[#C084FC]" /><span>Top Right Menu</span></>}
                   </h2>
-                  <p className="text-[11px] text-white/40 mt-0.5">
-                    {welcomeTab === 'icebreakers' ? 'Suggested icebreaker questions' : 'Navigation menu shortcuts'}
+                  <p className="text-[11px] text-white/70 mt-0.5">
+                    {welcomeTab === 'icebreakers' ? 'Suggested questions for new customers with button' : 'These are always visible in top right side . User can choose the any options.'}
                   </p>
                 </div>
                 <button

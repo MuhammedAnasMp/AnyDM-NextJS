@@ -40,6 +40,7 @@ interface PhonePreviewProps {
     postsCount: string;
     mutualsText: string;
     isStatic?: boolean;
+    profile_urls?: string;
 }
 
 function PhonePreview({
@@ -53,7 +54,8 @@ function PhonePreview({
     followersCount,
     postsCount,
     mutualsText,
-    isStatic = false
+    isStatic = false,
+    profile_urls = 'https://fastly.picsum.photos/id/163/100/100.jpg?hmac=9D295GBymPnQLD2d08k8kQEME1CLEWklEqzuOpz7V_s'
 }: PhonePreviewProps) {
     const [animationStep, setAnimationStep] = React.useState<'list' | 'chat'>(isStatic ? 'chat' : 'list');
 
@@ -79,6 +81,9 @@ function PhonePreview({
             clearInterval(interval);
         };
     }, [type, itemsList, promptVal, isStatic]);
+
+
+
 
     return (
         <div className="w-[280px] h-[560px] rounded-[44px] border-[8px] border-[#2a2a2a] bg-black shadow-2xl relative flex flex-col overflow-hidden select-none outline outline-2 outline-[#393939] shrink-0 my-auto">
@@ -243,7 +248,7 @@ function PhonePreview({
                                     <span>•</span>
                                     <span>{postsCount} posts</span>
                                 </div>
-                                <p className="text-[7px] text-zinc-500 mt-1 max-w-[150px] leading-tight font-medium">{mutualsText}</p>
+                                <p className="text-[9px] text-zinc-500 mt-1 max-w-[150px] leading-tight font-medium">{mutualsText}</p>
                                 <button type="button" className="mt-2.5 py-1 px-3 bg-[#262626] hover:bg-[#323232] border border-white/10 text-[7px] font-bold rounded-lg text-[#e5e2e1] transition-colors">
                                     View Profile
                                 </button>
@@ -258,7 +263,7 @@ function PhonePreview({
                                     opacity: animationStep === 'chat' ? 1 : 0
                                 }}
                             >
-                                <p className="text-[8px] text-zinc-500 leading-normal max-w-[170px] mx-auto font-medium">
+                                <p className="text-[9px] text-zinc-500 leading-normal max-w-[170px] mx-auto font-medium">
                                     {promptVal || `Tap to send a question suggested by ${username}`}
                                 </p>
                             </div>
@@ -297,18 +302,18 @@ function PhonePreview({
                                 <div className="self-start flex items-end gap-2 max-w-[85%]">
                                     <div className="w-5 h-5 rounded-full bg-zinc-800 shrink-0 overflow-hidden mb-0.5 border border-white/5">
                                         <img
-                                            src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=50&h=50"
+                                            src={profile_urls}
                                             className="w-full h-full object-cover"
                                             alt=""
                                         />
                                     </div>
                                     <div className="bg-[#262626] border border-white/5 rounded-2xl rounded-bl-none px-3.5 py-2 text-[10px] text-zinc-200">
-                                        Hello! Can you help me?
+                                        Welcome to our store! 🛍️ The shortcuts menu will pop up from the bottom automatically.
                                     </div>
                                 </div>
                                 {/* Business Auto-reply */}
                                 <div className="self-end max-w-[85%] bg-[#3797F0] border border-[#3797F0] rounded-2xl rounded-br-none px-3.5 py-2 text-[10px] text-white text-left shadow-sm">
-                                    Welcome to our store! 🛍️ The shortcuts menu will pop up from the bottom automatically.
+                                    Give me my order updates
                                 </div>
                             </div>
 
@@ -400,7 +405,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
     }, [activeAccountId, instagramAccounts]);
 
     const username = activeAccount?.username || appUser?.username || 'Mailspot';
-    const profilePic = activeAccount?.profile_pic || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=150&h=150';
+    const profilePic = activeAccount?.profile_picture_url || '';
     const websiteUrl = activeAccount?.website || 'www.mailspot.com';
 
     const followersCount = "54k";
@@ -576,13 +581,13 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
             );
 
             if (existingRule) {
-                router.push(`/dashboard/automations?id=${existingRule.id}&from=wellcome`);
+                router.push(`/dashboard/automations?id=${existingRule.id}`);
             } else {
-                router.push(`/dashboard/automations?new_payload=${type}_flow&flow_type=${type}&from=wellcome`);
+                router.push(`/dashboard/automations?new_payload=${type}_flow&flow_type=${type}`);
             }
         } catch (e) {
             console.error("Error directing to flow builder:", e);
-            router.push(`/dashboard/automations?new_payload=${type}_flow&flow_type=${type}&from=wellcome`);
+            router.push(`/dashboard/automations?new_payload=${type}_flow&flow_type=${type}`);
         }
     }, [router]);
 
@@ -996,7 +1001,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                 try {
                     const parsed = JSON.parse(cached);
                     if (parsed.isSaved) prevSaved = parsed.isSaved;
-                } catch (e) {}
+                } catch (e) { }
             }
 
             const settingsData = {
@@ -1080,6 +1085,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                                 postsCount={postsCount}
                                 mutualsText={mutualsText}
                                 isStatic={true}
+                                profile_urls={activeAccount.profile_picture_url}
                             />
                         ) : (
                             <PhonePreview
@@ -1094,6 +1100,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                                 postsCount={postsCount}
                                 mutualsText={mutualsText}
                                 isStatic={true}
+                                profile_urls={activeAccount.profile_picture_url}
                             />
                         )}
                     </div>
@@ -1120,7 +1127,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                                 /* TAB PANEL 1: Icebreakers Configuration */
                                 <div className="space-y-5 animate-fadeIn">
                                     <div className="space-y-1.5">
-                                        <label className="text-[10px] font-bold text-zinc-400 tracking-wider uppercase block">Overal Title</label>
+                                        <label className="text-[11px] font-bold text-zinc-400 tracking-wider block">Title / Any small description</label>
                                         <input
                                             type="text"
                                             value={tempWelcomePrompt}
@@ -1132,7 +1139,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
 
                                     <div className="space-y-3">
                                         <div className="flex justify-between items-center">
-                                            <h3 className="text-[10px] font-bold text-zinc-400 tracking-wider uppercase">Suggested Questions ({tempIceBreakers.length}/4)</h3>
+                                            {/* <h3 className="text-[10px] font-bold text-zinc-400 tracking-wider uppercase">Suggested Questions ({tempIceBreakers.length}/4)</h3> */}
                                             {tempIceBreakers.length < 4 && (
                                                 <button
                                                     type="button"
@@ -1408,125 +1415,42 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
             </div> */}
 
             {/* Simulated Dual Previews */}
-            <div className={defaultTab ? "flex flex-col gap-6" : "grid grid-cols-1 lg:grid-cols-2 gap-8"}>
+            <div className={defaultTab ? "flex flex-col" : "grid grid-cols-1 lg:grid-cols-2 gap-8"}>
                 {/* 1. Icebreakers preview */}
                 {(!defaultTab || defaultTab === 'icebreakers') && (
-                    <div className="glass-pane p-6 rounded-xl border border-white/10 bg-[#131313]/40 flex flex-col items-center min-h-[640px] hover:border-white/20 transition-all duration-300 relative">
-                        <div className="flex justify-between items-start w-full mb-6 gap-4">
-                            <div className="text-left">
-                                <h3 className="text-base font-bold text-white mb-1.5">Wellcome Questions</h3>
-                                <p className="text-xs text-zinc-400 max-w-sm">Suggest up to 4 quick-reply questions shown to users on their initial chat contact.</p>
-                            </div>
-                            {/* {isSavedOnInstagram.icebreakers ? (
-                                <div className="flex items-center gap-2 shrink-0">
-                                    <button
-                                        type="button"
-                                        onClick={() => handleEditPayloadFlow('icebreakers_flow', 'icebreakers')}
-                                        className="px-3.5 py-2 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold rounded shadow-md active:scale-95 transition-all cursor-pointer"
-                                    >
-                                        Edit Flow
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => openEditModal('icebreakers')}
-                                        className="flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-zinc-200 text-black text-xs font-bold rounded shadow-md active:scale-95 transition-all cursor-pointer"
-                                    >
-                                        <Edit2 className="w-3.5 h-3.5" />
-                                        Edit
-                                    </button>
-                                </div>
-                            ) : (
-                                <button
-                                    type="button"
-                                    onClick={() => handleCreateSample('icebreakers')}
-                                    disabled={isSampleLoading.icebreakers}
-                                    className="flex items-center gap-1.5 px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold rounded shadow-md active:scale-95 transition-all cursor-pointer shrink-0 disabled:opacity-50"
-                                >
-                                    {isSampleLoading.icebreakers ? (
-                                        <div className="w-3.5 h-3.5 text-white border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                    ) : (
-                                        <Plus className="w-3.5 h-3.5" />
-                                    )}
-                                    Sample Create
-                                </button>
-                            )} */}
-                        </div>
-
-                        <div className="my-auto shrink-0">
-                            <PhonePreview
-                                type="icebreakers"
-                                promptVal={welcomePrompt}
-                                itemsList={iceBreakers}
-                                composerInputDisabledVal={composerInputDisabled}
-                                profilePic={profilePic}
-                                username={username}
-                                websiteUrl={websiteUrl}
-                                followersCount={followersCount}
-                                postsCount={postsCount}
-                                mutualsText={mutualsText}
-                            />
-                        </div>
+                    <div className="flex justify-center items-center w-full py-2">
+                        <PhonePreview
+                            type="icebreakers"
+                            promptVal={welcomePrompt}
+                            itemsList={iceBreakers}
+                            composerInputDisabledVal={composerInputDisabled}
+                            profilePic={profilePic}
+                            username={username}
+                            websiteUrl={websiteUrl}
+                            followersCount={followersCount}
+                            postsCount={postsCount}
+                            mutualsText={mutualsText}
+                            profile_urls={activeAccount.profile_picture_url}
+                        />
                     </div>
                 )}
 
                 {/* 2. Menu Options preview */}
                 {(!defaultTab || defaultTab === 'persistent_menu') && (
-                    <div className="glass-pane p-6 rounded-xl border border-white/10 bg-[#131313]/40 flex flex-col items-center min-h-[640px] hover:border-white/20 transition-all duration-300 relative">
-                        <div className="flex justify-between items-start w-full mb-6 gap-4">
-                            <div className="text-left">
-                                <h3 className="text-base font-bold text-white mb-1.5">Right top Menu</h3>
-                                <p className="text-xs text-zinc-400 max-w-sm">A static navigation drawer providing persistent buttons and redirection links.</p>
-                            </div>
-                            {/* {isSavedOnInstagram.persistent_menu ? (
-                                <div className="flex items-center gap-2 shrink-0">
-                                    <button
-                                        type="button"
-                                        onClick={() => handleEditPayloadFlow('persistent_menu_flow', 'persistent_menu')}
-                                        className="px-3.5 py-2 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold rounded shadow-md active:scale-95 transition-all cursor-pointer"
-                                    >
-                                        Edit Flow
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => openEditModal('persistent_menu')}
-                                        className="flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-zinc-200 text-black text-xs font-bold rounded shadow-md active:scale-95 transition-all cursor-pointer shrink-0"
-                                    >
-                                        <Edit2 className="w-3.5 h-3.5" />
-                                        Edit
-                                    </button>
-                                </div>
-                            ) : (
-                                <button
-                                    type="button"
-                                    onClick={() => handleCreateSample('persistent_menu')}
-                                    disabled={isSampleLoading.persistent_menu}
-                                    className="flex items-center gap-1.5 px-4 py-2 bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold rounded shadow-md active:scale-95 transition-all cursor-pointer shrink-0 disabled:opacity-50"
-                                >
-                                    {isSampleLoading.persistent_menu ? (
-                                        <div className="w-3.5 h-3.5 border-2 text-white border-white
-                                     border-t-transparent rounded-full animate-spin" />
-                                    ) : (
-                                        <Plus className="w-3.5 h-3.5" />
-                                    )}
-                                    Sample Create
-                                </button>
-                            )} */}
-                        </div>
-
-                        <div className="my-auto shrink-0">
-                            <PhonePreview
-                                type="persistent_menu"
-                                promptVal={welcomePrompt}
-                                itemsList={persistentMenuItems}
-                                composerInputDisabledVal={composerInputDisabled}
-                                profilePic={profilePic}
-                                username={username}
-                                websiteUrl={websiteUrl}
-                                followersCount={followersCount}
-                                postsCount={postsCount}
-                                mutualsText={mutualsText}
-                            />
-                        </div>
+                    <div className="flex justify-center items-center w-full py-2">
+                        <PhonePreview
+                            type="persistent_menu"
+                            promptVal={welcomePrompt}
+                            itemsList={persistentMenuItems}
+                            composerInputDisabledVal={composerInputDisabled}
+                            profilePic={profilePic}
+                            username={username}
+                            websiteUrl={websiteUrl}
+                            followersCount={followersCount}
+                            postsCount={postsCount}
+                            mutualsText={mutualsText}
+                            profile_urls={activeAccount.profile_picture_url}
+                        />
                     </div>
                 )}
             </div>

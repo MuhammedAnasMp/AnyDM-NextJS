@@ -125,7 +125,7 @@ export function RightSidebar() {
   const isGlobal = selectedNodeId === 'global';
   if (!selectedNode && !isGlobal) return null;
 
-  if (selectedNode && (selectedNode.type === 'action' || selectedNode.type === 'condition')) {
+  if (selectedNode && (selectedNode.type === 'action' || selectedNode.type === 'condition' || (selectedNode.type === 'trigger' && !selectedNode.data?.is_icebreaker_trigger && !selectedNode.data?.is_menu_trigger))) {
     return null;
   }
 

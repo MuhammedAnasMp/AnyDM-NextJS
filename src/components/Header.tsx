@@ -128,7 +128,6 @@ export default function Header({ onMenuClick }: HeaderProps) {
     Inbox: [
       { name: "Inbox", href: "/dashboard/inbox" },
       { name: "Contacts", href: "/dashboard/inbox/contacts" },
-      { name: "Wellcome", href: "/dashboard/inbox/wellcome" },
     ],
     Games: [
       { name: "Spin-to-Win", href: "/dashboard/games/spin" },
@@ -188,51 +187,79 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
         <div className="flex items-center gap-2 md:gap-3 shrink-0">
           {/* Instagram Account Switcher Dropdown */}
-          {activeAccount &&
-            pathname !== "/dashboard/products/catalog/create" &&
-            !pathname.startsWith("/dashboard/automations") && (
-              <div className="relative" ref={accountMenuRef}>
-                <div
-                  onClick={() => instagramAccounts.length > 1 && setIsAccountMenuOpen(!isAccountMenuOpen)}
-                  className={`relative flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 bg-white/5 backdrop-blur-md cursor-pointer hover:bg-white/10 transition-all mr-1 md:mr-2 select-none ${instagramAccounts.length > 1 ? "active:scale-[0.98]" : ""}`}
-                >
-                  <div className="w-5 h-5 rounded-full overflow-hidden border border-white/20">
-                    <img
-                      src={activeAccount.profile_picture_url || "https://picsum.photos/seed/elena/100/100"}
-                      alt="Instagram Profile"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <span className="text-[10px] md:text-xs font-bold text-white hidden sm:inline">@{activeAccount.username}</span>
-                  {instagramAccounts.length > 1 && (
-                    <span className="material-symbols-outlined text-sm text-[#c4c7c8]/60 hidden sm:inline">expand_more</span>
-                  )}
+          {activeAccount && (
+            <div
+              className={`relative ${pathname === "/dashboard/products/catalog/create" ||
+                  pathname.startsWith("/dashboard/automations")
+                  ? "pointer-events-none opacity-50 cursor-not-allowed"
+                  : ""
+                }`}
+              ref={accountMenuRef}
+            >
+              <div
+                onClick={() =>
+                  instagramAccounts.length > 1 &&
+                  setIsAccountMenuOpen(!isAccountMenuOpen)
+                }
+                className={`relative flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 bg-white/5 backdrop-blur-md cursor-pointer hover:bg-white/10 transition-all mr-1 md:mr-2 select-none ${instagramAccounts.length > 1 ? "active:scale-[0.98]" : ""
+                  }`}
+              >
+                <div className="w-5 h-5 rounded-full overflow-hidden border border-white/20">
+                  <img
+                    src={
+                      activeAccount.profile_picture_url ||
+                      "https://picsum.photos/seed/elena/100/100"
+                    }
+                    alt="Instagram Profile"
+                    className="w-full h-full object-cover"
+                  />
                 </div>
 
-                {isAccountMenuOpen && instagramAccounts.length > 1 && (
-                  <div className="absolute right-0 mt-2 w-56 bg-[#1a1a19]/90 border border-white/10 rounded-xl shadow-2xl p-2 z-50">
-                    <p className="text-[10px] uppercase font-bold text-[#c4c7c8]/60 px-3 py-1.5 tracking-wider">Switch Account</p>
-                    {instagramAccounts.map((acc: any) => (
-                      <div
-                        key={acc.id}
-                        onClick={() => handleSwitchAccount(acc.id)}
-                        className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${acc.id === activeAccount.id ? "bg-white/10 text-white font-semibold" : "hover:bg-white/5 text-[#c4c7c8]/60 hover:text-white"}`}
-                      >
-                        <img
-                          src={acc.profile_picture_url}
-                          className="w-5 h-5 rounded-full object-cover"
-                          alt={acc.username}
-                        />
-                        <span className="text-xs truncate">@{acc.username}</span>
-                        {acc.id === activeAccount.id && (
-                          <span className="material-symbols-outlined text-sm text-white ml-auto">check</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                <span className="text-[10px] md:text-xs font-bold text-white hidden sm:inline">
+                  @{activeAccount.username}
+                </span>
+
+                {instagramAccounts.length > 1 && (
+                  <span className="material-symbols-outlined text-sm text-[#c4c7c8]/60 hidden sm:inline">
+                    expand_more
+                  </span>
                 )}
               </div>
-            )}
+
+              {isAccountMenuOpen && instagramAccounts.length > 1 && (
+                <div className="absolute right-0 mt-2 w-56 bg-[#1a1a19]/90 border border-white/10 rounded-xl shadow-2xl p-2 z-50">
+                  <p className="text-[10px] uppercase font-bold text-[#c4c7c8]/60 px-3 py-1.5 tracking-wider">
+                    Switch Account
+                  </p>
+
+                  {instagramAccounts.map((acc: any) => (
+                    <div
+                      key={acc.id}
+                      onClick={() => handleSwitchAccount(acc.id)}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${acc.id === activeAccount.id
+                          ? "bg-white/10 text-white font-semibold"
+                          : "hover:bg-white/5 text-[#c4c7c8]/60 hover:text-white"
+                        }`}
+                    >
+                      <img
+                        src={acc.profile_picture_url}
+                        className="w-5 h-5 rounded-full object-cover"
+                        alt={acc.username}
+                      />
+
+                      <span className="text-xs truncate">@{acc.username}</span>
+
+                      {acc.id === activeAccount.id && (
+                        <span className="material-symbols-outlined text-sm text-white ml-auto">
+                          check
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           <button className="p-1.5 md:p-2 text-[#c4c7c8]/60 hover:text-white transition-colors hover:bg-white/5 rounded-full relative notification-pulse">
             <span className="material-symbols-outlined text-lg md:text-xl">notifications</span>

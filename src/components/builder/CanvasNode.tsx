@@ -6,7 +6,7 @@ import { RootState } from '@/store';
 import { updateNodePosition, selectNode, updateNodeData, removeNode, resetToPlaceholder } from '@/store/slices/flowSlice';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { MessageSquare, Filter, Send, AtSign, Plus, Trophy, Gift, Sparkles, Clock, ChevronDown, Paperclip, X, Film, Headphones, Share2, Heart, Image as ImageIcon } from 'lucide-react';
+import { MessageSquare, Filter, Send, AtSign, Plus, Trophy, Gift, Sparkles, Clock, ChevronDown, Paperclip, X, Film, Headphones, Share2, Heart, Image as ImageIcon, ArrowRightFromLineIcon, FilterIcon } from 'lucide-react';
 import Xarrow, { useXarrow } from 'react-xarrows';
 import { useCanvas } from './CanvasContext';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/Tooltip';
@@ -146,7 +146,7 @@ export function CanvasNode({ id }: { id: string }) {
         }
     } else if (node.type === 'trigger') {
         if (node.data?.is_icebreaker_trigger) {
-            customTitle = 'Welcome Message Suggested Questions';
+            customTitle = 'Suggested Questions';
         } else if (node.data?.is_menu_trigger) {
             customTitle = 'Persistent Menu Navigation';
         } else {
@@ -412,9 +412,13 @@ export function CanvasNode({ id }: { id: string }) {
                     id: node.id,
                     rect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height }
                 }));
-                if ((node.type === 'action' || node.type === 'condition') && node.data?.parent_event !== 'TRACK_ORDER') {
+                if ((node.type === 'action' || node.type === 'condition' || node.type === 'trigger') && node.data?.parent_event !== 'TRACK_ORDER') {
                     setTimeout(() => {
-                        window.dispatchEvent(new CustomEvent('open-dm-format-editor', {
+                        if (node.type === 'trigger' && (node.data?.is_icebreaker_trigger || node.data?.is_menu_trigger)) {
+                            return;
+                        }
+                        const eventName = node.type === 'trigger' ? 'open-trigger-editor' : 'open-dm-format-editor';
+                        window.dispatchEvent(new CustomEvent(eventName, {
                             detail: { nodeId: node.id }
                         }));
                     }, 50);
@@ -449,12 +453,12 @@ export function CanvasNode({ id }: { id: string }) {
             )}
             {/* Overlapping Pill */}
             <div className="absolute -top-3 left-4 flex gap-2">
-                <span className={cn("px-3 py-1.5 rounded-full text-[10px] tracking-widest leading-none outline outline-[#131313] outline-[4px]", customPillColor)}>
+                <span className={cn("px-3 py-1.5 rounded-full text-[10px] justify-center items-center flex tracking-widest leading-none outline outline-[#131313] outline-[4px]", customPillColor)}>
                     {customPill}
                 </span>
                 {node.data?.parent_event && (
-                    <span className="px-3 py-1.5 rounded-full text-[9px] font-black bg-[#8FE3FF]/15 border border-[#8FE3FF]/30 text-[#8FE3FF] outline outline-[#131313] outline-[4px] uppercase tracking-wider">
-                        Event: {node.data?.parent_label || 'Trigger'}
+                    <span className="px-3 py-1.5 rounded-full text-[10px] font-black  border border-[#8FE3FF]/30 text-white outline outline-[#131313] outline-[4px]  tracking-wider">
+                        {node.data?.parent_label || 'Trigger'}
                     </span>
                 )}
             </div>
@@ -462,7 +466,7 @@ export function CanvasNode({ id }: { id: string }) {
             <div className="p-5 pt-8">
                 <div className="flex items-center gap-3 mb-5">
                     <div className="w-8 h-8 rounded-[0.4rem] bg-[#2a2a2a] flex items-center justify-center border border-white/5">
-                        <CustomIcon className="w-4 h-4 text-white" />
+                        <FilterIcon className="w-4 h-4 text-white" />
                     </div>
                     <h4 className="text-[17px] font-bold text-white tracking-tight">{customTitle}</h4>
                 </div>
@@ -473,10 +477,10 @@ export function CanvasNode({ id }: { id: string }) {
                         return (
                             <div className="flex flex-col gap-3 text-xs w-full">
                                 <div className="bg-black/35 border border-white/5 rounded-xl p-3 flex flex-col gap-2">
-                                    <span className="text-[10px] font-bold text-[#8FE3FF] uppercase tracking-widest block mb-1">💬 Suggested Questions (Icebreakers)</span>
+                                    {/* <span className="text-[10px] font-bold text-[#8FE3FF] uppercase tracking-widest block mb-1">💬 Suggested Questions (Icebreakers)</span> */}
                                     {node.data?.welcome_prompt && (
-                                        <div className="text-[10px] text-zinc-400 italic mb-1.5 font-medium border-b border-white/5 pb-1">
-                                            &quot;{node.data.welcome_prompt}&quot;
+                                        <div className="text-[10px] text-zinc-400 italic mb-1.5 font-medium border-b border-white/5 pb-1 text-center">
+                                            {node.data.welcome_prompt}
                                         </div>
                                     )}
                                     <div className="flex flex-col gap-1.5">
@@ -750,7 +754,7 @@ export function CanvasNode({ id }: { id: string }) {
                                 className="bg-black/35 hover:bg-[#8FE3FF]/5 border border-white/5 hover:border-[#8FE3FF]/45 rounded-xl p-3 flex flex-col gap-2.5 transition-all text-[11px]"
                             >
                                 <div className="flex flex-col gap-0.5">
-                                    <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider block">Message Prompt:</span>
+                                    {/* <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider block">Message Prompt:</span> */}
                                     <span className="text-zinc-200 font-semibold">{node.data.quick_reply_text}</span>
                                 </div>
                                 {node.data.quick_replies_titles && (
@@ -1093,7 +1097,7 @@ export function CanvasEdges() {
             ))}
             {(() => {
                 const selectedNode = nodes.find(n => n.id === selectedNodeId);
-                const showSettingsEdge = selectedNodeId && selectedNodeId !== 'global' && selectedNode && selectedNode.type !== 'action' && selectedNode.type !== 'condition';
+                const showSettingsEdge = selectedNodeId && selectedNodeId !== 'global' && selectedNode && selectedNode.type !== 'action' && selectedNode.type !== 'condition' && selectedNode.type !== 'trigger';
                 if (!showSettingsEdge) return null;
                 return (
                     <Xarrow

@@ -173,7 +173,7 @@ export function Canvas() {
         }));
 
         // Client-side redirect to open sidebar panel
-        router.push(`/dashboard/automations?welcome=icebreakers&from=wellcome`);
+        router.push(`/dashboard/automations?welcome=icebreakers`);
       } else {
         const sampleMenu = [
           { type: 'postback', title: 'Talk to Sales', payload: 'TALK_TO_SALES' }
@@ -237,7 +237,7 @@ export function Canvas() {
         }));
 
         // Client-side redirect to open sidebar panel
-        router.push(`/dashboard/automations?welcome=persistent_menu&from=wellcome`);
+        router.push(`/dashboard/automations?welcome=persistent_menu`);
       }
     } catch (e: any) {
       console.error("Failed to initialize welcome experience:", e);

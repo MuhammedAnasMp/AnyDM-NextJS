@@ -9,7 +9,18 @@ import {
   X, Plus, Trash2, Edit2, Upload, Link as LinkIcon,
   Sparkles, Check, ChevronLeft, ChevronRight, MessageSquare, Info,
   Paperclip, ShoppingBag, Mic, Image as ImageIcon, Heart, Film, Headphones, Share2,
-  Smile
+  Smile,
+  Shuffle,
+  Link2,
+  MessageCircle,
+  Package,
+  Search,
+  Reply,
+  MousePointerClick,
+  GalleryHorizontal,
+  PillIcon,
+  SquareArrowRight,
+  Send
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import api from '@/lib/services/api.service';
@@ -70,13 +81,16 @@ interface DMContentEditorProps {
 interface CustomSelectProps {
   label?: string;
   value: string;
-  options: { value: string; label: string }[];
+  options: {
+    icon?: React.JSX.Element; value: string; label: string
+  }[];
   onChange: (value: string) => void;
   dropdownId: string;
   openDropdownId: string | null;
   setOpenDropdownId: (id: string | null) => void;
   disabled?: boolean;
   labelClassName?: string;
+
 
 }
 
@@ -111,7 +125,7 @@ function CustomSelect({
       {label && (
         <label
           className={cn(
-            "text-label-sm text-on-surface-variant .uppercase tracking-wider block font-semibold mb-1",
+            "text-label-sm text-on-surface-variant  tracking-wider block font-semibold mb-1",
             labelClassName
           )}
         >
@@ -122,7 +136,7 @@ function CustomSelect({
         <button
           type="button"
           onClick={() => setOpenDropdownId(isOpen ? null : dropdownId)}
-          className="w-full bg-surface-container-high border border-white/5 hover:border-white/10 rounded-md px-4 py-2.5 text-xs text-white focus:outline-none cursor-pointer font-medium flex items-center justify-between transition-all text-left"
+          className="w-full bg-surface-container-high border border-white/5 hover:border-white/10 rounded px-4 py-2.5 text-xs text-white focus:outline-none cursor-pointer font-medium flex items-center justify-between transition-all text-left"
         >
           <span>{selectedOption?.label}</span>
           <ChevronRight className={cn("w-3.5 h-3.5 text-zinc-400 transition-transform duration-200", isOpen ? "rotate-90" : "")} />
@@ -140,11 +154,19 @@ function CustomSelect({
                 }}
                 className={cn(
                   "w-full px-4 py-2.5 text-xs text-left font-medium transition-all flex items-center justify-between hover:bg-white/5",
-                  value === opt.value ? "text-white bg-white/10" : "text-zinc-400 hover:text-white"
+                  value === opt.value
+                    ? "text-white bg-white/10"
+                    : "text-zinc-400 hover:text-white"
                 )}
               >
-                <span>{opt.label}</span>
-                {value === opt.value && <Check className="w-3.5 h-3.5 text-white" />}
+                <div className="flex items-center gap-2">
+                  {opt.icon && <span className="shrink-0">{opt.icon}</span>}
+                  <span>{opt.label}</span>
+                </div>
+
+                {value === opt.value && (
+                  <Check className="w-3.5 h-3.5 text-white shrink-0" />
+                )}
               </button>
             ))}
           </div>
@@ -1275,17 +1297,17 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
       <div className="absolute w-[40vw] h-[40vw] rounded-full bg-[#636565] bottom-[-20%] right-[-20%] filter blur-[120px] opacity-[0.1] pointer-events-none z-0" />
 
       {/* Outer Card Wrapper */}
-      <div className="w-full max-w-6xl h-[88vh] max-h-[880px] bg-[#131313]/90 backdrop-blur-3xl border border-white/10 rounded-[32px] overflow-hidden flex flex-col shadow-[0_32px_64px_rgba(0,0,0,0.6)] animate-in fade-in zoom-in duration-300 text-white relative z-10 font-inter">
+      <div className="w-full max-w-6xl h-[88vh] max-h-[880px] bg-[#131313]/90 backdrop-blur-3xl border border-white/10 rounded-xl overflow-hidden flex flex-col shadow-[0_32px_64px_rgba(0,0,0,0.6)] animate-in fade-in zoom-in duration-300 text-white relative z-10 font-inter">
 
         {/* Modal Header with Actions */}
-        <div className="px-8 py-4 border-b border-white/10 flex items-center justify-between shrink-0 bg-transparent">
+        <div className="px-6 py-6 border-b border-white/10 flex items-center justify-between shrink-0 bg-transparent">
           <div className="flex items-center gap-3.5">
             <div className="p-2.5 bg-white/5 rounded-xl border border-white/10">
-              <Sparkles className="w-5 h-5 text-white" />
+              <Send className="w-5 h-5 text-white" />
             </div>
             <div>
               <h2 className="font-inter text-base md:text-lg font-bold text-white tracking-tight leading-tight">
-                DM Node Configuration
+                Flow Configuration
               </h2>
               <span className="text-xs text-zinc-400 font-medium tracking-wide block mt-1 leading-tight">
                 {format === 'attachment'
@@ -1298,15 +1320,15 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
           <div className="flex items-center gap-3">
             <button
               onClick={handleCancel}
-              className="px-4 py-2.5 rounded-xl border border-white/10 text-zinc-300 font-semibold text-xs md:text-sm hover:bg-white/5 hover:text-white transition-all active:scale-95 cursor-pointer"
+              className="px-4 py-2 rounded border border-white/10 text-zinc-300 font-semibold text-xs md:text-sm hover:bg-white/5 hover:text-white transition-all active:scale-95 cursor-pointer"
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
-              className="px-5 py-2.5 rounded-xl bg-white text-black font-bold text-xs md:text-sm hover:opacity-90 transition-all active:scale-95 flex items-center gap-2 shadow-lg shadow-white/5 cursor-pointer"
+              className="px-4 py-2 rounded bg-white text-black font-bold text-xs md:text-sm hover:opacity-90 transition-all active:scale-95 flex items-center gap-2 shadow-lg shadow-white/5 cursor-pointer"
             >
-              <Check className="w-4 h-4 stroke-[3]" /> Save Layout
+              <Check className="w-4 h-4 stroke-[3]" />Save
             </button>
           </div>
         </div>
@@ -1424,7 +1446,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
 
                       {/* FORMAT: Text Message bubble */}
                       {format === 'text' && (
-                        <div className="bg-[#3797F0] border border-[#3797F0] rounded-2xl rounded-br-none px-3.5 py-2.5 text-[11px] text-white leading-relaxed text-left break-words shadow-md animate-fadeIn">
+                        <div className="bg-[#3797F0] border border-[#3797F0] rounded-2xl px-3.5 py-2.5 text-[11px] text-white leading-relaxed text-left break-words shadow-md animate-fadeIn">
                           {textMessages[0] || 'Hello!'}
                         </div>
                       )}
@@ -1432,7 +1454,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                       {/* FORMAT: Quick Replies Prompt text bubble */}
                       {format === 'quick_reply' && (
                         <>
-                          <div className="bg-[#3797F0] border border-[#3797F0] rounded-2xl rounded-br-none px-3.5 py-2.5 text-[11px] text-white leading-relaxed text-left break-words shadow-md animate-fadeIn">
+                          <div className="bg-[#3797F0] border border-[#3797F0] rounded-2xl px-3.5 py-2.5 text-[11px] text-white leading-relaxed text-left break-words shadow-md animate-fadeIn">
                             {quickReplyText || 'Pick size:'}
                           </div>
                           {/* Quick Reply Pills Rendered right beneath the bubble */}
@@ -1452,7 +1474,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
 
                       {/* FORMAT: Button Template Box */}
                       {format === 'button_template' && (
-                        <div className="bg-[#1c1c1c] border border-white/10 rounded-2xl rounded-br-none overflow-hidden w-full shadow-lg flex flex-col shrink-0 animate-fadeIn">
+                        <div className="bg-[#1c1c1c] border border-white/10 rounded-2xl overflow-hidden w-full shadow-lg flex flex-col shrink-0 animate-fadeIn">
                           <div className="p-3 text-[11px] text-white leading-normal break-words border-b border-white/5 bg-white/5">
                             {buttonTemplateText || 'What would you like to do?'}
                           </div>
@@ -1495,7 +1517,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                             onScroll={handleCarouselScroll}
                             onMouseDown={handleMouseDown}
                             className={cn(
-                              "w-full flex flex-row gap-2.5 pb-2 select-none",
+                              "w-full flex flex-row items-start gap-2.5 pb-2 select-none",
                               carouselElements.length > 1
                                 ? "overflow-x-auto scrollbar-hide -mx-4 px-4 cursor-grab active:cursor-grabbing"
                                 : "justify-end",
@@ -1505,7 +1527,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                             {carouselElements.map((elem, ei) => (
                               <div
                                 key={ei}
-                                className="bg-[#1c1c1c] border border-white/10 rounded-2xl rounded-br-none overflow-hidden w-[190px] shrink-0 snap-start shadow-lg flex flex-col text-left transition-all"
+                                className="bg-[#1c1c1c] border border-white/10 rounded-2xl overflow-hidden w-[190px] shrink-0 snap-start shadow-lg flex flex-col text-left transition-all"
                               >
                                 <div className="h-20 w-full bg-zinc-900 border-b border-white/5 relative overflow-hidden flex items-center justify-center shrink-0">
                                   {elem.image_url ? (
@@ -1514,7 +1536,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                     <div className="text-[9px] font-semibold text-zinc-500 tracking-wide">No image uploaded</div>
                                   )}
                                 </div>
-                                <div className="p-2.5 flex flex-col bg-[#121212] justify-center min-h-[45px] shrink-0 border-b border-white/5">
+                                <div className={cn("p-2.5 flex flex-col bg-[#121212] justify-center shrink-0", (elem.buttons && elem.buttons.length > 0) ? "border-b border-white/5" : "")}>
                                   {(() => {
                                     let displayTitle = elem.title || 'Welcome!';
                                     let displaySubtitle = elem.subtitle || 'Card Description';
@@ -1550,9 +1572,9 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                     );
                                   })()}
                                 </div>
-                                {maxButtonsCount > 0 && (
+                                {elem.buttons && elem.buttons.length > 0 && (
                                   <div className="flex flex-col divide-y divide-white/5 bg-[#1c1c1c] shrink-0">
-                                    {(elem.buttons || []).map((btn, bi) => {
+                                    {elem.buttons.map((btn, bi) => {
                                       let displayTitle = btn.title || 'Button';
                                       const matchedProduct = products.find(p => {
                                         const username = activeAccount?.username || appUser?.username || 'shop';
@@ -1577,13 +1599,6 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                         </button>
                                       );
                                     })}
-                                    {/* Dummy spacer buttons to equalize card height */}
-                                    {Array.from({ length: maxButtonsCount - (elem.buttons?.length || 0) }).map((_, di) => (
-                                      <div
-                                        key={`spacer-${di}`}
-                                        className="w-full h-[25px] bg-transparent !border-t-0"
-                                      />
-                                    ))}
                                   </div>
                                 )}
                               </div>
@@ -1864,9 +1879,9 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
           </div>
 
           {/* RIGHT: Editor Fields Manager Panel */}
-          <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
 
-            <div className="glass-pane p-6 rounded-2xl border border-white/10 space-y-6 shadow-xl animate-fadeIn">
+            <div className="glass-pane p-6 rounded border border-white/10 space-y-6 shadow-xl animate-fadeIn">
               {/* <div className="flex items-center gap-2 pb-2 border-b border-white/15">
                 <Sparkles className="w-4 h-4 text-white" />
                 <h3 className="font-sora text-xs font-semibold text-white tracking-[0.1em] ">Core Logic</h3>
@@ -1907,11 +1922,31 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                     setDmFormat(val as any);
                   }}
                   options={[
-                    { value: 'text', label: 'Text Message' },
-                    { value: 'quick_reply', label: 'Quick Replies' },
-                    { value: 'button_template', label: 'Button Template' },
-                    { value: 'generic_template', label: 'Generic Template (Carousel)' },
-                    { value: 'attachment', label: 'Media / Attachment' }
+                    {
+                      value: 'text',
+                      label: 'Text Message',
+                      icon: <MessageSquare className="w-3.5 h-3.5 text-zinc-400 group-hover:text-blue-400 transition-colors" />,
+                    },
+                    {
+                      value: 'quick_reply',
+                      label: 'Quick Replies',
+                      icon: <PillIcon className="w-3.5 h-3.5 text-zinc-400 group-hover:text-emerald-400 transition-colors" />,
+                    },
+                    {
+                      value: 'button_template',
+                      label: 'Button Template',
+                      icon: <SquareArrowRight className="w-3.5 h-3.5 text-zinc-400 group-hover:text-purple-400 transition-colors" />,
+                    },
+                    {
+                      value: 'generic_template',
+                      label: 'Generic Template (Carousel)',
+                      icon: <GalleryHorizontal className="w-3.5 h-3.5 text-zinc-400 group-hover:text-pink-400 transition-colors" />,
+                    },
+                    {
+                      value: 'attachment',
+                      label: 'Media / Attachment',
+                      icon: <Paperclip className="w-3.5 h-3.5 text-zinc-400 group-hover:text-orange-400 transition-colors" />,
+                    },
                   ]}
                   dropdownId="layout"
                   openDropdownId={openDropdownId}
@@ -1919,7 +1954,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                 />
 
                 {/* Detailed Card View Switch */}
-                <div >
+                {/* <div >
                   <span className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider  block mb-1.5">Display detailed settings</span>
 
                   <div className="w-full bg-surface-container-high border border-white/5 hover:border-white/10 rounded-md px-4 py-2 text-xs text-white focus:outline-none cursor-pointer font-medium flex items-center justify-between transition-all text-left">
@@ -1940,7 +1975,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                       )} />
                     </button>
                   </div>
-                </div>
+                </div> */}
               </div>
 
             </div>
@@ -1951,42 +1986,48 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                 <div className="space-y-4">
                   <div className="flex justify-between items-center pb-2 border-b border-white/10">
                     <div>
-                      <h3 className="font-sora text-xs font-semibold text-zinc-400 tracking-wider uppercase">Plain Text Messages ({textMessages.length})</h3>
-                      <p className="text-[10px] text-zinc-500 mt-1 font-medium">Add one or more message variations. One will be chosen randomly on trigger.</p>
+                      <h3 className="font-sora text-xs font-semibold text-zinc-400 tracking-wider ">This messages will send to the customer ({textMessages.length})</h3>
+                      {/* <p className="text-[10px] text-zinc-500 mt-1 font-medium">Add one or more message variations. One will be chosen randomly on trigger.</p> */}
                     </div>
                     <button
                       onClick={() => setTextMessages([...textMessages, ''])}
-                      className="py-2 px-4 bg-white/10 hover:bg-white/15 text-white text-xs font-bold rounded-xl border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer"
+                      className="py-2 px-4 bg-white/10 hover:bg-white/15 text-white text-xs font-bold rounded border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5" /> Add Variant
                     </button>
                   </div>
 
-                  <div className="space-y-4">
+                  <div className="space-y-2">
                     {textMessages.map((msg, idx) => (
-                      <div key={idx} className="flex gap-3 bg-white/5 p-4 rounded-2xl border border-white/10 items-start animate-fadeIn">
-                        <span className="font-sora text-xs font-bold text-zinc-500 w-6 text-center pt-3">{idx + 1}</span>
-                        <textarea
-                          className="flex min-h-[80px] w-full rounded-xl bg-[#1c1b1b]/60 border border-white/10 px-4 py-3 text-sm text-white focus:outline-none focus:border-white/50 focus:ring-0 transition-all resize-y font-medium"
+                      <div key={idx} className="flex gap-2 bg-[#0e0e0e] border border-[#444748] p-3 rounded-md items-center animate-fadeIn">
+                        <span className="text-xs font-bold text-zinc-550 w-5 text-center">{idx + 1}</span>
+                        <input
+                          type="text"
                           value={msg}
                           onChange={(e) => {
                             const newMsgs = [...textMessages];
                             newMsgs[idx] = e.target.value;
                             setTextMessages(newMsgs);
                           }}
-                          placeholder="Type your message here..."
+                          placeholder="Ask a question..."
+                          maxLength={80}
+                          className="flex-1 bg-[#131313] border border-[#444748] rounded-md px-3 py-1.5 text-xs text-white outline-none focus:border-zinc-300 font-medium"
                         />
-                        {textMessages.length > 1 && (
-                          <button
-                            onClick={() => setTextMessages(textMessages.filter((_, i) => i !== idx))}
-                            className="p-2.5 text-zinc-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all cursor-pointer mt-1"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => setTextMessages(textMessages.filter((_, i) => i !== idx))}
+                          className="p-1.5 rounded-md text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0 cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     ))}
                   </div>
+
+
+
+
+
                 </div>
               </div>
             )}
@@ -2001,7 +2042,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                     value={quickReplyText}
                     onChange={(e) => setQuickReplyText(e.target.value)}
                     placeholder="e.g. What size do you need?"
-                    className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white focus:outline-none focus:border-white/50 focus:ring-0 font-medium"
+                    className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded px-4 py-3.5 text-sm text-white focus:outline-none focus:border-white/50 focus:ring-0 font-medium"
                   />
                   <p className="text-[10px] text-zinc-500 font-medium">This text is sent first, right above the interactive quick action pill options.</p>
                 </div>
@@ -2015,7 +2056,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                     {quickRepliesTitles.length < 13 && (
                       <button
                         onClick={addQuickReplyPill}
-                        className="py-2 px-4 bg-white/10 hover:bg-white/15 text-white text-xs font-bold rounded-xl border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer"
+                        className="py-2 px-4 bg-white/10 hover:bg-white/15 text-white text-xs font-bold rounded border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer"
                       >
                         <Plus className="w-3.5 h-3.5" /> Add Pill
                       </button>
@@ -2024,7 +2065,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {quickRepliesTitles.map((title, idx) => (
-                      <div key={idx} className="flex items-center gap-3 bg-white/5 p-3 rounded-2xl border border-white/10 animate-fadeIn">
+                      <div key={idx} className="flex items-center gap-3 bg-white/5 p-3 rounded-full border border-white/10 animate-fadeIn">
                         <span className="font-sora text-xs font-bold text-zinc-500 w-6 text-center">{idx + 1}</span>
                         <input
                           type="text"
@@ -2057,7 +2098,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                     value={buttonTemplateText}
                     onChange={(e) => setButtonTemplateText(e.target.value)}
                     placeholder="e.g. Select options from the menu below:"
-                    className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white focus:outline-none focus:border-white/50 focus:ring-0 font-medium"
+                    className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded px-4 py-3.5 text-sm text-white focus:outline-none focus:border-white/50 focus:ring-0 font-medium"
                   />
                   <p className="text-[10px] text-zinc-500 font-medium">Text content that appears as the header message of the button card template.</p>
                 </div>
@@ -2069,12 +2110,14 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                       <button
                         type="button"
                         onClick={addButton}
-                        className="py-1.5 px-3 bg-white/10 hover:bg-white/15 text-white text-[10px] font-bold rounded-xl border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer"
+                        className="py-1.5 px-3 bg-white/10 hover:bg-white/15 text-white text-[10px] font-bold rounded border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer"
                       >
                         <Plus className="w-3.5 h-3.5" /> Add Card Button
                       </button>
                     )}
                   </div>
+
+                  {/* ddddddddddddddddd */}
 
                   {/* Button Tabs */}
                   {buttonTemplateButtons.length > 0 && (
@@ -2082,34 +2125,41 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                       {buttonTemplateButtons.map((btn, idx) => {
                         const isSelected = idx === normalizedActiveButtonTemplateButtonIndex;
                         return (
-                          <button
-                            key={idx}
-                            type="button"
-                            onClick={() => setActiveButtonTemplateButtonIndex(idx)}
-                            className={cn(
-                              "px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border",
-                              isSelected
-                                ? "bg-white text-black border-white shadow-lg"
-                                : "bg-white/5 text-zinc-400 border-white/10 hover:bg-white/10 hover:text-white"
+                          <div key={idx} className="relative">
+                            <button
+                              onClick={() => setActiveButtonTemplateButtonIndex(idx)}
+                              className={cn(
+                                "px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border",
+                                isSelected
+                                  ? "bg-white text-black border-white shadow-lg"
+                                  : "bg-white/5 text-zinc-400 border-white/10 hover:bg-white/10 hover:text-white"
+                              )}
+                            >
+                              <span>{idx + 1}{btn.title ? `: ${btn.title.includes('{{name}}') || btn.title.includes('{{price}}') ? 'Product Link' : btn.title}` : ''}</span>
+                            </button>
+                            {buttonTemplateButtons.length > 1 && (
+
+                              <button
+                                onClick={() => removeButton(idx)}
+                                className="absolute -top-1.5 -right-1.5 w-4.5 h-4.5 rounded-full bg-red-500 text-white hover:bg-red-600 flex items-center justify-center text-[10px] border border-[#131313] shadow-md cursor-pointer"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
                             )}
-                          >
-                            <span>Button {idx + 1}{btn.title ? `: ${btn.title.includes('{{name}}') || btn.title.includes('{{price}}') ? 'Product Link' : btn.title}` : ''}</span>
-                          </button>
-                        );
+                          </div>
+                        )
                       })}
                     </div>
                   )}
+
 
                   <div className="space-y-4">
                     {buttonTemplateButtons.map((btn, idx) => {
                       if (idx !== normalizedActiveButtonTemplateButtonIndex) return null;
                       return (
                         <div key={idx} className="bg-white/5 p-5 rounded-2xl border border-white/10 flex flex-col gap-4 relative animate-fadeIn">
-                          <span className="absolute top-4 right-4 w-6 h-6 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-[10px] font-bold text-zinc-400">
-                            {idx + 1}
-                          </span>
 
-                          <div className="flex-1 w-full space-y-4 pr-8">
+                          <div className="flex-1 w-full space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div>
                                 <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block mb-1.5">Button Title</label>
@@ -2119,7 +2169,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                   onChange={(e) => updateButton(idx, 'title', e.target.value)}
                                   maxLength={20}
                                   placeholder="e.g. Visit Shop"
-                                  className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-white/50"
+                                  className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded px-4 py-2.5 text-xs text-white focus:outline-none focus:border-white/50"
                                 />
                               </div>
                               <div>
@@ -2129,10 +2179,26 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                   value={btn.type === 'postback' && btn.payload === 'TRACK_ORDER' ? 'track_order' : btn.type}
                                   onChange={(val) => updateButton(idx, 'type', val)}
                                   options={[
-                                    { value: 'web_url', label: 'Web URL Link' },
-                                    { value: 'postback', label: 'Trigger Chat Event' },
-                                    { value: 'product', label: 'Link Product' },
-                                    { value: 'track_order', label: '🔍 Track Order (Dynamic)' }
+                                    {
+                                      value: 'web_url',
+                                      label: `Add you're Link`,
+                                      icon: <Link2 className="w-3.5 h-3.5" />,
+                                    },
+                                    {
+                                      value: 'postback',
+                                      label: 'Continue Chat',
+                                      icon: <MessageCircle className="w-3.5 h-3.5" />,
+                                    },
+                                    {
+                                      value: 'product',
+                                      label: 'Open Product in Website',
+                                      icon: <Package className="w-3.5 h-3.5" />,
+                                    },
+                                    {
+                                      value: 'track_order',
+                                      label: 'Track Order (Dynamic)',
+                                      icon: <Search className="w-3.5 h-3.5" />,
+                                    },
                                   ]}
                                   dropdownId={`btn-type-${idx}`}
                                   openDropdownId={openDropdownId}
@@ -2143,14 +2209,14 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
 
                             {btn.type === 'postback' && btn.payload === 'TRACK_ORDER' && (
                               <div className="bg-[#4f46e5]/10 border border-[#4f46e5]/20 rounded-xl p-3 text-xs text-indigo-300 font-medium">
-                                ℹ️ This button will automatically prompt customers to enter their Order ID, check the current order status, and reply dynamically.
+                                ℹ️ Prompts customers for their Order ID and replies with the current order status.
                               </div>
                             )}
 
                             {btn.type === 'web_url' && (
                               <div>
                                 <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block mb-1.5">Web Link URL</label>
-                                <div className="flex items-center bg-[#1c1b1b]/60 border border-white/10 rounded-xl px-3 text-xs">
+                                <div className="flex items-center bg-[#1c1b1b]/60 border border-white/10 rounded px-3 text-xs">
                                   <LinkIcon className="w-4 h-4 text-zinc-500 mr-2.5 shrink-0" />
                                   <input
                                     type="text"
@@ -2171,9 +2237,9 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
 
                               return (
                                 <div className="space-y-2 animate-fadeIn">
-                                  <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider block mb-1">
-                                    Select Catalog Product
-                                  </label>
+                                  {/* <label className="font-sora text-[12px] font-bold text-zinc-400 tracking-wider block mb-1">
+                                    Click the button will open the product
+                                  </label> */}
                                   {selectedProduct ? (
                                     <div className="relative bg-white/5 border border-white/20 rounded-xl p-3 flex items-center gap-3 animate-fadeIn">
                                       <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-white/10 overflow-hidden flex items-center justify-center shrink-0">
@@ -2218,7 +2284,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                       </button>
                                     </div>
                                   ) : (
-                                    <div className="max-h-48 overflow-y-auto border border-white/10 rounded-xl bg-zinc-950 divide-y divide-white/5 p-2 space-y-1">
+                                    <div className="max-h-48 overflow-y-auto border border-white/10 rounded-xl bg-black/25 divide-y divide-white/5 p-2 space-y-1">
                                       {products.length === 0 ? (
                                         <div className="text-[10px] text-zinc-500 italic p-3 text-center">
                                           No products found in catalog.
@@ -2311,26 +2377,15 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                               );
                             })()}
 
-                            {btn.type === 'postback' && (
-                              <div className="bg-white/5 border border-[#8FE3FF]/25 text-[#8FE3FF] rounded-xl p-4 text-xs flex flex-col gap-1.5 animate-fadeIn">
-                                <p className="font-bold flex items-center gap-1.5">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-[#8FE3FF] animate-pulse"></span>
-                                  Chat Event Connected
-                                </p>
-                                <p className="text-[11px] leading-relaxed text-zinc-400">
-                                  A new flow has been created named <strong className="text-white">"{btn.title || 'New Button'}"</strong>. You can configure its reply message directly on the canvas wireframe.
+                            {btn.type === 'postback' && btn.payload !== 'TRACK_ORDER' && (
+                              <div className="bg-white/5 border border-[#8FE3FF]/25 text-[#8FE3FF] rounded p-4 text-xs flex flex-col gap-1.5 animate-fadeIn">
+                                <p className="text-[12px] leading-relaxed text-zinc-400">
+                                  New flow named  <span className="text-white">{btn.title || 'New Button'}</span> is ready. Configure reply for it .
                                 </p>
                               </div>
                             )}
 
                           </div>
-
-                          <button
-                            onClick={() => removeButton(idx)}
-                            className="absolute bottom-4 right-4 p-2.5 rounded-xl text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-all cursor-pointer"
-                          >
-                            <Trash2 className="w-4.5 h-4.5" />
-                          </button>
                         </div>
                       )
                     })}
@@ -2353,7 +2408,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                     {carouselElements.length < 10 && (
                       <button
                         onClick={addCarouselCard}
-                        className="py-2 px-4 bg-white/10 hover:bg-white/15 text-white text-xs font-bold rounded-xl border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer"
+                        className="py-2 px-4 bg-white/10 hover:bg-white/15 text-white text-xs font-bold rounded border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer"
                       >
                         <Plus className="w-3.5 h-3.5" /> Add Card
                       </button>
@@ -2520,7 +2575,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                     </button>
                                   </div>
                                 ) : (
-                                  <div className="max-h-48 overflow-y-auto border border-white/10 rounded-xl bg-zinc-950 divide-y divide-white/5 p-2 space-y-1">
+                                  <div className="max-h-48 overflow-y-auto border border-white/10 rounded-xl bg-black/25 divide-y divide-white/5 p-2 space-y-1">
                                     {products.length === 0 ? (
                                       <div className="text-[10px] text-zinc-500 italic p-3 text-center">
                                         No products found in catalog.
@@ -2612,7 +2667,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                       )}
 
                     </div>
-                    <span className='w-full flex justify-center'>OR</span>
+                    {isEcommerceTemplate && <span className='w-full flex justify-center'>OR</span>}
                     {/* Image URL & Cloudinary Upload */}
                     <div className="grid grid-cols-1 gap-4 .border-t border-white/10 .pt-4">
                       <div className="space-y-2">
@@ -2627,7 +2682,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                         <button
                           type="button"
                           onClick={() => document.getElementById(`card-upload-${activeCardIndex}`)?.click()}
-                          className="w-full h-28 border border-dashed border-white/10 hover:border-white/30 hover:bg-white/5 rounded-2xl flex flex-col items-center justify-center p-4 text-center transition-all cursor-pointer"
+                          className="w-full h-28 border border-dashed border-white/10 hover:border-white/30 hover:bg-white/5 rounded flex flex-col items-center justify-center p-4 text-center transition-all cursor-pointer"
                         >
                           {uploadingMap[activeCardIndex] ? (
                             <div className="space-y-2 w-full px-4">
@@ -2639,7 +2694,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                             </div>
                           ) : carouselElements[activeCardIndex].image_url ? (
                             <div className="flex items-center gap-4 w-full text-left">
-                              <div className="w-20 h-20 rounded-xl overflow-hidden bg-zinc-900 border border-white/10 shrink-0">
+                              <div className="w-20 h-20 rounded overflow-hidden bg-zinc-900 border border-white/10 shrink-0">
                                 <img src={carouselElements[activeCardIndex].image_url} alt="" className="w-full h-full object-cover" />
                               </div>
                               <div className="min-w-0 flex-1">
@@ -2661,8 +2716,8 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                     {!showProductPicker[`carousel-product-${activeCardIndex}`] && (
                       <div className="grid grid-cols-1 gap-4 border-t border-white/10 pt-4">
                         <div className="space-y-2.5 animate-fadeIn">
-                          <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block">Default Click Action Web URL</label>
-                          <div className="flex items-center bg-[#1c1b1b]/60 border border-white/10 rounded-xl px-3 text-xs">
+                          <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider  block">Default Click Action Web URL</label>
+                          <div className="flex items-center bg-[#1c1b1b]/60 border border-white/10 rounded px-3 text-xs">
                             <LinkIcon className="w-4 h-4 text-zinc-500 mr-2.5 shrink-0" />
                             <input
                               type="text"
@@ -2680,25 +2735,25 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                     {/* Title & Subtitle */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-white/10 pt-4">
                       <div className="space-y-2">
-                        <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block">Card Title</label>
+                        <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider block">Card Title</label>
                         <input
                           type="text"
                           value={carouselElements[activeCardIndex].title || ''}
                           onChange={(e) => updateCarouselField(activeCardIndex, 'title', e.target.value)}
                           maxLength={80}
                           placeholder="e.g. Summer Tote Bag"
-                          className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:border-white/50"
+                          className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded px-4 py-3 text-xs text-white focus:outline-none focus:border-white/50"
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block">Card Subtitle / Description</label>
+                        <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider  block">Card Subtitle / Description</label>
                         <input
                           type="text"
                           value={carouselElements[activeCardIndex].subtitle || ''}
                           onChange={(e) => updateCarouselField(activeCardIndex, 'subtitle', e.target.value)}
                           maxLength={80}
                           placeholder="e.g. Leather. Available in 3 colors."
-                          className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:border-white/50"
+                          className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded px-4 py-3 text-xs text-white focus:outline-none focus:border-white/50"
                         />
                       </div>
                     </div>
@@ -2714,7 +2769,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                               addCarouselButton(activeCardIndex);
                               setActiveButtonIndex((carouselElements[activeCardIndex].buttons || []).length);
                             }}
-                            className="py-1.5 px-3 bg-white/10 hover:bg-white/15 text-white text-[10px] font-bold rounded-xl border border-white/10 transition-all flex items-center gap-1 cursor-pointer"
+                            className="py-1.5 px-3 bg-white/10 hover:bg-white/15 text-white text-[10px] font-bold rounded border border-white/10 transition-all flex items-center gap-1 cursor-pointer"
                           >
                             <Plus className="w-3.5 h-3.5" /> Add Card Button
                           </button>
@@ -2726,59 +2781,93 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                         <div className="flex flex-wrap gap-2 mb-2 border-b border-white/10 pb-3">
                           {(carouselElements[activeCardIndex].buttons || []).map((btn, bi) => {
                             const isSelected = bi === normalizedActiveButtonIndex;
+
                             return (
-                              <button
-                                key={bi}
-                                type="button"
-                                onClick={() => setActiveButtonIndex(bi)}
-                                className={cn(
-                                  "px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border",
-                                  isSelected
-                                    ? "bg-white text-black border-white shadow-lg"
-                                    : "bg-white/5 text-zinc-400 border-white/10 hover:bg-white/10 hover:text-white"
+                              <div key={bi} className="relative">
+                                <button
+                                  type="button"
+                                  onClick={() => setActiveButtonIndex(bi)}
+                                  className={cn(
+                                    "px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border",
+                                    isSelected
+                                      ? "bg-white text-black border-white shadow-lg"
+                                      : "bg-white/5 text-zinc-400 border-white/10 hover:bg-white/10 hover:text-white"
+                                  )}
+                                >
+                                  <span>
+                                    {bi + 1}
+                                    {btn.title
+                                      ? `: ${btn.title.includes("{{name}}") ||
+                                        btn.title.includes("{{price}}")
+                                        ? "Product Link"
+                                        : btn.title
+                                      }`
+                                      : ""}
+                                  </span>
+                                </button>
+
+                                {(carouselElements[activeCardIndex].buttons || []).length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => removeCarouselButton(activeCardIndex, bi)}
+
+                                    className="absolute -top-1.5 -right-1.5 w-4.5 h-4.5 rounded-full bg-red-500 text-white hover:bg-red-600 flex items-center justify-center text-[10px] border border-[#131313] shadow-md cursor-pointer"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
                                 )}
-                              >
-                                <span>Button {bi + 1}{btn.title ? `: ${btn.title.includes('{{name}}') || btn.title.includes('{{price}}') ? 'Product Link' : btn.title}` : ''}</span>
-                              </button>
+                              </div>
                             );
                           })}
                         </div>
                       )}
-
                       <div className="space-y-4">
                         {(carouselElements[activeCardIndex].buttons || []).map((btn, bi) => {
                           if (bi !== normalizedActiveButtonIndex) return null;
                           const isFirstButtonProductLocked = bi === 0 && !!showProductPicker[`carousel-product-${activeCardIndex}`] && !!carouselElements[activeCardIndex].default_action?.url;
                           return (
                             <div key={bi} className="bg-white/5 p-4 rounded-2xl border border-white/10 flex flex-col gap-4 relative animate-fadeIn">
-                              <span className="absolute top-4 right-4 w-5 h-5 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-[10px] font-bold text-zinc-400">
-                                {bi + 1}
-                              </span>
 
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 w-full pr-8">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 w-full ">
                                 <div>
-                                  <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider block mb-1.5">Button Title</label>
+                                  <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider block mb-1.5">Button Name</label>
                                   <input
                                     type="text"
                                     value={btn.title}
                                     onChange={(e) => updateCarouselButton(activeCardIndex, bi, 'title', e.target.value)}
                                     maxLength={20}
                                     placeholder="e.g. Order Now"
-                                    className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none"
+                                    className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded px-4 py-2.5 text-xs text-white focus:outline-none"
                                   />
                                 </div>
                                 <div>
                                   <CustomSelect
-                                    labelClassName='font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block mb-1.5'
+                                    labelClassName='font-sora text-[10px] font-bold text-zinc-400 tracking-wider  block mb-1.5'
                                     label="Button Type"
                                     value={btn.type === 'postback' && btn.payload === 'TRACK_ORDER' ? 'track_order' : btn.type}
                                     disabled={isFirstButtonProductLocked}
                                     onChange={(val) => updateCarouselButton(activeCardIndex, bi, 'type', val)}
                                     options={[
-                                      { value: 'web_url', label: 'Web URL Link' },
-                                      { value: 'postback', label: 'Trigger Chat Event' },
-                                      { value: 'product', label: 'Link Product' },
-                                      { value: 'track_order', label: '🔍 Track Order (Dynamic)' }
+                                      {
+                                        value: 'web_url',
+                                        label: `Add you're Link`,
+                                        icon: <Link2 className="w-3.5 h-3.5" />,
+                                      },
+                                      {
+                                        value: 'postback',
+                                        label: 'Continue Chat',
+                                        icon: <MessageCircle className="w-3.5 h-3.5" />,
+                                      },
+                                      {
+                                        value: 'product',
+                                        label: 'Open Product in Website',
+                                        icon: <Package className="w-3.5 h-3.5" />,
+                                      },
+                                      {
+                                        value: 'track_order',
+                                        label: 'Track Order (Dynamic)',
+                                        icon: <Search className="w-3.5 h-3.5" />,
+                                      },
                                     ]}
                                     dropdownId={`carousel-btn-type-${activeCardIndex}-${bi}`}
                                     openDropdownId={openDropdownId}
@@ -2788,14 +2877,14 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
 
                                 <div className="md:col-span-2">
                                   {btn.type === 'postback' && btn.payload === 'TRACK_ORDER' && (
-                                    <div className="bg-[#4f46e5]/10 border border-[#4f46e5]/20 rounded-xl p-3 text-xs text-indigo-300 font-medium mb-3">
-                                      ℹ️ This button will automatically prompt customers to enter their Order ID, check the current order status, and reply dynamically.
+                                    <div className="bg-[#4f46e5]/10 border border-[#4f46e5]/20 rounded-xl p-3 text-xs text-indigo-300 font-medium">
+                                      ℹ️ Prompts customers for their Order ID and replies with the current order status.
                                     </div>
                                   )}
                                   {btn.type === 'web_url' && (
                                     <div>
                                       <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block mb-1.5">Web Link URL</label>
-                                      <div className="flex items-center bg-[#1c1b1b]/60 border border-white/10 rounded-xl px-3 text-xs">
+                                      <div className="flex items-center bg-[#1c1b1b]/60 border border-white/10 rounded px-3 text-xs">
                                         <LinkIcon className="w-4 h-4 text-zinc-500 mr-2.5 shrink-0" />
                                         <input
                                           type="text"
@@ -2871,7 +2960,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                             </button>
                                           </div>
                                         ) : (
-                                          <div className="max-h-48 overflow-y-auto border border-white/10 rounded-xl bg-zinc-950 divide-y divide-white/5 p-2 space-y-1">
+                                          <div className="max-h-48 overflow-y-auto border border-white/10 rounded-xl bg-black/25 divide-y divide-white/5 p-2 space-y-1">
                                             {products.length === 0 ? (
                                               <div className="text-[10px] text-zinc-500 italic p-3 text-center">
                                                 No products found in catalog.
@@ -2968,26 +3057,20 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                     );
                                   })()}
 
-                                  {btn.type === 'postback' && (
-                                    <div className="bg-white/5 border border-[#8FE3FF]/25 text-[#8FE3FF] rounded-xl p-4 text-xs flex flex-col gap-1.5 animate-fadeIn">
-                                      <p className="font-bold flex items-center gap-1.5">
+                                  {btn.type === 'postback' && btn.payload !== 'TRACK_ORDER' && (
+                                    <div className="bg-white/5 border border-[#8FE3FF]/25 text-[#8FE3FF] rounded p-4 text-xs flex flex-col gap-1.5 animate-fadeIn">
+                                      {/* <p className="font-bold flex items-center gap-1.5">
                                         <span className="w-1.5 h-1.5 rounded-full bg-[#8FE3FF] animate-pulse"></span>
-                                        Chat Event Connected
-                                      </p>
+                                        Continue Chat
+                                      </p> */}
                                       <p className="text-[11px] leading-relaxed text-zinc-400">
-                                        A new flow has been created named <strong className="text-white">"{btn.title || 'New Button'}"</strong>. You can configure its reply message directly on the canvas wireframe.
+                                        Flow <strong className="text-white">"{btn.title || 'New Button'}"</strong> is ready. Configure its reply on the canvas.
                                       </p>
                                     </div>
                                   )}
                                 </div>
                               </div>
 
-                              <button
-                                onClick={() => removeCarouselButton(activeCardIndex, bi)}
-                                className="absolute bottom-4 right-4 p-2.5 rounded-xl text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-all cursor-pointer"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
                             </div>
                           );
                         })}
@@ -3003,7 +3086,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
               <div className="space-y-6">
                 {/* Attachment Type Selector Tabs */}
                 <div className="space-y-2">
-                  <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block">Attachment Type</label>
+                  <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider  block">Attachment Type</label>
                   <div className="flex flex-wrap gap-1.5 p-1 bg-zinc-950/40 rounded-xl border border-white/5">
                     {[
                       { value: 'image', label: 'Image', icon: ImageIcon },
@@ -3039,7 +3122,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                 <div className="space-y-3">
                   {['image', 'video', 'audio', 'file'].includes(selectedAttachmentType) ? (
                     <div className="space-y-3">
-                      <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block">
+                      <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider  block">
                         Upload {selectedAttachmentType.charAt(0).toUpperCase() + selectedAttachmentType.slice(1)} file
                       </label>
 
@@ -3061,7 +3144,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                       {/* Dropzone Area */}
                       <div
                         onClick={() => attachmentFileInputRef.current?.click()}
-                        className="border-2 border-dashed border-white/10 hover:border-white/30 hover:bg-white/5 rounded-2xl p-8 text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-3.5 group animate-fadeIn"
+                        className="border-2 border-dashed border-white/10 hover:border-white/30 hover:bg-white/5 rounded p-8 text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-3.5 group animate-fadeIn"
                       >
                         <div className="w-12 h-12 rounded-full bg-[#1c1b1b] flex items-center justify-center border border-white/10 group-hover:scale-110 transition-transform">
                           <Upload className="w-5 h-5 text-zinc-400 group-hover:text-white" />
@@ -3078,7 +3161,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                       </div>
                     </div>
                   ) : selectedAttachmentType === 'sticker' ? (
-                    <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex items-center justify-between gap-2 animate-fadeIn">
+                    <div className="bg-white/5 border border-white/10 rounded p-3 flex items-center justify-between gap-2 animate-fadeIn">
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-xl shrink-0">❤️</span>
                         <div className="min-w-0">
@@ -3094,14 +3177,14 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                           onClick={() => {
                             setAttachments(prev => [...prev, { type: 'sticker', sticker_id: 'like_heart' }]);
                           }}
-                          className="px-3 py-1.5 rounded-lg bg-white text-black font-bold text-xs hover:opacity-90 transition-opacity shrink-0 flex items-center gap-1 cursor-pointer"
+                          className="px-3 py-1.5 rounded bg-white text-black font-bold text-xs hover:opacity-90 transition-opacity shrink-0 flex items-center gap-1 cursor-pointer"
                         >
                           <Plus className="w-3.5 h-3.5" /> Add
                         </button>
                       )}
                     </div>
                   ) : (
-                    <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex items-center justify-between gap-2 animate-fadeIn">
+                    <div className="bg-white/5 border border-white/10 rounded p-3 flex items-center justify-between gap-2 animate-fadeIn">
                       <div className="flex items-center gap-2 min-w-0">
                         <Share2 className="w-5 h-5 text-emerald-400 shrink-0" />
                         <div className="min-w-0">
@@ -3112,7 +3195,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                       <button
                         type="button"
                         onClick={() => setShowMediaPicker(true)}
-                        className="px-3 py-1.5 rounded-lg bg-[#8FE3FF] text-black font-bold text-xs hover:opacity-90 transition-opacity shrink-0 flex items-center gap-1 cursor-pointer"
+                        className="px-3 py-1.5 rounded bg-white text-black font-bold text-xs hover:opacity-90 transition-opacity shrink-0 flex items-center gap-1 cursor-pointer"
                       >
                         <Plus className="w-3.5 h-3.5" /> Select
                       </button>
@@ -3176,7 +3259,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                 {/* Current Attachments Grid/List */}
                 <div className="space-y-4">
                   <div className="flex justify-between items-center pb-2 border-b border-white/10">
-                    <h3 className="font-sora text-xs font-semibold text-[#8FE3FF] tracking-wider .uppercase">Attachments List ({attachments.length})</h3>
+                    <h3 className="font-sora text-xs font-semibold text-white tracking-wider .uppercase">Attachments List ({attachments.length})</h3>
                     {attachments.length > 0 && (
                       <button
                         onClick={() => setAttachments([])}
@@ -3188,7 +3271,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                   </div>
 
                   {attachments.length === 0 ? (
-                    <div className="bg-white/5 border border-white/10 rounded-2xl p-8 text-center text-xs text-zinc-500 font-medium italic">
+                    <div className="bg-white/5 border border-white/10 rounded p-8 text-center text-xs text-zinc-500 font-medium italic">
                       No attachments added yet. Select a type and add them above.
                     </div>
                   ) : (

@@ -201,7 +201,7 @@ export function InstagramMediaPicker({ open, onClose, onSelect, selectedIds = []
               initial={{ opacity: 0, scale: 0.96, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 15 }}
-              className="w-full bg-[#1c1b1b]/95 backdrop-blur-3xl rounded-2xl p-6 md:p-8 shadow-[0_24px_60px_rgba(0,0,0,0.4)] border border-white/10 pointer-events-auto relative overflow-hidden flex flex-col transition-all duration-300 max-w-[760px] max-h-[85vh]"
+              className="w-full bg-[#1c1b1b]/95 backdrop-blur-3xl rounded-xl p-6 md:p-8 shadow-[0_24px_60px_rgba(0,0,0,0.4)] border border-white/10 pointer-events-auto relative overflow-hidden flex flex-col transition-all duration-300 max-w-[760px] max-h-[85vh]"
             >
               {/* Top/Bottom Glow Accent */}
               <div className="absolute -top-32 -right-32 w-64 h-64 bg-pink-500/5 blur-[90px] rounded-full" />
@@ -328,7 +328,7 @@ export function InstagramMediaPicker({ open, onClose, onSelect, selectedIds = []
                 <div className="flex items-center gap-3 w-full sm:w-auto">
                   <button
                     onClick={() => fetchMedia()}
-                    className="py-1.5 px-4 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white rounded-lg text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5 shrink-0"
+                    className="py-2 px-4 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white rounded text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5 shrink-0"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
                     <span>Refresh</span>
@@ -336,7 +336,7 @@ export function InstagramMediaPicker({ open, onClose, onSelect, selectedIds = []
                   <button
                     onClick={handleConfirm}
                     disabled={currentSelected.size === 0}
-                    className="flex-1 sm:flex-none py-2 px-6 bg-white hover:bg-white/95 text-black rounded-lg text-xs font-bold flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 sm:flex-none py-2 px-6 bg-white hover:bg-white/95 text-black rounded text-xs font-bold flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <span>Confirm Selection</span>
                   </button>

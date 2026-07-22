@@ -228,14 +228,14 @@ export default function AutomationsDashboard() {
                 <button
                   onClick={() => fetchAutomations()}
                   disabled={loading}
-                  className="p-1.5 bg-[#1c1b1b] hover:bg-[#20201f] border border-[#444748] rounded text-[#e5e2e1] transition-colors flex items-center justify-center disabled:opacity-50"
+                  className="p-1.5 h-8 w-8 bg-[#1c1b1b] hover:bg-[#20201f] border border-[#444748] rounded text-[#e5e2e1] transition-colors flex items-center justify-center disabled:opacity-50"
                   title="Refresh"
                 >
                   <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin" : ""}`} />
                 </button>
                 <Link
                   href="/dashboard/automations"
-                  className="py-1 px-2.5 bg-white hover:bg-[#e5e2e1] text-[#131313] rounded text-[11px] font-bold tracking-tight transition-colors flex items-center gap-1"
+                  className="py-1 h-8 px-2.5 bg-white hover:bg-[#e5e2e1] text-[#131313] rounded text-[13px] font-bold tracking-tight transition-colors flex items-center gap-1"
                 >
                   <Plus className="w-3 h-3" />
                   <span>Create Workflow</span>
@@ -494,7 +494,7 @@ export default function AutomationsDashboard() {
                           onClick={() => {
                             if (isSpecialFlow) {
                               const tabParam = item.name === "Welcome Message Flow" ? "icebreakers" : "persistent_menu";
-                              window.location.href = `/dashboard/inbox/wellcome?open=${tabParam}`;
+                              window.location.href = `/dashboard/automations?welcome=${tabParam}`;
                               return;
                             }
                             handleDelete(item.id);

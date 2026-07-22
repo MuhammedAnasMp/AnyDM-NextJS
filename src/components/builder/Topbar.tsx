@@ -148,8 +148,7 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
         <div className="flex items-center gap-3">
           <button
             onClick={() => {
-              const fromParam = searchParams.get('from');
-              router.push(fromParam === 'wellcome' ? '/dashboard/inbox/wellcome' : '/dashboard/automation');
+              router.push('/dashboard/automation');
             }}
             className="p-1.5 rounded-full hover:bg-white/5 text-white/60 hover:text-white transition-all cursor-pointer mr-1 flex items-center justify-center"
             title="Back"

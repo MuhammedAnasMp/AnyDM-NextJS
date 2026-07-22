@@ -79,7 +79,7 @@ export function TemplateItem({ title, desc, icon: Icon, onClick, nodeType, templ
   };
 
   return (
-    <div 
+    <div
       draggable={!!nodeType}
       onDragStart={handleDragStart}
       onClick={onClick}
