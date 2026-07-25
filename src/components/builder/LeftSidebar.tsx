@@ -42,10 +42,11 @@ const TEMPLATE_CATEGORIES = [
     colorClass: 'text-[#C084FC]',
     glowClass: 'border-[#C084FC]/40 bg-[#C084FC]/5 shadow-[0_0_15px_rgba(192,132,252,0.15)]',
     Components: [
+      UserDM.UserSharesPostToDM,
       UserDM.ButtonTemplate,
       UserDM.WelcomeAutoReply,
       UserDM.IceBreakerReplyFlow,
-      UserDM.PersistentMenuReplyFlow,
+      // UserDM.PersistentMenuReplyFlow,
     ]
   },
   {

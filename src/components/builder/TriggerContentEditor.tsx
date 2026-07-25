@@ -14,7 +14,8 @@ import {
   Check,
   Video,
   AlertCircle,
-  ArrowRightFromLine
+  ArrowRightFromLine,
+  Mail
 } from 'lucide-react';
 import { InstagramMediaPicker } from './InstagramMediaPicker';
 
@@ -49,7 +50,16 @@ export default function TriggerContentEditor({ nodeId, onClose }: TriggerContent
   if (!node || !mounted) return null;
 
   const isStoryRule = ruleType.includes('story');
-  const triggerTypeName = isStoryRule ? 'Story Reply Trigger' : 'Comments & Reel Trigger';
+  const isShareRule = ruleType.includes('share');
+  const isStandardDMRule = ruleType.includes('dm') && !isShareRule;
+
+  const triggerTypeName = isStoryRule
+    ? 'Story Reply Trigger'
+    : isShareRule
+      ? 'User Shares Post/Reel Trigger'
+      : isStandardDMRule
+        ? 'Direct Message Trigger'
+        : 'Comments & Reel Trigger';
 
   const getMediaImageSrc = (media: any) => {
     if (!media) return 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=300';
@@ -152,146 +162,162 @@ export default function TriggerContentEditor({ nodeId, onClose }: TriggerContent
         {/* Modal Body Container */}
         <div className="p-5 space-y-5 overflow-y-auto max-h-[75vh] custom-scrollbar bg-[#131313]">
 
-          {/* Target Scope Section */}
-          <div className="space-y-2.5">
-            <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block font-inter">
-              TARGET SCOPE
-            </label>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-
-              {/* Option 1: All Content */}
-              <button
-                type="button"
-                onClick={() => setTargetMode('every')}
-                className={cn(
-                  "p-4 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between relative",
-                  targetMode === 'every'
-                    ? "bg-white/10 border-white text-white shadow-lg ring-1 ring-white/30"
-                    : "bg-white/5 border-white/10 text-zinc-400 hover:border-white/20 hover:text-zinc-200"
-                )}
-              >
-                <div className="flex items-center justify-between w-full mb-2">
-                  <div className={cn(
-                    "w-7 h-7 rounded-lg flex items-center justify-center",
-                    targetMode === 'every' ? "bg-white text-black" : "bg-white/5 text-zinc-400"
-                  )}>
-                    <Layers className="w-3.5 h-3.5" />
-                  </div>
-                  {targetMode === 'every' && (
-                    <div className="w-5 h-5 rounded-full bg-white text-black flex items-center justify-center">
-                      <Check className="w-3 h-3 stroke-[3]" />
-                    </div>
-                  )}
+          {isStandardDMRule ? (
+            <div className="p-5 rounded-xl bg-white/5 border border-white/10 space-y-3">
+              <div className="flex items-center gap-3.5">
+                <div className="p-2.5 bg-white/10 rounded-lg text-white">
+                  <Mail className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-white mb-0.5">
-                    {isStoryRule ? 'All Stories' : 'All Posts & Reels'}
-                  </h4>
-                  <p className="text-[11px] text-zinc-400 leading-snug">
-                    Triggers automatically on any post or story interaction.
+                  <h4 className="text-sm font-bold text-white font-inter">All Incoming Direct Messages</h4>
+                  <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+                    Triggers automatically whenever a customer sends a new message to your Instagram account DM inbox. No media selection is required.
                   </p>
                 </div>
-              </button>
-
-              {/* Option 2: Selected Content */}
-              <button
-                type="button"
-                onClick={() => setTargetMode('selected')}
-                className={cn(
-                  "p-4 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between relative",
-                  targetMode === 'selected'
-                    ? "bg-white/10 border-white text-white shadow-lg ring-1 ring-white/30"
-                    : "bg-white/5 border-white/10 text-zinc-400 hover:border-white/20 hover:text-zinc-200"
-                )}
-              >
-                <div className="flex items-center justify-between w-full mb-2">
-                  <div className={cn(
-                    "w-7 h-7 rounded-lg flex items-center justify-center",
-                    targetMode === 'selected' ? "bg-white text-black" : "bg-white/5 text-zinc-400"
-                  )}>
-                    <ImageIcon className="w-3.5 h-3.5" />
-                  </div>
-                  {targetMode === 'selected' && (
-                    <div className="w-5 h-5 rounded-full bg-white text-black flex items-center justify-center">
-                      <Check className="w-3 h-3 stroke-[3]" />
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-white mb-0.5">
-                    {isStoryRule ? 'Specific Story' : 'Specific Posts / Reels'}
-                  </h4>
-                  <p className="text-[11px] text-zinc-400 leading-snug">
-                    Limit trigger execution to chosen media.
-                  </p>
-                </div>
-              </button>
-
-            </div>
-          </div>
-
-          {/* Media Selection Panel */}
-          {targetMode === 'selected' && (
-            <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-3 shadow-sm animate-in fade-in duration-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="text-[11px]  text-white tracking-wider font-inter">Selected Media  ({selectedMediaDetails.length})</h4>
-                  {/* <p className="text-[11px] text-zinc-400 mt-0.5">Choose the Instagram posts or stories to monitor</p> */}
-                </div>
-                {/* Decreased button size */}
-                <button
-                  type="button"
-                  onClick={() => setShowMediaPicker(true)}
-                  className="px-4 py-2 rounded bg-white text-black font-bold text-xs flex items-center gap-1.5 hover:opacity-90 transition-all shadow-md active:scale-95 cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  Select Media
-                </button>
               </div>
+            </div>
+          ) : (
+            <>
+              {/* Target Scope Section */}
+              <div className="space-y-2.5">
+                <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block font-inter">
+                  TARGET SCOPE
+                </label>
 
-              {selectedMediaDetails.length > 0 ? (
-                <div className="grid grid-cols-4 sm:grid-cols-5 gap-2.5 pt-1">
-                  {selectedMediaDetails.map((media: any) => (
-                    <div key={media.id} className="relative aspect-square rounded-lg bg-black border border-white/10 overflow-hidden group shadow-md">
-                      <img
-                        src={getMediaImageSrc(media)}
-                        alt={media.caption || "Instagram Media"}
-                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=300';
-                        }}
-                      />
-                      {media.media_type === 'VIDEO' && (
-                        <div className="absolute top-1 left-1 px-1 py-0.5 rounded bg-black/70 text-[8px] font-bold text-white flex items-center gap-0.5">
-                          <Video className="w-2.5 h-2.5 text-purple-400" />
-                        </div>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveMedia(media.id)}
-                        className="absolute top-1 right-1 p-1 rounded bg-black/80 hover:bg-rose-600 text-white transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
-                        title="Remove"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="border border-dashed border-white/10 rounded-xl p-5 text-center space-y-1.5 bg-black/20">
-                  <ImageIcon className="w-6 h-6 text-zinc-500 mx-auto" />
-                  <p className="text-xs text-zinc-400 font-medium">No media selected yet</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+                  {/* Option 1: All Content */}
                   <button
                     type="button"
-                    onClick={() => setShowMediaPicker(true)}
-                    className="text-xs text-white hover:underline font-bold"
+                    onClick={() => setTargetMode('every')}
+                    className={cn(
+                      "p-4 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between relative",
+                      targetMode === 'every'
+                        ? "bg-white/10 border-white text-white shadow-lg ring-1 ring-white/30"
+                        : "bg-white/5 border-white/10 text-zinc-400 hover:border-white/20 hover:text-zinc-200"
+                    )}
                   >
-                    Browse Instagram Media
+                    <div className="flex items-center justify-between w-full mb-2">
+                      <div className={cn(
+                        "w-7 h-7 rounded-lg flex items-center justify-center",
+                        targetMode === 'every' ? "bg-white text-black" : "bg-white/5 text-zinc-400"
+                      )}>
+                        <Layers className="w-3.5 h-3.5" />
+                      </div>
+                      {targetMode === 'every' && (
+                        <div className="w-5 h-5 rounded-full bg-white text-black flex items-center justify-center">
+                          <Check className="w-3 h-3 stroke-[3]" />
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-white mb-0.5">
+                        {isStoryRule ? 'All Stories' : 'All Posts & Reels'}
+                      </h4>
+                      <p className="text-[11px] text-zinc-400 leading-snug">
+                        Triggers automatically on any post or story interaction.
+                      </p>
+                    </div>
                   </button>
+
+                  {/* Option 2: Selected Content */}
+                  <button
+                    type="button"
+                    onClick={() => setTargetMode('selected')}
+                    className={cn(
+                      "p-4 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between relative",
+                      targetMode === 'selected'
+                        ? "bg-white/10 border-white text-white shadow-lg ring-1 ring-white/30"
+                        : "bg-white/5 border-white/10 text-zinc-400 hover:border-white/20 hover:text-zinc-200"
+                    )}
+                  >
+                    <div className="flex items-center justify-between w-full mb-2">
+                      <div className={cn(
+                        "w-7 h-7 rounded-lg flex items-center justify-center",
+                        targetMode === 'selected' ? "bg-white text-black" : "bg-white/5 text-zinc-400"
+                      )}>
+                        <ImageIcon className="w-3.5 h-3.5" />
+                      </div>
+                      {targetMode === 'selected' && (
+                        <div className="w-5 h-5 rounded-full bg-white text-black flex items-center justify-center">
+                          <Check className="w-3 h-3 stroke-[3]" />
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-white mb-0.5">
+                        {isStoryRule ? 'Specific Story' : 'Specific Posts / Reels'}
+                      </h4>
+                      <p className="text-[11px] text-zinc-400 leading-snug">
+                        Limit trigger execution to chosen media.
+                      </p>
+                    </div>
+                  </button>
+
+                </div>
+              </div>
+
+              {/* Media Selection Panel */}
+              {targetMode === 'selected' && (
+                <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-3 shadow-sm animate-in fade-in duration-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-[11px]  text-white tracking-wider font-inter">Selected Media  ({selectedMediaDetails.length})</h4>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowMediaPicker(true)}
+                      className="px-4 py-2 rounded bg-white text-black font-bold text-xs flex items-center gap-1.5 hover:opacity-90 transition-all shadow-md active:scale-95 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Select Media
+                    </button>
+                  </div>
+
+                  {selectedMediaDetails.length > 0 ? (
+                    <div className="grid grid-cols-4 sm:grid-cols-5 gap-2.5 pt-1">
+                      {selectedMediaDetails.map((media: any) => (
+                        <div key={media.id} className="relative aspect-square rounded-lg bg-black border border-white/10 overflow-hidden group shadow-md">
+                          <img
+                            src={getMediaImageSrc(media)}
+                            alt={media.caption || "Instagram Media"}
+                            className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=300';
+                            }}
+                          />
+                          {media.media_type === 'VIDEO' && (
+                            <div className="absolute top-1 left-1 px-1 py-0.5 rounded bg-black/70 text-[8px] font-bold text-white flex items-center gap-0.5">
+                              <Video className="w-2.5 h-2.5 text-purple-400" />
+                            </div>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveMedia(media.id)}
+                            className="absolute top-1 right-1 p-1 rounded bg-black/80 hover:bg-rose-600 text-white transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
+                            title="Remove"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="border border-dashed border-white/10 rounded-xl p-5 text-center space-y-1.5 bg-black/20">
+                      <ImageIcon className="w-6 h-6 text-zinc-500 mx-auto" />
+                      <p className="text-xs text-zinc-400 font-medium">No media selected yet</p>
+                      <button
+                        type="button"
+                        onClick={() => setShowMediaPicker(true)}
+                        className="text-xs text-white hover:underline font-bold"
+                      >
+                        Browse Instagram Media
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
+            </>
           )}
 
         </div>

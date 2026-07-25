@@ -3,11 +3,13 @@
 import * as React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store';
-import { undo, redo, selectNode, setFlow } from '@/store/slices/flowSlice';
-import { Undo, Redo, Settings, Eye, EyeOff, Loader2, ArrowLeft } from 'lucide-react';
+import { undo, redo, selectNode, setFlow, updateFlowName, updateNodeData } from '@/store/slices/flowSlice';
+import { Undo, Redo, Settings, Eye, EyeOff, Loader2, ArrowLeft, Pencil, Calendar, ChevronDown, X } from 'lucide-react';
 import api from '@/lib/services/api.service';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Toast from '../Toast';
+
+const cn = (...classes: (string | boolean | undefined)[]) => classes.filter(Boolean).join(' ');
 
 export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () => void, showPreview: boolean }) {
   const flow = useSelector((state: RootState) => state.flow);
@@ -17,22 +19,176 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
   const appUser = useSelector((state: RootState) => state.auth.user);
   const activeAccountId = appUser?.active_instagram_account_id;
 
+  const triggerNode = flow.nodes.find(n => n.type === 'trigger');
   const [isSaving, setIsSaving] = React.useState(false);
+  const [isEditingTitle, setIsEditingTitle] = React.useState(false);
+  const [tempTitle, setTempTitle] = React.useState(flow.name);
+  const [showSchedulePopover, setShowSchedulePopover] = React.useState(false);
   const [toast, setToast] = React.useState<{ message: string; type: 'success' | 'error' | 'info'; visible: boolean }>({
     message: '',
     type: 'info',
     visible: false
   });
 
+  React.useEffect(() => {
+    setTempTitle(flow.name);
+  }, [flow.name]);
+
+  const toLocalDatetimeStr = (isoStr?: string | null) => {
+    if (!isoStr) return '';
+    try {
+      const d = new Date(isoStr);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const hours = String(d.getHours()).padStart(2, '0');
+      const mins = String(d.getMinutes()).padStart(2, '0');
+      return `${year}-${month}-${day}T${hours}:${mins}`;
+    } catch (e) {
+      return '';
+    }
+  };
+
+  const formatShortDate = (isoStr?: string | null) => {
+    if (!isoStr) return null;
+    try {
+      const d = new Date(isoStr);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const applyPreset = (days: number | null) => {
+    if (!triggerNode) return;
+    const now = new Date();
+    dispatch(updateNodeData({ id: triggerNode.id, key: 'start_at', value: now.toISOString() }));
+    if (days === null) {
+      dispatch(updateNodeData({ id: triggerNode.id, key: 'end_at', value: null }));
+    } else {
+      const end = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+      dispatch(updateNodeData({ id: triggerNode.id, key: 'end_at', value: end.toISOString() }));
+    }
+  };
+
+  const startFormatted = formatShortDate(triggerNode?.data?.start_at as string);
+  const endFormatted = formatShortDate(triggerNode?.data?.end_at as string);
+
+  const handleTitleSubmit = () => {
+    const trimmed = tempTitle.trim();
+    if (trimmed && trimmed !== flow.name) {
+      dispatch(updateFlowName(trimmed));
+    } else {
+      setTempTitle(flow.name);
+    }
+    setIsEditingTitle(false);
+  };
+
   const canUndo = (flow.past && flow.past.length > 0) || false;
   const canRedo = (flow.future && flow.future.length > 0) || false;
 
   const handleSave = async (status: 'draft' | 'active') => {
     if (isSaving) return;
+
+    let hasValidationError = false;
+    let firstErrorNodeId: string | null = null;
+    let firstErrorMessage: string = '';
+
+    // Clear old validation errors first
+    flow.nodes.forEach(n => {
+      if (n.data?.validationError) {
+        dispatch(updateNodeData({ id: n.id, key: 'validationError', value: null }));
+      }
+    });
+
+    // Mandatory Check: Ensure at least ONE Action Node is configured before saving
+    const actionNodes = flow.nodes.filter(n => n.type === 'action' && n.data?.parent_event !== 'TRACK_ORDER');
+    if (actionNodes.length > 0) {
+      const hasAnyConfiguredAction = actionNodes.some(node => {
+        if (node.data?.is_placeholder) return false;
+        const actionType = node.data?.action_type || 'reply_comment';
+        if (actionType === 'reply_comment') {
+          const msgs = (node.data?.messages as string[] || []).filter(m => m && typeof m === 'string' && m.trim().length > 0);
+          return msgs.length > 0;
+        } else if (actionType === 'send_dm') {
+          const dmFormat = node.data?.dm_format || 'text';
+          if (dmFormat === 'text') {
+            const msgs = (node.data?.messages as string[] || []).filter(m => m && typeof m === 'string' && m.trim().length > 0);
+            return msgs.length > 0;
+          }
+          return true;
+        }
+        return false;
+      });
+
+      if (!hasAnyConfiguredAction) {
+        hasValidationError = true;
+        const errMsg = "Please configure at least 1 reply action (Public Reply or Direct Message) before saving.";
+        actionNodes.forEach(node => {
+          if (node.data?.is_placeholder) {
+            dispatch(updateNodeData({ id: node.id, key: 'validationError', value: errMsg }));
+          }
+        });
+        firstErrorNodeId = actionNodes[0].id;
+        firstErrorMessage = errMsg;
+      }
+    }
+
+    if (status === 'active' && !hasValidationError) {
+      // 1. Validate Card 2 (Filter / Condition Node)
+      const conditionNodes = flow.nodes.filter(n => n.type === 'condition');
+      for (const node of conditionNodes) {
+        const matchType = node.data?.match_type || 'contains';
+        if (matchType === 'contains') {
+          const kw = (node.data?.keywords || []).filter((k: string) => k.trim().length > 0);
+          if (kw.length === 0) {
+            hasValidationError = true;
+            const errMsg = "Card 2 Error: Please enter at least 1 keyword for keyword filter before setting live.";
+            dispatch(updateNodeData({ id: node.id, key: 'validationError', value: errMsg }));
+            if (!firstErrorNodeId) {
+              firstErrorNodeId = node.id;
+              firstErrorMessage = errMsg;
+            }
+          }
+        } else if (matchType === 'equals') {
+          const kwEq = (node.data?.keywords_equals || []).filter((k: string) => k.trim().length > 0);
+          if (kwEq.length === 0) {
+            hasValidationError = true;
+            const errMsg = "Card 2 Error: Please enter at least 1 exact match keyword before setting live.";
+            dispatch(updateNodeData({ id: node.id, key: 'validationError', value: errMsg }));
+            if (!firstErrorNodeId) {
+              firstErrorNodeId = node.id;
+              firstErrorMessage = errMsg;
+            }
+          }
+        }
+
+        if (node.data?.follower_gate) {
+          const fgMsgs = (node.data?.follower_gate_messages || []).filter((m: string) => m.trim().length > 0);
+          if (fgMsgs.length === 0) {
+            hasValidationError = true;
+            const errMsg = "Card 2 Error: Please provide a non-empty Follower Gate message.";
+            dispatch(updateNodeData({ id: node.id, key: 'validationError', value: errMsg }));
+            if (!firstErrorNodeId) {
+              firstErrorNodeId = node.id;
+              firstErrorMessage = errMsg;
+            }
+          }
+        }
+      }
+    }
+
+    if (hasValidationError) {
+      setToast({ message: firstErrorMessage, type: 'error', visible: true });
+      if (firstErrorNodeId) {
+        dispatch(selectNode({ id: firstErrorNodeId, rect: null }));
+      }
+      return;
+    }
+
     setIsSaving(true);
     setToast({ message: `Saving automation as ${status}...`, type: 'info', visible: true });
     try {
-      // Special check for Welcome Message Flow or Persistent Menu Flow when Set Live
       if (status === 'active' && activeAccountId) {
         const isIcebreakers = flow.name === "Welcome Message Flow";
         const isMenu = flow.name === "Persistent Menu Flow";
@@ -42,12 +198,10 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
             if (isIcebreakers) {
               const icebreakers = triggerNode.data?.icebreakers || [];
               const welcomePrompt = triggerNode.data?.welcome_prompt || "Tap to send a question suggested by us";
-              // Save to Instagram API
               await api.post(`/crm/messenger-profile/ice-breakers/`, {
                 account_id: activeAccountId,
                 ice_breakers: icebreakers
               });
-              // Cache locally
               const storageKey = `anydm_welcome_settings_${activeAccountId}`;
               localStorage.setItem(storageKey, JSON.stringify({
                 welcomePrompt,
@@ -60,13 +214,11 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
               const menuItems = triggerNode.data?.persistent_menu_items || [];
               const composerDisabled = triggerNode.data?.composer_input_disabled || false;
               const welcomePrompt = triggerNode.data?.welcome_prompt || "Tap to send a question suggested by us";
-              // Save to Instagram API
               await api.post(`/crm/messenger-profile/persistent-menu/`, {
                 account_id: activeAccountId,
                 composer_input_disabled: composerDisabled,
                 call_to_actions: menuItems
               });
-              // Cache locally
               const storageKey = `anydm_welcome_settings_${activeAccountId}`;
               localStorage.setItem(storageKey, JSON.stringify({
                 welcomePrompt,
@@ -143,7 +295,6 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
 
   return (
     <div className="w-full flex flex-col bg-[#131313] border-b border-white/5 z-10 shrink-0">
-      {/* Main Header Row */}
       <div className="h-16 px-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button
@@ -155,13 +306,37 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-xl font-bold text-white tracking-tight">{flow.name}</h1>
-          <span className="text-sm font-medium text-on-surface-variant italic">Edited just now</span>
+          {isEditingTitle ? (
+            <input
+              type="text"
+              value={tempTitle}
+              onChange={(e) => setTempTitle(e.target.value)}
+              onBlur={handleTitleSubmit}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleTitleSubmit();
+                if (e.key === 'Escape') {
+                  setTempTitle(flow.name);
+                  setIsEditingTitle(false);
+                }
+              }}
+              autoFocus
+              className="bg-[#1a1a1a] border border-white/20 rounded px-2.5 py-1 text-lg font-bold text-white focus:outline-none focus:border-white/50 font-inter"
+            />
+          ) : (
+            <div
+              onClick={() => setIsEditingTitle(true)}
+              className="flex items-center gap-2 group cursor-pointer hover:opacity-85 transition-opacity"
+              title="Click to edit automation name"
+            >
+              <h1 className="text-xl font-bold text-white tracking-tight">{flow.name}</h1>
+              <Pencil className="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" />
+            </div>
+          )}
+          <span className="text-xs font-medium text-on-surface-variant italic">Edited just now</span>
         </div>
 
-        <div className="flex items-center gap-4">
-          {/* Undo and Redo Buttons */}
-          <div className="flex items-center gap-0.5 bg-[#1a1a1a] border border-white/5 rounded-full p-1 mr-2 shadow-inner">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-0.5 bg-[#1a1a1a] border border-white/5 rounded-full p-1 mr-1 shadow-inner">
             <button
               onClick={() => dispatch(undo())}
               disabled={!canUndo}
@@ -186,16 +361,129 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
             </button>
           </div>
 
-          {/* <button
-            onClick={onTogglePreview}
-            className={`h-10 px-4 rounded-full border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${showPreview
-              ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/20 shadow-sm'
-              : 'bg-[#181818] border-white/10 text-on-surface-variant hover:text-white hover:border-white/20'
-              }`}
-          >
-            {showPreview ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-            <span>{showPreview ? 'Hide Preview' : 'Show Preview'}</span>
-          </button> */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowSchedulePopover(!showSchedulePopover)}
+              className="h-10 px-3.5 rounded-full bg-[#1a1a1a] text-white border border-white/10 font-semibold text-xs hover:bg-white/10 transition-all flex items-center gap-2 cursor-pointer shadow-sm active:scale-95"
+              title="Configure automation schedule date & time"
+            >
+              <Calendar className="w-4 h-4 text-[#8FE3FF]" />
+              <span className="font-medium text-white">
+                {startFormatted && endFormatted ? `${startFormatted} – ${endFormatted}` : startFormatted ? `From ${startFormatted}` : 'Always Active'}
+              </span>
+              <ChevronDown className={cn("w-3.5 h-3.5 text-zinc-400 transition-transform duration-200", showSchedulePopover && "rotate-180")} />
+            </button>
+
+            {showSchedulePopover && (
+              <div className="absolute right-0 top-12 z-[9999] w-80 bg-[#131313]/95 backdrop-blur-2xl border border-white/10 rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.8)] space-y-4 animate-in fade-in zoom-in-95 duration-150 text-white font-inter">
+                <div className="flex items-center justify-between pb-2 border-b border-white/10">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-[#8FE3FF]" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-white">Automation Schedule</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowSchedulePopover(false)}
+                    className="p-1 rounded bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">QUICK PRESETS</label>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => applyPreset(7)}
+                      className="px-2 py-1.5 rounded-lg bg-white/5 hover:bg-white/15 border border-white/10 text-[11px] font-semibold text-white transition-all text-center cursor-pointer active:scale-95"
+                    >
+                      7 Days
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyPreset(10)}
+                      className="px-2 py-1.5 rounded-lg bg-white/5 hover:bg-white/15 border border-white/10 text-[11px] font-semibold text-white transition-all text-center cursor-pointer active:scale-95"
+                    >
+                      10 Days
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyPreset(30)}
+                      className="px-2 py-1.5 rounded-lg bg-white/5 hover:bg-white/15 border border-white/10 text-[11px] font-semibold text-white transition-all text-center cursor-pointer active:scale-95"
+                    >
+                      30 Days
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyPreset(null)}
+                      className="px-2 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-[11px] font-bold text-[#8FE3FF] transition-all text-center cursor-pointer active:scale-95"
+                    >
+                      Always
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-3 pt-1">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Start Date & Time</label>
+                    <input
+                      type="datetime-local"
+                      value={toLocalDatetimeStr(triggerNode?.data?.start_at as string)}
+                      onChange={(e) => {
+                        if (triggerNode) {
+                          const val = e.target.value ? new Date(e.target.value).toISOString() : null;
+                          dispatch(updateNodeData({ id: triggerNode.id, key: 'start_at', value: val }));
+                        }
+                      }}
+                      className="w-full bg-[#1a1a1a] border border-white/10 rounded-xl px-3 py-2 text-xs font-semibold text-white focus:outline-none focus:border-white/30"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">End Date & Time</label>
+                    <input
+                      type="datetime-local"
+                      value={toLocalDatetimeStr(triggerNode?.data?.end_at as string)}
+                      onChange={(e) => {
+                        if (triggerNode) {
+                          const val = e.target.value ? new Date(e.target.value).toISOString() : null;
+                          dispatch(updateNodeData({ id: triggerNode.id, key: 'end_at', value: val }));
+                        }
+                      }}
+                      className="w-full bg-[#1a1a1a] border border-white/10 rounded-xl px-3 py-2 text-xs font-semibold text-white focus:outline-none focus:border-white/30"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2 pt-1">
+                  {(triggerNode?.data?.start_at || triggerNode?.data?.end_at) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (triggerNode) {
+                          dispatch(updateNodeData({ id: triggerNode.id, key: 'start_at', value: null }));
+                          dispatch(updateNodeData({ id: triggerNode.id, key: 'end_at', value: null }));
+                        }
+                      }}
+                      className="w-full py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-rose-300 hover:text-rose-200 font-semibold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      {/* <X className="w-3.5 h-3.5 text-rose-400" /> */}
+                      Remove Dates (Always Active)
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setShowSchedulePopover(false)}
+                    className="w-full py-2 rounded-xl bg-white text-black font-bold text-xs hover:bg-white/90 transition-all cursor-pointer shadow-md active:scale-98"
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
           <button
             onClick={() => handleSave('draft')}
             disabled={isSaving}
@@ -204,16 +492,9 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
             Save Draft
           </button>
           <button
-            onClick={() => dispatch(selectNode({ id: 'global' }))}
-            className="h-10 px-4 rounded-full bg-[#1a1a1a] text-white border border-white/5 font-semibold text-sm hover:bg-white/10 transition-colors flex items-center gap-2"
-          >
-            <Settings className="w-4 h-4 text-[#8FE3FF]" />
-            Global Settings
-          </button>
-          <button
             onClick={() => handleSave('active')}
             disabled={isSaving}
-            className="h-10 px-6 rounded-full bg-white text-black font-semibold text-sm hover:bg-white/90 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="h-10 px-6 rounded-full bg-white text-black font-semibold text-sm hover:bg-white/90 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
             Set Live

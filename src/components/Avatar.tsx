@@ -64,10 +64,10 @@ export const OverlappingAvatars = ({ accounts, size = "sm" }: { accounts: any[],
           style={{ zIndex: 10 - idx }}
         >
           <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center bg-[#131313]">
-            {acc.profile_picture_url ? (
+            {acc?.profile_picture_url ? (
               <img 
                 src={acc.profile_picture_url} 
-                alt={acc.username} 
+                alt={acc?.username || 'user'} 
                 className="w-full h-full object-cover"
               />
             ) : (

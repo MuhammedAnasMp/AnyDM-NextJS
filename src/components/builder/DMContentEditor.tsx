@@ -120,6 +120,8 @@ function CustomSelect({
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, [isOpen, setOpenDropdownId]);
 
+
+
   return (
     <div ref={containerRef} className="space-y-1.5 relative w-full">
       {label && (
@@ -188,6 +190,8 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
     return instagramAccounts.find((acc: any) => String(acc.id) === String(activeAccountId));
   }, [activeAccountId, instagramAccounts]);
 
+  const username = activeAccount?.username || appUser?.username || 'instagram_user';
+
   const triggerNode = React.useMemo(() => nodes.find(n => n.type === 'trigger'), [nodes]);
   const selectedMediaIds = React.useMemo(() => {
     if (!triggerNode) return [];
@@ -207,6 +211,55 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
   const [mounted, setMounted] = React.useState(false);
   const [openDropdownId, setOpenDropdownId] = React.useState<string | null>(null);
   const [validationError, setValidationError] = React.useState<string | null>(null);
+  const userPreviewMessages = React.useMemo(() => {
+    const condNode = nodes.find(n => n.type === 'condition');
+    if (!condNode) {
+      return ["Hi! I want to buy."];
+    }
+
+    const matchType = (condNode.data?.match_type || 'contains') as 'contains' | 'equals' | 'any';
+    const keywords = (condNode.data?.keywords || []) as string[];
+    const keywordsEquals = (condNode.data?.keywords_equals || []) as string[];
+    const activeKeywords = matchType === 'equals' ? keywordsEquals : keywords;
+
+    if (matchType === 'any') {
+      return ["Hello! Is this item available?"];
+    }
+
+    if (!activeKeywords || activeKeywords.length === 0) {
+      return ["Hi! I want to buy."];
+    }
+
+    if (matchType === 'equals') {
+      return activeKeywords.slice(0, 2);
+    } else {
+      const msg1 = `I would like to order ${activeKeywords[0]}`;
+      const msg2 = activeKeywords[1] ? `Can I ${activeKeywords[1]} this item?` : null;
+      return msg2 ? [msg1, msg2] : [msg1];
+    }
+  }, [nodes]);
+
+  const [previewMessageIndex, setPreviewMessageIndex] = React.useState<number>(0);
+
+  const isStoryReply = React.useMemo(() => {
+    const rt = node?.ruleType || triggerNode?.ruleType || '';
+    const tid = node?.templateId || triggerNode?.templateId || '';
+    return rt.includes('story') || tid === '23' || node?.name?.toLowerCase().includes('story') || triggerNode?.data?.is_story_reply || triggerNode?.data?.target_mode === 'story';
+  }, [node, triggerNode]);
+
+  const storyImageUrl = React.useMemo(() => {
+    const mediaDetails = triggerNode?.data?.media_ids_details;
+    if (Array.isArray(mediaDetails) && mediaDetails.length > 0) {
+      return mediaDetails[0].thumbnail_url || mediaDetails[0].media_url;
+    }
+    return 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&w=300&h=450';
+  }, [triggerNode]);
+
+  const activeTextMessagePreview = React.useMemo(() => {
+    const validMessages = textMessages.filter(m => m && m.trim().length > 0);
+    if (validMessages.length === 0) return 'Hello!';
+    return validMessages[previewMessageIndex % validMessages.length] || validMessages[0];
+  }, [textMessages, previewMessageIndex]);
 
   React.useEffect(() => {
     setMounted(true);
@@ -562,7 +615,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
     const current = carouselElementsRef.current;
 
     const firstImg = current[0]?.image_url || '';
-    const DEFAULT_PIXABAY = 'https://cdn.pixabay.com/photo/2020/04/02/07/35/cat-4993829_960_720.jpg';
+    const DEFAULT_PIXABAY = 'https://loremflickr.com/400/300/cat';
     const DEFAULT_THUMB = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRN2z0ERwXQUqH29urPuzWueLXKhJAY6SMyAA&s';
 
     // A "custom image" is any URL that is NOT empty and NOT one of our known placeholder defaults
@@ -738,7 +791,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
       elems = [{
         title: 'Welcome Product',
         subtitle: 'Premium quality slider description.',
-        image_url: 'https://cdn.pixabay.com/photo/2020/04/02/07/35/cat-4993829_960_720.jpg',
+        image_url: 'https://loremflickr.com/400/300/cat',
         default_action: { type: 'web_url', url: 'https://shop.example.com' },
         buttons: [{ type: 'web_url', title: '🛒 Buy Now', url: 'https://shop.example.com' }]
       }];
@@ -958,6 +1011,17 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
       dispatch(updateNodeData({ id: nodeId, key: 'attachments', value: attachments }));
       dispatch(updateNodeData({ id: nodeId, key: 'messages', value: [`Sent ${attachments.length} attachment${attachments.length === 1 ? '' : 's'}`] }));
     }
+
+    dispatch(updateNodeData({ id: nodeId, key: 'validationError', value: null }));
+    dispatch(updateNodeData({ id: nodeId, key: 'is_placeholder', value: false }));
+
+    // Clear validation error on all action nodes in flow
+    nodes.filter(n => n.type === 'action').forEach(n => {
+      if (n.data?.validationError) {
+        dispatch(updateNodeData({ id: n.id, key: 'validationError', value: null }));
+      }
+    });
+
     onClose();
   };
 
@@ -1178,7 +1242,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
   const addButton = () => {
     if (buttonTemplateButtons.length >= 3) return;
     const newIdx = buttonTemplateButtons.length;
-    setButtonTemplateButtons([...buttonTemplateButtons, { type: 'web_url', title: 'New Button', url: 'https://' }]);
+    setButtonTemplateButtons([...buttonTemplateButtons, { type: 'web_url', title: 'New Button', url: 'https://anydm.in' }]);
     setActiveButtonTemplateButtonIndex(newIdx);
   };
 
@@ -1202,7 +1266,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
       if (field === 'type') {
         if (val === 'web_url' || val === 'product') {
           copy[idx].payload = undefined;
-          copy[idx].url = 'https://';
+          copy[idx].url = 'https://anydm.in';
         } else {
           copy[idx].url = undefined;
           const uniqueId = Math.random().toString(36).substring(2, 7).toUpperCase();
@@ -1213,6 +1277,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
     }
     setButtonTemplateButtons(copy);
   };
+  const storefrontUrl = typeof window !== "undefined" ? `${window.location.origin}/${activeAccount?.username}` : `/${activeAccount?.username}`;
 
   // Carousel Cards
   const addCarouselCard = () => {
@@ -1221,9 +1286,9 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
     setCarouselElements([...carouselElements, {
       title: 'New Product Item',
       subtitle: 'Premium catalog description.',
-      image_url: 'https://cdn.pixabay.com/photo/2020/04/02/07/35/cat-4993829_960_720.jpg',
-      default_action: { type: 'web_url', url: 'https://' },
-      buttons: [{ type: 'web_url', title: '🛒 Shop Now', url: 'https://' }]
+      image_url: 'https://loremflickr.com/400/300/cat',
+      default_action: { type: 'web_url', url: storefrontUrl },
+      buttons: [{ type: 'web_url', title: '🛒 Shop Now', url: storefrontUrl }]
     }]);
     setTimeout(() => scrollToCard(newIdx), 50);
   };
@@ -1257,7 +1322,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
       if (field === 'type') {
         if (val === 'web_url' || val === 'product') {
           btns[btnIdx].payload = undefined;
-          btns[btnIdx].url = 'https://';
+          btns[btnIdx].url = 'https://anydm.in';
         } else {
           btns[btnIdx].url = undefined;
           const uniqueId = Math.random().toString(36).substring(2, 7).toUpperCase();
@@ -1411,24 +1476,57 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
 
                 {/* Chat Thread Body */}
                 <div ref={chatThreadRef} className="flex-1 overflow-y-auto p-4 flex flex-col space-y-4 scrollbar-hide bg-black">
-                  <div className="flex-1" />
-
-                  {/* Simulated Customer Message Bubble (LEFT) */}
-                  <div className="self-start flex items-end gap-2 max-w-[85%] shrink-0">
-                    <div className="w-5 h-5 rounded-full bg-zinc-800 shrink-0 overflow-hidden mb-0.5 border border-white/5">
-                      <img
-                        src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=50&h=50"
-                        className="w-full h-full object-cover"
-                        alt=""
-                      />
+                  {/* Story Reply Thumbnail Preview (If Story Reply Flow) */}
+                  {isStoryReply && (
+                    <div className="self-start flex flex-col gap-1.5 max-w-[70%] shrink-0 ml-7 mb-1 animate-fadeIn">
+                      <div className="text-[9px] font-semibold text-zinc-400 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600" />
+                        <span>Replied to story</span>
+                      </div>
+                      <div className="w-24 h-36 rounded-xl overflow-hidden border border-white/10 shadow-lg relative bg-zinc-900 group">
+                        <img
+                          src={storyImageUrl || 'https://picsum.photos/seed/elena/100/100'}
+                          alt="Story Preview"
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
+                        <div className="absolute top-1.5 left-1.5 flex items-center gap-1">
+                          <div className="w-3.5 h-3.5 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 p-[1px]">
+                            <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-[6px] font-bold text-white uppercase">
+                              S
+                            </div>
+                          </div>
+                          <span className="text-[8px] font-medium text-white/90 truncate max-w-[60px]">
+                            {username || 'Your Story'}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="bg-[#262626] border border-white/5 rounded-2xl rounded-bl-none px-3.5 py-2 text-[11px] text-zinc-200">
-                      {format === 'quick_reply' && "which side do youhave"}
-                      {format === 'generic_template' && "send me the latest items"}
-                      {format === 'attachment' && "send me the photos and videos"}
-                      {format !== 'quick_reply' && format !== 'generic_template' && format !== 'attachment' && "Hi! I want to buy."}
+                  )}
+                  {/* Customer Left Bubble (EXACT MATCH TO CARD 2) */}
+                  {userPreviewMessages.length > 0 ? (
+                    userPreviewMessages.slice(0, 1).map((userMsg, i) => (
+                      <div key={i} className="self-start flex items-end gap-2 max-w-[85%] shrink-0">
+                        <div className="w-5 h-5 rounded-full bg-zinc-800 shrink-0 overflow-hidden mb-0.5 border border-white/5">
+                          <img
+                            src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=50&h=50"
+                            className="w-full h-full object-cover"
+                            alt=""
+                          />
+                        </div>
+                        <div className="bg-[#262626] border border-white/5 rounded-2xl rounded-bl-none px-3.5 py-2 text-[11px] text-zinc-200 shadow-sm">
+                          {userMsg}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="self-start flex items-end gap-2 max-w-[85%] shrink-0">
+                      <div className="w-5 h-5 rounded-full bg-zinc-800 shrink-0 border border-white/5" />
+                      <div className="bg-[#262626] border border-white/5 rounded-2xl rounded-bl-none px-3.5 py-2 text-[11px] text-zinc-200">
+                        Hi! I want to buy.
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Incoming Auto-response Mock (RIGHT) */}
                   <div className={cn(
@@ -1446,8 +1544,20 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
 
                       {/* FORMAT: Text Message bubble */}
                       {format === 'text' && (
-                        <div className="bg-[#3797F0] border border-[#3797F0] rounded-2xl px-3.5 py-2.5 text-[11px] text-white leading-relaxed text-left break-words shadow-md animate-fadeIn">
-                          {textMessages[0] || 'Hello!'}
+                        <div
+                          onClick={() => {
+                            const validMessages = textMessages.filter(m => m && m.trim().length > 0);
+                            if (validMessages.length > 1) {
+                              setPreviewMessageIndex(prev => (prev + 1) % validMessages.length);
+                            }
+                          }}
+                          className={cn(
+                            "bg-[#3797F0] border border-[#3797F0] rounded-2xl px-3.5 py-2.5 text-[11px] text-white leading-relaxed text-left break-words shadow-md animate-fadeIn transition-all",
+                            textMessages.filter(m => m && m.trim().length > 0).length > 1 && "cursor-pointer hover:brightness-110"
+                          )}
+                          title={textMessages.filter(m => m && m.trim().length > 0).length > 1 ? "Click to cycle random reply messages" : undefined}
+                        >
+                          {activeTextMessagePreview}
                         </div>
                       )}
 
@@ -1891,7 +2001,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                 {/* DM Format */}
                 <CustomSelect
                   labelClassName='font-sora text-[10px] font-bold text-zinc-400 tracking-wider  block mb-1.5'
-                  label="DM Format Layout"
+                  label="Message Type"
                   value={dmFormat}
                   onChange={(val) => {
                     const oldFormat = dmFormat;
@@ -2215,7 +2325,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
 
                             {btn.type === 'web_url' && (
                               <div>
-                                <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block mb-1.5">Web Link URL</label>
+                                <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider block mb-1.5">Web Link URL</label>
                                 <div className="flex items-center bg-[#1c1b1b]/60 border border-white/10 rounded px-3 text-xs">
                                   <LinkIcon className="w-4 h-4 text-zinc-500 mr-2.5 shrink-0" />
                                   <input
@@ -2883,7 +2993,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                   )}
                                   {btn.type === 'web_url' && (
                                     <div>
-                                      <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block mb-1.5">Web Link URL</label>
+                                      <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider block mb-1.5">Web Link URL</label>
                                       <div className="flex items-center bg-[#1c1b1b]/60 border border-white/10 rounded px-3 text-xs">
                                         <LinkIcon className="w-4 h-4 text-zinc-500 mr-2.5 shrink-0" />
                                         <input

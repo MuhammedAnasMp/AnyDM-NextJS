@@ -111,7 +111,7 @@ const RichTemplateInput = ({ value, onChange, placeholder, disabled, maxLength }
 
 // Module-level global cache persisting message histories across client page transitions
 let globalChatCache: Record<string, { messages: any[], nextCursor: string | null, hasMore: boolean }> = {};
-let globalConversationsCache: { conversations: any[], businessInfo: any } | null = null;
+let globalConversationsCache: { accountId?: string; conversations: any[], businessInfo: any } | null = null;
 
 export default function InboxPage() {
   const searchParams = useSearchParams();
@@ -195,14 +195,20 @@ export default function InboxPage() {
 
   const [showChatOnMobile, setShowChatOnMobile] = useState(false);
   const [conversations, setConversations] = useState<any[]>(() => {
-    return globalConversationsCache?.conversations || [];
+    if (globalConversationsCache && activeAccount?.id && globalConversationsCache.accountId === activeAccount.id) {
+      return globalConversationsCache.conversations;
+    }
+    return [];
   });
   const [selectedConversation, setSelectedConversation] = useState<any | null>(null);
   const [loading, setLoading] = useState(() => {
-    return !globalConversationsCache;
+    return !(globalConversationsCache && activeAccount?.id && globalConversationsCache.accountId === activeAccount.id);
   });
   const [businessInfo, setBusinessInfo] = useState<{ username: string; id: string } | null>(() => {
-    return globalConversationsCache?.businessInfo || null;
+    if (globalConversationsCache && activeAccount?.id && globalConversationsCache.accountId === activeAccount.id) {
+      return globalConversationsCache.businessInfo;
+    }
+    return null;
   });
   const [enquiries, setEnquiries] = useState<any[]>([]);
   const [loadingEnquiries, setLoadingEnquiries] = useState(false);
@@ -359,26 +365,27 @@ export default function InboxPage() {
 
 
 
-  const prevAccountUsernameRef = useRef<string | undefined>(undefined);
-
   useEffect(() => {
-    if (!activeAccount?.username) return;
+    if (!activeAccount?.id) return;
 
-    if (prevAccountUsernameRef.current && prevAccountUsernameRef.current !== activeAccount?.username) {
+    const isDifferentAccount = globalConversationsCache && globalConversationsCache.accountId !== activeAccount.id;
+
+    if (isDifferentAccount) {
       setSelectedConversation(null); // Close the current chat when switching accounts
       globalChatCache = {}; // Reset the messages cache for the new account
       globalConversationsCache = null; // Clear the cache
-    }
-    prevAccountUsernameRef.current = activeAccount?.username;
-
-    if (globalConversationsCache) {
+      setConversations([]);
+      setBusinessInfo(null);
+      setLoading(true);
+      fetchConversations();
+    } else if (globalConversationsCache && globalConversationsCache.accountId === activeAccount.id) {
       setConversations(globalConversationsCache.conversations);
       setBusinessInfo(globalConversationsCache.businessInfo);
       setLoading(false);
     } else {
       fetchConversations();
     }
-  }, [activeAccount?.username]);
+  }, [activeAccount?.id]);
 
   // Keep refs of state to prevent WebSocket event handler stale closures
   const selectedConversationRef = useRef(selectedConversation);
@@ -620,6 +627,7 @@ export default function InboxPage() {
 
         setConversations(mapped);
         globalConversationsCache = {
+          accountId: activeAccount?.id,
           conversations: mapped,
           businessInfo: { username: busUsername || "", id: busId || "" }
         };

@@ -49,8 +49,8 @@
         "dm_format": "text",
         "message_mode": "random",
         "messages": [
-          "Hey! 👋 Here are the details:\n💰 Price: $49.99\n🔗 Order: https://shop.example.com",
-          "Hi! 😊 Here's what you asked for:\n💰 $49.99\n🛒 https://shop.example.com"
+          "Hey! 👋 Here are the details:\n💰 Price: 49.99\n🔗 Order: https://shop.example.com",
+          "Hi! 😊 Here's what you asked for:\n💰 49.99\n🛒 https://shop.example.com"
         ],
         "rate_limit_scope": "user",
         "rate_limit_limit": 1,
@@ -196,7 +196,7 @@
         "messages": [
           "Here's the product you asked about 👇"
         ],
-        "generic_template_elements_json": "[{\n  \"title\": \"Summer Tote Bag\",\n  \"subtitle\": \"Premium leather. 3 colors. Limited stock.\",\n  \"image_url\": \"https://cdn.pixabay.com/photo/2020/04/02/07/35/cat-4993829_960_720.jpg\",\n  \"default_action\": { \"type\": \"web_url\", \"url\": \"https://shop.example.com/summer-bag\" },\n  \"buttons\": [\n    { \"type\": \"web_url\",  \"title\": \"🛒 Buy Now\", \"url\": \"https://shop.example.com/summer-bag\" },\n    { \"type\": \"postback\", \"title\": \"💬 Ask a Question\", \"payload\": \"ASK_PRODUCT_QUESTION\" }\n  ]\n}]",
+        "generic_template_elements_json": "[{\n  \"title\": \"Summer Tote Bag\",\n  \"subtitle\": \"Premium leather. 3 colors. Limited stock.\",\n  \"image_url\": \"https://loremflickr.com/400/300/cat\",\n  \"default_action\": { \"type\": \"web_url\", \"url\": \"https://anydm.in\" },\n  \"buttons\": [\n    { \"type\": \"web_url\",  \"title\": \"🛒 Buy Now\", \"url\": \"https://anydm.in\" },\n    { \"type\": \"postback\", \"title\": \"💬 Ask a Question\", \"payload\": \"ASK_PRODUCT_QUESTION\" }\n  ]\n}]",
         "linked_product_id": 42,
         "rate_limit_scope": "user",
         "rate_limit_limit": 1,
@@ -251,7 +251,7 @@
           "Welcome! 👋 How can we help you today?"
         ],
         "button_template_text": "What would you like to do?",
-        "button_template_buttons_json": "[\n  { \"type\": \"web_url\",  \"title\": \"🛍️ Shop Now\",    \"url\": \"https://shop.example.com\" },\n  { \"type\": \"web_url\",  \"title\": \"📦 Track Order\", \"url\": \"https://shop.example.com/track\" },\n  { \"type\": \"postback\", \"title\": \"💬 Contact Us\",  \"payload\": \"CONTACT_SUPPORT\" }\n]",
+        "button_template_buttons_json": "[\n  { \"type\": \"web_url\",  \"title\": \"🛍️ Shop Now\",    \"url\": \"https://anydm.in\" },\n  { \"type\": \"web_url\",  \"title\": \"📦 Track Order\", \"url\": \"https://anydm.in\" },\n  { \"type\": \"postback\", \"title\": \"💬 Contact Us\",  \"payload\": \"CONTACT_SUPPORT\" }\n]",
         "rate_limit_scope": "user",
         "rate_limit_limit": 1,
         "rate_limit_window_seconds": 86400,
@@ -355,7 +355,7 @@
         "messages": [
           "Here's the product from our story 👇"
         ],
-        "generic_template_elements_json": "[{\n  \"title\": \"Limited Edition Sneakers\",\n  \"subtitle\": \"Only 50 pairs left. Ships worldwide.\",\n  \"image_url\": \"https://cdn.shop.example.com/sneakers.jpg\",\n  \"buttons\": [\n    { \"type\": \"web_url\", \"title\": \"🛒 Order Now\", \"url\": \"https://shop.example.com/sneakers\" }\n  ]\n}]",
+        "generic_template_elements_json": "[{\n  \"title\": \"Limited Edition Sneakers\",\n  \"subtitle\": \"Only 50 pairs left. Ships worldwide.\",\n  \"image_url\": \"https://loremflickr.com/400/300/cat\",\n  \"buttons\": [\n    { \"type\": \"web_url\", \"title\": \"🛒 Order Now\", \"url\": \"https://anydm.in\" }\n  ]\n}]",
         "rate_limit_scope": "user",
         "rate_limit_limit": 1,
         "rate_limit_window_seconds": 86400,
@@ -450,7 +450,7 @@
         "messages": [
           "Here's our latest collection 🛍️"
         ],
-        "generic_template_elements_json": "[\n  {\n    \"title\": \"Summer Collection 2026\",\n    \"subtitle\": \"Dresses, tops, and accessories\",\n    \"image_url\": \"https://cdn.shop.example.com/summer.jpg\",\n    \"buttons\": [{ \"type\": \"web_url\", \"title\": \"View Collection\", \"url\": \"https://shop.example.com/summer\" }]\n  },\n  {\n    \"title\": \"Winter Essentials\",\n    \"subtitle\": \"Coats, boots, and scarves\",\n    \"image_url\": \"https://cdn.shop.example.com/winter.jpg\",\n    \"buttons\": [{ \"type\": \"web_url\", \"title\": \"View Collection\", \"url\": \"https://shop.example.com/winter\" }]\n  },\n  {\n    \"title\": \"Accessories\",\n    \"subtitle\": \"Bags, hats, and jewelry\",\n    \"image_url\": \"https://cdn.shop.example.com/accessories.jpg\",\n    \"buttons\": [{ \"type\": \"web_url\", \"title\": \"View Collection\", \"url\": \"https://shop.example.com/accessories\" }]\n  }\n]",
+        "generic_template_elements_json": "[\n  {\n    \"title\": \"Summer Collection 2026\",\n    \"subtitle\": \"Dresses, tops, and accessories\",\n    \"image_url\": \"https://loremflickr.com/400/300/cat\",\n    \"buttons\": [{ \"type\": \"web_url\", \"title\": \"View Collection\", \"url\": \"https://anydm.in\" }]\n  },\n  {\n    \"title\": \"Winter Essentials\",\n    \"subtitle\": \"Coats, boots, and scarves\",\n    \"image_url\": \"https://loremflickr.com/400/300/cat\",\n    \"buttons\": [{ \"type\": \"web_url\", \"title\": \"View Collection\", \"url\": \"https://anydm.in\" }]\n  },\n  {\n    \"title\": \"Accessories\",\n    \"subtitle\": \"Bags, hats, and jewelry\",\n    \"image_url\": \"https://loremflickr.com/400/300/cat\",\n    \"buttons\": [{ \"type\": \"web_url\", \"title\": \"View Collection\", \"url\": \"https://anydm.in\" }]\n  }\n]",
         "rate_limit_scope": "user",
         "rate_limit_limit": 1,
         "rate_limit_window_seconds": 43200,
@@ -1166,7 +1166,7 @@
           "⚡ FLASH SALE — 2 Hours Only!"
         ],
         "button_template_text": "Use code FLASH40 for 40% off — expires 4PM!",
-        "button_template_buttons_json": "[\n  { \"type\": \"web_url\", \"title\": \"🛍️ Shop Now\", \"url\": \"https://shop.example.com/flash-sale\" }\n]",
+        "button_template_buttons_json": "[\n  { \"type\": \"web_url\", \"title\": \"🛍️ Shop Now\", \"url\": \"https://anydm.in\" }\n]",
         "rate_limit_scope": "user",
         "rate_limit_limit": 1,
         "rate_limit_window_seconds": 7200,
@@ -1174,10 +1174,10 @@
         "retry_delay_seconds": 30,
         "fallback_action": "send_dm",
         "fallback_messages": [
-          "⚡ Use FLASH40 for 40% off at https://shop.example.com (valid until 4PM)"
+          "⚡ Use FLASH40 for 40% off at https://anydm.in (valid until 4PM)"
         ],
         "url_allowlist": [
-          "shop.example.com"
+          "anydm.in"
         ]
       }
     ]
@@ -1239,7 +1239,7 @@
         "messages": [
           "Here are the shoes from our latest reel 👟"
         ],
-        "generic_template_elements_json": "[{\n  \"title\": \"Air Runner Pro — White/Black\",\n  \"subtitle\": \"Sizes 36–46. Free shipping on orders over $100.\",\n  \"image_url\": \"https://cdn.pixabay.com/photo/2020/04/02/07/35/cat-4993829_960_720.jpg\",\n  \"buttons\": [\n    { \"type\": \"web_url\",  \"title\": \"🛒 Buy Now — $89\", \"url\": \"https://shop.example.com/air-runner-pro\" },\n    { \"type\": \"postback\", \"title\": \"📏 Check My Size\",  \"payload\": \"CHECK_SIZE_SHOES\" }\n  ]\n}]",
+        "generic_template_elements_json": "[{\n  \"title\": \"Air Runner Pro — White/Black\",\n  \"subtitle\": \"Sizes 36–46. Free shipping on orders over 100.\",\n  \"image_url\": \"https://loremflickr.com/400/300/cat\",\n  \"buttons\": [\n    { \"type\": \"web_url\",  \"title\": \"🛒 Buy Now — 89\", \"url\": \"https://anydm.in\" },\n    { \"type\": \"postback\", \"title\": \"📏 Check My Size\",  \"payload\": \"CHECK_SIZE_SHOES\" }\n  ]\n}]",
         "linked_product_id": 99,
         "rate_limit_scope": "user",
         "rate_limit_limit": 1,
@@ -1248,7 +1248,7 @@
         "retry_delay_seconds": 30,
         "fallback_action": "send_dm",
         "fallback_messages": [
-          "Air Runner Pro — $89. Order here: https://shop.example.com/air-runner-pro 👟"
+          "Air Runner Pro — 89. Order here: https://shop.example.com/air-runner-pro 👟"
         ],
         "url_allowlist": [
           "shop.example.com",
@@ -1321,7 +1321,7 @@
       "rewards": [
         {
           "reward_type": "physical",
-          "value": "Shopping Voucher $200",
+          "value": "Shopping Voucher 200",
           "quantity": 1
         }
       ]
@@ -1380,6 +1380,34 @@
           "Hello! Customize this reply flow for your Persistent Menu button click."
         ],
         "parent_event": "TALK_TO_SALES"
+      }
+    ]
+  },
+  "23": {
+    "target": {
+      "mode": "selected",
+      "media_type": "reel_or_post",
+      "media_ids": [],
+      "campaign_id": null,
+      "priority": 10,
+      "stop_on_match": true,
+      "status": "active",
+      "deduplication": false
+    },
+    "condition": {
+      "match_type": "any",
+      "keywords": [],
+      "follower_gate": false,
+      "follower_gate_messages": []
+    },
+    "actions": [
+      {
+        "action_type": "send_dm",
+        "dm_format": "text",
+        "message_mode": "fixed",
+        "messages": [
+          "Hey! Thanks for sharing our post/reel! 📩 Here is the link you requested:\n🔗 https://example.com"
+        ]
       }
     ]
   }

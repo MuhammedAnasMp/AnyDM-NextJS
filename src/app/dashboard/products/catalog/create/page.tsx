@@ -807,17 +807,37 @@ export default function ProductCreatePage() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-xs text-[#c4c7c8] block mb-1.5 font-medium">Currency</label>
+                    <select
+                      value={currency}
+                      onChange={(e) => setCurrency(e.target.value)}
+                      className="w-full bg-[#1c1b1b] border border-[#444748]/60 rounded-[4px] px-3 py-2 text-sm focus:border-white outline-none transition-colors text-white cursor-pointer"
+                    >
+                      <option value="INR">INR (₹)</option>
+                      <option value="USD">USD ($)</option>
+                      <option value="KWD">KWD (KWD)</option>
+                      <option value="EUR">EUR (€)</option>
+                      <option value="GBP">GBP (£)</option>
+                      <option value="AED">AED (AED)</option>
+                      <option value="SAR">SAR (SAR)</option>
+                      <option value="BHD">BHD (BHD)</option>
+                      <option value="OMR">OMR (OMR)</option>
+                      <option value="QAR">QAR (QAR)</option>
+                    </select>
+                  </div>
+
                   <div>
                     <label className="text-xs text-[#c4c7c8] block mb-1.5 font-medium">Price</label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8e9192] text-sm">₹</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8e9192] text-xs font-semibold">{currency}</span>
                       <input
                         value={price}
                         onChange={(e) => setPrice(e.target.value)}
                         type="text"
                         placeholder="0.00"
-                        className="w-full bg-[#1c1b1b] border border-[#444748]/60 rounded-[4px] pl-7 pr-3 py-2 text-sm focus:border-white outline-none transition-colors text-white placeholder:text-[#8e9192]"
+                        className="w-full bg-[#1c1b1b] border border-[#444748]/60 rounded-[4px] pl-12 pr-3 py-2 text-sm focus:border-white outline-none transition-colors text-white placeholder:text-[#8e9192]"
                       />
                     </div>
                   </div>
@@ -825,13 +845,13 @@ export default function ProductCreatePage() {
                   <div>
                     <label className="text-xs text-[#c4c7c8] block mb-1.5 font-medium">Compare at price (original)</label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8e9192] text-sm">₹</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8e9192] text-xs font-semibold">{currency}</span>
                       <input
                         value={originalPrice}
                         onChange={(e) => setOriginalPrice(e.target.value)}
                         type="text"
                         placeholder="0.00"
-                        className="w-full bg-[#1c1b1b] border border-[#444748]/60 rounded-[4px] pl-7 pr-3 py-2 text-sm focus:border-white outline-none transition-colors text-white placeholder:text-[#8e9192]"
+                        className="w-full bg-[#1c1b1b] border border-[#444748]/60 rounded-[4px] pl-12 pr-3 py-2 text-sm focus:border-white outline-none transition-colors text-white placeholder:text-[#8e9192]"
                       />
                     </div>
                   </div>

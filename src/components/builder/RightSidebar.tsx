@@ -121,18 +121,16 @@ export function RightSidebar() {
     }
   }, [selectedNode?.id, selectedNode?.data.target_mode, selectedNode?.data.mode, selectedNode?.data.media_ids, dispatch]);
 
-  if (!selectedNodeId) return null;
-  const isGlobal = selectedNodeId === 'global';
-  if (!selectedNode && !isGlobal) return null;
+  if (!selectedNodeId || !selectedNode) return null;
 
-  if (selectedNode && (selectedNode.type === 'action' || selectedNode.type === 'condition' || (selectedNode.type === 'trigger' && !selectedNode.data?.is_icebreaker_trigger && !selectedNode.data?.is_menu_trigger))) {
+  if (selectedNode.type === 'action' || selectedNode.type === 'condition' || (selectedNode.type === 'trigger' && !selectedNode.data?.is_icebreaker_trigger && !selectedNode.data?.is_menu_trigger)) {
     return null;
   }
 
-  const ruleType = selectedNode?.ruleType || triggerNode?.ruleType || 'comment_automation';
-  const templateId = selectedNode?.templateId || triggerNode?.templateId;
+  const ruleType = selectedNode.ruleType || triggerNode?.ruleType || 'comment_automation';
+  const templateId = selectedNode.templateId || triggerNode?.templateId;
 
-  let definitions = !isGlobal && selectedNode ? (AUTOMATION_MANIFESTS[ruleType]?.nodeDefinitions[selectedNode.type] || []) : [];
+  let definitions = AUTOMATION_MANIFESTS[ruleType]?.nodeDefinitions[selectedNode.type] || [];
 
   if (selectedNode && templateId && TEMPLATE_OVERRIDES[templateId]?.hiddenFields?.[selectedNode.type]) {
     const hiddenList = TEMPLATE_OVERRIDES[templateId].hiddenFields![selectedNode.type].filter(name =>
@@ -148,7 +146,9 @@ export function RightSidebar() {
     const actionType = selectedNode.data?.action_type || 'reply_comment';
     const isEcommerceTemplate = !!(selectedNode.ruleType && selectedNode.ruleType.includes('product_inquiry'));
 
-    if (actionType === 'send_dm') {
+    if (actionType === 'reply_comment') {
+      definitions = definitions.filter(def => def.name !== 'dm_format');
+    } else if (actionType === 'send_dm') {
       if (isEcommerceTemplate) {
         definitions = [];
       } else {
@@ -222,100 +222,20 @@ export function RightSidebar() {
       >
         <div className="flex items-center gap-2">
           {selectedNodeRect && <GripHorizontal className="w-4 h-4 text-[#8FE3FF]/70" />}
-          <h3 className={cn("text-xs font-bold uppercase tracking-wider", (selectedNodeRect || isGlobal) ? "text-[#8FE3FF]" : "text-white")}>
-            {isGlobal ? 'Global Settings' : `${selectedNode?.type} Settings`}
+          <h3 className="text-xs font-bold uppercase tracking-wider text-[#8FE3FF]">
+            {`${selectedNode?.type} Settings`}
           </h3>
         </div>
         <button
           onClick={() => dispatch(selectNode(null))}
           onPointerDown={(e) => e.stopPropagation()}
-          className="p-1 rounded-md hover:bg-white/10 text-on-surface-variant transition-colors"
+          className="p-1 rounded-md hover:bg-white/10 text-on-surface-variant transition-colors cursor-pointer"
         >
           <X className="h-4 w-4" />
         </button>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
-        {isGlobal && (
-          <div className="space-y-6 animate-fadeIn">
-            <Input
-              label="Campaign Name"
-              value={flow.name || ''}
-              onChange={(e) => dispatch(updateFlowName(e.target.value))}
-              placeholder="e.g. Welcome Message Flow"
-              disabled={isProfileFlow}
-            />
-            {isProfileFlow ? (
-              <div className="bg-[#8FE3FF]/5 border border-[#8FE3FF]/20 rounded-xl p-4 space-y-3">
-                <div className="flex items-center gap-2 text-[#8FE3FF]">
-                  <Settings className="w-4 h-4 shrink-0" />
-                  <span className="text-xs font-bold uppercase tracking-wider">Welcome Experience Flow</span>
-                </div>
-                <p className="text-xs text-zinc-400 leading-relaxed">
-                  This flow is connected to your active Instagram Welcome configuration. Trigger properties, schedules, and status are managed directly from the Welcome Experience settings page.
-                </p>
-                <div className="text-[10px] text-zinc-505 font-mono pt-1">
-                  Flow Name: {flow.name}
-                </div>
-              </div>
-            ) : triggerNode ? (
-              <>
-                {/* <Input
-                  label="Campaign ID (Unique Slug)"
-                  value={triggerNode.data.campaign_id || ''}
-                  onChange={(e) => handleGlobalTriggerUpdate('campaign_id', e.target.value.toLowerCase().replace(/[^a-z0-9-_]+/g, '-'))}
-                  placeholder="e.g. summer-sale-2026"
-                /> */}
-
-                {/* <Select
-                  label="Campaign Status"
-                  value={triggerNode.data.status || 'draft'}
-                  onChange={(e) => handleGlobalTriggerUpdate('status', e.target.value)}
-                >
-                  <option value="draft">Draft</option>
-                  <option value="active">Active</option>
-                  <option value="paused">Paused</option>
-                  <option value="completed">Completed</option>
-                  <option value="archived">Archived</option>
-                </Select> */}
-
-                <div className="border-t border-white/5 pt-4 space-y-4">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-white">Campaign Schedule</h4>
-                  <Input
-                    type="datetime-local"
-                    label="Start Date & Time"
-                    value={triggerNode.data.start_at ? triggerNode.data.start_at.substring(0, 16) : ''}
-                    onChange={(e) => handleGlobalTriggerUpdate('start_at', e.target.value ? new Date(e.target.value).toISOString() : null)}
-                  />
-                  <Input
-                    type="datetime-local"
-                    label="End Date & Time"
-                    value={triggerNode.data.end_at ? triggerNode.data.end_at.substring(0, 16) : ''}
-                    onChange={(e) => handleGlobalTriggerUpdate('end_at', e.target.value ? new Date(e.target.value).toISOString() : null)}
-                  />
-                  {/* <Select
-                    label="Timezone"
-                    value={triggerNode.data.timezone || 'UTC'}
-                    onChange={(e) => handleGlobalTriggerUpdate('timezone', e.target.value)}
-                  >
-                    <option value="UTC">UTC (GMT+0)</option>
-                    <option value="Africa/Cairo">Africa/Cairo (GMT+2)</option>
-                    <option value="Europe/London">Europe/London (GMT+1)</option>
-                    <option value="Europe/Paris">Europe/Paris (GMT+2)</option>
-                    <option value="US/Eastern">US/Eastern (EST/EDT)</option>
-                    <option value="US/Pacific">US/Pacific (PST/PDT)</option>
-                    <option value="Asia/Kolkata">Asia/Kolkata (IST)</option>
-                    <option value="Asia/Singapore">Asia/Singapore (SGT)</option>
-                    <option value="Asia/Dubai">Asia/Dubai (GST)</option>
-                  </Select> */}
-                </div>
-
-              </>
-            ) : (
-              <p className="text-xs text-on-surface-variant italic">Add a Trigger node to set campaign details and rate limit options.</p>
-            )}
-          </div>
-        )}
         {isSelectedProfileTrigger && (
           <div className="bg-black/35 border border-white/5 rounded-xl p-4 space-y-4 animate-fadeIn">
             <div className="flex items-center gap-2 text-[#8FE3FF]">
@@ -385,7 +305,7 @@ export function RightSidebar() {
 
           <>No configuration needed</>
         )}
-        {!isGlobal && !isSelectedProfileTrigger && selectedNode?.data?.parent_event !== 'TRACK_ORDER' && definitions.map((def) => {
+        {!isSelectedProfileTrigger && selectedNode?.data?.parent_event !== 'TRACK_ORDER' && definitions.map((def) => {
           // Check dependencies
           if (def.dependsOn) {
             const depVal = selectedNode?.data[def.dependsOn.field];

@@ -200,7 +200,7 @@ export default function InstagramImportModal({ isOpen, onClose, onSelectImport }
                     </div>
                   </div>
                 ) : media.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 bg-white/5 rounded-xl border border-white/5">
+                  <div className="flex flex-col items-center justify-center py-16 bg-white/5 rounded border border-white/5">
                     <AlertCircle className="w-12 h-12 text-gray-500 mb-3 opacity-60" />
                     <h4 className="font-bold text-sm text-white">No media posts found</h4>
                     <p className="text-xs text-gray-400 text-center px-6 mt-1">We couldn't retrieve any media posts from your Instagram account.</p>

@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store';
 import { updateNodeData } from '@/store/slices/flowSlice';
-import { X, Plus, Trash2, Check, Info, Filter, UserCheck, ChevronLeft } from 'lucide-react';
+import { X, Plus, Trash2, Check, Info, Filter, UserCheck, ChevronLeft, Heart, MessageCircle, Send, Bookmark, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ConditionContentEditorProps {
@@ -18,6 +18,7 @@ export default function ConditionContentEditor({ nodeId, onClose }: ConditionCon
 
   // Get node and auth details
   const node = useSelector((state: RootState) => state.flow.nodes.find(n => n.id === nodeId));
+  const triggerNode = useSelector((state: RootState) => state.flow.nodes.find(n => n.type === 'trigger'));
   const { user: appUser, instagramAccounts } = useSelector((state: RootState) => state.auth);
   const activeAccountId = appUser?.active_instagram_account_id;
   const activeAccount = React.useMemo(() => {
@@ -27,6 +28,25 @@ export default function ConditionContentEditor({ nodeId, onClose }: ConditionCon
 
   const profilePic = activeAccount?.profile_picture_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop';
   const username = activeAccount?.username || appUser?.username || 'instagram_user';
+
+  const isStoryReply = React.useMemo(() => {
+    const rt = node?.ruleType || triggerNode?.ruleType || '';
+    const tid = node?.templateId || triggerNode?.templateId || '';
+    return rt.includes('story') || tid === '23' || node?.name?.toLowerCase().includes('story') || triggerNode?.data?.is_story_reply || triggerNode?.data?.target_mode === 'story';
+  }, [node, triggerNode]);
+
+  const isCommentTrigger = React.useMemo(() => {
+    const rt = node?.ruleType || triggerNode?.ruleType || '';
+    return rt.includes('comment') || triggerNode?.data?.target_mode === 'comment' || (!rt.includes('dm') && !rt.includes('story') && !rt.includes('share'));
+  }, [node, triggerNode]);
+
+  const storyImageUrl = React.useMemo(() => {
+    const mediaDetails = triggerNode?.data?.media_ids_details;
+    if (Array.isArray(mediaDetails) && mediaDetails.length > 0) {
+      return mediaDetails[0].thumbnail_url || mediaDetails[0].media_url;
+    }
+    return 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&w=300&h=450';
+  }, [triggerNode]);
 
   // --- Local Form States ---
   const [matchType, setMatchType] = React.useState<'contains' | 'equals' | 'any'>('contains');
@@ -57,6 +77,21 @@ export default function ConditionContentEditor({ nodeId, onClose }: ConditionCon
   // --- Keyword Array Handlers ---
   const activeKeywords = matchType === 'equals' ? keywordsEquals : keywords;
   const setActiveKeywords = matchType === 'equals' ? setKeywordsEquals : setKeywords;
+
+  const customerMessageText = React.useMemo(() => {
+    if (matchType === 'any') {
+      return 'How much is this? Can I get more info? 🙌';
+    }
+
+    const currentKw = activeKeywords.length > 0 ? activeKeywords[0] : (node?.data?.keywords?.[0] || triggerNode?.data?.keywords?.[0] || 'price');
+
+    if (matchType === 'equals') {
+      return currentKw;
+    }
+
+    // Contains Any: sentence with user given keyword
+    return `Hey! Can you send me the ${currentKw} details?`;
+  }, [matchType, activeKeywords, node, triggerNode]);
 
   const handleAddKeyword = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' || e.key === ',') {
@@ -115,6 +150,7 @@ export default function ConditionContentEditor({ nodeId, onClose }: ConditionCon
     dispatch(updateNodeData({ id: nodeId, key: 'keywords_equals', value: keywordsEquals }));
     dispatch(updateNodeData({ id: nodeId, key: 'follower_gate', value: followerGate }));
     dispatch(updateNodeData({ id: nodeId, key: 'follower_gate_messages', value: followerGateMessages.filter(m => m.trim() !== '') }));
+    dispatch(updateNodeData({ id: nodeId, key: 'validationError', value: null }));
     onClose();
   };
 
@@ -193,106 +229,240 @@ export default function ConditionContentEditor({ nodeId, onClose }: ConditionCon
 
         {/* Modal Body: Split View */}
         <div className="flex-1 min-h-0 flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-white/10 overflow-hidden">
-
           {/* LEFT: Instagram Live Phone Device Frame Mockup Preview */}
-          <div className="lg:w-[420px] bg-black/25 p-6 flex flex-col items-center justify-between border-b lg:border-b-0 lg:border-r border-white/10 shrink-0 min-h-0 custom-scrollbar">
+          <div className="lg:w-[410px] bg-[#09090b] p-6 flex flex-col items-center justify-center shrink-0 overflow-y-auto border-b lg:border-b-0 lg:border-r border-zinc-800">
 
-            {/* Realistic iPhone Device Frame */}
-            <div className="w-[285px] h-[570px] rounded-[48px] border-[10px] border-[#1c1c1f] bg-black shadow-[0_25px_50px_-12px_rgba(0,0,0,0.9)] relative flex flex-col overflow-hidden select-none ring-1 ring-zinc-700/40 shrink-0 my-auto">
+            {/* Mobile Phone Mockup Body */}
+            <div className="w-[300px] h-[580px] rounded-[42px] border-[10px] border-[#222] bg-black shadow-2xl relative flex flex-col overflow-hidden select-none outline outline-1 outline-zinc-800 shrink-0">
 
-              {/* Dynamic Island Notch */}
-              <div className="absolute top-3 left-1/2 -translate-x-1/2 w-22 h-5 bg-black rounded-full z-30 pointer-events-none flex items-center justify-end px-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-[#0a0a0c] border border-zinc-800" />
-              </div>
+              {/* Speaker / Dynamic Island */}
+              <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-20 h-4 bg-black rounded-full z-40 pointer-events-none" />
 
-              {/* Screen Content Wrapper */}
-              <div className="h-full w-full flex flex-col pt-0 relative z-10 bg-black rounded-[38px] overflow-hidden">
-                {/* Status Bar */}
-                <div className="absolute top-0 left-0 right-0 h-7 px-6 flex items-center justify-between text-[10px] font-semibold text-zinc-300 z-20 pointer-events-none bg-transparent">
+              {/* Phone Screen Container */}
+              <div className="h-full w-full flex flex-col bg-black text-white relative">
+
+                {/* iOS Top Status Bar */}
+                <div className="h-10 px-6 pt-2 flex items-center justify-between text-[11px] font-semibold text-white z-30 pointer-events-none bg-black">
                   <span>9:41</span>
-                  <div className="flex items-center gap-1.5">
-                    <svg className="w-2.5 h-2.5 fill-current" viewBox="0 0 24 24"><path d="M2 22h20V2z" /></svg>
-                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 20h.01M8.5 16.5a5 5 0 0 1 7 0M5.5 13.5a9 9 0 0 1 13 0M2.5 10.5a13 13 0 0 1 19 0" /></svg>
-                    <div className="w-4 h-2 border border-zinc-300 rounded-2xs p-0.5 flex items-center">
-                      <div className="h-full w-3/4 bg-zinc-200 rounded-[1px]" />
-                    </div>
+                  <div className="flex items-center gap-1.5 opacity-90">
+                    <span className="text-[10px]">📶</span>
+                    <span className="text-[10px]">⚡</span>
                   </div>
                 </div>
 
-                {/* Instagram Header */}
-                <div className="pt-8 pb-3 border-b border-zinc-800/60 px-4 flex items-center rounded-full gap-3 bg-zinc-950/80 backdrop-blur-md shrink-0">
-                  <ChevronLeft className="w-5 h-5 text-white shrink-0" />
-                  <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700/50 overflow-hidden shrink-0">
-                    <img
-                      src={profilePic || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=80&h=80"}
-                      className="w-full h-full object-cover"
-                      alt="Avatar"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0 text-left">
-                    <div className="flex items-center gap-1">
-                      <span className="text-[11px] font-bold text-white truncate leading-tight">
-                        {username || 'customer_chat'}
-                      </span>
-                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                    </div>
-                    <span className="text-[8px] text-zinc-400 font-medium leading-none block mt-0.5">Active now</span>
-                  </div>
-                </div>
+                {isCommentTrigger ? (
+                  /* INSTAGRAM COMMENTS MOCKUP FOR COMMENT AUTOMATION */
+                  <div className="flex-1 flex flex-col justify-between bg-black text-xs font-sans overflow-hidden">
 
-                {/* Chat Thread Body */}
-                <div className="flex-1 overflow-y-auto p-3.5 flex flex-col space-y-3.5 scrollbar-hide bg-black">
-                  <div className="flex-1" />
+                    {/* Scrollable Feed Container */}
+                    <div className="flex-1 overflow-y-auto custom-scrollbar bg-black text-left">
 
-                  {/* Customer Left Bubble */}
-                  {userPreviewMessages.length > 0 ? (
-                    userPreviewMessages.map((userMsg, i) => (
-                      <div key={i} className="self-start flex items-end gap-2 max-w-[85%] shrink-0">
-                        <div className="w-5 h-5 rounded-full bg-zinc-800 shrink-0 overflow-hidden mb-0.5 border border-zinc-700/40">
+                      {/* Post Header */}
+                      <div className="flex items-center justify-between px-3 py-2 border-b border-zinc-800 shrink-0">
+                        <div className="flex items-center gap-2">
                           <img
-                            src={profilePic || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=50&h=50"}
-                            className="w-full h-full object-cover"
-                            alt=""
+                            src={profilePic || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop"}
+                            className="w-7 h-7 rounded-full object-cover border border-zinc-700"
+                            alt={username}
                           />
+                          <div>
+                            <div className="flex items-center gap-1">
+                              <span className="font-semibold text-[11px] text-white">{username || 'mybusiness'}</span>
+                              <span className="w-2.5 h-2.5 rounded-full bg-sky-500 text-black flex items-center justify-center text-[6px] font-bold">✓</span>
+                            </div>
+                            <p className="text-[8px] text-zinc-400">Original post</p>
+                          </div>
                         </div>
-                        <div className="bg-[#26262a] border border-zinc-800/60 rounded-2xl rounded-bl-xs px-3.5 py-2 text-[11px] text-zinc-200">
-                          {userMsg}
+                        <MoreHorizontal className="w-4 h-4 text-zinc-400" />
+                      </div>
+
+                      {/* Post Image */}
+                      <div className="w-full h-32 bg-black relative overflow-hidden shrink-0 border-b border-zinc-900">
+                        <img
+                          src={storyImageUrl}
+                          alt="Post media"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+
+                      {/* Action Icons */}
+                      <div className="flex justify-between px-3 py-2 text-zinc-200">
+                        <div className="flex items-center gap-3">
+                          <Heart className="w-4 h-4 text-white hover:text-rose-500 cursor-pointer" />
+                          <MessageCircle className="w-4 h-4 text-white cursor-pointer" />
+                          <Send className="w-4 h-4 text-white cursor-pointer" />
+                        </div>
+                        <Bookmark className="w-4 h-4 text-white cursor-pointer" />
+                      </div>
+
+                      {/* Likes Count */}
+                      <div className="px-3 text-[10px] font-medium text-zinc-300">
+                        Liked by <span className="font-bold text-white">alex_design</span> and <span className="font-bold text-white">2,384 others</span>
+                      </div>
+
+                      {/* Post Caption */}
+                      <div className="px-3 pt-1 text-[10px] text-zinc-300 leading-tight">
+                        <span className="font-bold text-white mr-1.5">{username || 'mybusiness'}</span>
+                        <span>Beautiful new collection launch! Drop your questions below 👇</span>
+                      </div>
+
+                      <div className="px-3 pt-2 text-[9px] text-zinc-500 font-medium uppercase tracking-wider">
+                        Comments
+                      </div>
+
+                      {/* Comments Feed Section (Customer Comment ONLY for Card 2) */}
+                      <div className="px-3 py-2 space-y-3">
+                        <div className="flex gap-2.5 items-start">
+                          <img
+                            src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop"
+                            alt="Customer"
+                            className="w-7 h-7 rounded-full object-cover shrink-0 border border-zinc-800"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[11px] leading-snug text-zinc-200">
+                              <span className="font-semibold text-white mr-1.5">alex_design</span>
+                              <span>{customerMessageText}</span>
+                            </p>
+                            <div className="flex gap-3 mt-1 text-[9px] text-zinc-500 font-medium">
+                              <span>2m</span>
+                              <span>34 likes</span>
+                              <button className="hover:text-zinc-300">Reply</button>
+                              {followerGate && <span className="text-rose-400 font-semibold ml-auto">Follower Gate Active</span>}
+                            </div>
+                          </div>
+                          <Heart className="w-3.5 h-3.5 text-zinc-500 hover:text-rose-500 cursor-pointer shrink-0 mt-0.5" />
                         </div>
                       </div>
-                    ))
-                  ) : (
-                    <div className="self-start flex items-end gap-2 max-w-[85%] shrink-0 opacity-60">
-                      <div className="w-5 h-5 rounded-full bg-zinc-800 shrink-0 border border-zinc-700/40" />
-                      <div className="bg-[#26262a] border border-zinc-800/60 rounded-2xl rounded-bl-xs px-3.5 py-2 text-[11px] text-zinc-400 italic">
-                        {matchType === 'any' ? "Hi there!" : activeKeywords[0] || "Type keyword..."}
+
+                    </div>
+
+                    {/* Add Comment Input Bar */}
+                    <div className="border-t border-zinc-800 px-3 py-2 bg-black shrink-0">
+                      <div className="flex items-center gap-2.5">
+                        <img
+                          src={profilePic || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop"}
+                          alt={username}
+                          className="w-7 h-7 rounded-full object-cover shrink-0"
+                        />
+                        <span className="flex-1 text-xs text-zinc-500 truncate text-left">
+                          Add a comment...
+                        </span>
+                        <button className="text-blue-500 font-semibold text-xs hover:text-blue-400 cursor-pointer">
+                          Post
+                        </button>
                       </div>
                     </div>
-                  )}
 
-                  {/* Bot Reply Preview or Gate Response (Right) */}
-                  {followerGate ? (
-                    <div className="self-end items-end max-w-[85%] flex flex-col shrink-0 gap-1">
-                      <div className="bg-[#18181b] border border-zinc-800 text-zinc-200 px-3.5 py-2.5 rounded-2xl rounded-br-xs text-[11px] leading-relaxed shadow-md text-left">
-                        {displayGateReply}
-                      </div>
-                      <span className="text-[8px] text-rose-400 font-semibold pr-1">Follower Gate Active</span>
-                    </div>
-                  ) : (
-                    <div className="self-end items-end max-w-[85%] flex flex-col shrink-0 gap-1">
-                      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 border border-blue-400/20 text-white px-3.5 py-2 rounded-2xl rounded-br-xs text-[10px] leading-snug font-medium shadow-md">
-                        <span>Triggers flow sequence</span>
-                      </div>
-                    </div>
-                  )}
-
-                </div>
-
-                {/* Footer Input Bar */}
-                <div className="p-3 border-t border-zinc-800/60 bg-zinc-950/90 shrink-0">
-                  <div className="bg-zinc-900 rounded-full px-3 py-1.5 flex items-center justify-between border border-zinc-800">
-                    <span className="text-[10px] text-zinc-500 font-medium">Filter node thread...</span>
+                    {/* Home Indicator */}
+                    <div className="w-20 h-1 bg-zinc-700 rounded-full mx-auto my-1 shrink-0" />
                   </div>
-                </div>
+                ) : (
+                  /* EXISTING DM CHAT MOCKUP FOR DIRECT DM */
+                  <>
+                    {/* Instagram Header */}
+                    <div className="pt-8 pb-3 border-b border-zinc-800/60 px-4 flex items-center rounded-full gap-3 bg-zinc-950/80 backdrop-blur-md shrink-0">
+                      <ChevronLeft className="w-5 h-5 text-white shrink-0" />
+                      <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700/50 overflow-hidden shrink-0">
+                        <img
+                          src={profilePic || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=80&h=80"}
+                          className="w-full h-full object-cover"
+                          alt="Avatar"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0 text-left">
+                        <div className="flex items-center gap-1">
+                          <span className="text-[11px] font-bold text-white truncate leading-tight">
+                            {username || 'customer_chat'}
+                          </span>
+                          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        </div>
+                        <span className="text-[8px] text-zinc-400 font-medium leading-none block mt-0.5">Active now</span>
+                      </div>
+                    </div>
+
+                    {/* Chat Thread Body */}
+                    <div className="flex-1 overflow-y-auto p-3.5 flex flex-col space-y-3.5 scrollbar-hide bg-black">
+                      <div className="flex-1" />
+
+                      {/* Story Reply Thumbnail Preview (If Story Reply Flow) */}
+                      {isStoryReply && (
+                        <div className="self-start flex flex-col gap-1.5 max-w-[70%] shrink-0 ml-7 mb-1 animate-fadeIn">
+                          <div className="text-[9px] font-semibold text-zinc-400 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600" />
+                            <span>Replied to story</span>
+                          </div>
+                          <div className="w-24 h-36 rounded-xl overflow-hidden border border-white/10 shadow-lg relative bg-zinc-900 group">
+                            <img
+                              src={storyImageUrl}
+                              alt="Story Preview"
+                              className="w-full h-full object-cover"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
+                            <div className="absolute top-1.5 left-1.5 flex items-center gap-1">
+                              <div className="w-3.5 h-3.5 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 p-[1px]">
+                                <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-[6px] font-bold text-white uppercase">
+                                  S
+                                </div>
+                              </div>
+                              <span className="text-[8px] font-medium text-white/90 truncate max-w-[60px]">
+                                {username || 'Your Story'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Customer Left Bubble */}
+                      {userPreviewMessages.length > 0 ? (
+                        userPreviewMessages.slice(0, 1).map((userMsg, i) => (
+                          <div key={i} className="self-start flex items-end gap-2 max-w-[85%] shrink-0">
+                            <div className="w-5 h-5 rounded-full bg-zinc-800 shrink-0 overflow-hidden mb-0.5 border border-zinc-700/40">
+                              <img
+                                src={profilePic || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=50&h=50"}
+                                className="w-full h-full object-cover"
+                                alt=""
+                              />
+                            </div>
+                            <div className="bg-[#26262a] border border-zinc-800/60 rounded-2xl rounded-bl-xs px-3.5 py-2 text-[11px] text-zinc-200">
+                              {userMsg}
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="self-start flex items-end gap-2 max-w-[85%] shrink-0 opacity-60">
+                          <div className="w-5 h-5 rounded-full bg-zinc-800 shrink-0 border border-zinc-700/40" />
+                          <div className="bg-[#26262a] border border-zinc-800/60 rounded-2xl rounded-bl-xs px-3.5 py-2 text-[11px] text-zinc-400 italic">
+                            {matchType === 'any' ? "Hi there!" : activeKeywords[0] || "Type keyword..."}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Bot Reply Preview or Gate Response (Right) */}
+                      {followerGate ? (
+                        <div className="self-end items-end max-w-[85%] flex flex-col shrink-0 gap-1">
+                          <div className="bg-[#18181b] border border-zinc-800 text-zinc-200 px-3.5 py-2.5 rounded-2xl rounded-br-xs text-[11px] leading-relaxed shadow-md text-left">
+                            {displayGateReply}
+                          </div>
+                          <span className="text-[8px] text-rose-400 font-semibold pr-1">Follower Gate Active</span>
+                        </div>
+                      ) : (
+                        <div className="self-end items-end max-w-[85%] flex flex-col shrink-0 gap-1">
+                          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 border border-blue-400/20 text-white px-3.5 py-2 rounded-2xl rounded-br-xs text-[10px] leading-snug font-medium shadow-md">
+                            <span>Triggers flow sequence</span>
+                          </div>
+                        </div>
+                      )}
+
+                    </div>
+
+                    {/* Footer Input Bar */}
+                    <div className="p-3 border-t border-zinc-800/60 bg-zinc-950/90 shrink-0">
+                      <div className="bg-zinc-900 rounded-full px-3 py-1.5 flex items-center justify-between border border-zinc-800">
+                        <span className="text-[10px] text-zinc-500 font-medium">Filter node thread...</span>
+                      </div>
+                    </div>
+                  </>
+                )}
 
               </div>
             </div>
@@ -300,6 +470,16 @@ export default function ConditionContentEditor({ nodeId, onClose }: ConditionCon
 
           {/* RIGHT: Editor Fields Panel */}
           <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-[#131313]">
+
+            {node?.ruleType?.includes('share') && (
+              <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-200 text-xs flex items-start gap-3">
+                <span className="text-base shrink-0">ℹ️</span>
+                <div>
+                  <span className="font-bold text-white block mb-0.5">Post Share Automation Notice</span>
+                  <span>For <strong>User Shares Post to DM</strong> automations, keyword matching is not required. The reply will trigger automatically whenever a user shares your selected post or reel to your DM!</span>
+                </div>
+              </div>
+            )}
 
             {/* Keyword Match Mode Selection Cards */}
             <div className="space-y-3 text-left">

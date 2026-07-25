@@ -1,9 +1,22 @@
 "use client";
 
-import { Hand, Lock, Grid, Menu } from 'lucide-react';
+import { Hand, Lock, Grid, Menu, Share2 } from 'lucide-react';
 import { addDefaultFlowTemplate } from '@/store/slices/flowSlice';
 import { useDispatch } from 'react-redux';
 import { TemplateItem } from '../../TemplateItem';
+
+export function UserSharesPostToDM() {
+  const dispatch = useDispatch();
+  return (
+    <TemplateItem
+      title="User Shares Post to DM"
+      desc="Auto-reply when user shares Reel/Post"
+      icon={Share2}
+      templateId="23"
+      onClick={() => dispatch(addDefaultFlowTemplate({ ruleType: 'user_share_post_dm', name: 'User Shares Post to DM', templateId: '23' }))}
+    />
+  );
+}
 
 export function ButtonTemplate() {
   const dispatch = useDispatch();

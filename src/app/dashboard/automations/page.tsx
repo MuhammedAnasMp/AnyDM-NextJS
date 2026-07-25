@@ -10,6 +10,7 @@ import DMContentEditor from "@/components/builder/DMContentEditor";
 import WelcomeContentEditor from "@/components/builder/WelcomeContentEditor";
 import ConditionContentEditor from "@/components/builder/ConditionContentEditor";
 import TriggerContentEditor from "@/components/builder/TriggerContentEditor";
+import CommentReplyContentEditor from "@/components/builder/CommentReplyContentEditor";
 import { AnimatePresence } from "framer-motion";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/store";
@@ -43,18 +44,34 @@ export default function BuilderPage() {
             let nodesList = res.data.visual_data.nodes || [];
             let edgesList = res.data.visual_data.edges || [];
 
-            // ... (existing sanitization and welcome flow sync logic below)
+            // For post share flows, strip condition nodes and connect trigger directly to action
+            const triggerNode = nodesList.find((n: any) => n.type === 'trigger');
+            const ruleTypeStr = triggerNode?.ruleType || res.data?.rule_type || '';
+            if (ruleTypeStr.includes('share')) {
+              const conditionNode = nodesList.find((n: any) => n.type === 'condition');
+              if (conditionNode && triggerNode) {
+                nodesList = nodesList.filter((n: any) => n.type !== 'condition');
+                edgesList = edgesList
+                  .map((edge: any) => {
+                    if (edge.source === conditionNode.id) {
+                      return { ...edge, source: triggerNode.id };
+                    }
+                    return edge;
+                  })
+                  .filter((edge: any) => edge.target !== conditionNode.id);
+              }
+            }
+
             // Sanitize nodes list: if any action node has configured data, set is_placeholder to false
             nodesList = nodesList.map((node: any) => {
               if (node.type === 'action') {
                 const d = node.data || {};
                 const hasConfiguredData =
-                  (d.messages && d.messages.length > 0) ||
+                  (d.messages && d.messages.length > 0 && d.messages.some((m: any) => m && String(m).trim() !== '')) ||
                   (d.dm_format && d.dm_format !== 'text') ||
                   (d.quick_replies_titles && d.quick_replies_titles.length > 0) ||
                   (d.button_template_buttons_json && String(d.button_template_buttons_json).trim() !== '') ||
-                  (d.generic_template_elements_json && String(d.generic_template_elements_json).trim() !== '') ||
-                  (d.action_type && d.action_type !== 'send_dm');
+                  (d.generic_template_elements_json && String(d.generic_template_elements_json).trim() !== '');
                 if (hasConfiguredData) {
                   return {
                     ...node,
@@ -537,6 +554,18 @@ export default function BuilderPage() {
           if (activeEditNode?.type === 'condition') {
             return (
               <ConditionContentEditor
+                nodeId={activeEditNodeId}
+                onClose={() => {
+                  setActiveEditNodeId(null);
+                  dispatch(selectNode(null));
+                }}
+              />
+            );
+          }
+
+          if (activeEditNode?.data?.action_type === 'reply_comment') {
+            return (
+              <CommentReplyContentEditor
                 nodeId={activeEditNodeId}
                 onClose={() => {
                   setActiveEditNodeId(null);

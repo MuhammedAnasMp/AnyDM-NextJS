@@ -333,9 +333,6 @@ export const flowSlice = createSlice({
             const node = state.nodes.find(n => n.id === id);
             if (node) {
                 node.data = { ...node.data, [key]: value };
-                if (node.type === 'action' && key !== 'is_placeholder') {
-                    node.data.is_placeholder = false;
-                }
                 syncLinkedNodes(state, id);
             }
         },
@@ -472,17 +469,30 @@ export const flowSlice = createSlice({
 
             if (!caseData) return;
 
-            const tId = `node-t-${Date.now()}`;
-            const cId = `node-c-${Date.now()}`;
+            const isShareRule = ruleType.includes('share') || tid === '23';
 
-            state.nodes.push({ id: tId, type: 'trigger', position: { x: 100, y: 150 }, data: caseData.target, ruleType, templateId: tid });
-            state.nodes.push({ id: cId, type: 'condition', position: { x: 550, y: 150 }, data: caseData.condition, ruleType, templateId: tid });
-            state.edges.push({ id: `edge-${Date.now()}-1`, source: tId, target: cId });
+            const targetData = {
+                start_at: caseData.target?.start_at || null,
+                end_at: caseData.target?.end_at || null,
+                ...(caseData.target || {}),
+            };
+
+            const tId = `node-t-${Date.now()}`;
+            state.nodes.push({ id: tId, type: 'trigger', position: { x: 100, y: 150 }, data: targetData, ruleType, templateId: tid });
+
+            let parentNodeId = tId;
+
+            if (!isShareRule) {
+                const cId = `node-c-${Date.now()}`;
+                state.nodes.push({ id: cId, type: 'condition', position: { x: 550, y: 150 }, data: caseData.condition, ruleType, templateId: tid });
+                state.edges.push({ id: `edge-${Date.now()}-1`, source: tId, target: cId });
+                parentNodeId = cId;
+            }
 
             if (caseData.giveaway) {
                 const gId = `node-g-${Date.now()}`;
                 state.nodes.push({ id: gId, type: 'giveaway_config', position: { x: 1000, y: 50 }, data: caseData.giveaway, ruleType, templateId: tid });
-                state.edges.push({ id: `edge-${Date.now()}-2`, source: cId, target: gId });
+                state.edges.push({ id: `edge-${Date.now()}-2`, source: parentNodeId, target: gId });
 
                 if (caseData.giveaway.rewards) {
                     caseData.giveaway.rewards.forEach((rew, idx) => {
@@ -500,9 +510,10 @@ export const flowSlice = createSlice({
                         (act.messages && act.messages.length > 0) ||
                         (act.dm_format && act.dm_format !== 'text') ||
                         (act.action_type && act.action_type !== 'send_dm');
+                    const posX = isShareRule ? 550 : (caseData.giveaway ? 1000 : 1000);
                     // Offset vertically for multiple actions
-                    state.nodes.push({ id: aId, type: 'action', position: { x: 1000, y: caseData.giveaway ? 300 + (i * 200) : 150 + (i * 200) }, data: { ...act, is_placeholder: !hasConfiguredData }, ruleType, templateId: tid });
-                    state.edges.push({ id: `edge-${Date.now()}-act-${i}`, source: cId, target: aId });
+                    state.nodes.push({ id: aId, type: 'action', position: { x: posX, y: caseData.giveaway ? 300 + (i * 200) : 150 + (i * 200) }, data: { ...act, is_placeholder: !hasConfiguredData }, ruleType, templateId: tid });
+                    state.edges.push({ id: `edge-${Date.now()}-act-${i}`, source: parentNodeId, target: aId });
                 });
             }
         },

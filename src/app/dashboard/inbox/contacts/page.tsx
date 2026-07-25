@@ -19,6 +19,7 @@ interface Contact {
   last_interaction_at: string | null;
   is_following_business: boolean | null;
   is_business_follow_user: boolean | null;
+  gained_via_automation?: string | null;
   last_inbound_time: string | null;
   last_inbound_message: string | null;
   seconds_remaining_24h: number;
@@ -126,7 +127,7 @@ export default function ContactsPage() {
         setLoading(false);
       }
     }
-  }, [search, windowFilter, sortBy, page, limit]);
+  }, [search, windowFilter, sortBy, page, limit, activeAccount?.id]);
 
   useEffect(() => {
     fetchContacts();
@@ -563,8 +564,13 @@ export default function ContactsPage() {
                             <div className="font-bold text-white text-xs">
                               {contact.full_name || contact.username}
                             </div>
-                            <div className="text-white/40 text-[10px]">
-                              @{contact.username}
+                            <div className="text-white/40 text-[10px] flex items-center gap-1.5 flex-wrap mt-0.5">
+                              <span>@{contact.username}</span>
+                              {contact.gained_via_automation && (
+                                <span className="px-1.5 py-0.2 text-[9px] font-semibold rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                  Followed via {contact.gained_via_automation}
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>

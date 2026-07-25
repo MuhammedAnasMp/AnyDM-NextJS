@@ -405,7 +405,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
     }, [activeAccountId, instagramAccounts]);
 
     const username = activeAccount?.username || appUser?.username || 'Mailspot';
-    const profilePic = activeAccount?.profile_picture_url || '';
+    const profilePic = activeAccount?.profile_picture_url || 'https://picsum.photos/seed/elena/100/100';
     const websiteUrl = activeAccount?.website || 'www.mailspot.com';
 
     const followersCount = "54k";
@@ -1085,7 +1085,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                                 postsCount={postsCount}
                                 mutualsText={mutualsText}
                                 isStatic={true}
-                                profile_urls={activeAccount.profile_picture_url}
+                                profile_urls={activeAccount?.profile_picture_url || 'https://picsum.photos/seed/elena/100/100'}
                             />
                         ) : (
                             <PhonePreview
@@ -1100,7 +1100,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                                 postsCount={postsCount}
                                 mutualsText={mutualsText}
                                 isStatic={true}
-                                profile_urls={activeAccount.profile_picture_url}
+                                profile_urls={activeAccount?.profile_picture_url || 'https://picsum.photos/seed/elena/100/100'}
                             />
                         )}
                     </div>
@@ -1139,7 +1139,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
 
                                     <div className="space-y-3">
                                         <div className="flex justify-between items-center">
-                                            {/* <h3 className="text-[10px] font-bold text-zinc-400 tracking-wider uppercase">Suggested Questions ({tempIceBreakers.length}/4)</h3> */}
+                                            <h3 className="text-[10px] font-bold text-zinc-400 tracking-wider ">Suggested Questions ({tempIceBreakers.length}/4)</h3>
                                             {tempIceBreakers.length < 4 && (
                                                 <button
                                                     type="button"
@@ -1430,7 +1430,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                             followersCount={followersCount}
                             postsCount={postsCount}
                             mutualsText={mutualsText}
-                            profile_urls={activeAccount.profile_picture_url}
+                            profile_urls={activeAccount?.profile_picture_url || 'https://picsum.photos/seed/elena/100/100'}
                         />
                     </div>
                 )}
@@ -1449,7 +1449,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                             followersCount={followersCount}
                             postsCount={postsCount}
                             mutualsText={mutualsText}
-                            profile_urls={activeAccount.profile_picture_url}
+                            profile_urls={activeAccount?.profile_picture_url || 'https://picsum.photos/seed/elena/100/100'}
                         />
                     </div>
                 )}

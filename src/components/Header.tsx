@@ -207,7 +207,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                 <div className="w-5 h-5 rounded-full overflow-hidden border border-white/20">
                   <img
                     src={
-                      activeAccount.profile_picture_url ||
+                      activeAccount?.profile_picture_url ||
                       "https://picsum.photos/seed/elena/100/100"
                     }
                     alt="Instagram Profile"
@@ -216,7 +216,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                 </div>
 
                 <span className="text-[10px] md:text-xs font-bold text-white hidden sm:inline">
-                  @{activeAccount.username}
+                  @{activeAccount?.username || 'user'}
                 </span>
 
                 {instagramAccounts.length > 1 && (
@@ -236,7 +236,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                     <div
                       key={acc.id}
                       onClick={() => handleSwitchAccount(acc.id)}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${acc.id === activeAccount.id
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${acc.id === activeAccount?.id
                           ? "bg-white/10 text-white font-semibold"
                           : "hover:bg-white/5 text-[#c4c7c8]/60 hover:text-white"
                         }`}
