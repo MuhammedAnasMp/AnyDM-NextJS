@@ -393,15 +393,14 @@ export default function WebsiteSettingsPage() {
       <Toast message={toastMessage} isVisible={toastVisible} type={toastType} onClose={() => setToastVisible(false)} />
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4">
-        <div>
-
+      <div className="sticky top-[100px] z-30 flex flex-col md:flex-row md:justify-between md:items-center gap-4 pb-3 pt-4 -mt-6 -mx-4 px-4 sm:-mx-6 sm:px-6 border-b border-[#444748]/10 bg-[#131313]">
+        <div className="hidden md:block">
           <h1 className="text-xl font-bold tracking-tight">
             Website configuration
             {/* <Globe className="w-5 h-5" style={{ color: t.lavender }} strokeWidth={1.75} /> */}
           </h1>
         </div>
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 w-full md:w-auto justify-end">
           <a
             href={storefrontUrl}
             target="_blank"
@@ -1105,7 +1104,7 @@ export default function WebsiteSettingsPage() {
                     {/* Unified Storefront Preview Footer */}
                     <div className={cn("text-center py-4 border-t border-white/5 text-[9px] mt-8 space-y-2 shrink-0", previewStyles.textMutedClass)}>
                       <p>© 2026 {storeName || "Elena Rossi"}. Powered by AnyDM.</p>
-                      
+
                       {/* Contact Info rendered directly as text */}
                       {(contactEmail || contactPhone || shippingAddress) && (
                         <div className="flex flex-wrap justify-center gap-x-3 gap-y-0.5 opacity-80">
@@ -1131,15 +1130,15 @@ export default function WebsiteSettingsPage() {
                           <span className="text-[9px] font-bold uppercase tracking-wider text-[#b6b2ff]">
                             {activePreviewModal === "privacy" ? "Privacy Policy" : "Terms of Service"}
                           </span>
-                          <button 
-                            onClick={() => setActivePreviewModal(null)} 
+                          <button
+                            onClick={() => setActivePreviewModal(null)}
                             className="p-0.5 rounded hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
                           >
                             <X className="w-3.5 h-3.5" />
                           </button>
                         </div>
                         <div className="text-[9px] text-zinc-305 leading-relaxed whitespace-pre-wrap pt-1 text-left">
-                          {activePreviewModal === "privacy" 
+                          {activePreviewModal === "privacy"
                             ? (privacyPolicy || "We value your privacy. Your personal information is exclusively used to fulfill your orders.")
                             : (termsOfService || "By browsing this store and placing orders, you agree to comply with our terms and conditions.")
                           }

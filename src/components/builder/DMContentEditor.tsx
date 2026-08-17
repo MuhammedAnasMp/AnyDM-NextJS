@@ -211,6 +211,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
   const [mounted, setMounted] = React.useState(false);
   const [openDropdownId, setOpenDropdownId] = React.useState<string | null>(null);
   const [validationError, setValidationError] = React.useState<string | null>(null);
+  const [mobileView, setMobileView] = React.useState<'edit' | 'preview'>('edit');
   const userPreviewMessages = React.useMemo(() => {
     const condNode = nodes.find(n => n.type === 'condition');
     if (!condNode) {
@@ -244,7 +245,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
   const isStoryReply = React.useMemo(() => {
     const rt = node?.ruleType || triggerNode?.ruleType || '';
     const tid = node?.templateId || triggerNode?.templateId || '';
-    return rt.includes('story') || tid === '23' || node?.name?.toLowerCase().includes('story') || triggerNode?.data?.is_story_reply || triggerNode?.data?.target_mode === 'story';
+    return rt.includes('story') || tid === '23' || node?.data?.name?.toLowerCase().includes('story') || triggerNode?.data?.is_story_reply || triggerNode?.data?.target_mode === 'story';
   }, [node, triggerNode]);
 
   const storyImageUrl = React.useMemo(() => {
@@ -1356,25 +1357,25 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-hidden text-white font-inter">
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm overflow-hidden text-white font-inter">
       {/* Ethereal Background Glows */}
       <div className="absolute w-[40vw] h-[40vw] rounded-full bg-[#c4c0ff] top-[-20%] left-[-20%] filter blur-[120px] opacity-[0.1] pointer-events-none z-0" />
       <div className="absolute w-[40vw] h-[40vw] rounded-full bg-[#636565] bottom-[-20%] right-[-20%] filter blur-[120px] opacity-[0.1] pointer-events-none z-0" />
 
       {/* Outer Card Wrapper */}
-      <div className="w-full max-w-6xl h-[88vh] max-h-[880px] bg-[#131313]/90 backdrop-blur-3xl border border-white/10 rounded-xl overflow-hidden flex flex-col shadow-[0_32px_64px_rgba(0,0,0,0.6)] animate-in fade-in zoom-in duration-300 text-white relative z-10 font-inter">
+      <div className="w-full max-w-6xl h-[92vh] sm:h-[88vh] max-h-[880px] bg-[#131313]/90 backdrop-blur-3xl border border-white/10 rounded-xl overflow-hidden flex flex-col shadow-[0_32px_64px_rgba(0,0,0,0.6)] animate-in fade-in zoom-in duration-300 text-white relative z-10 font-inter">
 
         {/* Modal Header with Actions */}
-        <div className="px-6 py-6 border-b border-white/10 flex items-center justify-between shrink-0 bg-transparent">
-          <div className="flex items-center gap-3.5">
-            <div className="p-2.5 bg-white/5 rounded-xl border border-white/10">
-              <Send className="w-5 h-5 text-white" />
+        <div className="px-4 sm:px-6 py-3.5 sm:py-5 border-b border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0 bg-transparent">
+          <div className="flex items-center gap-2.5 sm:gap-3.5">
+            <div className="p-1.5 sm:p-2.5 bg-white/5 rounded-xl border border-white/10">
+              <Send className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             </div>
             <div>
-              <h2 className="font-inter text-base md:text-lg font-bold text-white tracking-tight leading-tight">
+              <h2 className="font-inter text-sm sm:text-base md:text-lg font-bold text-white tracking-tight leading-tight">
                 Flow Configuration
               </h2>
-              <span className="text-xs text-zinc-400 font-medium tracking-wide block mt-1 leading-tight">
+              <span className="text-[10px] sm:text-xs text-zinc-400 font-medium tracking-wide block mt-1 leading-tight">
                 {format === 'attachment'
                   ? 'Upload and manage files, images, or documents for Instagram DM automation'
                   : 'Customize your visual Instagram direct message layout and payloads'}
@@ -1382,16 +1383,16 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
             </div>
           </div>
           {/* Header Action Controls */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 self-end sm:self-auto shrink-0">
             <button
               onClick={handleCancel}
-              className="px-4 py-2 rounded border border-white/10 text-zinc-300 font-semibold text-xs md:text-sm hover:bg-white/5 hover:text-white transition-all active:scale-95 cursor-pointer"
+              className="px-3 sm:px-4 py-1.5 sm:py-2 rounded border border-white/10 text-zinc-300 font-semibold text-xs md:text-sm hover:bg-white/5 hover:text-white transition-all active:scale-95 cursor-pointer"
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
-              className="px-4 py-2 rounded bg-white text-black font-bold text-xs md:text-sm hover:opacity-90 transition-all active:scale-95 flex items-center gap-2 shadow-lg shadow-white/5 cursor-pointer"
+              className="px-3 sm:px-4 py-1.5 sm:py-2 rounded bg-white text-black font-bold text-xs md:text-sm hover:opacity-90 transition-all active:scale-95 flex items-center gap-2 shadow-lg shadow-white/5 cursor-pointer"
             >
               <Check className="w-4 h-4 stroke-[3]" />Save
             </button>
@@ -1399,45 +1400,76 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
         </div>
 
         {validationError && (
-          <div className="px-8 py-3 bg-red-500/10 border-b border-red-500/20 flex items-center gap-2 text-red-400 text-xs font-semibold animate-in fade-in slide-in-from-top-2 duration-200 shrink-0">
+          <div className="px-4 sm:px-6 py-2.5 bg-red-500/10 border-b border-red-500/20 flex items-center gap-2 text-red-400 text-xs font-semibold animate-in fade-in slide-in-from-top-2 duration-200 shrink-0">
             <Info className="w-4 h-4 text-red-400 shrink-0" />
             <span>{validationError}</span>
           </div>
         )}
 
+        {/* Toggle Bar for Mobile View */}
+        <div className="flex lg:hidden border-b border-white/10 bg-white/5 shrink-0">
+          <button
+            type="button"
+            onClick={() => setMobileView('edit')}
+            className={cn(
+              "flex-1 py-3 text-xs font-bold text-center border-b-2 transition-all",
+              mobileView === 'edit'
+                ? "text-white border-white bg-white/5"
+                : "text-zinc-400 border-transparent hover:text-zinc-200"
+            )}
+          >
+            Edit Configuration
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileView('preview')}
+            className={cn(
+              "flex-1 py-3 text-xs font-bold text-center border-b-2 transition-all",
+              mobileView === 'preview'
+                ? "text-white border-white bg-white/5"
+                : "text-zinc-400 border-transparent hover:text-zinc-200"
+            )}
+          >
+            Live Preview
+          </button>
+        </div>
+
         {/* Modal Body: Split Panel */}
-        <div className="flex-1 min-h-0 flex flex-col lg:flex-row">
+        <div className="flex-1 min-h-0 flex flex-col lg:flex-row overflow-hidden">
 
           {/* LEFT: Instagram High-Fidelity Preview Box */}
-          <div className="lg:w-[420px] bg-black/25 p-6 flex flex-col items-center overflow-y-auto border-b lg:border-b-0 lg:border-r border-white/10 shrink-0 min-h-0 custom-scrollbar">
+          <div className={cn(
+            "lg:w-[420px] bg-black/25 p-4 sm:p-6 flex flex-col items-center overflow-y-auto border-b lg:border-b-0 lg:border-r border-white/10 shrink-0 min-h-0 custom-scrollbar",
+            mobileView === 'preview' ? "flex" : "hidden lg:flex"
+          )}>
 
 
-            {/* Phone Container (Realistic Device Frame) */}
-            <div className="w-[280px] h-[560px] rounded-[44px] border-[8px] border-[#2a2a2a] bg-black shadow-2xl relative flex flex-col overflow-hidden select-none outline outline-2 outline-[#393939] shrink-0 my-auto">
+            {/* Phone Container (Realistic Device Frame) - Responsive Scaled */}
+            <div className="w-[240px] h-[480px] sm:w-[280px] sm:h-[560px] rounded-[32px] sm:rounded-[44px] border-[6px] sm:border-[8px] border-[#2a2a2a] bg-black shadow-2xl relative flex flex-col overflow-hidden select-none outline outline-1 sm:outline-2 outline-[#393939] shrink-0 my-auto">
 
               {/* Notch / Dynamic Island */}
-              <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-20 h-5 bg-black rounded-full z-30 pointer-events-none" />
+              <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-16 sm:w-20 h-4 sm:h-5 bg-black rounded-full z-30 pointer-events-none" />
 
               {/* Inner Screen Content Wrapper */}
               <div
-                className="h-full w-full flex flex-col pt-0 relative z-10 bg-black rounded-[36px] overflow-hidden"
+                className="h-full w-full flex flex-col pt-0 relative z-10 bg-black rounded-[26px] sm:rounded-[36px] overflow-hidden"
                 style={{ clipPath: 'inset(0 round 36px)' }}
               >
 
                 {/* iOS Status Bar */}
-                <div className="absolute top-0 left-0 right-0 h-6 px-5 flex items-center justify-between text-[9px] font-semibold text-white z-20 pointer-events-none bg-transparent">
+                <div className="absolute top-0 left-0 right-0 h-5 sm:h-6 px-4 sm:px-5 flex items-center justify-between text-[8px] sm:text-[9px] font-semibold text-white z-20 pointer-events-none bg-transparent">
                   <span>9:41</span>
                   <div className="flex items-center gap-1">
                     {/* Signal */}
-                    <svg className="w-2.5 h-2.5 fill-current" viewBox="0 0 24 24">
+                    <svg className="w-2 sm:w-2.5 h-2 sm:h-2.5 fill-current" viewBox="0 0 24 24">
                       <path d="M2 22h20V2z" />
                     </svg>
                     {/* Wifi */}
-                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <svg className="w-2.5 sm:w-3 h-2.5 sm:h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                       <path d="M12 20h.01M8.5 16.5a5 5 0 0 1 7 0M5.5 13.5a9 9 0 0 1 13 0M2.5 10.5a13 13 0 0 1 19 0" />
                     </svg>
                     {/* Battery */}
-                    <div className="w-4 h-2 border border-white/80 rounded-2xs p-0.5 flex items-center">
+                    <div className="w-3 sm:w-4 h-1.5 sm:h-2 border border-white/80 rounded-2xs p-0.5 flex items-center">
                       <div className="h-full w-3/4 bg-white/90 rounded-[1px]" />
                     </div>
                   </div>
@@ -1445,11 +1477,11 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
 
                 {/* Instagram App Header Mock */}
                 <div
-                  className="pt-8 h-20 border-b border-white/5 px-4 flex items-center gap-3 bg-black/40 backdrop-blur-md shrink-0 rounded-t-[36px]"
+                  className="pt-6 sm:pt-8 h-16 sm:h-20 border-b border-white/5 px-3 sm:px-4 flex items-center gap-2.5 sm:gap-3 bg-black/40 backdrop-blur-md shrink-0 rounded-t-[36px]"
                   style={{ clipPath: 'inset(0 round 36px 36px 0 0)' }}
                 >
-                  <ChevronLeft className="w-5 h-5 text-white shrink-0 cursor-pointer" />
-                  <div className="w-8 h-8 rounded-full bg-zinc-800 border border-white/10 overflow-hidden shrink-0">
+                  <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-white shrink-0 cursor-pointer" />
+                  <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-zinc-800 border border-white/10 overflow-hidden shrink-0">
                     <img
                       src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=50&h=50"
                       className="w-full h-full object-cover"
@@ -1457,72 +1489,72 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                     />
                   </div>
                   <div className="flex-1 min-w-0 text-left">
-                    <span className="text-[11px] font-bold text-white truncate leading-tight block">
+                    <span className="text-[9px] sm:text-[11px] font-bold text-white truncate leading-tight block">
                       customer_chat
                     </span>
-                    <span className="text-[8px] text-zinc-400 font-medium leading-none block mt-0.5">Active 10m ago</span>
+                    <span className="text-[7px] sm:text-[8px] text-zinc-400 font-medium leading-none block mt-0.5">Active 10m ago</span>
                   </div>
-                  <div className="flex items-center gap-3 text-white shrink-0">
+                  <div className="flex items-center gap-2.5 sm:gap-3 text-white shrink-0">
                     {/* Phone/Call icon */}
-                    <svg className="w-4 h-4 opacity-80" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 opacity-80" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.387a12.035 12.035 0 01-7.108-7.108c-.155-.44.01-.928.387-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
                     </svg>
                     {/* Video call icon */}
-                    <svg className="w-4 h-4 opacity-80" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 opacity-80" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
                     </svg>
                   </div>
                 </div>
 
                 {/* Chat Thread Body */}
-                <div ref={chatThreadRef} className="flex-1 overflow-y-auto p-4 flex flex-col space-y-4 scrollbar-hide bg-black">
+                <div ref={chatThreadRef} className="flex-1 overflow-y-auto p-3 sm:p-4 flex flex-col space-y-3 sm:space-y-4 scrollbar-hide bg-black">
                   {/* Story Reply Thumbnail Preview (If Story Reply Flow) */}
                   {isStoryReply && (
-                    <div className="self-start flex flex-col gap-1.5 max-w-[70%] shrink-0 ml-7 mb-1 animate-fadeIn">
-                      <div className="text-[9px] font-semibold text-zinc-400 flex items-center gap-1">
+                    <div className="self-start flex flex-col gap-1.5 max-w-[70%] shrink-0 ml-5 sm:ml-7 mb-1 animate-fadeIn">
+                      <div className="text-[8px] sm:text-[9px] font-semibold text-zinc-400 flex items-center gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600" />
                         <span>Replied to story</span>
                       </div>
-                      <div className="w-24 h-36 rounded-xl overflow-hidden border border-white/10 shadow-lg relative bg-zinc-900 group">
+                      <div className="w-20 sm:w-24 h-30 sm:h-36 rounded-lg sm:rounded-xl overflow-hidden border border-white/10 shadow-lg relative bg-zinc-900 group">
                         <img
-                          src={storyImageUrl || 'https://picsum.photos/seed/elena/100/100'}
+                          src={storyImageUrl || 'https://static.vecteezy.com/system/resources/previews/002/318/271/non_2x/user-profile-icon-free-vector.jpg'}
                           alt="Story Preview"
                           className="w-full h-full object-cover"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
                         <div className="absolute top-1.5 left-1.5 flex items-center gap-1">
-                          <div className="w-3.5 h-3.5 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 p-[1px]">
-                            <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-[6px] font-bold text-white uppercase">
+                          <div className="w-3 sm:w-3.5 h-3 sm:h-3.5 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 p-[1px]">
+                            <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-[5px] sm:text-[6px] font-bold text-white uppercase">
                               S
                             </div>
                           </div>
-                          <span className="text-[8px] font-medium text-white/90 truncate max-w-[60px]">
+                          <span className="text-[7px] sm:text-[8px] font-medium text-white/90 truncate max-w-[60px]">
                             {username || 'Your Story'}
                           </span>
                         </div>
                       </div>
                     </div>
                   )}
-                  {/* Customer Left Bubble (EXACT MATCH TO CARD 2) */}
+                  {/* Customer Left Bubble */}
                   {userPreviewMessages.length > 0 ? (
                     userPreviewMessages.slice(0, 1).map((userMsg, i) => (
-                      <div key={i} className="self-start flex items-end gap-2 max-w-[85%] shrink-0">
-                        <div className="w-5 h-5 rounded-full bg-zinc-800 shrink-0 overflow-hidden mb-0.5 border border-white/5">
+                      <div key={i} className="self-start flex items-end gap-1.5 sm:gap-2 max-w-[85%] shrink-0">
+                        <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-zinc-800 shrink-0 overflow-hidden mb-0.5 border border-white/5">
                           <img
                             src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=50&h=50"
                             className="w-full h-full object-cover"
                             alt=""
                           />
                         </div>
-                        <div className="bg-[#262626] border border-white/5 rounded-2xl rounded-bl-none px-3.5 py-2 text-[11px] text-zinc-200 shadow-sm">
+                        <div className="bg-[#262626] border border-white/5 rounded-2xl rounded-bl-none px-3 py-1.5 sm:px-3.5 sm:py-2 text-[10px] sm:text-[11px] text-zinc-200 shadow-sm text-left break-words">
                           {userMsg}
                         </div>
                       </div>
                     ))
                   ) : (
-                    <div className="self-start flex items-end gap-2 max-w-[85%] shrink-0">
-                      <div className="w-5 h-5 rounded-full bg-zinc-800 shrink-0 border border-white/5" />
-                      <div className="bg-[#262626] border border-white/5 rounded-2xl rounded-bl-none px-3.5 py-2 text-[11px] text-zinc-200">
+                    <div className="self-start flex items-end gap-1.5 sm:gap-2 max-w-[85%] shrink-0">
+                      <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-zinc-800 shrink-0 border border-white/5" />
+                      <div className="bg-[#262626] border border-white/5 rounded-2xl rounded-bl-none px-3 py-1.5 sm:px-3.5 sm:py-2 text-[10px] sm:text-[11px] text-zinc-200 text-left">
                         Hi! I want to buy.
                       </div>
                     </div>
@@ -1552,7 +1584,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                             }
                           }}
                           className={cn(
-                            "bg-[#3797F0] border border-[#3797F0] rounded-2xl px-3.5 py-2.5 text-[11px] text-white leading-relaxed text-left break-words shadow-md animate-fadeIn transition-all",
+                            "bg-[#3797F0] border border-[#3797F0] rounded-2xl px-3 py-1.5 sm:px-3.5 sm:py-2.5 text-[10px] sm:text-[11px] text-white leading-relaxed text-left break-words shadow-md animate-fadeIn transition-all",
                             textMessages.filter(m => m && m.trim().length > 0).length > 1 && "cursor-pointer hover:brightness-110"
                           )}
                           title={textMessages.filter(m => m && m.trim().length > 0).length > 1 ? "Click to cycle random reply messages" : undefined}
@@ -1564,16 +1596,16 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                       {/* FORMAT: Quick Replies Prompt text bubble */}
                       {format === 'quick_reply' && (
                         <>
-                          <div className="bg-[#3797F0] border border-[#3797F0] rounded-2xl px-3.5 py-2.5 text-[11px] text-white leading-relaxed text-left break-words shadow-md animate-fadeIn">
+                          <div className="bg-[#3797F0] border border-[#3797F0] rounded-2xl px-3 py-1.5 sm:px-3.5 sm:py-2.5 text-[10px] sm:text-[11px] text-white leading-relaxed text-left break-words shadow-md animate-fadeIn">
                             {quickReplyText || 'Pick size:'}
                           </div>
                           {/* Quick Reply Pills Rendered right beneath the bubble */}
-                          <div className="flex flex-wrap items-center justify-end gap-1.5 w-full mt-1 shrink-0 animate-fadeIn">
+                          <div className="flex flex-wrap items-center justify-end gap-1 sm:gap-1.5 w-full mt-1 shrink-0 animate-fadeIn">
                             {quickRepliesTitles.map((title, qri) => (
                               <button
                                 key={qri}
                                 type="button"
-                                className="py-1 px-2.5 bg-zinc-900/80 hover:bg-zinc-800 border border-white/10 rounded-full text-[10px] font-semibold text-[#3797F0] transition-all whitespace-nowrap cursor-pointer shadow-sm"
+                                className="py-0.5 sm:py-1 px-2 sm:px-2.5 bg-zinc-900/80 hover:bg-zinc-800 border border-white/10 rounded-full text-[8px] sm:text-[10px] font-semibold text-[#3797F0] transition-all whitespace-nowrap cursor-pointer shadow-sm"
                               >
                                 {title || 'Pill'}
                               </button>
@@ -1585,7 +1617,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                       {/* FORMAT: Button Template Box */}
                       {format === 'button_template' && (
                         <div className="bg-[#1c1c1c] border border-white/10 rounded-2xl overflow-hidden w-full shadow-lg flex flex-col shrink-0 animate-fadeIn">
-                          <div className="p-3 text-[11px] text-white leading-normal break-words border-b border-white/5 bg-white/5">
+                          <div className="p-2 sm:p-3 text-[10px] sm:text-[11px] text-white leading-normal break-words border-b border-white/5 bg-white/5 text-left">
                             {buttonTemplateText || 'What would you like to do?'}
                           </div>
                           <div className="flex flex-col divide-y divide-white/5 bg-[#1c1c1c]">
@@ -1608,7 +1640,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                 <button
                                   key={bi}
                                   type="button"
-                                  className="w-full py-2.5 text-[10px] font-bold text-[#3797F0] hover:bg-white/5 text-center transition-colors cursor-pointer"
+                                  className="w-full py-1.5 sm:py-2.5 text-[8px] sm:text-[10px] font-bold text-[#3797F0] hover:bg-white/5 text-center transition-colors cursor-pointer"
                                 >
                                   {displayTitle}
                                 </button>
@@ -1627,9 +1659,9 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                             onScroll={handleCarouselScroll}
                             onMouseDown={handleMouseDown}
                             className={cn(
-                              "w-full flex flex-row items-start gap-2.5 pb-2 select-none",
+                              "w-full flex flex-row items-start gap-2 sm:gap-2.5 pb-2 select-none",
                               carouselElements.length > 1
-                                ? "overflow-x-auto scrollbar-hide -mx-4 px-4 cursor-grab active:cursor-grabbing"
+                                ? "overflow-x-auto scrollbar-hide -mx-3 sm:-mx-4 px-3 sm:px-4 cursor-grab active:cursor-grabbing"
                                 : "justify-end",
                               (isDraggingCarousel && carouselElements.length > 1) ? "snap-none" : "snap-x snap-mandatory"
                             )}
@@ -1637,16 +1669,16 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                             {carouselElements.map((elem, ei) => (
                               <div
                                 key={ei}
-                                className="bg-[#1c1c1c] border border-white/10 rounded-2xl overflow-hidden w-[190px] shrink-0 snap-start shadow-lg flex flex-col text-left transition-all"
+                                className="bg-[#1c1c1c] border border-white/10 rounded-2xl overflow-hidden w-[150px] sm:w-[190px] shrink-0 snap-start shadow-lg flex flex-col text-left transition-all"
                               >
-                                <div className="h-20 w-full bg-zinc-900 border-b border-white/5 relative overflow-hidden flex items-center justify-center shrink-0">
+                                <div className="h-16 sm:h-20 w-full bg-zinc-900 border-b border-white/5 relative overflow-hidden flex items-center justify-center shrink-0">
                                   {elem.image_url ? (
                                     <img src={elem.image_url} alt="" className="w-full h-full object-cover" />
                                   ) : (
-                                    <div className="text-[9px] font-semibold text-zinc-500 tracking-wide">No image uploaded</div>
+                                    <div className="text-[8px] sm:text-[9px] font-semibold text-zinc-500 tracking-wide">No image uploaded</div>
                                   )}
                                 </div>
-                                <div className={cn("p-2.5 flex flex-col bg-[#121212] justify-center shrink-0", (elem.buttons && elem.buttons.length > 0) ? "border-b border-white/5" : "")}>
+                                <div className={cn("p-2 sm:p-2.5 flex flex-col bg-[#121212] justify-center shrink-0", (elem.buttons && elem.buttons.length > 0) ? "border-b border-white/5" : "")}>
                                   {(() => {
                                     let displayTitle = elem.title || 'Welcome!';
                                     let displaySubtitle = elem.subtitle || 'Card Description';
@@ -1676,8 +1708,8 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
 
                                     return (
                                       <>
-                                        <span className="text-[10px] font-bold text-white truncate">{displayTitle}</span>
-                                        <span className="text-[8px] text-zinc-400 mt-0.5 line-clamp-2 leading-tight">{displaySubtitle}</span>
+                                        <span className="text-[9px] sm:text-[10px] font-bold text-white truncate">{displayTitle}</span>
+                                        <span className="text-[7px] sm:text-[8px] text-zinc-400 mt-0.5 line-clamp-2 leading-tight">{displaySubtitle}</span>
                                       </>
                                     );
                                   })()}
@@ -1703,7 +1735,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                         <button
                                           key={bi}
                                           type="button"
-                                          className="w-full py-1.5 text-[9px] font-bold text-[#3797F0] hover:bg-white/5 text-center transition-colors"
+                                          className="w-full py-1 sm:py-1.5 text-[8px] sm:text-[9px] font-bold text-[#3797F0] hover:bg-white/5 text-center transition-colors"
                                         >
                                           {displayTitle}
                                         </button>
@@ -1772,13 +1804,13 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                       const isSingle = group.data.length === 1;
                                       if (isSingle) {
                                         return (
-                                          <div key={gIdx} className="w-[110px] aspect-[9/16] rounded-2xl border border-white/10 overflow-hidden bg-zinc-900 shadow-md">
+                                          <div key={gIdx} className="w-[90px] sm:w-[110px] aspect-[9/16] rounded-2xl border border-white/10 overflow-hidden bg-zinc-900 shadow-md">
                                             <img src={group.data[0].url} alt="" className="w-full h-full object-cover" />
                                           </div>
                                         );
                                       } else {
                                         return (
-                                          <div key={gIdx} className="relative w-[110px] h-[195px] mr-2">
+                                          <div key={gIdx} className="relative w-[90px] sm:w-[110px] h-[160px] sm:h-[195px] mr-2">
                                             {group.data.slice(0, 3).map((img: any, index: number) => {
                                               const rotation = index === 0 ? '-4deg' : index === 1 ? '3deg' : '0deg';
                                               const translateX = index === 0 ? '-6px' : index === 1 ? '6px' : '0px';
@@ -1808,7 +1840,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                     } else if (group.type === 'sticker') {
                                       return (
                                         <div key={gIdx} className="flex items-center justify-end w-full pr-1.5 animate-fadeIn select-none">
-                                          <span className="text-3xl filter drop-shadow-[0_4px_6px_rgba(0,0,0,0.3)] animate-pulse">
+                                          <span className="text-2xl sm:text-3xl filter drop-shadow-[0_4px_6px_rgba(0,0,0,0.3)] animate-pulse">
                                             ❤️
                                           </span>
                                         </div>
@@ -1819,7 +1851,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                         <div
                                           key={gIdx}
                                           onClick={() => setPlayingVideoIndex(isPlaying ? null : gIdx)}
-                                          className="w-[110px] aspect-[9/16] rounded-2xl border border-white/10 overflow-hidden bg-zinc-950 shadow-md relative flex items-center justify-center group animate-fadeIn cursor-pointer"
+                                          className="w-[90px] sm:w-[110px] aspect-[9/16] rounded-2xl border border-white/10 overflow-hidden bg-zinc-950 shadow-md relative flex items-center justify-center group animate-fadeIn cursor-pointer"
                                         >
                                           {group.data.url && (
                                             <video
@@ -1834,17 +1866,17 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                           )}
                                           {!isPlaying && (
                                             <div className="absolute inset-0 bg-black/10 flex items-center justify-center z-10">
-                                              <div className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm border border-white/20 flex items-center justify-center group-hover:scale-110 transition-all">
+                                              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-black/40 backdrop-blur-sm border border-white/20 flex items-center justify-center group-hover:scale-110 transition-all">
                                                 {/* Play icon */}
-                                                <svg className="w-3 h-3 text-white fill-white ml-0.5" viewBox="0 0 24 24">
+                                                <svg className="w-2.5 h-2.5 text-white fill-white ml-0.5" viewBox="0 0 24 24">
                                                   <path d="M8 5v14l11-7z" />
                                                 </svg>
                                               </div>
                                             </div>
                                           )}
                                           <div className="absolute bottom-1.5 left-1.5 right-1.5 flex items-center justify-between z-20">
-                                            <span className="text-[6px] font-bold text-white/50 bg-black/45 px-1 py-0.5 rounded">VIDEO</span>
-                                            <span className="text-[6px] font-bold text-white/90">0:15</span>
+                                            <span className="text-[5px] sm:text-[6px] font-bold text-white/50 bg-black/45 px-1 py-0.5 rounded">VIDEO</span>
+                                            <span className="text-[5px] sm:text-[6px] font-bold text-white/90">0:15</span>
                                           </div>
                                         </div>
                                       );
@@ -1878,28 +1910,28 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                       };
 
                                       return (
-                                        <div key={gIdx} className="bg-[#1c1c1c] border border-white/10 rounded-2xl rounded-br-none px-2.5 py-2 shadow-md flex items-center gap-2 w-[110px] h-[36px] animate-fadeIn shrink-0">
+                                        <div key={gIdx} className="bg-[#1c1c1c] border border-white/10 rounded-2xl rounded-br-none px-2 py-1.5 sm:px-2.5 sm:py-2 shadow-md flex items-center gap-1.5 sm:gap-2 w-[90px] sm:w-[110px] h-[30px] sm:h-[36px] animate-fadeIn shrink-0">
                                           <button
                                             type="button"
                                             onClick={handleAudioPlay}
-                                            className="w-5 h-5 rounded-full bg-[#CECBF6]/20 border border-[#CECBF6]/30 flex items-center justify-center shrink-0 cursor-pointer hover:bg-[#CECBF6]/30 transition-colors"
+                                            className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-[#CECBF6]/20 border border-[#CECBF6]/30 flex items-center justify-center shrink-0 cursor-pointer hover:bg-[#CECBF6]/30 transition-colors"
                                           >
                                             {isPlaying ? (
-                                              <svg className="w-2 h-2 text-[#CECBF6] fill-[#CECBF6]" viewBox="0 0 24 24">
+                                              <svg className="w-1.5 h-1.5 text-[#CECBF6] fill-[#CECBF6]" viewBox="0 0 24 24">
                                                 <rect x="4" y="4" width="4" height="16" />
                                                 <rect x="16" y="4" width="4" height="16" />
                                               </svg>
                                             ) : (
-                                              <svg className="w-2 h-2 text-[#CECBF6] fill-[#CECBF6] ml-0.5" viewBox="0 0 24 24">
+                                              <svg className="w-1.5 h-1.5 text-[#CECBF6] fill-[#CECBF6] ml-0.5" viewBox="0 0 24 24">
                                                 <path d="M8 5v14l11-7z" />
                                               </svg>
                                             )}
                                           </button>
-                                          <div className="flex-1 flex items-end justify-between h-2.5 gap-0.5 pt-0.5">
+                                          <div className="flex-1 flex items-end justify-between h-2 sm:h-2.5 gap-[0.8px] sm:gap-[1.2px] pt-0.5">
                                             {[40, 70, 50, 90, 30, 80, 60, 45, 75, 35].map((val, idx) => (
                                               <div
                                                 key={idx}
-                                                className="w-[1.2px] bg-[#CECBF6] rounded-full"
+                                                className="w-[0.8px] sm:w-[1.2px] bg-[#CECBF6] rounded-full"
                                                 style={{
                                                   height: `${val}%`,
                                                   animationName: isPlaying ? 'audioWave' : 'none',
@@ -1912,7 +1944,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                               />
                                             ))}
                                           </div>
-                                          <span className="text-[6px] font-bold text-zinc-500 shrink-0">{isPlaying ? 'Play' : '0:08'}</span>
+                                          <span className="text-[5px] sm:text-[6px] font-bold text-zinc-500 shrink-0">{isPlaying ? 'Play' : '0:08'}</span>
                                         </div>
                                       );
                                     } else {
@@ -1922,11 +1954,11 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                       const hasImage = cached?.media_url;
 
                                       return (
-                                        <div key={gIdx} className="w-[110px] h-[195px] rounded-2xl border border-white/10 overflow-hidden bg-[#1c1c1c] shadow-lg flex flex-col shrink-0 animate-fadeIn">
+                                        <div key={gIdx} className="w-[90px] sm:w-[110px] h-[160px] sm:h-[195px] rounded-2xl border border-white/10 overflow-hidden bg-[#1c1c1c] shadow-lg flex flex-col shrink-0 animate-fadeIn">
                                           {/* Top header with Instagram icon & name */}
-                                          <div className="p-1.5 bg-[#121212] flex items-center gap-1 shrink-0 border-b border-white/5">
-                                            <div className="w-3 h-3 rounded-full bg-zinc-800 flex items-center justify-center text-[5px] text-white font-bold">IG</div>
-                                            <span className="text-[6px] text-zinc-400 font-bold truncate">
+                                          <div className="p-1 sm:p-1.5 bg-[#121212] flex items-center gap-1 shrink-0 border-b border-white/5">
+                                            <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-zinc-800 flex items-center justify-center text-[4px] sm:text-[5px] text-white font-bold">IG</div>
+                                            <span className="text-[5px] sm:text-[6px] text-zinc-400 font-bold truncate">
                                               {isMediaShare ? 'Instagram Post' : 'Attachment'}
                                             </span>
                                           </div>
@@ -1936,9 +1968,9 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                               <img src={cached.media_type === 'VIDEO' ? (cached.thumbnail_url || cached.media_url) : cached.media_url} alt="" className="w-full h-full object-cover" />
                                             ) : (
                                               isMediaShare ? (
-                                                <Share2 className="w-4 h-4 text-emerald-400" />
+                                                <Share2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
                                               ) : (
-                                                <Paperclip className="w-4 h-4 text-white/70" />
+                                                <Paperclip className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white/70" />
                                               )
                                             )}
                                           </div>
@@ -1950,7 +1982,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                               );
                             })()
                           ) : (
-                            <div className="bg-[#1c1c1c] border border-white/10 rounded-2xl rounded-br-none px-4 py-3 text-[11px] text-white/60 text-center italic leading-normal">
+                            <div className="bg-[#1c1c1c] border border-white/10 rounded-2xl rounded-br-none px-3.5 py-2.5 text-[10px] sm:text-[11px] text-white/60 text-center italic leading-normal">
                               No attachments uploaded.
                             </div>
                           )}
@@ -1963,22 +1995,22 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                 </div>
 
                 {/* Instagram Message Typing Section */}
-                <div className="p-3.5 border-t border-white/5 bg-black shrink-0">
-                  <div className="flex items-center gap-2.5">
+                <div className="p-2.5 sm:p-3.5 border-t border-white/5 bg-black shrink-0">
+                  <div className="flex items-center gap-2 sm:gap-2.5">
                     {/* Camera Button (Outside) */}
-                    <div className="w-7 h-7 rounded-full bg-[#3797F0] flex items-center justify-center shrink-0 cursor-pointer hover:opacity-90 transition-opacity">
-                      <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-[#3797F0] flex items-center justify-center shrink-0 cursor-pointer hover:opacity-90 transition-opacity">
+                      <svg className="w-3 sm:w-4 h-3 sm:h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                         <circle cx="12" cy="13" r="4" />
                       </svg>
                     </div>
                     {/* Message input mock pill */}
-                    <div className="flex-1 bg-[#1c1b1b] rounded-full px-3.5 py-1.5 flex items-center justify-between border border-white/5">
-                      <span className="text-[11px] text-zinc-500 font-medium">Message...</span>
-                      <div className="flex items-center gap-2.5 text-zinc-400 shrink-0">
-                        <Mic className="w-3.5 h-3.5 hover:text-white transition-colors cursor-pointer" />
-                        <ImageIcon className="w-3.5 h-3.5 hover:text-white transition-colors cursor-pointer" />
-                        <Smile className="w-3.5 h-3.5 hover:text-white transition-colors cursor-pointer" />
+                    <div className="flex-1 bg-[#1c1b1b] rounded-full px-2.5 sm:px-3.5 py-1 sm:py-1.5 flex items-center justify-between border border-white/5">
+                      <span className="text-[9px] sm:text-[11px] text-zinc-500 font-medium">Message...</span>
+                      <div className="flex items-center gap-2 sm:gap-2.5 text-zinc-400 shrink-0">
+                        <Mic className="w-3 sm:w-3.5 h-3 sm:h-3.5 hover:text-white transition-colors cursor-pointer" />
+                        <ImageIcon className="w-3 sm:w-3.5 h-3 sm:h-3.5 hover:text-white transition-colors cursor-pointer" />
+                        <Smile className="w-3 sm:w-3.5 h-3 sm:h-3.5 hover:text-white transition-colors cursor-pointer" />
                       </div>
                     </div>
                   </div>
@@ -1988,10 +2020,12 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
             </div>
           </div>
 
-          {/* RIGHT: Editor Fields Manager Panel */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+          <div className={cn(
+            "flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 sm:space-y-6 custom-scrollbar bg-[#121212]",
+            mobileView === 'edit' ? "block" : "hidden lg:block"
+          )}>
 
-            <div className="glass-pane p-6 rounded border border-white/10 space-y-6 shadow-xl animate-fadeIn">
+            <div className="p-3 sm:p-6 bg-transparent sm:bg-white/5 border-none sm:border border-white/10 rounded-xl space-y-4 sm:space-y-6 shadow-none sm:shadow-xl animate-fadeIn">
               {/* <div className="flex items-center gap-2 pb-2 border-b border-white/15">
                 <Sparkles className="w-4 h-4 text-white" />
                 <h3 className="font-sora text-xs font-semibold text-white tracking-[0.1em] ">Core Logic</h3>
@@ -2096,12 +2130,11 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                 <div className="space-y-4">
                   <div className="flex justify-between items-center pb-2 border-b border-white/10">
                     <div>
-                      <h3 className="font-sora text-xs font-semibold text-zinc-400 tracking-wider ">This messages will send to the customer ({textMessages.length})</h3>
-                      {/* <p className="text-[10px] text-zinc-500 mt-1 font-medium">Add one or more message variations. One will be chosen randomly on trigger.</p> */}
+                      <h3 className="font-sora text-xs font-semibold text-zinc-400 tracking-wider">This messages will send to the customer ({textMessages.length})</h3>
                     </div>
                     <button
                       onClick={() => setTextMessages([...textMessages, ''])}
-                      className="py-2 px-4 bg-white/10 hover:bg-white/15 text-white text-xs font-bold rounded border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer"
+                      className="py-2 px-3 sm:px-4 bg-white/10 hover:bg-white/15 text-white text-xs font-bold rounded border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer shrink-0 whitespace-nowrap"
                     >
                       <Plus className="w-3.5 h-3.5" /> Add Variant
                     </button>
@@ -2154,19 +2187,19 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                     placeholder="e.g. What size do you need?"
                     className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded px-4 py-3.5 text-sm text-white focus:outline-none focus:border-white/50 focus:ring-0 font-medium"
                   />
-                  <p className="text-[10px] text-zinc-500 font-medium">This text is sent first, right above the interactive quick action pill options.</p>
+                  <p className="text-[9px] text-[#CECBF6]/60 font-semibold tracking-wider uppercase font-sora mt-1">Sent first, directly above the pills.</p>
                 </div>
 
                 <div className="space-y-4">
                   <div className="flex justify-between items-center pb-2 border-b border-white/10">
                     <div>
                       <h3 className="font-sora text-xs font-semibold text-zinc-400 tracking-wider uppercase">Interactive Pills ({quickRepliesTitles.length}/13)</h3>
-                      <p className="text-[10px] text-zinc-500 mt-1 font-medium">Users tap these buttons inside Instagram. Maximum of 13 pills.</p>
+                      <p className="text-[9px] text-[#CECBF6]/60 font-semibold tracking-wider uppercase font-sora mt-1">Tapped in Instagram. Max 13 pills.</p>
                     </div>
                     {quickRepliesTitles.length < 13 && (
                       <button
                         onClick={addQuickReplyPill}
-                        className="py-2 px-4 bg-white/10 hover:bg-white/15 text-white text-xs font-bold rounded border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer"
+                        className="py-2 px-3 sm:px-4 bg-white/10 hover:bg-white/15 text-white text-xs font-bold rounded border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer shrink-0 whitespace-nowrap"
                       >
                         <Plus className="w-3.5 h-3.5" /> Add Pill
                       </button>
@@ -2175,8 +2208,8 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {quickRepliesTitles.map((title, idx) => (
-                      <div key={idx} className="flex items-center gap-3 bg-white/5 p-3 rounded-full border border-white/10 animate-fadeIn">
-                        <span className="font-sora text-xs font-bold text-zinc-500 w-6 text-center">{idx + 1}</span>
+                      <div key={idx} className="flex items-center gap-2 animate-fadeIn">
+                        <span className="font-sora text-xs font-bold text-zinc-500 w-5 text-center">{idx + 1}</span>
                         <input
                           type="text"
                           value={title}
@@ -2187,7 +2220,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                         />
                         <button
                           onClick={() => removeQuickReplyPill(idx)}
-                          className="p-2.5 rounded-xl text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-all cursor-pointer"
+                          className="p-2 rounded-xl text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-all cursor-pointer shrink-0"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -2210,7 +2243,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                     placeholder="e.g. Select options from the menu below:"
                     className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded px-4 py-3.5 text-sm text-white focus:outline-none focus:border-white/50 focus:ring-0 font-medium"
                   />
-                  <p className="text-[10px] text-zinc-500 font-medium">Text content that appears as the header message of the button card template.</p>
+                  <p className="text-[9px] text-[#CECBF6]/60 font-semibold tracking-wider uppercase font-sora mt-1">Header message for the button card.</p>
                 </div>
 
                 <div className="space-y-4">
@@ -2220,7 +2253,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                       <button
                         type="button"
                         onClick={addButton}
-                        className="py-1.5 px-3 bg-white/10 hover:bg-white/15 text-white text-[10px] font-bold rounded border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer"
+                        className="py-1.5 px-2.5 bg-white/10 hover:bg-white/15 text-white text-[10px] font-bold rounded border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer shrink-0 whitespace-nowrap"
                       >
                         <Plus className="w-3.5 h-3.5" /> Add Card Button
                       </button>
@@ -2267,7 +2300,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                     {buttonTemplateButtons.map((btn, idx) => {
                       if (idx !== normalizedActiveButtonTemplateButtonIndex) return null;
                       return (
-                        <div key={idx} className="bg-white/5 p-5 rounded-2xl border border-white/10 flex flex-col gap-4 relative animate-fadeIn">
+                        <div key={idx} className="bg-white/5 p-3 sm:p-5 rounded-xl sm:rounded-2xl border border-white/10 flex flex-col gap-3 sm:gap-4 relative animate-fadeIn">
 
                           <div className="flex-1 w-full space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2509,16 +2542,16 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
               <div className="space-y-6">
 
                 {/* Cards Deck Navigation Header */}
-                <div className="bg-white/5 p-5 rounded-2xl border border-white/10 space-y-4">
+                <div className="bg-white/5 p-3 sm:p-5 rounded-xl sm:rounded-2xl border border-white/10 space-y-3 sm:space-y-4">
                   <div className="flex justify-between items-center">
                     <div>
                       <h3 className="font-sora text-xs font-semibold text-zinc-400 tracking-wider uppercase">Carousel Slides ({carouselElements.length}/10)</h3>
-                      <p className="text-[10px] text-zinc-500 mt-1 font-medium">Create a slider list of cards. Users swipe through horizontally.</p>
+                      <p className="text-[9px] text-[#CECBF6]/60 font-semibold tracking-wider uppercase font-sora mt-1">Horizontal slider card deck.</p>
                     </div>
                     {carouselElements.length < 10 && (
                       <button
                         onClick={addCarouselCard}
-                        className="py-2 px-4 bg-white/10 hover:bg-white/15 text-white text-xs font-bold rounded border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer"
+                        className="py-2 px-3 sm:px-4 bg-white/10 hover:bg-white/15 text-white text-xs font-bold rounded border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer shrink-0 whitespace-nowrap"
                       >
                         <Plus className="w-3.5 h-3.5" /> Add Card
                       </button>
@@ -2560,7 +2593,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
 
                 {/* Edit Fields for the Selected Card */}
                 {carouselElements[activeCardIndex] && (
-                  <div className="bg-white/5 p-6 rounded-2xl border border-white/10 space-y-4 animate-fadeIn">
+                  <div className="bg-white/5 p-3 sm:p-6 rounded-xl sm:rounded-2xl border border-white/10 space-y-3 sm:space-y-4 animate-fadeIn">
                     <div className="flex justify-between items-center border-b border-white/10 pb-2.5">
                       <span className="font-sora text-xs font-semibold text-white uppercase tracking-wider">Active Card {activeCardIndex + 1} Settings</span>
                     </div>
@@ -2837,7 +2870,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                               className="w-full bg-transparent border-none py-3 text-xs text-white focus:outline-none"
                             />
                           </div>
-                          <p className="text-[10px] text-zinc-500 font-medium">The URL redirected to when the user taps on the card cover image itself.</p>
+                          <p className="text-[9px] text-[#CECBF6]/60 font-semibold tracking-wider uppercase font-sora mt-1">URL opened when tapping the card image.</p>
                         </div>
                       </div>
                     )}
@@ -2936,7 +2969,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                           if (bi !== normalizedActiveButtonIndex) return null;
                           const isFirstButtonProductLocked = bi === 0 && !!showProductPicker[`carousel-product-${activeCardIndex}`] && !!carouselElements[activeCardIndex].default_action?.url;
                           return (
-                            <div key={bi} className="bg-white/5 p-4 rounded-2xl border border-white/10 flex flex-col gap-4 relative animate-fadeIn">
+                            <div key={bi} className="bg-white/5 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-white/10 flex flex-col gap-3 sm:gap-4 relative animate-fadeIn">
 
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 w-full ">
                                 <div>
@@ -3349,7 +3382,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                     <h4 className="font-sora text-[10px] font-bold uppercase tracking-wider text-zinc-500">Uploading ({uploadingFiles.length})</h4>
                     <div className="space-y-2.5">
                       {uploadingFiles.map(file => (
-                        <div key={file.id} className="bg-white/5 p-4 rounded-xl border border-white/10 space-y-2.5">
+                        <div key={file.id} className="bg-white/5 p-3 rounded-xl border border-white/10 space-y-2">
                           <div className="flex justify-between items-center text-xs">
                             <span className="font-semibold text-zinc-300 truncate max-w-[200px]">{file.name}</span>
                             <span className="text-white font-bold">{file.progress}%</span>

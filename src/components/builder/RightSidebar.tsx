@@ -141,7 +141,7 @@ export function RightSidebar() {
     definitions = definitions.filter(def => !hiddenList.includes(def.name));
   }
 
-  if (selectedNode && selectedNode.type === 'action') {
+  if (selectedNode && (selectedNode.type as string) === 'action') {
     const format = selectedNode.data?.dm_format;
     const actionType = selectedNode.data?.action_type || 'reply_comment';
     const isEcommerceTemplate = !!(selectedNode.ruleType && selectedNode.ruleType.includes('product_inquiry'));
@@ -272,7 +272,7 @@ export function RightSidebar() {
             </div>
           </div>
         )}
-        {selectedNode && selectedNode.type === 'action' && selectedNode.data?.parent_event === 'TRACK_ORDER' && (
+        {selectedNode && (selectedNode.type as string) === 'action' && selectedNode.data?.parent_event === 'TRACK_ORDER' && (
           // <div className="bg-[#4f46e5]/10 border border-[#4f46e5]/20 rounded-xl p-4 space-y-4 animate-fadeIn">
           //   <div className="flex items-center gap-2 text-indigo-400">
           //     <Sparkles className="w-4 h-4 shrink-0 text-indigo-400" />
@@ -637,7 +637,7 @@ export function RightSidebar() {
               return null;
           }
         })}
-        {selectedNode && selectedNode.type === 'condition' && (
+        {selectedNode && (selectedNode.type as string) === 'condition' && (
           <button
             onClick={() => {
               window.dispatchEvent(new CustomEvent('open-dm-format-editor', {

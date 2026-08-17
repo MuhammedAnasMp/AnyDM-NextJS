@@ -9,7 +9,10 @@ import { updateNodeData, setFlow } from '@/store/slices/flowSlice';
 import {
     X, Plus, Trash2, Check, ChevronLeft, ChevronRight,
     MessageSquare, Info, Smartphone, Sliders, Menu as MenuIcon,
-    AlertCircle, Edit2
+    AlertCircle, Edit2,
+    Send,
+    Menu,
+    Pill
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import api from '@/lib/services/api.service';
@@ -86,29 +89,29 @@ function PhonePreview({
 
 
     return (
-        <div className="w-[280px] h-[560px] rounded-[44px] border-[8px] border-[#2a2a2a] bg-black shadow-2xl relative flex flex-col overflow-hidden select-none outline outline-2 outline-[#393939] shrink-0 my-auto">
+        <div className="w-[240px] h-[480px] sm:w-[280px] sm:h-[560px] rounded-[32px] sm:rounded-[44px] border-[6px] sm:border-[8px] border-[#2a2a2a] bg-black shadow-2xl relative flex flex-col overflow-hidden select-none outline outline-1 sm:outline-2 outline-[#393939] shrink-0 my-auto animate-fadeIn">
             {/* Notch / Dynamic Island */}
-            <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-20 h-5 bg-black rounded-full z-50 pointer-events-none" />
+            <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-16 sm:w-20 h-4 sm:h-5 bg-black rounded-full z-50 pointer-events-none" />
 
             {/* Inner Screen Content Wrapper */}
             <div
-                className="h-full w-full flex flex-col pt-0 relative z-10 bg-black rounded-[36px] overflow-hidden"
+                className="h-full w-full flex flex-col pt-0 relative z-10 bg-black rounded-[26px] sm:rounded-[36px] overflow-hidden"
                 style={{ clipPath: 'inset(0 round 36px)' }}
             >
                 {/* iOS Status Bar */}
-                <div className="absolute top-0 left-0 right-0 h-6 px-5 flex items-center justify-between text-[9px] font-semibold text-white z-50 pointer-events-none bg-transparent">
+                <div className="absolute top-0 left-0 right-0 h-5 sm:h-6 px-4 sm:px-5 flex items-center justify-between text-[8px] sm:text-[9px] font-semibold text-white z-50 pointer-events-none bg-transparent">
                     <span>9:41</span>
                     <div className="flex items-center gap-1">
                         {/* Signal */}
-                        <svg className="w-2.5 h-2.5 fill-current" viewBox="0 0 24 24">
+                        <svg className="w-2 sm:w-2.5 h-2 sm:h-2.5 fill-current" viewBox="0 0 24 24">
                             <path d="M2 22h20V2z" />
                         </svg>
                         {/* Wifi */}
-                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <svg className="w-2.5 sm:w-3 h-2.5 sm:h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                             <path d="M12 20h.01M8.5 16.5a5 5 0 0 1 7 0M5.5 13.5a9 9 0 0 1 13 0M2.5 10.5a13 13 0 0 1 19 0" />
                         </svg>
                         {/* Battery */}
-                        <div className="w-4 h-2 border border-white/80 rounded-2xs p-0.5 flex items-center">
+                        <div className="w-3.5 sm:w-4 h-1.5 sm:h-2 border border-white/80 rounded-2xs p-0.5 flex items-center">
                             <div className="h-full w-3/4 bg-white/90 rounded-[1px]" />
                         </div>
                     </div>
@@ -125,12 +128,11 @@ function PhonePreview({
                         }}
                     >
                         {/* Header */}
-                        <div className="pt-8 h-18 px-4 flex items-center justify-between border-b border-white/5 bg-black/40 backdrop-blur-md">
-                            <ChevronLeft className="w-5 h-5 text-white opacity-40" />
-                            <span className="text-[10px] font-bold text-white tracking-tight">Messages</span>
-                            <div className="w-5 h-5" />
+                        <div className="pt-6 sm:pt-8 h-15 sm:h-18 px-4 flex items-center justify-between border-b border-white/5 bg-black/40 backdrop-blur-md">
+                            <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-white opacity-40" />
+                            <span className="text-[9px] sm:text-[10px] font-bold text-white tracking-tight">Messages</span>
+                            <div className="w-4 h-4 sm:w-5 sm:h-5" />
                         </div>
-
                         {/* Search Bar */}
                         <div className="px-3.5 py-2">
                             <div className="bg-[#1c1b1b] rounded-lg px-3 py-1.5 flex items-center gap-2 text-zinc-500 border border-white/5">
@@ -140,7 +142,6 @@ function PhonePreview({
                                 <span className="text-[9px] font-medium">Search</span>
                             </div>
                         </div>
-
                         {/* Chat List */}
                         <div className="flex-1 overflow-y-auto px-2 py-1">
                             {/* Chat Row (The single chat) */}
@@ -151,13 +152,11 @@ function PhonePreview({
                                 {/* Pulsing pointer indicator */}
                                 <div className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 bg-sky-500 rounded-full opacity-60 animate-ping pointer-events-none" />
                                 <div className="absolute right-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-sky-500 rounded-full border-2 border-black pointer-events-none shadow" />
-
                                 <div className="w-10 h-10 rounded-full border border-white/10 overflow-hidden shrink-0 relative">
                                     <img src={profilePic} className="w-full h-full object-cover" alt="" />
                                     {/* Green active dot */}
                                     <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-black" />
                                 </div>
-
                                 <div className="flex-1 min-w-0 text-left">
                                     <div className="flex items-center justify-between">
                                         <span className="text-[11px] font-bold text-white truncate block">
@@ -173,23 +172,22 @@ function PhonePreview({
                         </div>
                     </div>
                 )}
-
                 {/* Main Chat Interface */}
                 <div className="flex-1 flex flex-col min-h-0 bg-black">
                     {/* Instagram App Header Mock */}
                     <div
-                        className="pt-8 h-20 border-b border-white/5 px-4 flex items-center gap-3 bg-black/40 backdrop-blur-md shrink-0 rounded-t-[36px]"
+                        className="pt-6 sm:pt-8 h-16 sm:h-20 border-b border-white/5 px-3 sm:px-4 flex items-center gap-2.5 sm:gap-3 bg-black/40 backdrop-blur-md shrink-0 rounded-t-[36px]"
                         style={{ clipPath: 'inset(0 round 36px 36px 0 0)' }}
                     >
                         <ChevronLeft
-                            className="w-5 h-5 text-white shrink-0 cursor-pointer hover:opacity-80 active:scale-90 transition-all"
+                            className="w-4 h-4 sm:w-5 sm:h-5 text-white shrink-0 cursor-pointer hover:opacity-80 active:scale-90 transition-all"
                             onClick={() => {
                                 if (type === 'icebreakers') {
                                     setAnimationStep('list');
                                 }
                             }}
                         />
-                        <div className="w-8 h-8 rounded-full bg-zinc-800 border border-white/10 overflow-hidden shrink-0">
+                        <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-zinc-800 border border-white/10 overflow-hidden shrink-0">
                             <img
                                 src={profilePic}
                                 className="w-full h-full object-cover"
@@ -236,7 +234,7 @@ function PhonePreview({
                                     opacity: animationStep === 'chat' ? 1 : 0
                                 }}
                             >
-                                <div className="w-12 h-12 rounded-full p-[1px] bg-gradient-to-tr from-[#353535] to-[#2a2a2a] flex items-center justify-center">
+                                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full p-[1px] bg-gradient-to-tr from-[#353535] to-[#2a2a2a] flex items-center justify-center">
                                     <img src={profilePic} className="w-full h-full rounded-full object-cover border-2 border-black" alt="" />
                                 </div>
                                 <div className="flex items-center gap-0.5 mt-1.5">
@@ -405,7 +403,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
     }, [activeAccountId, instagramAccounts]);
 
     const username = activeAccount?.username || appUser?.username || 'Mailspot';
-    const profilePic = activeAccount?.profile_picture_url || 'https://picsum.photos/seed/elena/100/100';
+    const profilePic = activeAccount?.profile_picture_url || 'https://static.vecteezy.com/system/resources/previews/002/318/271/non_2x/user-profile-icon-free-vector.jpg';
     const websiteUrl = activeAccount?.website || 'www.mailspot.com';
 
     const followersCount = "54k";
@@ -432,6 +430,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
     const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
     const [modalTab, setModalTab] = React.useState<'icebreakers' | 'persistent_menu'>(defaultTab || 'icebreakers');
     const [validationError, setValidationError] = React.useState<string | null>(null);
+    const [mobileView, setMobileView] = React.useState<'edit' | 'preview'>('edit');
     const [successMessage, setSuccessMessage] = React.useState<string | null>(null);
     const [isSaving, setIsSaving] = React.useState(false);
     const [isDeleting, setIsDeleting] = React.useState(false);
@@ -1058,20 +1057,94 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
     // --- Modal Configuration Panel Layout ---
     const renderModalContent = () => {
         return (
-            <div className="w-full max-w-4xl h-[90vh] lg:h-[85vh] max-h-[820px] lg:max-h-[780px] bg-[#131313] border border-[#444748] rounded-xl overflow-y-auto lg:overflow-hidden flex flex-col shadow-[0_24px_48px_rgba(0,0,0,0.8)] animate-in fade-in zoom-in-95 duration-200 text-[#e5e2e1] relative z-10 font-sans">
+            <div className="w-full max-w-4xl h-[92vh] sm:h-[88vh] max-h-[880px] bg-[#131313]/90 backdrop-blur-3xl border border-white/10 rounded-xl overflow-hidden flex flex-col shadow-[0_32px_64px_rgba(0,0,0,0.6)] animate-in fade-in zoom-in duration-300 text-white relative z-10 font-inter">
                 {/* Modal Subheader for validation errors */}
                 {validationError && (
-                    <div className="px-6 py-2.5 bg-[#93000a]/10 border-b border-[#93000a] flex items-center gap-2 text-red-400 text-xs font-semibold animate-in slide-in-from-top-1 duration-150 shrink-0">
+                    <div className="px-4 sm:px-6 py-2.5 bg-red-500/10 border-b border-red-500/20 flex items-center gap-2 text-red-400 text-xs font-semibold animate-in slide-in-from-top-1 duration-150 shrink-0">
                         <AlertCircle className="w-4 h-4 shrink-0" />
                         <span>{validationError}</span>
                     </div>
                 )}
+                <div className="px-4 sm:px-6 py-3.5 sm:py-5 border-b border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0 bg-transparent">
+                    <div className="flex items-center gap-2.5 sm:gap-3.5">
+                        <div className="p-1.5 sm:p-2.5 bg-white/5 rounded-xl border border-white/10">
+                            {modalTab !== 'icebreakers' ? <Menu className="w-5 h-5 text-white" /> : <Pill className="w-5 h-5 text-white" />}
+                        </div>
+                        <div>
+                            <h2 className="font-inter text-sm sm:text-base md:text-lg font-bold text-white tracking-tight leading-tight">
+                                {modalTab === 'icebreakers' ? "Configure Welcome Message" : "Configure Persistent Menu"}
+                            </h2>
+                            <span className="text-[10px] sm:text-xs text-zinc-400 font-medium tracking-wide block mt-1 leading-tight">
+                                {modalTab === 'icebreakers'
+                                    ? "Set up suggested question shortcuts shown to new chat users."
+                                    : "Set up persistent shortcuts at the bottom of the user's inbox."}
+                            </span>
+                        </div>
+                    </div>
+                    {/* Header Action Controls */}
+                    <div className="flex items-center gap-2 sm:gap-3 self-end sm:self-auto shrink-0">
+                        <button
+                            type="button"
+                            onClick={onCloseModal}
+                            disabled={isSaving || isDeleting}
+                            className="px-3 sm:px-4 py-1.5 sm:py-2 rounded border border-white/10 text-zinc-300 font-semibold text-xs md:text-sm hover:bg-white/5 hover:text-white transition-all active:scale-95 cursor-pointer"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleSave}
+                            disabled={isSaving || isDeleting}
+                            className="px-3 sm:px-4 py-1.5 sm:py-2 rounded bg-white text-black font-bold text-xs md:text-sm hover:opacity-90 transition-all active:scale-95 flex items-center gap-2 shadow-lg shadow-white/5 cursor-pointer disabled:opacity-50"
+                        >
+                            <Check className="w-4 h-4 stroke-[3]" />
+                            {isSaving ? (
+                                <>
+                                    <div className="w-3 h-3 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                                    Saving...
+                                </>
+                            ) : (
+                                "Save"
+                            )}
+                        </button>
+                    </div>
+                </div>
+
+                {/* Toggle Bar for Mobile View */}
+                <div className="flex lg:hidden border-b border-white/10 bg-white/5 shrink-0">
+                    <button
+                        type="button"
+                        onClick={() => setMobileView('edit')}
+                        className={cn(
+                            "flex-1 py-3 text-xs font-bold text-center border-b-2 transition-all",
+                            mobileView === 'edit'
+                                ? "text-white border-white bg-white/5"
+                                : "text-zinc-400 border-transparent hover:text-zinc-200"
+                        )}
+                    >
+                        Edit Configuration
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setMobileView('preview')}
+                        className={cn(
+                            "flex-1 py-3 text-xs font-bold text-center border-b-2 transition-all",
+                            mobileView === 'preview'
+                                ? "text-white border-white bg-white/5"
+                                : "text-zinc-400 border-transparent hover:text-zinc-200"
+                        )}
+                    >
+                        Live Preview
+                    </button>
+                </div>
 
                 {/* Modal Workspace Columns */}
-                <div className="flex-1 flex flex-col lg:flex-row lg:min-h-0">
+                <div className="flex-1 flex flex-col lg:flex-row overflow-hidden min-h-0">
                     {/* LEFT COLUMN: Simulated Device */}
-                    <div className="lg:w-[360px] bg-black/25 p-6 flex flex-col items-center border-b lg:border-b-0 lg:border-r border-white/10 shrink-0 justify-center py-8 lg:py-6 lg:overflow-y-auto lg:min-h-0">
-
+                    <div className={cn(
+                        "lg:w-[360px] bg-black/25 p-4 sm:p-6 flex flex-col items-center border-b lg:border-b-0 lg:border-r border-white/10 shrink-0 justify-center lg:overflow-y-auto lg:min-h-0 custom-scrollbar",
+                        mobileView === 'preview' ? "flex" : "hidden lg:flex"
+                    )}>
                         {modalTab === 'icebreakers' ? (
                             <PhonePreview
                                 type="icebreakers"
@@ -1085,7 +1158,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                                 postsCount={postsCount}
                                 mutualsText={mutualsText}
                                 isStatic={true}
-                                profile_urls={activeAccount?.profile_picture_url || 'https://picsum.photos/seed/elena/100/100'}
+                                profile_urls={activeAccount?.profile_picture_url || 'https://static.vecteezy.com/system/resources/previews/002/318/271/non_2x/user-profile-icon-free-vector.jpg'}
                             />
                         ) : (
                             <PhonePreview
@@ -1100,20 +1173,23 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                                 postsCount={postsCount}
                                 mutualsText={mutualsText}
                                 isStatic={true}
-                                profile_urls={activeAccount?.profile_picture_url || 'https://picsum.photos/seed/elena/100/100'}
+                                profile_urls={activeAccount?.profile_picture_url || 'https://static.vecteezy.com/system/resources/previews/002/318/271/non_2x/user-profile-icon-free-vector.jpg'}
                             />
                         )}
                     </div>
 
                     {/* RIGHT COLUMN: Configuration Form Area */}
-                    <div className="flex-1 flex flex-col p-6 lg:p-8 bg-[#131313] lg:min-h-0">
+                    <div className={cn(
+                        "flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 sm:space-y-6 custom-scrollbar bg-[#121212]",
+                        mobileView === 'edit' ? "block" : "hidden lg:block"
+                    )}>
                         {/* Editor Header */}
-                        <div className="flex items-center justify-between pb-4 border-b border-[#444748] shrink-0">
+                        <div className="hidden sm:flex items-center justify-between pb-3 border-b border-white/10 shrink-0">
                             <div>
-                                <h3 className="text-sm font-semibold text-white">
-                                    {modalTab === 'icebreakers' ? "Configure Wellcome Message" : "Configure Menu Options"}
+                                <h3 className="text-xs font-semibold text-white tracking-wider uppercase">
+                                    {modalTab === 'icebreakers' ? "Configure Welcome Message" : "Configure Menu Options"}
                                 </h3>
-                                <p className="text-[11px] text-zinc-500 mt-0.5">
+                                <p className="text-[10px] text-zinc-500 mt-1">
                                     {modalTab === 'icebreakers'
                                         ? "Set up suggested question shortcuts shown to new chat users."
                                         : "Set up persistent shortcuts at the bottom of the user's inbox."}
@@ -1121,19 +1197,19 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                             </div>
                         </div>
 
-                        {/* Form Inputs Scroll Area */}
-                        <div className="flex-1 overflow-y-visible lg:overflow-y-auto py-6 space-y-5 custom-scrollbar lg:min-h-0">
+                        {/* Form Inputs */}
+                        <div className="space-y-5">
                             {modalTab === 'icebreakers' ? (
                                 /* TAB PANEL 1: Icebreakers Configuration */
                                 <div className="space-y-5 animate-fadeIn">
                                     <div className="space-y-1.5">
-                                        <label className="text-[11px] font-bold text-zinc-400 tracking-wider block">Title / Any small description</label>
+                                        <label className="text-[10px] font-bold text-zinc-400 tracking-wider block">Title / Any small description</label>
                                         <input
                                             type="text"
                                             value={tempWelcomePrompt}
                                             onChange={(e) => setTempWelcomePrompt(e.target.value)}
                                             placeholder="e.g., Tap to send a question suggested by Mailspot"
-                                            className="w-full bg-[#0e0e0e] border border-[#444748] rounded-md px-3.5 py-2 text-xs text-white outline-none focus:border-zinc-300 font-medium"
+                                            className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-white/50 font-semibold"
                                         />
                                     </div>
 
@@ -1144,7 +1220,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                                                 <button
                                                     type="button"
                                                     onClick={handleAddIcebreaker}
-                                                    className="py-1 px-2.5 bg-white/5 hover:bg-white/10 border border-[#444748] text-[10px] font-semibold rounded-md transition-all flex items-center gap-1 cursor-pointer text-white"
+                                                    className="py-1.5 px-2.5 bg-white/10 hover:bg-white/15 border border-[#444748] text-[10px] font-bold rounded transition-all flex items-center gap-1 cursor-pointer text-white shrink-0 whitespace-nowrap"
                                                 >
                                                     <Plus className="w-3.5 h-3.5" /> Add Question
                                                 </button>
@@ -1153,7 +1229,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
 
                                         <div className="space-y-2">
                                             {tempIceBreakers.map((ib, idx) => (
-                                                <div key={idx} className="flex gap-2 bg-[#0e0e0e] border border-[#444748] p-3 rounded-md items-center animate-fadeIn">
+                                                <div key={idx} className="flex gap-2 items-center animate-fadeIn">
                                                     <span className="text-xs font-bold text-zinc-550 w-5 text-center">{idx + 1}</span>
                                                     <input
                                                         type="text"
@@ -1161,12 +1237,12 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                                                         onChange={(e) => handleUpdateIcebreakerQuestion(idx, e.target.value)}
                                                         placeholder="Ask a question..."
                                                         maxLength={80}
-                                                        className="flex-1 bg-[#131313] border border-[#444748] rounded-md px-3 py-1.5 text-xs text-white outline-none focus:border-zinc-300 font-medium"
+                                                        className="flex-1 bg-[#1c1b1b]/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-white/50 font-semibold"
                                                     />
                                                     <button
                                                         type="button"
                                                         onClick={() => handleRemoveIcebreaker(idx)}
-                                                        className="p-1.5 rounded-md text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0 cursor-pointer"
+                                                        className="p-2 rounded-xl text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0 cursor-pointer"
                                                     >
                                                         <Trash2 className="w-3.5 h-3.5" />
                                                     </button>
@@ -1178,17 +1254,17 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                             ) : (
                                 /* TAB PANEL 2: Menu Options Configuration */
                                 <div className="space-y-5 animate-fadeIn">
-                                    <div className="flex items-center justify-between bg-[#0e0e0e] border border-[#444748] rounded-md p-3.5">
+                                    <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-xl p-3.5">
                                         <div>
                                             <h4 className="text-xs font-semibold text-white">Disable Composer Input Box</h4>
-                                            <p className="text-[10px] text-zinc-500 mt-1">Force direct navigation shortcuts, locking traditional keyboard entry.</p>
+                                            <p className="text-[9px] text-[#b6b2ff]/60 font-semibold tracking-wider uppercase font-sora mt-1">Force direct shortcuts, locking keyboard input.</p>
                                         </div>
                                         <button
                                             type="button"
                                             onClick={() => setTempComposerInputDisabled(!tempComposerInputDisabled)}
                                             className={cn(
                                                 "w-9 h-5 rounded-full relative transition-all duration-200 shrink-0",
-                                                tempComposerInputDisabled ? "bg-white" : "bg-white/10"
+                                                tempComposerInputDisabled ? "bg-[#b6b2ff]" : "bg-white/10"
                                             )}
                                         >
                                             <div className={cn(
@@ -1206,7 +1282,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                                                 <button
                                                     type="button"
                                                     onClick={handleAddMenuItem}
-                                                    className="py-1 px-2.5 bg-white/5 hover:bg-white/10 border border-[#444748] text-[10px] font-semibold rounded-md transition-all flex items-center gap-1 cursor-pointer text-white"
+                                                    className="py-1.5 px-2.5 bg-white/10 hover:bg-white/15 border border-[#444748] text-[10px] font-bold rounded transition-all flex items-center gap-1 cursor-pointer text-white shrink-0 whitespace-nowrap"
                                                 >
                                                     <Plus className="w-3.5 h-3.5" /> Add Option
                                                 </button>
@@ -1215,12 +1291,12 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
 
                                         <div className="space-y-3">
                                             {tempPersistentMenuItems.map((item, idx) => (
-                                                <div key={idx} className="flex gap-3 bg-[#0e0e0e] border border-[#444748] p-4 rounded-md items-start relative animate-fadeIn">
+                                                <div key={idx} className="flex gap-3 bg-white/5 border border-white/10 p-3 sm:p-4 rounded-xl items-start relative animate-fadeIn">
                                                     <span className="text-[10px] font-bold text-zinc-500 w-4 text-center mt-2.5">{idx + 1}</span>
 
                                                     <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
                                                         <div className="space-y-1">
-                                                            <label className="text-[10px] font-semibold text-zinc-405 block">
+                                                            <label className="text-[10px] font-semibold text-zinc-400 block">
                                                                 Button is for
                                                             </label>
 
@@ -1233,7 +1309,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                                                                             : "postback"
                                                                 }
                                                                 onChange={(e) => handleUpdateMenuItemType(idx, e.target.value)}
-                                                                className="w-full rounded-md bg-[#131313] border border-[#444748] px-2 py-1.5 text-[10px] text-white focus:outline-none focus:border-[#5f6368] cursor-pointer"
+                                                                className="w-full rounded-xl bg-[#131313] border border-white/10 px-2.5 py-2 text-xs text-white focus:outline-none focus:border-white/50 cursor-pointer"
                                                             >
                                                                 <option value="postback">Message Follow-up</option>
                                                                 <option value="web_url">Open Link</option>
@@ -1254,20 +1330,20 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                                                         </div>
 
                                                         <div className="space-y-1">
-                                                            <span className="text-[10px] font-semibold text-zinc-405 block mb-1">Button Title</span>
+                                                            <span className="text-[10px] font-semibold text-zinc-400 block mb-1">Button Title</span>
                                                             <input
                                                                 type="text"
                                                                 value={item.title}
                                                                 onChange={(e) => handleUpdateMenuItemTitle(idx, e.target.value)}
                                                                 placeholder="e.g., Shop Now"
                                                                 maxLength={20}
-                                                                className="w-full bg-[#131313] border border-[#444748] rounded-md px-3 py-1 text-xs text-white outline-none focus:border-zinc-300 font-medium"
+                                                                className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-white/50 font-semibold"
                                                             />
                                                         </div>
 
                                                         {item.type === 'web_url' && (
                                                             <div className="space-y-1 md:col-span-2">
-                                                                <span className="text-[10px] font-semibold text-zinc-405 block mb-1">
+                                                                <span className="text-[10px] font-semibold text-zinc-400 block mb-1">
                                                                     Destination URL
                                                                 </span>
                                                                 <input
@@ -1275,17 +1351,17 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                                                                     value={item.url || ''}
                                                                     onChange={(e) => handleUpdateMenuItemUrl(idx, e.target.value)}
                                                                     placeholder="https://..."
-                                                                    className="w-full bg-[#131313] border border-[#444748] rounded-md px-3 py-1 text-xs text-white outline-none focus:border-zinc-300 font-medium"
+                                                                    className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-white/50 font-semibold"
                                                                 />
                                                             </div>
                                                         )}
                                                         {item.type === 'postback' && item.payload === 'TRACK_ORDER' && (
-                                                            <div className="space-y-1 md:col-span-2 bg-[#4f46e5]/10 border border-[#4f46e5]/20 rounded-md p-2.5 text-[10px] text-indigo-300 font-semibold mt-1">
+                                                            <div className="space-y-1 md:col-span-2 bg-[#b6b2ff]/10 border border-[#b6b2ff]/20 rounded-md p-2.5 text-[10px] text-[#b6b2ff] font-semibold mt-1">
                                                                 Using order number users can track the orders
                                                             </div>
                                                         )}
                                                         {item.type === 'postback' && item.payload !== 'TRACK_ORDER' && (
-                                                            <div className="space-y-1 md:col-span-2 bg-[#4f46e5]/10 border border-[#4f46e5]/20 rounded-md p-2.5 text-[10px] text-indigo-300 font-semibold mt-1">
+                                                            <div className="space-y-1 md:col-span-2 bg-[#b6b2ff]/10 border border-[#b6b2ff]/20 rounded-md p-2.5 text-[10px] text-[#b6b2ff] font-semibold mt-1">
                                                                 You can for continue the chat with add flow
                                                             </div>
                                                         )}
@@ -1294,7 +1370,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                                                     <button
                                                         type="button"
                                                         onClick={() => handleRemoveMenuItem(idx)}
-                                                        className="p-1.5 rounded-md text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0 cursor-pointer mt-5"
+                                                        className="p-2 rounded-xl text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0 cursor-pointer mt-5"
                                                     >
                                                         <Trash2 className="w-3.5 h-3.5" />
                                                     </button>
@@ -1315,12 +1391,12 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                                             <div key={idx} className="flex items-center justify-between bg-[#0e0e0e] border border-[#444748] rounded-md p-3.5">
                                                 <div>
                                                     <h4 className="text-xs font-semibold text-white">Order ID Retry Limit</h4>
-                                                    <p className="text-[10px] text-zinc-500 mt-1">Number of attempts before order tracking is automatically cancelled.</p>
+                                                    <p className="text-[9px] text-[#b6b2ff]/60 font-semibold tracking-wider uppercase font-sora mt-1">Attempts before tracking is cancelled.</p>
                                                 </div>
                                                 <select
                                                     value={tempOrderTrackRetryLimit}
                                                     onChange={(e) => setTempOrderTrackRetryLimit(Number(e.target.value))}
-                                                    className="bg-[#131313] border border-[#444748] rounded-md px-2.5 py-1.5 text-xs text-white outline-none focus:border-zinc-300 font-semibold cursor-pointer"
+                                                    className="bg-[#131313] border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-white/50 font-semibold cursor-pointer"
                                                 >
                                                     <option value={1}>1 Attempt</option>
                                                     <option value={2}>2 Attempts</option>
@@ -1339,7 +1415,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                         </div>
 
                         {/* Footer actions inside Modal */}
-                        <div className="pt-4 border-t border-[#444748] flex items-center justify-end shrink-0 gap-2">
+                        <div className="pt-4 border-t border-white/10 flex items-center justify-end shrink-0 gap-2">
                             <button
                                 type="button"
                                 onClick={handleDelete}
@@ -1355,29 +1431,8 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                                     modalTab === 'icebreakers' ? "Delete Message Flow" : "Delete Menu Flow"
                                 )}
                             </button>
-                            <button
-                                type="button"
-                                onClick={onCloseModal}
-                                disabled={isSaving || isDeleting}
-                                className="px-4 py-1.5 border border-[#444748] hover:bg-[#202020] text-xs font-semibold rounded transition-colors cursor-pointer text-white disabled:opacity-50"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleSave}
-                                disabled={isSaving || isDeleting}
-                                className="px-4 py-1.5 bg-sky-500 hover:bg-sky-600 text-white text-xs font-semibold rounded transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
-                            >
-                                {isSaving ? (
-                                    <>
-                                        <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                        Saving...
-                                    </>
-                                ) : (
-                                    "Save Changes"
-                                )}
-                            </button>
+
+
                         </div>
                     </div>
                 </div>
@@ -1390,7 +1445,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
     // Render direct flow edit overlay if nodeId is defined
     if (nodeId) {
         return createPortal(
-            <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-[#131313]/40 backdrop-blur-md overflow-hidden font-sans">
+            <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm overflow-hidden font-inter">
                 {renderModalContent()}
             </div>,
             document.body
@@ -1399,65 +1454,58 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
 
     // Otherwise, render full dual preview dashboard layout
     return (
-        <div className="space-y-6 font-sans text-[#e5e2e1] select-none">
+        <div className="space-y-3 sm:space-y-6 font-sans text-[#e5e2e1] select-none">
             {/* Page Header */}
-            {/* <div className="flex justify-between items-end mb-6">
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-white">Welcome Experience</h1>
-                    <p className="text-sm text-zinc-400 mt-1">Manage what users see when they open your Instagram Direct Chat for the first time.</p>
-                </div>
-                {successMessage && (
-                    <div className="glass-pane px-4 py-2 rounded-lg flex items-center gap-2 text-xs font-semibold bg-green-500/10 text-green-400 border border-green-500/30 animate-pulse">
-                        <Check className="w-4 h-4 shrink-0" />
-                        <span>{successMessage}</span>
-                    </div>
-                )}
-            </div> */}
+
 
             {/* Simulated Dual Previews */}
             <div className={defaultTab ? "flex flex-col" : "grid grid-cols-1 lg:grid-cols-2 gap-8"}>
                 {/* 1. Icebreakers preview */}
                 {(!defaultTab || defaultTab === 'icebreakers') && (
-                    <div className="flex justify-center items-center w-full py-2">
-                        <PhonePreview
-                            type="icebreakers"
-                            promptVal={welcomePrompt}
-                            itemsList={iceBreakers}
-                            composerInputDisabledVal={composerInputDisabled}
-                            profilePic={profilePic}
-                            username={username}
-                            websiteUrl={websiteUrl}
-                            followersCount={followersCount}
-                            postsCount={postsCount}
-                            mutualsText={mutualsText}
-                            profile_urls={activeAccount?.profile_picture_url || 'https://picsum.photos/seed/elena/100/100'}
-                        />
+                    <div className="flex justify-center items-center w-full py-1 sm:py-2 overflow-hidden">
+                        <div className="transform scale-[0.85] sm:scale-100 origin-top flex justify-center -mb-[76px] sm:mb-0">
+                            <PhonePreview
+                                type="icebreakers"
+                                promptVal={welcomePrompt}
+                                itemsList={iceBreakers}
+                                composerInputDisabledVal={composerInputDisabled}
+                                profilePic={profilePic}
+                                username={username}
+                                websiteUrl={websiteUrl}
+                                followersCount={followersCount}
+                                postsCount={postsCount}
+                                mutualsText={mutualsText}
+                                profile_urls={activeAccount?.profile_picture_url || 'https://static.vecteezy.com/system/resources/previews/002/318/271/non_2x/user-profile-icon-free-vector.jpg'}
+                            />
+                        </div>
                     </div>
                 )}
 
                 {/* 2. Menu Options preview */}
                 {(!defaultTab || defaultTab === 'persistent_menu') && (
-                    <div className="flex justify-center items-center w-full py-2">
-                        <PhonePreview
-                            type="persistent_menu"
-                            promptVal={welcomePrompt}
-                            itemsList={persistentMenuItems}
-                            composerInputDisabledVal={composerInputDisabled}
-                            profilePic={profilePic}
-                            username={username}
-                            websiteUrl={websiteUrl}
-                            followersCount={followersCount}
-                            postsCount={postsCount}
-                            mutualsText={mutualsText}
-                            profile_urls={activeAccount?.profile_picture_url || 'https://picsum.photos/seed/elena/100/100'}
-                        />
+                    <div className="flex justify-center items-center w-full py-1 sm:py-2 overflow-hidden">
+                        <div className="transform scale-[0.85] sm:scale-100 origin-top flex justify-center -mb-[76px] sm:mb-0">
+                            <PhonePreview
+                                type="persistent_menu"
+                                promptVal={welcomePrompt}
+                                itemsList={persistentMenuItems}
+                                composerInputDisabledVal={composerInputDisabled}
+                                profilePic={profilePic}
+                                username={username}
+                                websiteUrl={websiteUrl}
+                                followersCount={followersCount}
+                                postsCount={postsCount}
+                                mutualsText={mutualsText}
+                                profile_urls={activeAccount?.profile_picture_url || 'https://static.vecteezy.com/system/resources/previews/002/318/271/non_2x/user-profile-icon-free-vector.jpg'}
+                            />
+                        </div>
                     </div>
                 )}
             </div>
 
             {/* Portal for Edit Modal Popup */}
             {isEditModalOpen && createPortal(
-                <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-[#131313]/40 backdrop-blur-md overflow-hidden font-sans">
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm overflow-hidden font-inter">
                     {renderModalContent()}
                 </div>,
                 document.body

@@ -633,8 +633,8 @@ export default function ProductCreatePage() {
       className="text-[#e5e2e1] pb-16 space-y-8 font-sans"
     >
       {/* Header & Actions */}
-      <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-4 pb-4 border-b border-[#444748]/10">
-        <div>
+      <div className="sticky top-[100px] z-30 flex flex-col sm:flex-row justify-between sm:items-center gap-4 pb-4 pt-6 -mt-6 -mx-4 px-4 sm:-mx-6 sm:px-6 border-b border-[#444748]/10 bg-[#131313]">
+        <div className="hidden sm:block">
           <nav className="flex items-center gap-2 text-[#c4c7c8] text-xs mb-2">
             <Link href="/dashboard/products/catalog" className="hover:text-white transition-colors">
               Products
@@ -649,7 +649,7 @@ export default function ProductCreatePage() {
             )}
           </h2>
         </div>
-        <div className="flex gap-2 text-xs">
+        <div className="flex gap-2 text-xs w-full sm:w-auto justify-end">
           <button
             onClick={() => router.push("/dashboard/products/catalog")}
             className="px-4 py-2 rounded-[4px] bg-transparent border border-[#444748] text-[#e5e2e1] font-medium hover:bg-[#1c1b1b] transition-colors"
@@ -905,7 +905,7 @@ export default function ProductCreatePage() {
                   <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/90 to-transparent flex items-center justify-between text-[10px]">
                     <span className="font-medium text-white flex items-center gap-1">
                       <img
-                        src={activeAccount?.profile_picture_url || "https://picsum.photos/seed/elena/100/100"}
+                        src={activeAccount?.profile_picture_url || "https://static.vecteezy.com/system/resources/previews/002/318/271/non_2x/user-profile-icon-free-vector.jpg"}
                         className="w-4 h-4 rounded-full object-cover border border-white/20"
                         alt="Profile avatar"
                       />
@@ -1084,7 +1084,7 @@ export default function ProductCreatePage() {
                         setMetadata(updated);
                       }}
                       placeholder="Spec (e.g. Size)"
-                      className="flex-1 bg-[#1c1b1b] border border-[#444748]/60 rounded-[4px] px-3 py-1.5 text-xs text-white placeholder:text-[#8e9192]"
+                      className="flex-1 min-w-0 bg-[#1c1b1b] border border-[#444748]/60 rounded-[4px] px-3 py-1.5 text-xs text-white placeholder:text-[#8e9192]"
                     />
                     <input
                       value={item.value}
@@ -1094,8 +1094,7 @@ export default function ProductCreatePage() {
                         setMetadata(updated);
                       }}
                       placeholder="Value (e.g. 10x20 inches)"
-
-                      className="flex-w bg-[#1c1b1b] border border-[#444748]/60 rounded-[4px] px-3 py-1.5 text-xs text-white placeholder:text-[#8e9192]"
+                      className="flex-1 min-w-0 bg-[#1c1b1b] border border-[#444748]/60 rounded-[4px] px-3 py-1.5 text-xs text-white placeholder:text-[#8e9192]"
                     />
                     <button
                       onClick={() => setMetadata(metadata.filter((_, idx) => idx !== i))}

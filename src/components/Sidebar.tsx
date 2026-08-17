@@ -19,6 +19,8 @@ import {
   Gift,
   CreditCard,
   ShieldAlert,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -72,14 +74,14 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const userDisplayName = appUser?.display_name || appUser?.first_name || "Alex Rivera";
   const googlePhoto = firebaseUser?.providerData?.find((p: any) => p.providerId === "google.com")?.photoURL || firebaseUser?.photoURL;
-  const userPhoto = googlePhoto || appUser?.photo_url || "https://picsum.photos/seed/elena/100/100";
+  const userPhoto = googlePhoto || appUser?.photo_url || "https://static.vecteezy.com/system/resources/previews/002/318/271/non_2x/user-profile-icon-free-vector.jpg";
 
   const getAccountTypeLabel = () => {
+    const isPremiumActive = appUser?.is_premium_active ?? false;
     if (appUser?.plan === "pro") {
-      return "Creator Pro";
+      return isPremiumActive ? "Creator Pro" : "Pro Expired";
     }
     const trialDaysLeft = appUser?.trial_days_left ?? 0;
-    const isPremiumActive = appUser?.is_premium_active ?? false;
 
     if (isPremiumActive) {
       if (appUser?.has_extended_trial) {
@@ -92,6 +94,20 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   };
 
   const accountType = getAccountTypeLabel();
+
+  const [isRailMode, setIsRailMode] = useState(false);
+
+  useEffect(() => {
+    const handleToggle = () => {
+      setIsRailMode(prev => !prev);
+    };
+    window.addEventListener('toggle-main-sidebar-rail', handleToggle);
+    window.addEventListener('toggle-welcome-panel', handleToggle);
+    return () => {
+      window.removeEventListener('toggle-main-sidebar-rail', handleToggle);
+      window.removeEventListener('toggle-welcome-panel', handleToggle);
+    };
+  }, []);
 
   const handleLinkClick = () => {
     if (isOpen) {
@@ -112,14 +128,18 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       {/* Structural Sidebar Panel */}
       <aside
         className={cn(
-          "fixed z-50 w-60 shrink-0 border-r border-[#20201f] bg-[#131313] text-[#e5e2e1] flex flex-col p-4 transition-transform duration-200 ease-in-out select-none",
+          "fixed z-50 shrink-0 border-r border-[#20201f] bg-[#131313] text-[#e5e2e1] flex flex-col transition-all duration-300 ease-in-out select-none",
           "top-0 bottom-0 left-0 h-screen lg:rounded-none",
+          isRailMode ? "w-16 p-2" : "w-60 p-3",
           isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
         {/* Brand Header */}
-        <div className="flex items-center justify-between h-14 shrink-0 px-2 mb-4 border-b border-[#20201f]">
-          <Link href="/dashboard" className="flex items-center gap-2.5">
+        <div className={cn(
+          "flex items-center h-14 shrink-0 px-2 mb-4 border-b border-[#20201f]",
+          isRailMode ? "justify-center" : "justify-between"
+        )}>
+          <Link href="/dashboard" className="flex items-center gap-2.5" title="AnyDM Dashboard">
             <div className="w-6 h-6 flex items-center justify-center shrink-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -128,17 +148,21 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 className="w-6 h-6 object-contain"
               />
             </div>
-            <div className="flex flex-col">
-              <span className="font-semibold text-sm leading-none text-[#e5e2e1] tracking-tight">AnyDM</span>
-              {/* <span className="text-[9px] font-semibold text-[#8e9192] uppercase tracking-[0.12em] mt-0.5">Playground</span> */}
-            </div>
+            {!isRailMode && (
+              <div className="flex flex-col">
+                <span className="font-semibold text-sm leading-none text-[#e5e2e1] tracking-tight">AnyDM</span>
+              </div>
+            )}
           </Link>
-          <button
-            onClick={onClose}
-            className="lg:hidden p-1 hover:bg-[#20201f] rounded text-[#c4c7c8] hover:text-[#e5e2e1] transition-colors"
-          >
-            <X className="w-4.5 h-4.5" size={18} strokeWidth={1.5} />
-          </button>
+
+          {!isRailMode && (
+            <button
+              onClick={onClose}
+              className="lg:hidden p-1 hover:bg-[#20201f] rounded text-[#c4c7c8] hover:text-[#e5e2e1] transition-colors"
+            >
+              <X className="w-4.5 h-4.5" size={18} strokeWidth={1.5} />
+            </button>
+          )}
         </div>
 
         {/* Navigation Menu */}
@@ -147,14 +171,15 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             const isActive = activeTab === item.name;
             const targetHref = item.href;
             const Icon = item.icon;
-            appUser?.is_premium_active
             return (
               <Link
                 key={item.name}
                 href={targetHref}
                 onClick={handleLinkClick}
+                title={isRailMode ? item.name : undefined}
                 className={cn(
-                  "flex items-center gap-2.5 px-3 h-9 rounded text-sm relative group select-none [-webkit-tap-highlight-color:transparent] active:scale-[0.99] transition-colors duration-100",
+                  "flex items-center h-9 rounded text-sm relative group select-none [-webkit-tap-highlight-color:transparent] active:scale-[0.99] transition-all duration-200",
+                  isRailMode ? "justify-center px-0 w-11 h-11 mx-auto" : "gap-2.5 px-3",
                   isActive
                     ? "bg-[#20201f] text-[#ffffff] font-medium border border-[#353535]/60 shadow-sm"
                     : "text-[#c4c7c8] hover:text-[#e5e2e1] hover:bg-[#1c1b1b] border border-transparent"
@@ -168,7 +193,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                     isActive ? "text-[#ffffff]" : "text-[#8e9192] group-hover:text-[#e5e2e1]"
                   )}
                 />
-                <span className="truncate">{item.name}</span>
+                {!isRailMode && <span className="truncate">{item.name}</span>}
               </Link>
             );
           })}
@@ -179,7 +204,11 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           <Link
             href="/dashboard/settings/accounts"
             onClick={handleLinkClick}
-            className="flex items-center gap-2.5 px-2 py-2 rounded border border-transparent hover:bg-[#1c1b1b] cursor-pointer group select-none [-webkit-tap-highlight-color:transparent] transition-colors duration-100"
+            title={isRailMode ? userDisplayName : undefined}
+            className={cn(
+              "flex items-center rounded border border-transparent hover:bg-[#1c1b1b] cursor-pointer group select-none [-webkit-tap-highlight-color:transparent] transition-all duration-200",
+              isRailMode ? "justify-center p-1" : "gap-2.5 px-2 py-2"
+            )}
           >
             {/* Gold Gradient Ring Outer Container */}
             <div className="w-8 h-8 rounded-full shrink-0 p-[1.5px] bg-gradient-to-tr from-[#A67C1E] via-[#F1C40F] to-[#F9E79F] flex items-center justify-center">
@@ -194,16 +223,27 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               </div>
             </div>
 
-            <div className="flex flex-col min-w-0 flex-1">
-              <span className="text-xs font-medium text-[#e5e2e1] truncate group-hover:text-[#ffffff] transition-colors">
-                {userDisplayName}
-              </span>
-              <span className="text-[9px] text-[#8e9192] font-semibold tracking-wider uppercase truncate mt-0.5">
-                {accountType}
-              </span>
-            </div>
+            {!isRailMode && (
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="text-xs font-medium text-[#e5e2e1] truncate group-hover:text-[#ffffff] transition-colors">
+                  {userDisplayName}
+                </span>
+                <span className="text-[9px] text-[#8e9192] font-semibold tracking-wider uppercase truncate mt-0.5">
+                  {accountType}
+                </span>
+              </div>
+            )}
           </Link>
         </div>
+
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new CustomEvent('toggle-main-sidebar-rail'))}
+          className="hidden lg:flex absolute top-1/2 -right-3 -translate-y-1/2 w-8 h-8 rounded-full bg-[#1c1b1b] border border-[#20201f] hover:bg-[#2c2c2c] hover:border-zinc-500 text-zinc-400 hover:text-white items-center justify-center shadow-md cursor-pointer z-50 transition-all duration-200"
+          title={isRailMode ? "Expand Sidebar" : "Collapse Sidebar"}
+        >
+          {isRailMode ? <ChevronRight className="w-5 h-5 text-[#8FE3FF]" /> : <ChevronLeft className="w-5 h-5 text-zinc-400" />}
+        </button>
       </aside>
     </>
   );

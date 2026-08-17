@@ -139,14 +139,14 @@ export default function SellerKYCPage() {
   const getStatusBadge = () => {
     switch (kycData.status) {
       case "APPROVED":
-        return <span className="px-3 py-1 bg-green-500/10 border border-green-500/30 text-green-400 text-xs font-bold rounded-full">APPROVED</span>;
+        return <span className="px-3 py-1 .bg-green-500/10 .border border-green-500/30 text-green-400 text-xs font-bold rounded-full">APPROVED</span>;
       case "REJECTED":
-        return <span className="px-3 py-1 bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-bold rounded-full">REJECTED</span>;
+        return <span className="px-3 py-1 .bg-red-500/10 .border border-red-500/30 text-red-400 text-xs font-bold rounded-full">REJECTED</span>;
       case "SUBMITTED":
       case "REVIEW":
-        return <span className="px-3 py-1 bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-xs font-bold rounded-full">UNDER REVIEW</span>;
+        return <span className="px-3 py-1 .bg-yellow-500/10 .border border-yellow-500/30 text-yellow-400 text-xs font-bold rounded-full">UNDER REVIEW</span>;
       default:
-        return <span className="px-3 py-1 bg-zinc-500/10 border border-zinc-550 text-zinc-400 text-xs font-bold rounded-full">PENDING</span>;
+        return <span className="px-3 py-1 .bg-zinc-500/10 .border border-zinc-550 text-zinc-400 text-xs font-bold rounded-full">PENDING</span>;
     }
   };
 
@@ -182,7 +182,7 @@ export default function SellerKYCPage() {
                 <User className="w-4 h-4" />
                 <span>1. Personal & Tax Information</span>
               </h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-medium text-zinc-400">Full Name (as in bank/Aadhaar)</label>

@@ -8,6 +8,7 @@ import api from "@/lib/services/api.service";
 import { RootState } from "@/store";
 import { authService } from "@/lib/services/auth.service";
 import { auth } from "@/lib/firebase";
+import Toast from "./Toast";
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -27,6 +28,11 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const [firebaseUser, setFirebaseUser] = useState<any>(null);
 
   const [enableAi, setEnableAi] = useState(true);
+  const [toast, setToast] = useState<{
+    isVisible: boolean;
+    message: string;
+    type: "error" | "success" | "info";
+  }>({ isVisible: false, message: "", type: "error" });
 
   useEffect(() => {
     if (!auth) return;
@@ -49,6 +55,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
     };
     checkAiEnabled();
   }, []);
+
 
   const accountMenuRef = useRef<HTMLDivElement>(null);
   const profileMenuRef = useRef<HTMLDivElement>(null);
@@ -76,6 +83,16 @@ export default function Header({ onMenuClick }: HeaderProps) {
   };
 
   const handleSwitchAccount = async (accountId: number) => {
+    const targetAccount = instagramAccounts.find((acc: any) => acc.id === accountId);
+    if (targetAccount?.is_token_expired) {
+      setToast({
+        isVisible: true,
+        message: `The Instagram session for @${targetAccount.username} has expired. Please re-login first.`,
+        type: "error"
+      });
+      router.push("/dashboard/settings/accounts");
+      return;
+    }
     try {
       await authService.setActiveInstagramAccount(accountId);
       setIsAccountMenuOpen(false);
@@ -155,9 +172,22 @@ export default function Header({ onMenuClick }: HeaderProps) {
     (acc: any) => acc.id === appUser?.active_instagram_account_id
   ) || instagramAccounts[0];
 
+  useEffect(() => {
+    if (activeAccount?.is_token_expired) {
+      setToast({
+        isVisible: true,
+        message: `The Instagram session for @${activeAccount.username} has expired. Please re-login first.`,
+        type: "error"
+      });
+      if (pathname !== "/dashboard/settings/accounts") {
+        router.push("/dashboard/settings/accounts");
+      }
+    }
+  }, [activeAccount?.id, activeAccount?.is_token_expired, pathname, router]);
+
   const userDisplayName = appUser?.display_name || appUser?.first_name || "User";
   const googlePhoto = firebaseUser?.providerData?.find((p: any) => p.providerId === "google.com")?.photoURL || firebaseUser?.photoURL;
-  const userPhoto = googlePhoto || appUser?.photo_url || "https://picsum.photos/seed/elena/100/100";
+  const userPhoto = googlePhoto || appUser?.photo_url || "https://static.vecteezy.com/system/resources/previews/002/318/271/non_2x/user-profile-icon-free-vector.jpg";
 
   return (
     <div className="sticky top-0 z-[50] w-full flex flex-col bg-[#131313] border-b border-white/5 shrink-0 text-white">
@@ -190,9 +220,9 @@ export default function Header({ onMenuClick }: HeaderProps) {
           {activeAccount && (
             <div
               className={`relative ${pathname === "/dashboard/products/catalog/create" ||
-                  pathname.startsWith("/dashboard/automations")
-                  ? "pointer-events-none opacity-50 cursor-not-allowed"
-                  : ""
+                pathname.startsWith("/dashboard/automations")
+                ? "pointer-events-none opacity-50 cursor-not-allowed"
+                : ""
                 }`}
               ref={accountMenuRef}
             >
@@ -208,7 +238,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                   <img
                     src={
                       activeAccount?.profile_picture_url ||
-                      "https://picsum.photos/seed/elena/100/100"
+                      "https://static.vecteezy.com/system/resources/previews/002/318/271/non_2x/user-profile-icon-free-vector.jpg"
                     }
                     alt="Instagram Profile"
                     className="w-full h-full object-cover"
@@ -237,9 +267,9 @@ export default function Header({ onMenuClick }: HeaderProps) {
                       key={acc.id}
                       onClick={() => handleSwitchAccount(acc.id)}
                       className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${acc.id === activeAccount?.id
-                          ? "bg-white/10 text-white font-semibold"
-                          : "hover:bg-white/5 text-[#c4c7c8]/60 hover:text-white"
-                        }`}
+                        ? "bg-white/10 text-white font-semibold"
+                        : "hover:bg-white/5 text-[#c4c7c8]/60 hover:text-white"
+                        } ${acc.is_token_expired ? "opacity-75" : ""}`}
                     >
                       <img
                         src={acc.profile_picture_url}
@@ -247,7 +277,12 @@ export default function Header({ onMenuClick }: HeaderProps) {
                         alt={acc.username}
                       />
 
-                      <span className="text-xs truncate">@{acc.username}</span>
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-xs truncate">@{acc.username}</span>
+                        {acc.is_token_expired && (
+                          <span className="text-[9px] text-red-500 font-bold">Session Expired</span>
+                        )}
+                      </div>
 
                       {acc.id === activeAccount.id && (
                         <span className="material-symbols-outlined text-sm text-white ml-auto">
@@ -337,6 +372,12 @@ export default function Header({ onMenuClick }: HeaderProps) {
           </div>
         </nav>
       )}
+      <Toast
+        isVisible={toast.isVisible}
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast((prev) => ({ ...prev, isVisible: false }))}
+      />
     </div>
   );
 }

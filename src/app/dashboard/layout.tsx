@@ -82,6 +82,20 @@ function DashboardLayoutContent({
     hydrateSession();
   }, [firebaseUser, appUser, hasIgCode, instagramAccounts.length, dispatch]);
 
+  const [isRailMode, setIsRailMode] = useState(false);
+
+  useEffect(() => {
+    const handleToggle = () => {
+      setIsRailMode(prev => !prev);
+    };
+    window.addEventListener('toggle-main-sidebar-rail', handleToggle);
+    window.addEventListener('toggle-welcome-panel', handleToggle);
+    return () => {
+      window.removeEventListener('toggle-main-sidebar-rail', handleToggle);
+      window.removeEventListener('toggle-welcome-panel', handleToggle);
+    };
+  }, []);
+
   return (
     <div className={cn("bg-[#131313] text-[#e5e2e1] relative", isFullBleed ? "h-screen overflow-hidden" : "min-h-screen")}>
       {/* Ethereal Background Accents */}
@@ -93,9 +107,10 @@ function DashboardLayoutContent({
       {/* Global Sidebar (Responsive Overlay on Mobile, Fixed Sidebar on Desktop) */}
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
-      {/* Main Content Area (ml-0 on Mobile, ml-[240px] on Desktop) */}
+      {/* Main Content Area (Dynamic left margin matching sidebar width) */}
       <div className={cn(
-        "lg:ml-[240px] flex flex-col relative z-10 transition-all duration-300",
+        "flex flex-col relative z-10 transition-all duration-300",
+        isRailMode ? "lg:ml-[64px]" : "lg:ml-[240px]",
         isFullBleed ? "h-screen overflow-hidden" : "min-h-screen"
       )}>
         {/* Two-Tier Dynamic Header */}

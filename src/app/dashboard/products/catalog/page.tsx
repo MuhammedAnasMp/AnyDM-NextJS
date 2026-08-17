@@ -36,6 +36,60 @@ export default function CatalogPage() {
   const activeAccountId = appUser?.active_instagram_account_id;
   const isPremiumActive = appUser?.is_premium_active ?? true;
 
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedFilter, setSelectedFilter] = useState("All");
+
+  // Toast notifications
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastType, setToastType] = useState<"success" | "error" | "info">("success");
+
+  const showToast = (message: string, type: "success" | "error" | "info" = "success") => {
+    setToastMessage(message);
+    setToastType(type);
+    setToastVisible(true);
+  };
+
+  const cacheKey = `anydm_products_${activeAccountId || "default"}`;
+
+  const loadProducts = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get("/products/");
+      const data = response.data?.results || response.data;
+      if (data && Array.isArray(data)) {
+        setProducts(data);
+        localStorage.setItem(cacheKey, JSON.stringify(data));
+      } else {
+        loadFromLocalStorage();
+      }
+    } catch (err) {
+      console.warn("Backend API not reachable. Loading from localStorage fallback.");
+      loadFromLocalStorage();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadFromLocalStorage = () => {
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      setProducts(JSON.parse(cached));
+    } else {
+      setProducts([]);
+    }
+  };
+
+  useEffect(() => {
+    if (!isPremiumActive) return;
+    setProducts([]);
+    setSearchQuery("");
+    setSelectedFilter("All");
+    loadProducts();
+  }, [activeAccountId, isPremiumActive]);
+
   if (!isPremiumActive) {
     return (
       <div className="min-h-[50vh] flex items-center justify-center p-6 relative font-sans .bg-[#131313]">
@@ -92,59 +146,6 @@ export default function CatalogPage() {
       </div>
     );
   }
-
-  const [products, setProducts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedFilter, setSelectedFilter] = useState("All");
-
-  // Toast notifications
-  const [toastMessage, setToastMessage] = useState("");
-  const [toastVisible, setToastVisible] = useState(false);
-  const [toastType, setToastType] = useState<"success" | "error" | "info">("success");
-
-  const showToast = (message: string, type: "success" | "error" | "info" = "success") => {
-    setToastMessage(message);
-    setToastType(type);
-    setToastVisible(true);
-  };
-
-  const cacheKey = `anydm_products_${activeAccountId || "default"}`;
-
-  const loadProducts = async () => {
-    setLoading(true);
-    try {
-      const response = await api.get("/products/");
-      const data = response.data?.results || response.data;
-      if (data && Array.isArray(data)) {
-        setProducts(data);
-        localStorage.setItem(cacheKey, JSON.stringify(data));
-      } else {
-        loadFromLocalStorage();
-      }
-    } catch (err) {
-      console.warn("Backend API not reachable. Loading from localStorage fallback.");
-      loadFromLocalStorage();
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadFromLocalStorage = () => {
-    const cached = localStorage.getItem(cacheKey);
-    if (cached) {
-      setProducts(JSON.parse(cached));
-    } else {
-      setProducts([]);
-    }
-  };
-
-  useEffect(() => {
-    setProducts([]);
-    setSearchQuery("");
-    setSelectedFilter("All");
-    loadProducts();
-  }, [activeAccountId]);
 
   const handleDeleteProduct = async (id: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -215,7 +216,7 @@ export default function CatalogPage() {
           <h1 className="text-xl font-semibold text-white tracking-tight">Product catalog</h1>
           <p className="text-xs text-[#c4c7c8] mt-0.5">Manage, track, and optimize your synchronized ecommerce inventory.</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 justify-end">
           <button
             onClick={() => router.push("/dashboard/products/catalog?import=instagram")}
             className="h-9 px-4 rounded border border-[#2a2a2a] hover:bg-white/[0.02] text-white flex items-center gap-2 text-xs font-medium transition-colors bg-transparent active:scale-[0.98]"

@@ -159,12 +159,18 @@ function SignupContent() {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.4 }}
-        className="w-full max-w-[480px] glass-pane p-8 rounded-2xl relative z-10"
+        className="w-full max-w-[520px] border-0 sm:border sm:border-white/10 sm:bg-white/5 sm:backdrop-blur-md p-4 sm:p-8 rounded-2xl relative z-10"
       >
         <div className="flex flex-col items-center text-center mb-8">
-          <Link href="/" className="flex items-center gap-2 mb-4">
-            <span className="material-symbols-outlined text-white text-3xl font-bold">hub</span>
-            <span className="font-bold text-2xl tracking-tight text-white">AnyDM</span>
+          <Link href="/dashboard" className="flex items-center gap-2.5" title="AnyDM Dashboard">
+            <div className="w-13 h-13 flex items-center justify-center shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/icons/logo_white.png"
+                alt="AnyDM Logo"
+                className="w-13 h-13 object-contain"
+              />
+            </div>
           </Link>
           <h2 className="text-xl font-bold text-white">Create your account</h2>
           <p className="text-sm text-[#c4c7c8]/60 mt-1">Get started with our 14-day free trial</p>

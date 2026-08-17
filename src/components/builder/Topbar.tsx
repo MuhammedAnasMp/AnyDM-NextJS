@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store';
 import { undo, redo, selectNode, setFlow, updateFlowName, updateNodeData } from '@/store/slices/flowSlice';
-import { Undo, Redo, Settings, Eye, EyeOff, Loader2, ArrowLeft, Pencil, Calendar, ChevronDown, X } from 'lucide-react';
+import { Undo, Redo, Settings, Eye, EyeOff, Loader2, ArrowLeft, Pencil, Calendar, ChevronDown, X, Trash2, Check } from 'lucide-react';
 import api from '@/lib/services/api.service';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Toast from '../Toast';
@@ -16,11 +16,15 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
   const dispatch = useDispatch();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const flowIdParam = searchParams.get('id');
+  const isExistingFlow = !!(flowIdParam || (flow.id && /^\d+$/.test(String(flow.id))));
+
   const appUser = useSelector((state: RootState) => state.auth.user);
   const activeAccountId = appUser?.active_instagram_account_id;
 
   const triggerNode = flow.nodes.find(n => n.type === 'trigger');
   const [isSaving, setIsSaving] = React.useState(false);
+  const [isTopbarHidden, setIsTopbarHidden] = React.useState(false);
   const [isEditingTitle, setIsEditingTitle] = React.useState(false);
   const [tempTitle, setTempTitle] = React.useState(flow.name);
   const [showSchedulePopover, setShowSchedulePopover] = React.useState(false);
@@ -33,6 +37,10 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
   React.useEffect(() => {
     setTempTitle(flow.name);
   }, [flow.name]);
+
+  React.useEffect(() => {
+    window.dispatchEvent(new CustomEvent('schedule-popover-state', { detail: showSchedulePopover }));
+  }, [showSchedulePopover]);
 
   const toLocalDatetimeStr = (isoStr?: string | null) => {
     if (!isoStr) return '';
@@ -293,9 +301,15 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [dispatch, canUndo, canRedo]);
 
+  React.useEffect(() => {
+    const handleToggle = () => setIsTopbarHidden(prev => !prev);
+    window.addEventListener('toggle-topbar', handleToggle);
+    return () => window.removeEventListener('toggle-topbar', handleToggle);
+  }, []);
+
   return (
-    <div className="w-full flex flex-col bg-[#131313] border-b border-white/5 z-10 shrink-0">
-      <div className="h-16 px-4 flex items-center justify-between">
+    <div className={cn("w-full flex flex-col bg-[#131313] border-b border-white/5 z-10 shrink-0", isTopbarHidden && "hidden")}>
+      <div className="h-12 sm:h-16 px-3 sm:px-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button
             onClick={() => {
@@ -306,33 +320,46 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          {isEditingTitle ? (
-            <input
-              type="text"
-              value={tempTitle}
-              onChange={(e) => setTempTitle(e.target.value)}
-              onBlur={handleTitleSubmit}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleTitleSubmit();
-                if (e.key === 'Escape') {
-                  setTempTitle(flow.name);
-                  setIsEditingTitle(false);
-                }
-              }}
-              autoFocus
-              className="bg-[#1a1a1a] border border-white/20 rounded px-2.5 py-1 text-lg font-bold text-white focus:outline-none focus:border-white/50 font-inter"
-            />
-          ) : (
-            <div
-              onClick={() => setIsEditingTitle(true)}
-              className="flex items-center gap-2 group cursor-pointer hover:opacity-85 transition-opacity"
-              title="Click to edit automation name"
-            >
-              <h1 className="text-xl font-bold text-white tracking-tight">{flow.name}</h1>
-              <Pencil className="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" />
-            </div>
-          )}
-          <span className="text-xs font-medium text-on-surface-variant italic">Edited just now</span>
+          {(() => {
+            const isSpecialFlowName = flow.name === "Welcome Message Flow" || flow.name === "Persistent Menu Flow";
+            if (!isSpecialFlowName && isEditingTitle) {
+              return (
+                <input
+                  type="text"
+                  value={tempTitle}
+                  onChange={(e) => setTempTitle(e.target.value)}
+                  onBlur={handleTitleSubmit}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleTitleSubmit();
+                    if (e.key === 'Escape') {
+                      setTempTitle(flow.name);
+                      setIsEditingTitle(false);
+                    }
+                  }}
+                  autoFocus
+                  className="bg-[#1a1a1a] border border-white/20 rounded px-2.5 py-1 text-lg font-bold text-white focus:outline-none focus:border-white/50 font-inter"
+                />
+              );
+            }
+            return (
+              <div
+                onClick={() => {
+                  if (!isSpecialFlowName) setIsEditingTitle(true);
+                }}
+                className={cn(
+                  "flex items-center gap-2",
+                  !isSpecialFlowName && "group cursor-pointer hover:opacity-85 transition-opacity"
+                )}
+                title={isSpecialFlowName ? flow.name : "Click to edit automation name"}
+              >
+                <h1 className="text-base sm:text-xl font-bold text-white tracking-tight truncate max-w-[100px] sm:max-w-none">{flow.name}</h1>
+                {!isSpecialFlowName && (
+                  <Pencil className="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" />
+                )}
+              </div>
+            );
+          })()}
+          <span className="hidden sm:block text-xs font-medium text-on-surface-variant italic">Edited just now</span>
         </div>
 
         <div className="flex items-center gap-3">
@@ -361,7 +388,8 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
             </button>
           </div>
 
-          <div className="relative">
+          {/* Desktop Schedule & Popover Trigger */}
+          <div className="hidden sm:block relative">
             <button
               type="button"
               onClick={() => setShowSchedulePopover(!showSchedulePopover)}
@@ -369,15 +397,19 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
               title="Configure automation schedule date & time"
             >
               <Calendar className="w-4 h-4 text-[#8FE3FF]" />
-              <span className="font-medium text-white">
-                {startFormatted && endFormatted ? `${startFormatted} – ${endFormatted}` : startFormatted ? `From ${startFormatted}` : 'Always Active'}
+              <span className="font-medium text-white truncate max-w-[90px] sm:max-w-none">
+                {startFormatted && endFormatted
+                  ? `${startFormatted} – ${endFormatted}`
+                  : startFormatted
+                    ? `From ${startFormatted}`
+                    : 'Always Active'}
               </span>
               <ChevronDown className={cn("w-3.5 h-3.5 text-zinc-400 transition-transform duration-200", showSchedulePopover && "rotate-180")} />
             </button>
 
             {showSchedulePopover && (
-              <div className="absolute right-0 top-12 z-[9999] w-80 bg-[#131313]/95 backdrop-blur-2xl border border-white/10 rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.8)] space-y-4 animate-in fade-in zoom-in-95 duration-150 text-white font-inter">
-                <div className="flex items-center justify-between pb-2 border-b border-white/10">
+              <div className="absolute right-0 top-12 z-[9999] w-80 bg-[#131313]/95 backdrop-blur-2xl border border-white/15 rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.9)] space-y-4 animate-in fade-in zoom-in-95 duration-150 text-white font-inter">
+                <div className="flex items-center justify-between pb-2.5 border-b border-white/10">
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-[#8FE3FF]" />
                     <span className="text-xs font-bold uppercase tracking-wider text-white">Automation Schedule</span>
@@ -385,9 +417,9 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
                   <button
                     type="button"
                     onClick={() => setShowSchedulePopover(false)}
-                    className="p-1 rounded bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                    className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
                   >
-                    <X className="w-3.5 h-3.5" />
+                    <X className="w-4 h-4" />
                   </button>
                 </div>
 
@@ -397,28 +429,28 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
                     <button
                       type="button"
                       onClick={() => applyPreset(7)}
-                      className="px-2 py-1.5 rounded-lg bg-white/5 hover:bg-white/15 border border-white/10 text-[11px] font-semibold text-white transition-all text-center cursor-pointer active:scale-95"
+                      className="px-2.5 py-2 rounded bg-white/5 hover:bg-white/15 border border-white/10 text-[11px] font-semibold text-white transition-all text-center cursor-pointer active:scale-95"
                     >
                       7 Days
                     </button>
                     <button
                       type="button"
                       onClick={() => applyPreset(10)}
-                      className="px-2 py-1.5 rounded-lg bg-white/5 hover:bg-white/15 border border-white/10 text-[11px] font-semibold text-white transition-all text-center cursor-pointer active:scale-95"
+                      className="px-2.5 py-2 rounded bg-white/5 hover:bg-white/15 border border-white/10 text-[11px] font-semibold text-white transition-all text-center cursor-pointer active:scale-95"
                     >
                       10 Days
                     </button>
                     <button
                       type="button"
                       onClick={() => applyPreset(30)}
-                      className="px-2 py-1.5 rounded-lg bg-white/5 hover:bg-white/15 border border-white/10 text-[11px] font-semibold text-white transition-all text-center cursor-pointer active:scale-95"
+                      className="px-2.5 py-2 rounded bg-white/5 hover:bg-white/15 border border-white/10 text-[11px] font-semibold text-white transition-all text-center cursor-pointer active:scale-95"
                     >
                       30 Days
                     </button>
                     <button
                       type="button"
                       onClick={() => applyPreset(null)}
-                      className="px-2 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-[11px] font-bold text-[#8FE3FF] transition-all text-center cursor-pointer active:scale-95"
+                      className="px-2.5 py-2 rounded bg-white/10 hover:bg-white/20 border border-white/20 text-[11px] font-bold text-[#8FE3FF] transition-all text-center cursor-pointer active:scale-95"
                     >
                       Always
                     </button>
@@ -437,7 +469,8 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
                           dispatch(updateNodeData({ id: triggerNode.id, key: 'start_at', value: val }));
                         }
                       }}
-                      className="w-full bg-[#1a1a1a] border border-white/10 rounded-xl px-3 py-2 text-xs font-semibold text-white focus:outline-none focus:border-white/30"
+                      style={{ colorScheme: 'dark' }}
+                      className="w-full bg-[#1a1a1a] border border-white/10 rounded px-3 py-2 text-xs font-semibold text-white focus:outline-none focus:border-white/30"
                     />
                   </div>
                   <div className="space-y-1">
@@ -451,7 +484,8 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
                           dispatch(updateNodeData({ id: triggerNode.id, key: 'end_at', value: val }));
                         }
                       }}
-                      className="w-full bg-[#1a1a1a] border border-white/10 rounded-xl px-3 py-2 text-xs font-semibold text-white focus:outline-none focus:border-white/30"
+                      style={{ colorScheme: 'dark' }}
+                      className="w-full bg-[#1a1a1a] border border-white/10 rounded px-3 py-2 text-xs font-semibold text-white focus:outline-none focus:border-white/30"
                     />
                   </div>
                 </div>
@@ -466,16 +500,15 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
                           dispatch(updateNodeData({ id: triggerNode.id, key: 'end_at', value: null }));
                         }
                       }}
-                      className="w-full py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-rose-300 hover:text-rose-200 font-semibold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                      className="w-full py-2.5 rounded bg-white/5 hover:bg-white/10 border border-white/10 text-red-500 hover:text-rose-200 font-semibold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5"
                     >
-                      {/* <X className="w-3.5 h-3.5 text-rose-400" /> */}
-                      Remove Dates (Always Active)
+                      Remove Dates
                     </button>
                   )}
                   <button
                     type="button"
                     onClick={() => setShowSchedulePopover(false)}
-                    className="w-full py-2 rounded-xl bg-white text-black font-bold text-xs hover:bg-white/90 transition-all cursor-pointer shadow-md active:scale-98"
+                    className="w-full py-2.5 rounded bg-white text-black font-bold text-xs hover:bg-white/90 transition-all cursor-pointer shadow-md active:scale-98"
                   >
                     Done
                   </button>
@@ -484,20 +517,168 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
             )}
           </div>
 
+          {/* Mobile Schedule & Save Action Trigger */}
+          <button
+            type="button"
+            onClick={() => setShowSchedulePopover(!showSchedulePopover)}
+            className="sm:hidden h-8 px-3 rounded-full bg-white text-black font-bold text-xs flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer shrink-0"
+            title="Publish or Schedule Automation"
+          >
+            <Check className="w-3.5 h-3.5 text-black" />
+            <span>Publish</span>
+          </button>
+
+          {/* Mobile Modal Dialog */}
+          {showSchedulePopover && (
+            <div className="sm:hidden">
+              <div
+                className="fixed inset-0 bg-black/70 z-[9998] backdrop-blur-sm"
+                onClick={() => setShowSchedulePopover(false)}
+              />
+
+              <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-[9999] w-auto max-w-sm mx-auto bg-[#131313]/98 backdrop-blur-2xl border border-white/15 rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.9)] space-y-4 animate-in fade-in zoom-in-95 duration-150 text-white font-inter">
+                <div className="flex items-center justify-between pb-2.5 border-b border-white/10">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-[#8FE3FF]" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-white">Schedule & Actions</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowSchedulePopover(false)}
+                    className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">QUICK PRESETS</label>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => applyPreset(7)}
+                      className="px-2.5 py-2 rounded bg-white/5 hover:bg-white/15 border border-white/10 text-[11px] font-semibold text-white transition-all text-center cursor-pointer active:scale-95"
+                    >
+                      7 Days
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyPreset(10)}
+                      className="px-2.5 py-2 rounded bg-white/5 hover:bg-white/15 border border-white/10 text-[11px] font-semibold text-white transition-all text-center cursor-pointer active:scale-95"
+                    >
+                      10 Days
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyPreset(30)}
+                      className="px-2.5 py-2 rounded bg-white/5 hover:bg-white/15 border border-white/10 text-[11px] font-semibold text-white transition-all text-center cursor-pointer active:scale-95"
+                    >
+                      30 Days
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyPreset(null)}
+                      className="px-2.5 py-2 rounded bg-white/10 hover:bg-white/20 border border-white/20 text-[11px] font-bold text-[#8FE3FF] transition-all text-center cursor-pointer active:scale-95"
+                    >
+                      Always
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-3 pt-1">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Start Date & Time</label>
+                    <input
+                      type="datetime-local"
+                      value={toLocalDatetimeStr(triggerNode?.data?.start_at as string)}
+                      onChange={(e) => {
+                        if (triggerNode) {
+                          const val = e.target.value ? new Date(e.target.value).toISOString() : null;
+                          dispatch(updateNodeData({ id: triggerNode.id, key: 'start_at', value: val }));
+                        }
+                      }}
+                      style={{ colorScheme: 'dark' }}
+                      className="w-full bg-[#1a1a1a] border border-white/10 rounded px-3 py-2 text-xs font-semibold text-white focus:outline-none focus:border-white/30"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">End Date & Time</label>
+                    <input
+                      type="datetime-local"
+                      value={toLocalDatetimeStr(triggerNode?.data?.end_at as string)}
+                      onChange={(e) => {
+                        if (triggerNode) {
+                          const val = e.target.value ? new Date(e.target.value).toISOString() : null;
+                          dispatch(updateNodeData({ id: triggerNode.id, key: 'end_at', value: val }));
+                        }
+                      }}
+                      style={{ colorScheme: 'dark' }}
+                      className="w-full bg-[#1a1a1a] border border-white/10 rounded px-3 py-2 text-xs font-semibold text-white focus:outline-none focus:border-white/30"
+                    />
+                  </div>
+                </div>
+
+                {(triggerNode?.data?.start_at || triggerNode?.data?.end_at) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (triggerNode) {
+                        dispatch(updateNodeData({ id: triggerNode.id, key: 'start_at', value: null }));
+                        dispatch(updateNodeData({ id: triggerNode.id, key: 'end_at', value: null }));
+                      }
+                    }}
+                    className="w-full py-2 rounded bg-white/5 hover:bg-white/10 border border-white/10 text-red-500 hover:text-rose-200 font-semibold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    Remove Dates
+                  </button>
+                )}
+
+                <div className="flex flex-col gap-2 pt-2 border-t border-white/10">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowSchedulePopover(false);
+                        handleSave('draft');
+                      }}
+                      disabled={isSaving}
+                      className="flex-1 py-2.5 rounded bg-white/10 hover:bg-white/15 border border-white/10 text-white font-semibold text-xs transition-all cursor-pointer text-center"
+                    >
+                      Save Draft
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowSchedulePopover(false);
+                        handleSave('active');
+                      }}
+                      disabled={isSaving}
+                      className="flex-1 py-2.5 rounded bg-white text-black font-bold text-xs hover:bg-white/90 transition-all cursor-pointer text-center flex items-center justify-center gap-1.5"
+                    >
+                      {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                      {isExistingFlow ? 'Update' : 'Set Live'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Desktop Actions */}
           <button
             onClick={() => handleSave('draft')}
             disabled={isSaving}
-            className="text-sm font-medium text-on-surface-variant hover:text-white cursor-pointer transition-colors bg-transparent border-0 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="hidden sm:inline-block text-sm font-medium text-on-surface-variant hover:text-white cursor-pointer transition-colors bg-transparent border-0 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Save Draft
           </button>
           <button
             onClick={() => handleSave('active')}
             disabled={isSaving}
-            className="h-10 px-6 rounded-full bg-white text-black font-semibold text-sm hover:bg-white/90 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            className="hidden sm:flex h-10 px-6 rounded-full bg-white text-black font-semibold text-sm hover:bg-white/90 transition-colors items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
-            Set Live
+            {isExistingFlow ? 'Update' : 'Set Live'}
           </button>
         </div>
       </div>

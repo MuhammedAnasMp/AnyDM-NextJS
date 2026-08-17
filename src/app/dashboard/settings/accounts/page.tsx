@@ -101,7 +101,7 @@ const ProviderCard = ({ icon, title, subtitle, isConnected, onAction, actionText
   </div>
 );
 
-const InstagramRow = ({ account, isPrimary, onRemove, onToggleEnabled, onToggleLogin, onSetPrimary }: any) => (
+const InstagramRow = ({ account, isPrimary, onRemove, onToggleEnabled, onToggleLogin, onSetPrimary, onReLogin }: any) => (
   <div className={cn(
     "flex flex-col sm:flex-row sm:items-center justify-between p-4 mb-3 last:mb-0 rounded-md bg-[#1c1b1b] border transition-colors duration-200 group",
     isPrimary
@@ -111,7 +111,7 @@ const InstagramRow = ({ account, isPrimary, onRemove, onToggleEnabled, onToggleL
     <div className="flex items-center space-x-4 mb-4 sm:mb-0">
       <div
         className="relative cursor-pointer select-none"
-        onClick={() => !isPrimary && onSetPrimary(account.id)}
+        onClick={() => !isPrimary && !account.is_token_expired && onSetPrimary(account.id)}
       >
         <div className={cn(
           "w-12 h-12 rounded-full overflow-hidden shadow-md transition-transform duration-200 group-hover:scale-105 p-0.5 bg-zinc-800",
@@ -137,7 +137,12 @@ const InstagramRow = ({ account, isPrimary, onRemove, onToggleEnabled, onToggleL
       <div>
         <div className="flex items-center space-x-2.5">
           <span className="text-sm font-semibold text-[#e5e2e1] group-hover:text-[#8fe3ff] transition-colors">@{account.username}</span>
-          {account.is_enabled ? (
+          {account.is_token_expired ? (
+            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 text-[9px] font-semibold uppercase tracking-wider border border-red-500/20">
+              <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+              Expired
+            </span>
+          ) : account.is_enabled ? (
             <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#34d399]/10 text-[#34d399] text-[9px] font-semibold uppercase tracking-wider border border-[#34d399]/20">
               <div className="w-1.5 h-1.5 rounded-full bg-[#34d399] animate-pulse" />
               Active
@@ -156,14 +161,17 @@ const InstagramRow = ({ account, isPrimary, onRemove, onToggleEnabled, onToggleL
     <div className="flex items-center space-x-4">
       <div className="flex items-center space-x-1 sm:space-x-2">
         <button
-          onClick={() => onToggleEnabled(account.id, !account.is_enabled)}
+          onClick={() => !account.is_token_expired && onToggleEnabled(account.id, !account.is_enabled)}
+          disabled={account.is_token_expired}
           className={cn(
             "flex items-center justify-center p-2 text-xs font-semibold rounded-md border border-transparent transition-colors cursor-pointer",
-            account.is_enabled
-              ? "text-amber-400 hover:bg-amber-500/10"
-              : "text-[#34d399] hover:bg-[#34d399]/10"
+            account.is_token_expired
+              ? "text-zinc-600 cursor-not-allowed"
+              : account.is_enabled
+                ? "text-amber-400 hover:bg-amber-500/10"
+                : "text-[#34d399] hover:bg-[#34d399]/10"
           )}
-          title={account.is_enabled ? "Pause automations" : "Resume automations"}
+          title={account.is_token_expired ? "Token expired" : account.is_enabled ? "Pause automations" : "Resume automations"}
         >
           {account.is_enabled ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
         </button>
@@ -176,18 +184,28 @@ const InstagramRow = ({ account, isPrimary, onRemove, onToggleEnabled, onToggleL
         </button>
       </div>
 
-      <button
-        onClick={() => onToggleLogin(account.id, !account.used_for_login)}
-        className={cn(
-          "flex items-center justify-center gap-2 w-32 py-2 rounded-md text-xs font-semibold transition-colors active:scale-[0.98] border cursor-pointer",
-          account.used_for_login
-            ? "text-red-400 border-red-500/20 bg-red-500/5 hover:bg-red-500/10"
-            : "bg-[#2a2a2a] text-[#e5e2e1] hover:bg-[#353535] border-[#444748] hover:border-[#8e9192]"
-        )}
-      >
-        {account.used_for_login ? <Link2Off className="w-3.5 h-3.5" /> : <Link2 className="w-3.5 h-3.5" />}
-        <span>{account.used_for_login ? "Disconnect" : "Connect"}</span>
-      </button>
+      {account.is_token_expired ? (
+        <button
+          onClick={onReLogin}
+          className="flex items-center justify-center gap-2 w-32 py-2 rounded-md text-xs font-semibold bg-red-500 hover:bg-red-600 text-white border border-transparent cursor-pointer transition-colors"
+        >
+          <InstagramIcon className="w-3.5 h-3.5" />
+          <span>Re-login</span>
+        </button>
+      ) : (
+        <button
+          onClick={() => onToggleLogin(account.id, !account.used_for_login)}
+          className={cn(
+            "flex items-center justify-center gap-2 w-32 py-2 rounded-md text-xs font-semibold transition-colors active:scale-[0.98] border cursor-pointer",
+            account.used_for_login
+              ? "text-red-400 border-red-500/20 bg-red-500/5 hover:bg-red-500/10"
+              : "bg-[#2a2a2a] text-[#e5e2e1] hover:bg-[#353535] border-[#444748] hover:border-[#8e9192]"
+          )}
+        >
+          {account.used_for_login ? <Link2Off className="w-3.5 h-3.5" /> : <Link2 className="w-3.5 h-3.5" />}
+          <span>{account.used_for_login ? "Disconnect" : "Connect"}</span>
+        </button>
+      )}
     </div>
   </div>
 );
@@ -689,6 +707,7 @@ function AccountsContent() {
                     onToggleEnabled={handleToggleEnabled}
                     onToggleLogin={handleToggleLogin}
                     onSetPrimary={handleSetPrimary}
+                    onReLogin={handleAddInstagram}
                   />
                 ))
               ) : (

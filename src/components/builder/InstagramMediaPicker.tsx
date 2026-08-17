@@ -196,35 +196,35 @@ export function InstagramMediaPicker({ open, onClose, onSelect, selectedIds = []
           />
 
           {/* Modal Container */}
-          <div className="fixed inset-0 flex items-center justify-center z-[101] pointer-events-none p-4 md:p-6">
+          <div className="fixed inset-0 flex items-center justify-center z-[101] pointer-events-none p-3 sm:p-4 md:p-6">
             <motion.div
               initial={{ opacity: 0, scale: 0.96, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 15 }}
-              className="w-full bg-[#1c1b1b]/95 backdrop-blur-3xl rounded-xl p-6 md:p-8 shadow-[0_24px_60px_rgba(0,0,0,0.4)] border border-white/10 pointer-events-auto relative overflow-hidden flex flex-col transition-all duration-300 max-w-[760px] max-h-[85vh]"
+              className="w-full bg-[#1c1b1b]/95 backdrop-blur-3xl rounded-xl p-4 sm:p-6 md:p-8 shadow-[0_24px_60px_rgba(0,0,0,0.4)] border border-white/10 pointer-events-auto relative overflow-hidden flex flex-col transition-all duration-300 max-w-[760px] max-h-[92vh] sm:max-h-[85vh]"
             >
               {/* Top/Bottom Glow Accent */}
-              <div className="absolute -top-32 -right-32 w-64 h-64 bg-pink-500/5 blur-[90px] rounded-full" />
+              <div className="absolute -top-32 -right-32 w-64 h-64 bg-purple-500/5 blur-[90px] rounded-full" />
               <div className="absolute -bottom-32 -left-32 w-64 h-64 bg-purple-500/5 blur-[90px] rounded-full" />
 
               {/* Close Button */}
               <button
                 onClick={onClose}
-                className="absolute top-5 right-5 p-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-gray-400 hover:text-white transition-all duration-200"
+                className="absolute top-4 right-4 sm:top-5 sm:right-5 p-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-zinc-400 hover:text-white transition-all duration-200 z-10"
               >
                 <X className="w-4 h-4" />
               </button>
 
               {/* Modal Title */}
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-pink-500 to-purple-600 flex items-center justify-center text-white shadow-md">
-                  <InstagramIcon className="w-5 h-5" />
+              <div className="flex items-center gap-3 mb-5 sm:mb-6 pr-8 sm:pr-0">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-pink-500 to-purple-600 flex items-center justify-center text-white shadow-md shrink-0">
+                  <InstagramIcon className="w-4.5 h-4.5 sm:w-5 sm:h-5" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-white tracking-tight">
+                  <h2 className="text-sm sm:text-base md:text-xl font-bold text-white tracking-tight">
                     Select {resourceType === 'story' ? 'Instagram Stories' : 'Instagram Posts & Reels'}
                   </h2>
-                  <p className="text-xs text-gray-400 font-medium mt-1">
+                  <p className="text-[10px] sm:text-xs text-zinc-400 font-medium mt-0.5 sm:mt-1">
                     {activeAccount ? `Account: @${activeAccount.username}` : "Select posts to apply automation rules"}
                   </p>
                 </div>
@@ -232,30 +232,30 @@ export function InstagramMediaPicker({ open, onClose, onSelect, selectedIds = []
 
               {/* Media Grid Container */}
               <div
-                className="flex-1 overflow-y-auto min-h-0 pr-1 mb-6 max-h-[48vh] scrollbar-thin"
+                className="flex-1 overflow-y-auto min-h-0 pr-1 mb-5 sm:mb-6 custom-scrollbar"
               >
                 {media.length === 0 && loading ? (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 py-1">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5 sm:gap-3 py-1">
                     {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
                       <div key={i} className="aspect-square bg-white/5 border border-white/5 animate-pulse rounded-lg" />
                     ))}
                   </div>
                 ) : error ? (
-                  <div className="p-5 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-3 text-red-400">
+                  <div className="p-4 sm:p-5 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-3 text-red-400">
                     <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
                     <div>
-                      <h4 className="font-bold text-sm text-white">Failed to Fetch Feed</h4>
-                      <p className="text-xs opacity-80 mt-1">{error}</p>
+                      <h4 className="font-bold text-xs sm:text-sm text-white">Failed to Fetch Feed</h4>
+                      <p className="text-[10px] sm:text-xs opacity-80 mt-1">{error}</p>
                     </div>
                   </div>
                 ) : media.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 bg-white/5 rounded border border-white/5">
-                    <AlertCircle className="w-12 h-12 text-gray-500 mb-3 opacity-60" />
-                    <h4 className="font-bold text-sm text-white">No media posts found</h4>
-                    <p className="text-xs text-gray-400 text-center px-6 mt-1">We couldn't retrieve any media posts from your Instagram account.</p>
+                  <div className="flex flex-col items-center justify-center py-12 sm:py-16 bg-white/5 rounded border border-white/5">
+                    <AlertCircle className="w-10 w-10 sm:w-12 sm:h-12 text-zinc-500 mb-3 opacity-60" />
+                    <h4 className="font-bold text-xs sm:text-sm text-white">No media posts found</h4>
+                    <p className="text-[10px] sm:text-xs text-zinc-400 text-center px-6 mt-1">We couldn't retrieve any media posts from your Instagram account.</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 py-1">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5 sm:gap-3 py-1">
                     {media.map((item, index) => {
                       const isSelected = currentSelected.has(item.id);
                       const imageSrc = item.media_type === 'VIDEO' ? (item.thumbnail_url || item.media_url) : item.media_url;
@@ -269,7 +269,7 @@ export function InstagramMediaPicker({ open, onClose, onSelect, selectedIds = []
                           className={cn(
                             "group relative aspect-square bg-white/5 rounded-lg overflow-hidden cursor-pointer border transition-all duration-300",
                             isSelected
-                              ? "border-pink-500 shadow-lg shadow-pink-500/15 scale-[0.98]"
+                              ? "border-[#b6b2ff] shadow-lg shadow-[#b6b2ff]/15 scale-[0.98]"
                               : "border-white/5 hover:border-white/20"
                           )}
                         >
@@ -284,23 +284,23 @@ export function InstagramMediaPicker({ open, onClose, onSelect, selectedIds = []
 
                           {/* Caption Overlay on Hover */}
                           <div className={cn(
-                            "absolute inset-0 bg-black/60 transition-opacity duration-200 flex flex-col justify-end p-2.5",
+                            "absolute inset-0 bg-black/60 transition-opacity duration-200 flex flex-col justify-end p-2 sm:p-2.5",
                             isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                           )}>
-                            <p className="text-[10px] text-white font-medium line-clamp-2 leading-snug opacity-90">
+                            <p className="text-[9px] sm:text-[10px] text-white font-medium line-clamp-2 leading-snug opacity-90">
                               {item.caption || "No caption provided"}
                             </p>
                           </div>
 
                           {/* Corner Badges */}
-                          <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md p-1 rounded-md border border-white/10 shadow-sm flex items-center justify-center">
+                          <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 bg-black/60 backdrop-blur-md p-1 rounded-md border border-white/10 shadow-sm flex items-center justify-center">
                             {getMediaIcon(item.media_type)}
                           </div>
 
                           {/* Selection Checkmark */}
                           {isSelected && (
-                            <div className="absolute top-2 left-2 w-5 h-5 rounded-full bg-pink-500 text-white flex items-center justify-center shadow-md border border-white/10">
-                              <Check className="w-3.5 h-3.5 stroke-[3]" />
+                            <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 w-4.5 h-4.5 sm:w-5 sm:h-5 rounded-full bg-[#b6b2ff] text-[#131313] flex items-center justify-center shadow-md border border-white/10">
+                              <Check className="w-3 sm:w-3.5 h-3 sm:h-3.5 stroke-[3]" />
                             </div>
                           )}
                         </div>
@@ -310,25 +310,25 @@ export function InstagramMediaPicker({ open, onClose, onSelect, selectedIds = []
                 )}
 
                 {loading && media.length > 0 && (
-                  <div className="flex justify-center mt-6 pb-2 items-center gap-2">
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-pink-500" />
-                    <span className="text-xs text-gray-400 font-semibold">Loading more media...</span>
+                  <div className="flex justify-center mt-5 sm:mt-6 pb-2 items-center gap-2">
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#b6b2ff]" />
+                    <span className="text-xs text-zinc-400 font-semibold">Loading more media...</span>
                   </div>
                 )}
               </div>
 
               {/* Actions Footer */}
-              <div className="flex flex-col sm:flex-row items-center justify-between border-t border-white/5 pt-4 gap-4 bg-transparent">
+              <div className="flex flex-col sm:flex-row items-center justify-between border-t border-white/5 pt-4 gap-4 bg-transparent shrink-0">
                 <div className="text-center sm:text-left">
-                  <span className="text-xs text-gray-400 font-semibold">
+                  <span className="text-xs text-zinc-400 font-semibold">
                     {currentSelected.size} items selected
                   </span>
                 </div>
 
-                <div className="flex items-center gap-3 w-full sm:w-auto">
+                <div className="flex flex-row items-center gap-3 w-full sm:w-auto">
                   <button
                     onClick={() => fetchMedia()}
-                    className="py-2 px-4 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white rounded text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5 shrink-0"
+                    className="flex-1 sm:flex-none py-2 px-4 bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 hover:text-white rounded text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5 shrink-0"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
                     <span>Refresh</span>
@@ -336,7 +336,7 @@ export function InstagramMediaPicker({ open, onClose, onSelect, selectedIds = []
                   <button
                     onClick={handleConfirm}
                     disabled={currentSelected.size === 0}
-                    className="flex-1 sm:flex-none py-2 px-6 bg-white hover:bg-white/95 text-black rounded text-xs font-bold flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-[2] sm:flex-none py-2 px-6 bg-white hover:bg-white/95 text-black rounded text-xs font-bold flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <span>Confirm Selection</span>
                   </button>

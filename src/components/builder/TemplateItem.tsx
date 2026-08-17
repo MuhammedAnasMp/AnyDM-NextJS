@@ -78,11 +78,20 @@ export function TemplateItem({ title, desc, icon: Icon, onClick, nodeType, templ
     }
   };
 
+  const handleClick = () => {
+    if (typeof window !== 'undefined' && window.location.search) {
+      window.history.replaceState({}, '', '/dashboard/automations');
+    }
+    if (onClick) {
+      onClick();
+    }
+  };
+
   return (
     <div
       draggable={!!nodeType}
       onDragStart={handleDragStart}
-      onClick={onClick}
+      onClick={handleClick}
       className={cn(
         "flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer select-none active:scale-[0.99] transition-all group",
         isSelected && colors

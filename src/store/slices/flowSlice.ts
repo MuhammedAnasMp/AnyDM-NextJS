@@ -424,7 +424,7 @@ export const flowSlice = createSlice({
             saveToPast(state);
             state.edges = state.edges.filter(e => e.id !== action.payload);
         },
-        selectNode: (state, action: PayloadAction<{ id: string | null, rect?: { top: number, left: number, width: number, height: number } } | null>) => {
+        selectNode: (state, action: PayloadAction<{ id: string | null, rect?: { top: number, left: number, width: number, height: number } | null } | null>) => {
             state.lastEdit = null;
             if (action.payload === null) {
                 state.selectedNodeId = null;
@@ -506,10 +506,11 @@ export const flowSlice = createSlice({
             if (caseData.actions) {
                 caseData.actions.forEach((act, i) => {
                     const aId = `node-a-${Date.now()}-${i}`;
+                    const actAny = act as any;
                     const hasConfiguredData =
-                        (act.messages && act.messages.length > 0) ||
-                        (act.dm_format && act.dm_format !== 'text') ||
-                        (act.action_type && act.action_type !== 'send_dm');
+                        (actAny.messages && actAny.messages.length > 0) ||
+                        (actAny.dm_format && actAny.dm_format !== 'text') ||
+                        (actAny.action_type && actAny.action_type !== 'send_dm');
                     const posX = isShareRule ? 550 : (caseData.giveaway ? 1000 : 1000);
                     // Offset vertically for multiple actions
                     state.nodes.push({ id: aId, type: 'action', position: { x: posX, y: caseData.giveaway ? 300 + (i * 200) : 150 + (i * 200) }, data: { ...act, is_placeholder: !hasConfiguredData }, ruleType, templateId: tid });

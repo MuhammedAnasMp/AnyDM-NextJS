@@ -203,7 +203,7 @@ export default function PricingPage() {
     );
   }
 
-  const isPro = stats?.plan === "pro";
+  const isPro = stats?.plan === "pro" && stats?.is_premium_active;
   const pointsProgress = Math.min(100, Math.round(((stats?.points || 0) / (stats?.points_needed_for_premium || 100)) * 100));
 
   return (

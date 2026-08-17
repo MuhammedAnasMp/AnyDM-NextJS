@@ -155,7 +155,7 @@ function LoginContent() {
   };
 
   return (
-    <div className="min-h-screen bg-[#131313] text-[#e5e2e1] flex items-center justify-center p-6 relative overflow-hidden font-sans">
+    <div className="min-h-screen bg-[#131313] text-[#e5e2e1] flex items-center justify-center sm:p-0 p-6 relative overflow-hidden font-sans">
       {/* Ethereal background glows */}
       <div className="absolute top-[-300px] left-[-300px] w-[600px] h-[600px] rounded-full bg-[#c4c0ff]/10 blur-[120px] pointer-events-none"></div>
       <div className="absolute bottom-[-300px] right-[-300px] w-[600px] h-[600px] rounded-full bg-white/5 blur-[120px] pointer-events-none"></div>
@@ -175,12 +175,18 @@ function LoginContent() {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.4 }}
-        className="w-full max-w-[480px] glass-pane p-8 rounded-2xl relative z-10"
+        className="w-full max-w-[520px] border-0 sm:border sm:border-white/10 sm:bg-white/5 sm:backdrop-blur-md p-4 sm:p-8 rounded-2xl relative z-10"
       >
         <div className="flex flex-col items-center text-center mb-8">
-          <Link href="/" className="flex items-center gap-2 mb-4">
-            <span className="material-symbols-outlined text-white text-3xl font-bold">hub</span>
-            <span className="font-bold text-2xl tracking-tight text-white">AnyDM</span>
+          <Link href="/dashboard" className="flex items-center gap-2.5" title="AnyDM Dashboard">
+            <div className="w-13 h-13 flex items-center justify-center shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/icons/logo_white.png"
+                alt="AnyDM Logo"
+                className="w-13 h-13 object-contain"
+              />
+            </div>
           </Link>
           <h2 className="text-xl font-bold text-white">
             {isResetMode ? "Recover Account" : "Welcome back"}

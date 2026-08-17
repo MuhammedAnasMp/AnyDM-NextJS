@@ -460,6 +460,7 @@ export default function BuilderPage() {
   const selectedIds = targetNode?.data[mediaPickerFieldKey] || [];
   const selectedNode = nodes.find(n => n.id === selectedNodeId);
   const lastAutoOpenedNodeIdRef = React.useRef<string | null>(null);
+  const hasAutoOpenedWelcomeRef = React.useRef<boolean>(false);
 
   useEffect(() => {
     if (selectedNodeId) {
@@ -479,6 +480,8 @@ export default function BuilderPage() {
       lastAutoOpenedNodeIdRef.current = null;
     }
   }, [selectedNodeId, selectedNode?.id, selectedNode?.type, selectedNode?.data?.action_type, selectedNode?.ruleType, selectedNode?.data?.is_icebreaker_trigger, selectedNode?.data?.is_menu_trigger]);
+
+
 
   useEffect(() => {
     const handleOpenEditor = (e: Event) => {

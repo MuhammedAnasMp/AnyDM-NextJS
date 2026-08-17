@@ -165,7 +165,7 @@ export default function AutomationsDashboard() {
     fetchAutomations();
   }, [activeAccountId]);
 
-  const handleToggle = async (id: string, currentStatus: "active" | "disabled") => {
+  const handleToggle = async (id: string, currentStatus: "active" | "disabled" | "completed") => {
     setTogglingId(id);
     const nextEnabled = currentStatus !== "active";
     try {
@@ -255,7 +255,7 @@ export default function AutomationsDashboard() {
 
               <div>
                 <h1 className="text-base font-bold tracking-tight text-[#e5e2e1] flex items-center gap-1.5">
-                  <span>Instagram Automations</span>
+                  <span>Automations</span>
                   {/* <Sparkles className="w-3.5 h-3.5 text-[#B6B2FF] shrink-0" /> */}
                 </h1>
 
@@ -274,7 +274,7 @@ export default function AutomationsDashboard() {
                   className="py-1 h-8 px-2.5 bg-white hover:bg-[#e5e2e1] text-[#131313] rounded text-[13px] font-bold tracking-tight transition-colors flex items-center gap-1"
                 >
                   <Plus className="w-3 h-3" />
-                  <span>Create Workflow</span>
+                  <span>Create Flow</span>
                 </Link>
               </div>
             </div>
@@ -502,7 +502,7 @@ export default function AutomationsDashboard() {
                           </button>
 
                           <a
-                            href={`/dashboard/automations?id=${item.id}`}
+                            href={`/dashboard/automations?id=${item.id}&mode=edit`}
                             className="py-1 px-2.5 bg-[#222222] hover:bg-[#2c2c2c] border border-[#2e2e2e] rounded-md text-xs font-semibold text-[#e5e5e5] transition-colors flex items-center gap-1"
                           >
                             <Edit3 className="w-3 h-3 text-zinc-400" />
@@ -511,12 +511,7 @@ export default function AutomationsDashboard() {
 
                           <button
                             onClick={() => {
-                              if (isSpecialFlow) {
-                                const tabParam = item.name === "Welcome Message Flow" ? "icebreakers" : "persistent_menu";
-                                window.location.href = `/dashboard/automations?welcome=${tabParam}`;
-                                return;
-                              }
-                              handleDelete(item.id);
+                              window.location.href = `/dashboard/automations?id=${item.id}&openDelete=true`;
                             }}
                             disabled={deletingId === item.id}
                             className="p-1.5 bg-[#1c1c1c] border border-[#2e2e2e] rounded-md hover:bg-rose-950/20 hover:border-rose-900/40 text-zinc-400 hover:text-rose-400 transition-colors cursor-pointer"
@@ -885,13 +880,7 @@ export default function AutomationsDashboard() {
                 <div className="px-6 py-4 bg-[#181818]/50 border-t border-zinc-800/80 flex items-center justify-between gap-3">
                   <button
                     onClick={() => {
-                      if (isSpecialFlow) {
-                        const tabParam = item.name === "Welcome Message Flow" ? "icebreakers" : "persistent_menu";
-                        window.location.href = `/dashboard/automations?welcome=${tabParam}`;
-                        return;
-                      }
-                      handleDelete(item.id);
-                      setSelectedAutomation(null);
+                      window.location.href = `/dashboard/automations?id=${item.id}&openDelete=true`;
                     }}
                     className="px-4 py-2 rounded bg-zinc-800/40 hover:bg-rose-950/30 border border-zinc-800 hover:border-rose-900/50 text-zinc-400 hover:text-rose-400 font-medium text-xs transition-colors flex items-center gap-2 cursor-pointer"
                   >
@@ -911,7 +900,7 @@ export default function AutomationsDashboard() {
                     </button>
 
                     <a
-                      href={`/dashboard/automations?id=${item.id}`}
+                      href={`/dashboard/automations?id=${item.id}&mode=edit`}
                       className="px-4 py-2 rounded bg-white hover:bg-zinc-200 text-black font-semibold text-xs transition-all flex items-center gap-2 shadow-sm"
                     >
                       <Edit3 className="w-3.5 h-3.5" />

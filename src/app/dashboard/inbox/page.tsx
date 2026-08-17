@@ -8,7 +8,7 @@ import api from "@/lib/services/api.service";
 import { authService } from "@/lib/services/auth.service";
 import { cn } from "@/lib/utils";
 import { useSearchParams, useRouter } from "next/navigation";
-import { CheckCircle, Lock, Bot, X, Pencil, Plus } from "lucide-react";
+import { CheckCircle, Lock, Bot, X, Pencil, Plus, AlertCircle } from "lucide-react";
 import { span } from "framer-motion/client";
 import Toast from "@/components/Toast";
 const PlayableVideoAttachment = ({ url }: { url: string }) => {
@@ -130,64 +130,6 @@ export default function InboxPage() {
   ) || instagramAccounts[0];
 
 
-  if (!isPremiumActive) {
-    return (
-      <div className="min-h-[50vh] flex items-center justify-center p-6 relative font-sans .bg-[#131313]">
-        {/* Subtle, restricted ambient glows matching premium state allowance */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-white/[0.02] blur-[120px] rounded-full pointer-events-none" />
-
-        <div className="relative z-10 w-full max-w-md bg-[#1c1b1b] border border-[#2a2a2a] rounded-lg p-6 shadow-2xl">
-          <div className="flex flex-col items-center text-center">
-            {/* Lock Icon Frame */}
-            <div className="w-12 h-12 rounded-lg bg-white/[0.03] border border-white/[0.08] flex items-center justify-center text-white mb-5 shadow-inner">
-              <Lock className="w-5 h-5 text-white" strokeWidth={1.75} />
-            </div>
-
-            <h2 className="text-lg font-semibold text-white tracking-tight mb-2">
-              Access restricted
-            </h2>
-            <p className="text-xs text-[#c4c7c8] leading-relaxed mb-6">
-              Your free trial has expired. Upgrade to Creator Pro to unlock your synchronized product catalog, analytics, and custom storefront templates.
-            </p>
-
-            {/* Premium Feature Checklist */}
-            <div className="w-full bg-[#131313]/50 rounded border border-[#2a2a2a] p-3.5 mb-6 text-left space-y-2.5">
-              <div className="flex items-center gap-2 text-[11px] text-[#c4c7c8]">
-                <CheckCircle className="w-3.5 h-3.5 text-white shrink-0" strokeWidth={2} />
-                <span>Unlimited automated Instagram imports</span>
-              </div>
-              <div className="flex items-center gap-2 text-[11px] text-[#c4c7c8]">
-                <CheckCircle className="w-3.5 h-3.5 text-white shrink-0" strokeWidth={2} />
-                <span>Real-time click &amp; conversion analytics</span>
-              </div>
-              <div className="flex items-center gap-2 text-[11px] text-[#c4c7c8]">
-                <CheckCircle className="w-3.5 h-3.5 text-white shrink-0" strokeWidth={2} />
-                <span>Custom storefront storefront themes</span>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex flex-col gap-2 w-full">
-              <button
-                onClick={() => router.push("/dashboard/pricing")}
-                className="w-full bg-white hover:bg-[#e2e2e2] text-black font-semibold text-xs py-2.5 rounded transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-[0.98]"
-              >
-                <span>Upgrade to Creator Pro</span>
-              </button>
-              <button
-                onClick={() => router.push("/dashboard/refer")}
-                className="w-full bg-transparent hover:bg-white/[0.03] text-white border border-[#444748] font-medium text-xs py-2.5 rounded transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-[0.98]"
-              >
-                <span>Earn points (refer &amp; earn)</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-
   const recipientIdParam = searchParams.get("recipient_id");
   const usernameParam = searchParams.get("username");
   const nameParam = searchParams.get("name");
@@ -216,6 +158,7 @@ export default function InboxPage() {
   const [enableAi, setEnableAi] = useState(true);
 
   useEffect(() => {
+    if (!isPremiumActive) return;
     const fetchGlobalAIStatus = async () => {
       try {
         try {
@@ -235,7 +178,7 @@ export default function InboxPage() {
       }
     };
     fetchGlobalAIStatus();
-  }, []);
+  }, [isPremiumActive]);
 
   // Outbound sending states
   const [inputText, setInputText] = useState("");
@@ -310,6 +253,7 @@ export default function InboxPage() {
   );
 
   useEffect(() => {
+    if (!isPremiumActive) return;
     setSelectedProductsForTemplates([]);
     const fetchProducts = async () => {
       try {
@@ -323,7 +267,7 @@ export default function InboxPage() {
       }
     };
     fetchProducts();
-  }, [activeAccount?.id]);
+  }, [activeAccount?.id, isPremiumActive]);
 
   useEffect(() => {
     if (recipientIdParam && conversations.length > 0) {
@@ -366,6 +310,7 @@ export default function InboxPage() {
 
 
   useEffect(() => {
+    if (!isPremiumActive) return;
     if (!activeAccount?.id) return;
 
     const isDifferentAccount = globalConversationsCache && globalConversationsCache.accountId !== activeAccount.id;
@@ -385,7 +330,7 @@ export default function InboxPage() {
     } else {
       fetchConversations();
     }
-  }, [activeAccount?.id]);
+  }, [activeAccount?.id, isPremiumActive]);
 
   // Keep refs of state to prevent WebSocket event handler stale closures
   const selectedConversationRef = useRef(selectedConversation);
@@ -400,6 +345,7 @@ export default function InboxPage() {
   }, [businessInfo]);
 
   useEffect(() => {
+    if (!isPremiumActive) return;
     const token = authService.getAccessToken();
     if (!token || !activeAccount?.id) return;
 
@@ -547,7 +493,7 @@ export default function InboxPage() {
       socket.onclose = null;
       socket.close();
     };
-  }, [activeAccount?.id]);
+  }, [activeAccount?.id, isPremiumActive]);
 
 
 
@@ -656,6 +602,7 @@ export default function InboxPage() {
   const selectedConversationIdRef = useRef<string | null>(null);
 
   useEffect(() => {
+    if (!isPremiumActive) return;
     // Reset conversation-specific input/preview states
     setShowButtonTemplateForm(false);
     setShowGenericTemplateForm(false);
@@ -691,7 +638,7 @@ export default function InboxPage() {
       setEnquiries([]);
       setLoadingMessages(false);
     }
-  }, [selectedConversation]);
+  }, [selectedConversation, isPremiumActive]);
 
   // Scroll to bottom on initial load of a conversation
   useEffect(() => {
@@ -1161,6 +1108,83 @@ export default function InboxPage() {
       }
     }
   };
+
+  if (!isPremiumActive) {
+    return (
+      <div className="min-h-[50vh] flex items-center justify-center p-6 relative font-sans .bg-[#131313]">
+        {/* Subtle, restricted ambient glows matching premium state allowance */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-white/[0.02] blur-[120px] rounded-full pointer-events-none" />
+
+        <div className="relative z-10 w-full max-w-md bg-[#1c1b1b] border border-[#2a2a2a] rounded-lg p-6 shadow-2xl">
+          <div className="flex flex-col items-center text-center">
+            {/* Lock Icon Frame */}
+            <div className="w-12 h-12 rounded-lg bg-white/[0.03] border border-white/[0.08] flex items-center justify-center text-white mb-5 shadow-inner">
+              <Lock className="w-5 h-5 text-white" strokeWidth={1.75} />
+            </div>
+
+            <h2 className="text-lg font-semibold text-white tracking-tight mb-2">
+              Access restricted
+            </h2>
+            <p className="text-xs text-[#c4c7c8] leading-relaxed mb-6">
+              Your free trial has expired. Upgrade to Creator Pro to unlock your synchronized product catalog, analytics, and custom storefront templates.
+            </p>
+
+            {/* Premium Feature Checklist */}
+            <div className="w-full bg-[#131313]/50 rounded border border-[#2a2a2a] p-3.5 mb-6 text-left space-y-2.5">
+              <div className="flex items-center gap-2 text-[11px] text-[#c4c7c8]">
+                <CheckCircle className="w-3.5 h-3.5 text-white shrink-0" strokeWidth={2} />
+                <span>Unlimited automated Instagram imports</span>
+              </div>
+              <div className="flex items-center gap-2 text-[11px] text-[#c4c7c8]">
+                <CheckCircle className="w-3.5 h-3.5 text-white shrink-0" strokeWidth={2} />
+                <span>Real-time click &amp; conversion analytics</span>
+              </div>
+              <div className="flex items-center gap-2 text-[11px] text-[#c4c7c8]">
+                <CheckCircle className="w-3.5 h-3.5 text-white shrink-0" strokeWidth={2} />
+                <span>Custom storefront storefront themes</span>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col gap-2 w-full">
+              <button
+                onClick={() => router.push("/dashboard/pricing")}
+                className="w-full bg-white hover:bg-[#e2e2e2] text-black font-semibold text-xs py-2.5 rounded transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-[0.98]"
+              >
+                <span>Upgrade to Creator Pro</span>
+              </button>
+              <button
+                onClick={() => router.push("/dashboard/refer")}
+                className="w-full bg-transparent hover:bg-white/[0.03] text-white border border-[#444748] font-medium text-xs py-2.5 rounded transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-[0.98]"
+              >
+                <span>Earn points (refer &amp; earn)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (activeAccount?.is_token_expired) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6 bg-[#0d0d0d] text-white font-sans">
+        <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 mb-4 border border-red-500/20 shadow-[0_0_20px_rgba(239,68,68,0.1)]">
+          <AlertCircle className="w-8 h-8" />
+        </div>
+        <h2 className="text-lg font-bold mb-2">Instagram Session Expired</h2>
+        <p className="text-sm text-[#c4c7c8]/60 max-w-md mb-6 leading-relaxed">
+          The access token for @{activeAccount.username || "your account"} has expired or been revoked. Please re-authenticate the account in Settings to restore connection.
+        </p>
+        <button
+          onClick={() => router.push("/dashboard/settings/accounts")}
+          className="bg-white text-black px-6 py-2.5 rounded-lg font-semibold text-sm hover:bg-[#eaeaea] transition-all cursor-pointer active:scale-[0.98]"
+        >
+          Go to Settings
+        </button>
+      </div>
+    );
+  }
 
   return (
     <motion.div
