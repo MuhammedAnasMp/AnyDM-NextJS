@@ -1,9 +1,23 @@
 "use client";
 
-import React, { use, useState, useEffect, useRef } from "react";
+import React, { use, useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Globe, RefreshCw, ShoppingBag, ArrowRight, Star, X, Info, Ruler, Sparkles, AlertCircle } from "lucide-react";
+import {
+  Globe, RefreshCw, ShoppingBag, ArrowRight, Star, X, Heart,
+  Search, ChevronDown, MessageCircle,
+  Package, Shield, Truck, RotateCcw, Menu, MapPin, Phone, Mail,
+  ChevronRight,
+} from "lucide-react";
+
+// Inline Instagram icon (lucide-react version may not export it)
+const InstagramIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+    <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+  </svg>
+);
 import api from "@/lib/services/api.service";
 import { getTemplateStyles, TemplateStyle } from "@/components/templates/TemplateProvider";
 import { cn } from "@/lib/utils";
@@ -55,132 +69,12 @@ interface ProductData {
   stock: number;
   is_negotiable: boolean;
   metadata?: any;
+  category?: string;
 }
 
 export default function StorefrontPage({ params }: PageProps) {
   const { username } = use(params);
   const router = useRouter();
-
-  // Hover & Mini Detail Popup States
-  const [hoveredProduct, setHoveredProduct] = useState<ProductData | null>(null);
-  const [hoverPosition, setHoverPosition] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
-  const [selectedColor, setSelectedColor] = useState<string | null>(null);
-  const [selectedSize, setSelectedSize] = useState<string | null>(null);
-  const [isSizeChartOpen, setIsSizeChartOpen] = useState(false);
-  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Helper: check if a string represents a color
-  const isColor = (val: string): boolean => {
-    const colors = [
-      'black', 'white', 'gray', 'grey', 'red', 'blue', 'green', 'yellow', 
-      'orange', 'pink', 'purple', 'brown', 'navy', 'olive', 'gold', 'silver', 
-      'beige', 'tan', 'teal', 'cream', 'maroon', 'khaki', 'charcoal'
-    ];
-    return colors.includes(val.trim().toLowerCase());
-  };
-
-  // Helper: get product metadata or generate a premium fallback dataset
-  const getProductMetadata = (product: ProductData) => {
-    if (product.metadata && typeof product.metadata === 'object' && product.metadata.variants) {
-      return product.metadata;
-    }
-    
-    const title = (product.title || "").toLowerCase();
-    let variants = "Black,Olive,S,M,L,XL";
-    let details: Record<string, string> = {
-      "1": "Chest: 96cm, Length: 68cm, Shoulder: 42cm, Sleeve: 61cm",
-      "2": "Chest: 100cm, Length: 70cm, Shoulder: 44cm, Sleeve: 62cm",
-      "3": "Chest: 104cm, Length: 72cm, Shoulder: 46cm, Sleeve: 63cm",
-      "4": "Chest: 108cm, Length: 74cm, Shoulder: 48cm, Sleeve: 64cm"
-    };
-
-    if (title.includes("shoe") || title.includes("sneaker") || title.includes("boot") || title.includes("footwear")) {
-      variants = "White,Black,7,8,9,10,11";
-      details = {
-        "1": "US: 7, UK: 6, EU: 40, Length: 25cm",
-        "2": "US: 8, UK: 7, EU: 41.5, Length: 26cm",
-        "3": "US: 9, UK: 8, EU: 42.5, Length: 27cm",
-        "4": "US: 10, UK: 9, EU: 44, Length: 28cm",
-        "5": "US: 11, UK: 10, EU: 45, Length: 29cm"
-      };
-    } else if (title.includes("pant") || title.includes("jeans") || title.includes("trouser") || title.includes("denim")) {
-      variants = "Blue,Grey,30,32,34,36";
-      details = {
-        "1": "Waist: 30\", Inseam: 32\", Outseam: 40\", Hip: 38\"",
-        "2": "Waist: 32\", Inseam: 32\", Outseam: 41\", Hip: 40\"",
-        "3": "Waist: 34\", Inseam: 32\", Outseam: 42\", Hip: 42\"",
-        "4": "Waist: 36\", Inseam: 34\", Outseam: 43\", Hip: 44\""
-      };
-    } else if (title.includes("watch") || title.includes("accessory") || title.includes("cap") || title.includes("hat") || title.includes("glass")) {
-      variants = "Gold,Silver,One Size";
-      details = {
-        "1": "Case: 40mm, Band Width: 20mm, Water Resistance: 50m"
-      };
-    } else if (title.includes("dress") || title.includes("skirt") || title.includes("top") || title.includes("kurti") || title.includes("gown")) {
-      variants = "Red,Pink,S,M,L,XL";
-      details = {
-        "1": "Bust: 88cm, Waist: 70cm, Length: 102cm",
-        "2": "Bust: 92cm, Waist: 74cm, Length: 104cm",
-        "3": "Bust: 96cm, Waist: 78cm, Length: 106cm",
-        "4": "Bust: 100cm, Waist: 82cm, Length: 108cm"
-      };
-    }
-
-    return {
-      variants,
-      ...details
-    };
-  };
-
-  // Helper: parse technical details string into key-value pairs
-  const parseTechnicalDetails = (detailString: string) => {
-    if (!detailString) return [];
-    if (!detailString.includes(":")) {
-      return [{ key: "Detail", value: detailString }];
-    }
-    return detailString.split(",").map(part => {
-      const [key, ...valParts] = part.split(":");
-      return {
-        key: key ? key.trim() : "",
-        value: valParts.join(":") ? valParts.join(":").trim() : ""
-      };
-    }).filter(item => item.key && item.value);
-  };
-
-  const handleProductHoverStart = (product: ProductData, event: React.MouseEvent) => {
-    if (window.innerWidth < 1024) return;
-    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
-
-    const cardElement = (event.currentTarget as HTMLElement).closest(".product-card-container");
-    if (cardElement) {
-      const rect = cardElement.getBoundingClientRect();
-      setHoverPosition({
-        x: rect.left + window.scrollX,
-        y: rect.top + window.scrollY,
-        width: rect.width,
-        height: rect.height
-      });
-      setSelectedColor(null);
-      setSelectedSize(null);
-      setHoveredProduct(product);
-    }
-  };
-
-  const handleProductHoverEnd = () => {
-    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
-    hoverTimeoutRef.current = setTimeout(() => {
-      setHoveredProduct(null);
-    }, 300);
-  };
-
-  const handlePopupMouseEnter = () => {
-    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
-  };
-
-  const handlePopupMouseLeave = () => {
-    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
-    setHoveredProduct(null);
-  };
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -188,12 +82,37 @@ export default function StorefrontPage({ params }: PageProps) {
   const [settings, setSettings] = useState<WebsiteSettingsData | null>(null);
   const [products, setProducts] = useState<ProductData[]>([]);
 
+  // UI State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeCategory, setActiveCategory] = useState("All");
+  const [sortOrder, setSortOrder] = useState<"default" | "price_asc" | "price_desc">("default");
+  const [showSearch, setShowSearch] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isTrackingOpen, setIsTrackingOpen] = useState(false);
   const [inputOrderId, setInputOrderId] = useState("");
   const [localOrders, setLocalOrders] = useState<any[]>([]);
   const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null);
   const [activePolicyModal, setActivePolicyModal] = useState<"privacy" | "terms" | null>(null);
+  const [wishlist, setWishlist] = useState<number[]>([]);
+  const [wishlistOpen, setWishlistOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [quickViewProduct, setQuickViewProduct] = useState<ProductData | null>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
 
+  // Scroll detection for nav
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 60);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Load wishlist from localStorage
+  useEffect(() => {
+    const favs = JSON.parse(localStorage.getItem("anydm_favorites") || "[]");
+    setWishlist(favs);
+  }, []);
+
+  // Load local orders
   useEffect(() => {
     if (typeof window !== "undefined") {
       const orders = JSON.parse(localStorage.getItem("anydm_customer_orders") || "[]");
@@ -202,25 +121,17 @@ export default function StorefrontPage({ params }: PageProps) {
     }
   }, [isTrackingOpen, username]);
 
+  // Fetch storefront data
   useEffect(() => {
-    if (username) {
-      fetchStorefrontData();
-    }
+    if (username) fetchStorefrontData();
   }, [username]);
 
+  // Focus search input when shown
   useEffect(() => {
-    const handleScroll = (e: Event) => {
-      const target = e.target as HTMLElement;
-      if (target && target.closest && target.closest(".premium-glass-popup")) {
-        return;
-      }
-      setHoveredProduct(null);
-    };
-    window.addEventListener("scroll", handleScroll, { capture: true, passive: true });
-    return () => {
-      window.removeEventListener("scroll", handleScroll, { capture: true });
-    };
-  }, []);
+    if (showSearch && searchRef.current) {
+      searchRef.current.focus();
+    }
+  }, [showSearch]);
 
   const fetchStorefrontData = async () => {
     setLoading(true);
@@ -233,7 +144,7 @@ export default function StorefrontPage({ params }: PageProps) {
         const normalizedProducts = (response.data.products || []).map((prod: any) => ({
           ...prod,
           main_media_url: prod.main_media_url || prod.media_url,
-          is_negotiable: prod.negotiable !== undefined ? prod.negotiable : prod.is_negotiable
+          is_negotiable: prod.negotiable !== undefined ? prod.negotiable : prod.is_negotiable,
         }));
         setProducts(normalizedProducts);
       }
@@ -245,28 +156,65 @@ export default function StorefrontPage({ params }: PageProps) {
     }
   };
 
+  const toggleWishlist = (productId: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setWishlist(prev => {
+      const next = prev.includes(productId) ? prev.filter(id => id !== productId) : [...prev, productId];
+      localStorage.setItem("anydm_favorites", JSON.stringify(next));
+      return next;
+    });
+  };
+
+  // Derived data
+  const categories = ["All", ...Array.from(new Set(products.map(p => p.category).filter(Boolean))) as string[]];
+  
+  const filteredProducts = products
+    .filter(p => {
+      const matchesSearch = searchQuery.trim() === "" ||
+        p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (p.description || "").toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = activeCategory === "All" || p.category === activeCategory;
+      return matchesSearch && matchesCategory;
+    })
+    .sort((a, b) => {
+      if (sortOrder === "price_asc") return parseFloat(a.price || "0") - parseFloat(b.price || "0");
+      if (sortOrder === "price_desc") return parseFloat(b.price || "0") - parseFloat(a.price || "0");
+      return 0;
+    });
+
+  const getDiscount = (product: ProductData) => {
+    const price = parseFloat(product.price || "0");
+    const original = parseFloat(product.original_price || "0");
+    if (original > price && original > 0) {
+      return Math.round(((original - price) / original) * 100);
+    }
+    return null;
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#131313] text-[#e5e2e1] flex flex-col items-center justify-center font-sans">
-        <RefreshCw className="w-10 h-10 animate-spin text-white mb-4" />
-        <p className="text-sm font-semibold tracking-tight">Loading storefront...</p>
+      <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center gap-4">
+        <div className="relative">
+          <div className="w-12 h-12 rounded-full border-2 border-white/10 border-t-white animate-spin" />
+        </div>
+        <p className="text-xs text-zinc-500 tracking-widest uppercase font-medium">Loading store…</p>
       </div>
     );
   }
 
   if (error || !supplier || !settings) {
     return (
-      <div className="min-h-screen bg-[#131313] text-[#e5e2e1] flex flex-col items-center justify-center px-6 text-center font-sans">
+      <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col items-center justify-center px-6 text-center">
         <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-6">
-          <Globe className="w-8 h-8 text-gray-500" />
+          <Globe className="w-7 h-7 text-zinc-500" />
         </div>
-        <h2 className="text-xl font-bold text-white mb-2">Storefront Offline</h2>
-        <p className="text-sm text-gray-400 max-w-sm mb-6 leading-relaxed">
-          {error || "We couldn't load the requested storefront configuration. Please check the URL and try again."}
+        <h2 className="text-lg font-bold text-white mb-2">Store Not Found</h2>
+        <p className="text-sm text-zinc-500 max-w-xs mb-8 leading-relaxed">
+          {error || "We couldn't load this storefront. Check the URL and try again."}
         </p>
         <button
           onClick={() => router.push("/")}
-          className="px-5 py-2.5 bg-white text-black font-bold rounded-lg text-xs hover:bg-[#eaeaea] transition-all"
+          className="px-6 py-2.5 bg-white text-black font-bold text-xs rounded-full hover:bg-zinc-100 transition-all"
         >
           Return Home
         </button>
@@ -275,474 +223,829 @@ export default function StorefrontPage({ params }: PageProps) {
   }
 
   const styles: TemplateStyle = getTemplateStyles(settings.template_id, settings.theme_id);
+  const storeName = settings.store_name || supplier.full_name || supplier.username;
 
   return (
-    <div className={cn("min-h-screen flex flex-col transition-colors duration-500 pb-12", styles.bodyClass, styles.fontBody)}>
-      {/* Navigation Bar */}
-      <header className={cn("sticky top-0 z-40 px-6 h-16 flex items-center justify-between w-full max-w-full mx-auto", styles.navClass)}>
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full overflow-hidden border border-white/10 flex items-center justify-center bg-white/5">
-            {settings.store_logo ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={settings.store_logo} alt={settings.store_name} className="w-full h-full object-cover" />
-            ) : (
-              <ShoppingBag className="w-4 h-4" />
-            )}
+    <div className={cn("min-h-screen flex flex-col transition-colors duration-500", styles.bodyClass, styles.fontBody)}>
+
+      {/* ── Navigation ─────────────────────────────────────────── */}
+      <header className={cn(
+        "sticky top-0 z-50 w-full transition-all duration-300",
+        scrolled ? "shadow-sm" : "",
+        styles.navClass
+      )}>
+        <div className={cn("h-16 flex items-center justify-between gap-4", styles.containerClass)}>
+          {/* Logo & Store Name */}
+          <Link href={`/${username}`} className="flex items-center gap-3 shrink-0">
+            <div className={styles.logoWrapperClass}>
+              {settings.store_logo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={settings.store_logo} alt={storeName} className="w-full h-full object-cover" />
+              ) : (
+                <ShoppingBag className="w-4 h-4" />
+              )}
+            </div>
+            <span className={cn("text-sm font-bold tracking-tight hidden sm:block", styles.fontHeadline, styles.textColorClass)}>
+              {storeName}
+            </span>
+          </Link>
+
+          {/* Center nav links */}
+          <nav className="hidden md:flex items-center gap-7">
+            <button
+              onClick={() => { setActiveCategory("All"); setShowSearch(false); }}
+              className={cn("text-xs font-semibold tracking-wide hover:opacity-70 transition-opacity", styles.textMutedClass)}
+            >
+              All Products
+            </button>
+            <button
+              onClick={() => setIsTrackingOpen(true)}
+              className={cn("text-xs font-semibold tracking-wide hover:opacity-70 transition-opacity", styles.textMutedClass)}
+            >
+              Track Order
+            </button>
+          </nav>
+
+          {/* Right actions */}
+          <div className="flex items-center gap-2">
+            {/* Search toggle */}
+            <button
+              onClick={() => setShowSearch(v => !v)}
+              className={cn("w-9 h-9 flex items-center justify-center rounded-full transition-colors hover:opacity-70", styles.textMutedClass)}
+              aria-label="Search"
+            >
+              <Search className="w-4 h-4" />
+            </button>
+
+            {/* Wishlist button — always visible, clickable */}
+            <button
+              onClick={() => setWishlistOpen(true)}
+              aria-label="View wishlist"
+              className={cn("relative w-9 h-9 flex items-center justify-center rounded-full transition-colors hover:opacity-70", styles.textMutedClass)}
+            >
+              <Heart className={cn("w-4 h-4 transition-all", wishlist.length > 0 ? "fill-current text-red-500" : "")} />
+              {wishlist.length > 0 && (
+                <span
+                  className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center"
+                  style={{ backgroundColor: styles.accentColor, color: styles.isDark ? "#000" : "#fff" }}
+                >
+                  {wishlist.length}
+                </span>
+              )}
+            </button>
+
+            {/* Mobile menu */}
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className={cn("md:hidden w-9 h-9 flex items-center justify-center rounded-full transition-colors hover:opacity-70", styles.textMutedClass)}
+            >
+              <Menu className="w-5 h-5" />
+            </button>
           </div>
-          <span className={cn("text-base font-bold tracking-tight", styles.fontHeadline, styles.textColorClass)}>
-            {settings.store_name || supplier.full_name || supplier.username}
-          </span>
         </div>
-        
-        {/* Navigation links - Login and Signup hidden for visitors */}
-        <nav className="flex items-center gap-6">
-          <a href="#" className={cn("text-xs font-semibold hover:opacity-80 transition-opacity", styles.textMutedClass)}>
-            Catalog
-          </a>
-          <button 
-            onClick={() => setIsTrackingOpen(true)}
-            className={cn("text-xs font-semibold hover:opacity-80 transition-opacity focus:outline-none", styles.textMutedClass)}
-          >
-            Track Order
-          </button>
-        </nav>
+
+        {/* Search bar (slides in) */}
+        {showSearch && (
+          <div className={cn("border-t", styles.dividerClass)}>
+            <div className={cn("py-3 flex items-center gap-3", styles.containerClass)}>
+              <Search className={cn("w-4 h-4 shrink-0", styles.textMutedClass)} />
+              <input
+                ref={searchRef}
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder={`Search ${storeName} products…`}
+                className={cn("flex-1 bg-transparent text-sm focus:outline-none", styles.textColorClass, "placeholder:opacity-40")}
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery("")} className={styles.textMutedClass}>
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+              <button onClick={() => setShowSearch(false)} className={cn("text-xs font-medium", styles.textMutedClass)}>
+                Close
+              </button>
+            </div>
+          </div>
+        )}
       </header>
 
-      {/* Hero / Store Banner */}
+      {/* ── Mobile Drawer ──────────────────────────────────────── */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-[60] flex">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
+          <div className={cn("relative ml-auto w-72 h-full flex flex-col p-6 shadow-2xl", styles.bodyClass)}>
+            <button
+              onClick={() => setMobileMenuOpen(false)}
+              className={cn("absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full", styles.textMutedClass)}
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <div className="flex items-center gap-3 mb-8 pt-2">
+              <div className={styles.logoWrapperClass}>
+                {settings.store_logo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={settings.store_logo} alt={storeName} className="w-full h-full object-cover" />
+                ) : (
+                  <ShoppingBag className="w-4 h-4" />
+                )}
+              </div>
+              <span className={cn("text-sm font-bold", styles.textColorClass)}>{storeName}</span>
+            </div>
+            <nav className="space-y-1 flex-1">
+              {["All Products", "Track Order"].map((item, i) => (
+                <button
+                  key={item}
+                  onClick={() => {
+                    if (i === 1) setIsTrackingOpen(true);
+                    setMobileMenuOpen(false);
+                  }}
+                  className={cn("w-full text-left py-3 px-4 rounded-lg text-sm font-semibold transition-colors hover:opacity-70", styles.textColorClass)}
+                >
+                  {item}
+                </button>
+              ))}
+            </nav>
+            <div className={cn("pt-6 border-t text-xs", styles.dividerClass, styles.textMutedClass)}>
+              <p>© 2026 {storeName}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Hero Banner ────────────────────────────────────────── */}
       {settings.store_banner ? (
-        <section className="relative w-full overflow-hidden" style={{ maxHeight: '320px' }}>
+        <section className="relative w-full overflow-hidden" style={{ maxHeight: "420px" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={settings.store_banner}
-            alt={settings.store_name || supplier.username}
+            alt={storeName}
             className="w-full object-cover"
-            style={{ maxHeight: '320px', minHeight: '160px' }}
+            style={{ maxHeight: "420px", minHeight: "220px" }}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col items-center justify-end pb-8 text-center px-6">
-            <h1 className={cn("text-3xl md:text-4xl font-black text-white drop-shadow-lg", styles.fontHeadline)}>
-              { settings.store_name || supplier.full_name || supplier.username}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent flex flex-col items-center justify-end pb-10 text-center px-6">
+            <h1 className={cn("text-3xl sm:text-5xl font-black text-white drop-shadow-2xl mb-3", styles.fontHeadline)}>
+              {storeName}
             </h1>
             {settings.store_description && (
-              <p className="text-xs md:text-sm text-white/90 max-w-xl mx-auto mt-2 drop-shadow font-medium">
+              <p className="text-sm text-white/85 max-w-lg mx-auto drop-shadow font-medium leading-relaxed">
                 {settings.store_description}
               </p>
             )}
+            <button
+              onClick={() => document.getElementById("product-grid")?.scrollIntoView({ behavior: "smooth" })}
+              className={cn("mt-6 px-8 py-3 text-xs font-bold uppercase tracking-widest transition-all", styles.buttonClass)}
+            >
+              Shop Now
+            </button>
           </div>
         </section>
       ) : (
-        <section className={cn("py-12 md:py-16 text-center border-b border-white/5 bg-black/5", styles.containerClass)}>
-          <h1 className={cn("text-4xl md:text-5xl font-black mb-4", styles.fontHeadline, styles.textColorClass)}>
-            {settings.store_name || supplier.full_name || supplier.username}
+        <section className={cn("py-16 text-center", styles.containerClass)}>
+          <h1 className={cn("text-4xl sm:text-6xl font-black mb-4", styles.fontHeadline, styles.textColorClass)}>
+            {storeName}
           </h1>
-          <p className={cn("text-xs md:text-sm max-w-xl mx-auto leading-relaxed", styles.textMutedClass)}>
-            {settings.store_description || "Welcome to our official catalog storefront. Discover and purchase our products directly via Instagram DM or WhatsApp."}
+          <p className={cn("text-sm max-w-md mx-auto leading-relaxed mb-8", styles.textMutedClass)}>
+            {settings.store_description || "Discover our curated collection of premium products."}
           </p>
+          <button
+            onClick={() => document.getElementById("product-grid")?.scrollIntoView({ behavior: "smooth" })}
+            className={cn("px-8 py-3 text-xs font-bold uppercase tracking-widest transition-all", styles.buttonClass)}
+          >
+            Explore Collection
+          </button>
         </section>
       )}
 
-      {/* Products Grid Catalog */}
-      <main className={cn("py-12 flex-1", styles.containerClass)}>
-        {products.length === 0 ? (
-          <div className="py-20 text-center space-y-4">
-            <ShoppingBag className="w-12 h-12 text-gray-500 mx-auto" />
-            <p className={cn("text-xs font-medium", styles.textMutedClass)}>No active products currently available in this catalog.</p>
+      {/* ── Trust Badges ──────────────────────────────────────── */}
+      <div className={cn("border-y py-4", styles.dividerClass)}>
+        <div className={cn("flex items-center justify-center gap-8 overflow-x-auto scrollbar-hide", styles.containerClass)}>
+          {[
+            { icon: Truck, label: "Fast Delivery" },
+            { icon: Shield, label: "Secure Checkout" },
+            { icon: RotateCcw, label: "Easy Returns" },
+            { icon: Package, label: "Quality Assured" },
+          ].map(({ icon: Icon, label }) => (
+            <div key={label} className={cn("flex items-center gap-2 shrink-0", styles.textMutedClass)}>
+              <Icon className="w-3.5 h-3.5" />
+              <span className="text-[11px] font-semibold whitespace-nowrap">{label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Product Catalog ────────────────────────────────────── */}
+      <main id="product-grid" className={cn("flex-1 py-12", styles.containerClass)}>
+
+        {/* Filter & Sort Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+          {/* Category Filters */}
+          {categories.length > 1 && (
+            <>
+              {/* Desktop Filters: Horizontal Tabs */}
+              <div className="hidden sm:flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
+                {categories.map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => setActiveCategory(cat)}
+                    className={cn("shrink-0 transition-all", activeCategory === cat ? styles.filterPillActiveClass : styles.filterPillClass)}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+
+              {/* Mobile Filter: Dropdown Select */}
+              <div className="block sm:hidden w-full relative">
+                <select
+                  value={activeCategory}
+                  onChange={e => setActiveCategory(e.target.value)}
+                  className={cn("w-full appearance-none pr-8 text-xs font-semibold cursor-pointer", styles.inputClass, "!py-2")}
+                >
+                  {categories.map(cat => (
+                    <option key={cat} value={cat} className="text-black bg-white">
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+                <div className={cn("pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3", styles.textMutedClass)}>
+                  <ChevronDown className="w-3.5 h-3.5" />
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Sort + Count */}
+          <div className="flex items-center gap-3 shrink-0 ml-auto">
+            <span className={cn("text-xs hidden sm:block", styles.textMutedClass)}>
+              {filteredProducts.length} {filteredProducts.length === 1 ? "item" : "items"}
+            </span>
+            <div className="relative">
+              <select
+                value={sortOrder}
+                onChange={e => setSortOrder(e.target.value as any)}
+                className={cn("appearance-none pr-7 text-xs font-semibold cursor-pointer", styles.inputClass, "!py-2")}
+              >
+                <option value="default">Sort: Default</option>
+                <option value="price_asc">Price: Low → High</option>
+                <option value="price_desc">Price: High → Low</option>
+              </select>
+              <ChevronDown className={cn("absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 pointer-events-none", styles.textMutedClass)} />
+            </div>
+          </div>
+        </div>
+
+        {/* Products Grid */}
+        {filteredProducts.length === 0 ? (
+          <div className="py-24 text-center space-y-4">
+            <ShoppingBag className={cn("w-10 h-10 mx-auto", styles.textMutedClass)} />
+            <p className={cn("text-sm font-medium", styles.textMutedClass)}>
+              {searchQuery ? `No products match "${searchQuery}"` : "No products available yet."}
+            </p>
+            {searchQuery && (
+              <button onClick={() => setSearchQuery("")} className={cn("text-xs underline", styles.textMutedClass)}>
+                Clear search
+              </button>
+            )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {products.map((product) => (
-              <div
-                key={product.id}
-                onClick={() => router.push(`/${username}/product/${product.id}`)}
-                className={cn("product-card-container flex flex-col h-full cursor-pointer overflow-hidden p-2 group", styles.cardClass)}
-                onMouseLeave={handleProductHoverEnd}
-              >
-                {/* Image Container */}
-                <div 
-                  className="relative aspect-[4/5] w-full rounded-lg overflow-hidden bg-black/10 shrink-0"
-                  onMouseEnter={(e) => handleProductHoverStart(product, e)}
-                >
-                  {isVideoUrl(product.main_media_url) ? (
-                    <video
-                      src={product.main_media_url}
-                      muted
-                      playsInline
-                      preload="metadata"
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                  ) : (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={product.main_media_url}
-                      alt={product.title}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBmaWxsPSIjMWYyOTM3Ij48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIi8+PC9zdmc+';
-                      }}
-                    />
-                  )}
-                  {product.stock <= 3 && product.stock > 0 && (
-                    <span className="absolute bottom-3 left-3 bg-red-600 text-white text-[8px] tracking-widest font-black uppercase px-2 py-0.5 rounded shadow">
-                      Only {product.stock} Left
-                    </span>
-                  )}
-                </div>
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+            {filteredProducts.map(product => {
+              const discount = getDiscount(product);
+              const isWishlisted = wishlist.includes(product.id);
+              const isOutOfStock = product.stock === 0;
 
-                {/* Details */}
-                <div className="px-1 pt-2.5 pb-1 flex flex-col space-y-1">
-                  <h3 
-                    className={cn("text-xs font-bold line-clamp-1 truncate transition-colors", styles.textColorClass)}
-                    onMouseEnter={(e) => handleProductHoverStart(product, e)}
-                  >
-                    {product.title}
-                  </h3>
-                  <div className="flex justify-between items-baseline">
-                    <div className="flex items-baseline gap-1.5">
-                      <span className={cn("text-sm font-black", styles.priceClass)}>
-                        {product.price ? `${product.price} ${product.currency}` : "TBD"}
+              return (
+                <div
+                  key={product.id}
+                  className={cn("group relative flex flex-col cursor-pointer", styles.cardClass)}
+                  onClick={() => router.push(`/${username}/product/${product.id}`)}
+                >
+                  {/* Product Image */}
+                  <div className="relative aspect-[3/4] w-full overflow-hidden bg-zinc-900 shrink-0">
+                    {isVideoUrl(product.main_media_url) ? (
+                      <video
+                        src={product.main_media_url}
+                        muted
+                        playsInline
+                        preload="metadata"
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      />
+                    ) : (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={product.main_media_url}
+                        alt={product.title}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        onError={e => {
+                          (e.target as HTMLImageElement).src =
+                            "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBmaWxsPSIjMWYyOTM3Ij48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIi8+PC9zdmc+";
+                        }}
+                      />
+                    )}
+
+                    {/* Overlays */}
+                    {isOutOfStock && (
+                      <div className="absolute inset-0 bg-black/55 flex items-center justify-center">
+                        <span className="text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 border border-white/30">
+                          Out of Stock
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Discount badge */}
+                    {discount && !isOutOfStock && (
+                      <div
+                        className="absolute top-2 left-2 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest"
+                        style={{ backgroundColor: styles.accentColor, color: styles.isDark ? "#000" : "#fff" }}
+                      >
+                        -{discount}%
+                      </div>
+                    )}
+
+                    {/* Low stock badge */}
+                    {!isOutOfStock && product.stock > 0 && product.stock <= 3 && (
+                      <div className="absolute bottom-2 left-2 bg-red-600 text-white text-[9px] font-black uppercase px-2 py-0.5 tracking-widest">
+                        Only {product.stock} left
+                      </div>
+                    )}
+
+                    {/* Wishlist button */}
+                    <button
+                      onClick={e => toggleWishlist(product.id, e)}
+                      className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center rounded-full bg-black/30 backdrop-blur-sm transition-all hover:bg-black/50 opacity-0 group-hover:opacity-100 focus:opacity-100"
+                      aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+                    >
+                      <Heart
+                        className={cn("w-4 h-4 transition-all", isWishlisted ? "fill-current text-red-500" : "text-white")}
+                      />
+                    </button>
+
+                    {/* Quick view overlay */}
+                    <div className="absolute inset-x-0 bottom-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300 p-3">
+                      <button
+                        onClick={e => {
+                          e.stopPropagation();
+                          setQuickViewProduct(product);
+                        }}
+                        className="w-full text-[10px] font-bold uppercase tracking-widest py-2 bg-white/90 backdrop-blur-sm text-black hover:bg-white transition-colors"
+                      >
+                        Quick View
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Product Info */}
+                  <div className="p-3 flex flex-col gap-1 flex-1">
+                    <h3 className={cn("text-xs font-bold line-clamp-1 leading-snug", styles.textColorClass)}>
+                      {product.title}
+                    </h3>
+                    {product.description && (
+                      <p className={cn("text-[10px] line-clamp-1 leading-relaxed", styles.textMutedClass)}>
+                        {product.description}
+                      </p>
+                    )}
+                    <div className="flex items-baseline gap-2 mt-1">
+                      <span className={cn("text-sm font-bold", styles.priceClass)}>
+                        {product.price ? `${product.price} ${product.currency}` : "Price on request"}
                       </span>
-                      {product.is_negotiable && (
-                        <span className={cn("text-[9px] tracking-wider font-extrabold uppercase px-1.5 py-0.5 rounded", styles.badgeClass)}>
-                          Nego
+                      {parseFloat(product.original_price || "0") > parseFloat(product.price || "0") && (
+                        <span className={cn("text-[10px] line-through", styles.textMutedClass)}>
+                          {product.original_price} {product.currency}
                         </span>
                       )}
                     </div>
-                    <span className={cn("text-[9px] uppercase font-bold flex items-center gap-0.5 group-hover:translate-x-1 transition-transform shrink-0", styles.textMutedClass)}>
-                      Details <ArrowRight className="w-3 h-3 stroke-[2.5px]" />
-                    </span>
+                    {product.is_negotiable && (
+                      <span className={cn("text-[9px] uppercase tracking-widest font-bold w-fit", styles.badgeClass)}>
+                        Negotiable
+                      </span>
+                    )}
+                    <div className={cn("flex items-center justify-end mt-auto pt-2", styles.textMutedClass)}>
+                      <span className="text-[9px] uppercase font-bold tracking-widest flex items-center gap-0.5 group-hover:gap-1.5 transition-all">
+                        Details <ArrowRight className="w-3 h-3" />
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </main>
 
-      {/* Footer */}
-      <footer className={cn("mt-16 border-t border-white/5 pt-8 pb-12 text-center text-[10px] space-y-3", styles.containerClass, styles.textMutedClass)}>
-        <p>© 2026 {settings.store_name || supplier.full_name || supplier.username}. Powered by AnyDM Automation.</p>
-        
-        {/* Contact Info rendered directly as text */}
-        {(settings.contact_email || settings.contact_phone || settings.shipping_address) && (
-          <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-zinc-400 opacity-80">
-            {settings.contact_email && <span>Email: {settings.contact_email}</span>}
-            {settings.contact_phone && <span>Phone: {settings.contact_phone}</span>}
-            {settings.shipping_address && <span>Address: {settings.shipping_address}</span>}
+      {/* ── Footer ─────────────────────────────────────────────── */}
+      <footer className={cn("border-t mt-8", styles.dividerClass)}>
+        <div className={cn("py-12 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-10", styles.containerClass)}>
+          {/* Brand */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className={styles.logoWrapperClass}>
+                {settings.store_logo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={settings.store_logo} alt={storeName} className="w-full h-full object-cover" />
+                ) : (
+                  <ShoppingBag className="w-4 h-4" />
+                )}
+              </div>
+              <span className={cn("text-sm font-bold", styles.textColorClass)}>{storeName}</span>
+            </div>
+            {settings.store_description && (
+              <p className={cn("text-xs leading-relaxed max-w-xs", styles.textMutedClass)}>
+                {settings.store_description}
+              </p>
+            )}
           </div>
-        )}
 
-        {/* Clickable Policy Links */}
-        <div className="flex justify-center gap-4 mt-2">
-          <button onClick={() => setActivePolicyModal("privacy")} className="hover:underline focus:outline-none">Privacy Policy</button>
-          <button onClick={() => setActivePolicyModal("terms")} className="hover:underline focus:outline-none">Terms of Service</button>
+          {/* Quick Links */}
+          <div className="space-y-3">
+            <h4 className={cn("text-xs font-bold uppercase tracking-widest", styles.textColorClass)}>Quick Links</h4>
+            <div className="space-y-2">
+              <button onClick={() => setIsTrackingOpen(true)} className={cn("block text-xs hover:underline", styles.textMutedClass)}>
+                Track My Order
+              </button>
+              <button onClick={() => setActivePolicyModal("privacy")} className={cn("block text-xs hover:underline", styles.textMutedClass)}>
+                Privacy Policy
+              </button>
+              <button onClick={() => setActivePolicyModal("terms")} className={cn("block text-xs hover:underline", styles.textMutedClass)}>
+                Terms of Service
+              </button>
+            </div>
+          </div>
+
+          {/* Contact */}
+          {(settings.contact_email || settings.contact_phone || settings.shipping_address) && (
+            <div className="space-y-3">
+              <h4 className={cn("text-xs font-bold uppercase tracking-widest", styles.textColorClass)}>Contact</h4>
+              <div className="space-y-2">
+                {settings.contact_email && (
+                  <div className={cn("flex items-center gap-2 text-xs", styles.textMutedClass)}>
+                    <Mail className="w-3.5 h-3.5 shrink-0" />
+                    <a href={`mailto:${settings.contact_email}`} className="hover:underline truncate">
+                      {settings.contact_email}
+                    </a>
+                  </div>
+                )}
+                {settings.contact_phone && (
+                  <div className={cn("flex items-center gap-2 text-xs", styles.textMutedClass)}>
+                    <Phone className="w-3.5 h-3.5 shrink-0" />
+                    <a href={`tel:${settings.contact_phone}`} className="hover:underline">
+                      {settings.contact_phone}
+                    </a>
+                  </div>
+                )}
+                {settings.shipping_address && (
+                  <div className={cn("flex items-start gap-2 text-xs", styles.textMutedClass)}>
+                    <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                    <span className="leading-relaxed">{settings.shipping_address}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Bottom bar */}
+        <div className={cn("border-t py-5 flex flex-col sm:flex-row items-center justify-between gap-2", styles.dividerClass, styles.containerClass)}>
+          <p className={cn("text-[10px]", styles.textMutedClass)}>
+            © 2026 {storeName}. Powered by{" "}
+            <span style={{ color: styles.accentColor }} className="font-bold">AnyDM</span>.
+          </p>
+          <div className="flex items-center gap-4">
+            {settings.enable_instagram_button && (
+              <a
+                href={`https://instagram.com/${username}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn("flex items-center gap-1.5 text-[10px] font-semibold hover:opacity-70 transition-opacity", styles.textMutedClass)}
+              >
+                <InstagramIcon className="w-3.5 h-3.5" />
+                Instagram
+              </a>
+            )}
+            {settings.enable_whatsapp_button && (
+              <a
+                href={`https://wa.me/${settings.contact_phone?.replace(/\D/g, "")}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn("flex items-center gap-1.5 text-[10px] font-semibold hover:opacity-70 transition-opacity", styles.textMutedClass)}
+              >
+                <MessageCircle className="w-3.5 h-3.5" />
+                WhatsApp
+              </a>
+            )}
+          </div>
         </div>
       </footer>
 
-      {/* Policy Modal Overlay */}
-      {activePolicyModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg rounded-xl border border-white/10 p-6 shadow-2xl bg-[#1e1e24] text-white space-y-4 max-h-[80vh] overflow-y-auto custom-scrollbar">
-            <div className="flex justify-between items-center pb-2 border-b border-white/5">
-              <span className="text-sm font-bold uppercase tracking-wider text-[#b6b2ff]">
-                {activePolicyModal === "privacy" ? "Privacy Policy" : "Terms of Service"}
-              </span>
-              <button 
-                onClick={() => setActivePolicyModal(null)} 
-                className="p-1 rounded hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
+      {/* ── Wishlist Drawer ─────────────────────────────────────── */}
+      {wishlistOpen && (
+        <div className="fixed inset-0 z-[70] flex justify-end" onClick={() => setWishlistOpen(false)}>
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+
+          {/* Panel */}
+          <div
+            className={cn(
+              "relative w-full max-w-sm h-full flex flex-col shadow-2xl",
+              styles.bodyClass
+            )}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className={cn("flex items-center justify-between px-5 py-4 border-b shrink-0", styles.dividerClass)}>
+              <div className="flex items-center gap-2">
+                <Heart className="w-4 h-4 fill-current text-red-500" />
+                <span className={cn("text-sm font-bold", styles.textColorClass)}>
+                  Wishlist
+                </span>
+                {wishlist.length > 0 && (
+                  <span
+                    className="w-5 h-5 rounded-full text-[10px] font-black flex items-center justify-center"
+                    style={{ backgroundColor: styles.accentColor, color: styles.isDark ? "#000" : "#fff" }}
+                  >
+                    {wishlist.length}
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={() => setWishlistOpen(false)}
+                className={cn("w-8 h-8 flex items-center justify-center rounded-full hover:opacity-70 transition-opacity", styles.textMutedClass)}
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="text-xs text-zinc-350 leading-relaxed whitespace-pre-wrap pt-2 text-left">
-              {activePolicyModal === "privacy" 
-                ? (settings.privacy_policy || `We value your privacy. Your personal information, including name, email, and shipping details, is exclusively used to fulfill your orders and enhance your custom shopping experience.`)
-                : (settings.terms_of_service || `By browsing this store and placing orders, you agree to comply with and be bound by our terms and conditions. All items ordered are subjected to availability, return, and cancellation policies.`)
-              }
+
+            {/* Items */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar">
+              {wishlist.length === 0 ? (
+                /* Empty state */
+                <div className="flex flex-col items-center justify-center h-full gap-4 px-6 text-center">
+                  <div
+                    className="w-16 h-16 rounded-full flex items-center justify-center"
+                    style={{ backgroundColor: `${styles.accentColor}15`, border: `1px solid ${styles.accentColor}30` }}
+                  >
+                    <Heart className={cn("w-7 h-7", styles.textMutedClass)} />
+                  </div>
+                  <div>
+                    <p className={cn("text-sm font-bold mb-1", styles.textColorClass)}>Your wishlist is empty</p>
+                    <p className={cn("text-xs leading-relaxed", styles.textMutedClass)}>
+                      Tap the ♡ on any product to save it here for later.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setWishlistOpen(false)}
+                    className={cn("mt-2 text-xs font-bold px-6 py-2.5", styles.buttonClass)}
+                  >
+                    Browse Products
+                  </button>
+                </div>
+              ) : (
+                <div className="px-4 py-3 space-y-3">
+                  {products
+                    .filter(p => wishlist.includes(p.id))
+                    .map(product => (
+                      <div
+                        key={product.id}
+                        className={cn("flex gap-3 p-3 rounded-xl", styles.cardClass)}
+                      >
+                        {/* Thumbnail */}
+                        <div
+                          className="w-20 h-24 shrink-0 rounded-lg overflow-hidden bg-zinc-900 cursor-pointer"
+                          onClick={() => { setWishlistOpen(false); router.push(`/${username}/product/${product.id}`); }}
+                        >
+                          {isVideoUrl(product.main_media_url) ? (
+                            <video
+                              src={product.main_media_url}
+                              muted
+                              playsInline
+                              preload="metadata"
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={product.main_media_url}
+                              alt={product.title}
+                              className="w-full h-full object-cover"
+                              onError={e => {
+                                (e.target as HTMLImageElement).src =
+                                  "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBmaWxsPSIjMWYyOTM3Ij48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIi8+PC9zdmc+";
+                              }}
+                            />
+                          )}
+                        </div>
+
+                        {/* Info */}
+                        <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+                          <div>
+                            <h4
+                              className={cn("text-xs font-bold line-clamp-2 leading-snug cursor-pointer hover:underline", styles.textColorClass)}
+                              onClick={() => { setWishlistOpen(false); router.push(`/${username}/product/${product.id}`); }}
+                            >
+                              {product.title}
+                            </h4>
+                            <p className={cn("text-xs font-bold mt-1", styles.priceClass)}>
+                              {product.price ? `${product.price} ${product.currency}` : "Price on request"}
+                            </p>
+                            {parseFloat(product.original_price || "0") > parseFloat(product.price || "0") && (
+                              <p className={cn("text-[10px] line-through mt-0.5", styles.textMutedClass)}>
+                                {product.original_price} {product.currency}
+                              </p>
+                            )}
+                            {product.stock === 0 && (
+                              <span className="text-[9px] font-bold text-red-400 uppercase tracking-wider mt-0.5 block">Out of stock</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 mt-2">
+                            <button
+                              onClick={() => { setWishlistOpen(false); router.push(`/${username}/product/${product.id}`); }}
+                              className={cn("flex-1 text-[10px] font-bold py-1.5 flex items-center justify-center gap-1 transition-all", styles.buttonClass)}
+                            >
+                              View <ArrowRight className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={e => toggleWishlist(product.id, e)}
+                              className={cn("w-7 h-7 flex items-center justify-center rounded-full hover:opacity-70 transition-opacity shrink-0", styles.textMutedClass)}
+                              aria-label="Remove from wishlist"
+                              title="Remove from wishlist"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            {wishlist.length > 0 && (
+              <div className={cn("px-5 py-4 border-t shrink-0", styles.dividerClass)}>
+                <button
+                  onClick={() => {
+                    setWishlist([]);
+                    localStorage.setItem("anydm_favorites", "[]");
+                  }}
+                  className={cn("w-full text-xs font-bold py-2.5 rounded-lg opacity-70 hover:opacity-100 transition-opacity", styles.textMutedClass)}
+                  style={{ border: `1px solid`, borderColor: "currentColor" }}
+                >
+                  Clear all ({wishlist.length})
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Quick View Modal ────────────────────────────────────── */}
+      {quickViewProduct && (
+        <div
+          className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4"
+          onClick={() => setQuickViewProduct(null)}
+        >
+          <div
+            className={cn(
+              "relative w-full sm:max-w-lg max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col sm:flex-row",
+              styles.bodyClass
+            )}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Image */}
+            <div className="w-full sm:w-48 aspect-square sm:aspect-auto sm:h-auto shrink-0 overflow-hidden bg-zinc-900 rounded-t-2xl sm:rounded-l-2xl sm:rounded-tr-none">
+              {isVideoUrl(quickViewProduct.main_media_url) ? (
+                <video
+                  src={quickViewProduct.main_media_url}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={quickViewProduct.main_media_url}
+                  alt={quickViewProduct.title}
+                  className="w-full h-full object-cover"
+                  onError={e => {
+                    (e.target as HTMLImageElement).src =
+                      "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBmaWxsPSIjMWYyOTM3Ij48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIi8+PC9zdmc+";
+                  }}
+                />
+              )}
+            </div>
+
+            {/* Info */}
+            <div className="flex-1 p-5 flex flex-col gap-4">
+              <button
+                onClick={() => setQuickViewProduct(null)}
+                className={cn("absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-black/20 backdrop-blur-sm", styles.textMutedClass)}
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              <div>
+                <h3 className={cn("text-base font-bold leading-tight mb-1", styles.fontHeadline, styles.textColorClass)}>
+                  {quickViewProduct.title}
+                </h3>
+                <p className={cn("text-sm font-bold", styles.priceClass)}>
+                  {quickViewProduct.price ? `${quickViewProduct.price} ${quickViewProduct.currency}` : "Price on request"}
+                </p>
+              </div>
+
+              {quickViewProduct.description && (
+                <p className={cn("text-xs leading-relaxed line-clamp-3", styles.textMutedClass)}>
+                  {quickViewProduct.description}
+                </p>
+              )}
+
+              <div className="flex items-center gap-1">
+                {[1, 2, 3, 4, 5].map(s => (
+                  <Star key={s} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                ))}
+                <span className={cn("text-[10px] ml-1", styles.textMutedClass)}>(4.8)</span>
+              </div>
+
+              <button
+                onClick={() => {
+                  setQuickViewProduct(null);
+                  router.push(`/${username}/product/${quickViewProduct.id}`);
+                }}
+                className={cn("w-full text-xs font-bold py-3 mt-auto flex items-center justify-center gap-2", styles.buttonClass)}
+              >
+                View Full Details <ArrowRight className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
         </div>
       )}
 
-
-      {/* Interactive Hover Detail Popup */}
-      {hoveredProduct && hoverPosition && (() => {
-        const POPUP_HEIGHT = 480;
-        const POPUP_WIDTH = 330;
-        const GAP = 10;
-        const viewportH = window.innerHeight;
-        const viewportW = window.innerWidth;
-        const cardTop = hoverPosition.y - window.scrollY;
-        const cardLeft = hoverPosition.x;
-        const cardCenter = cardLeft + hoverPosition.width / 2;
-
-        // Position directly on top of the hovered card (overlaying it)
-        let top = cardTop;
-        let left = cardLeft + (hoverPosition.width - POPUP_WIDTH) / 2;
-
-        // Clamp to viewport boundaries
-        top = Math.max(8, Math.min(viewportH - POPUP_HEIGHT - 8, top));
-        left = Math.max(8, Math.min(viewportW - POPUP_WIDTH - 8, left));
-
-        const templateId = settings.template_id;
-        const themeId = settings.theme_id;
-
-        const bodyClassLower = styles.bodyClass.toLowerCase();
-        const isLightTheme = 
-          bodyClassLower.includes("text-black") || 
-          bodyClassLower.includes("text-[#131313]") || 
-          bodyClassLower.includes("text-[#111111]") || 
-          bodyClassLower.includes("text-[#2d362e]") || 
-          bodyClassLower.includes("text-[#2b221a]") || 
-          bodyClassLower.includes("text-[#1c1c1c]");
-
-        const textPrimary = isLightTheme ? "text-zinc-900" : "text-white";
-        const textMuted = isLightTheme ? "text-zinc-600" : "text-zinc-400";
-        const textSubtle = isLightTheme ? "text-zinc-500" : "text-zinc-500";
-
-        const isRounded = templateId === "glass_monochrome" || templateId === "immersive_glass" || !templateId;
-        const roundedClass = isRounded ? "rounded-2xl" : "rounded-none";
-        const isBrutalist = templateId === "neo_brutalist";
-
-        // Clean up hover states and transitions from dynamic cardClass
-        let cleanCardClass = styles.cardClass
-          .split(" ")
-          .filter(c => !c.startsWith("hover:") && !c.startsWith("transition") && !c.startsWith("duration"))
-          .join(" ");
-
-        // Ensure the popup background is opaque so it's readable over the card grid underneath
-        if (cleanCardClass.includes("bg-transparent")) {
-          cleanCardClass = cleanCardClass.replace("bg-transparent", isLightTheme ? "bg-white" : "bg-[#121216]");
-        }
-
-        // Clean up buttonClass to extract background/border/text classes for compact selected buttons
-        const cleanBtnClass = styles.buttonClass
-          .split(" ")
-          .filter(c => !c.startsWith("py-") && !c.startsWith("px-") && !c.startsWith("py-[") && !c.startsWith("px-[") && !c.startsWith("hover:") && !c.startsWith("transition") && !c.startsWith("duration"))
-          .join(" ");
-
-        const btnUnselected = isBrutalist
-          ? "bg-white text-black border-2 border-black hover:bg-zinc-100"
-          : "bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-current opacity-75 hover:opacity-100";
-
-        const btnSelected = isBrutalist
-          ? "bg-black text-white border-2 border-black scale-105"
-          : cn(cleanBtnClass, "scale-105 font-bold border-none");
-
-        const btnRounded = isRounded ? "rounded-full" : "rounded-none";
-        const sizeBtnRounded = isRounded ? "rounded-md" : "rounded-none";
-
-        let starColor = "fill-amber-400 text-amber-400";
-        if (templateId === "cyber_neon_dark") {
-          if (themeId === "matrix_green") starColor = "fill-[#00ff00] text-[#00ff00]";
-          else if (themeId === "synthwave_sunset") starColor = "fill-[#ff24e4] text-[#ff24e4]";
-          else starColor = "fill-[#00dbe9] text-[#00dbe9]";
-        } else if (isBrutalist) {
-          starColor = themeId === "brutalist_blue" ? "fill-white text-white" : "fill-black text-black";
-        }
-
-        let accentTextClass = "text-[#b6b2ff]";
-        if (templateId === "cyber_neon_dark") {
-          accentTextClass = themeId === "matrix_green" ? "text-[#00ff00]" : themeId === "synthwave_sunset" ? "text-[#ff24e4]" : "text-[#00dbe9]";
-        } else if (isBrutalist) {
-          accentTextClass = themeId === "brutalist_blue" ? "text-white underline" : "text-[#0038ff]";
-        } else if (isLightTheme) {
-          accentTextClass = "text-[#605ca2]";
-        }
-
-        // Action details button styled exactly like template primary button
-        const detailBtnClass = cn(
-          "w-full mt-4 py-2.5 px-4 text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-[0.98] shrink-0",
-          styles.buttonClass
-            .split(" ")
-            .filter(c => !c.startsWith("py-") && !c.startsWith("px-") && !c.startsWith("py-[") && !c.startsWith("px-["))
-            .join(" ")
-        );
-
-        return (
-          <div
-            className={cn(
-              "premium-glass-popup fixed z-50 w-[330px] p-4 flex flex-col pointer-events-auto",
-              cleanCardClass,
-              textPrimary,
-              styles.fontBody
-            )}
-            style={{ top: `${top}px`, left: `${left}px` }}
-            onMouseEnter={handlePopupMouseEnter}
-            onMouseLeave={handlePopupMouseLeave}
-          >
-          {/* Header Image/Video */}
-          <div className={cn("relative h-40 w-full overflow-hidden mb-3 shrink-0 border", isRounded ? "rounded-xl" : "rounded-none", isBrutalist ? "border-2 border-black" : "border-current/10 bg-current/5")}>
-            {isVideoUrl(hoveredProduct.main_media_url) ? (
-              <video
-                src={hoveredProduct.main_media_url}
-                autoPlay
-                loop
-                muted
-                playsInline
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <img
-                src={hoveredProduct.main_media_url}
-                alt={hoveredProduct.title}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBmaWxsPSIjMWYyOTM3Ij48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIi8+PC9zdmc+';
-                }}
-              />
-            )}
-            
-            {/* Price Badge */}
-            <div className={cn("absolute bottom-2 right-2 px-2.5 py-1 text-xs font-bold border shadow", styles.badgeClass)}>
-              {hoveredProduct.price ? `${hoveredProduct.price} ${hoveredProduct.currency}` : "TBD"}
+      {/* ── Policy Modals ──────────────────────────────────────── */}
+      {activePolicyModal && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
+          <div className={cn("w-full max-w-lg rounded-2xl border p-6 shadow-2xl max-h-[80vh] overflow-y-auto custom-scrollbar", styles.bodyClass, styles.dividerClass.replace("border-", "border "))}>
+            <div className={cn("flex justify-between items-center pb-3 mb-4 border-b", styles.dividerClass)}>
+              <span className={cn("text-sm font-bold uppercase tracking-wider", styles.textColorClass)}>
+                {activePolicyModal === "privacy" ? "Privacy Policy" : "Terms of Service"}
+              </span>
+              <button
+                onClick={() => setActivePolicyModal(null)}
+                className={cn("w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors", styles.textMutedClass)}
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
-          </div>
-
-          {/* Product details */}
-          <div className="flex-grow flex flex-col min-h-0 overflow-y-auto pr-1">
-            <h4 className={cn("text-sm font-bold line-clamp-1 mb-1", styles.fontHeadline, textPrimary)}>{hoveredProduct.title}</h4>
-            
-            {/* Rating */}
-            <div className="flex items-center gap-1 mb-2.5">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Star
-                  key={star}
-                  className={cn("w-3.5 h-3.5 rating-star-interactive cursor-pointer", starColor)}
-                />
-              ))}
-              <span className={cn("text-[10px] ml-1", textMuted)}>(4.8 / 5)</span>
-            </div>
-
-            {/* Description with Read More */}
-            <p className={cn("text-[11px] line-clamp-2 leading-relaxed mb-3", textMuted)}>
-              {hoveredProduct.description || "No description provided."}
+            <p className={cn("text-xs leading-relaxed whitespace-pre-wrap", styles.textMutedClass)}>
+              {activePolicyModal === "privacy"
+                ? settings.privacy_policy || "We value your privacy. Your personal information is exclusively used to fulfill your orders."
+                : settings.terms_of_service || "By browsing this store and placing orders, you agree to comply with our terms and conditions."}
             </p>
-            
-            {/* Dynamic metadata variants */}
-            {(() => {
-              const meta = getProductMetadata(hoveredProduct);
-              const variantList = meta.variants ? meta.variants.split(",").map((v: string) => v.trim()) : [];
-              const colors = variantList.filter((v: string) => isColor(v));
-              const sizes = variantList.filter((v: string) => !isColor(v));
-
-              return (
-                <div className="space-y-3">
-                  {/* Colors */}
-                  {colors.length > 0 && (
-                    <div>
-                      <span className={cn("text-[10px] font-bold uppercase tracking-wider block mb-1", textMuted)}>Color</span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {colors.map((color: string) => {
-                          const isSelected = selectedColor === color;
-                          return (
-                            <button
-                              key={color}
-                              onClick={() => setSelectedColor(color)}
-                              className={cn(
-                                "h-6 px-2.5 text-[10px] font-semibold border transition-all flex items-center justify-center gap-1",
-                                isSelected ? btnSelected : btnUnselected,
-                                btnRounded
-                              )}
-                            >
-                              <span 
-                                className="w-2 h-2 rounded-full border border-white/20" 
-                                style={{ backgroundColor: color.toLowerCase() }}
-                              />
-                              {color}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Sizes */}
-                  {sizes.length > 0 && (
-                    <div>
-                      <div className="flex justify-between items-center mb-1">
-                        <span className={cn("text-[10px] font-bold uppercase tracking-wider", textMuted)}>Size</span>
-                      </div>
-
-                      <div className="flex flex-wrap gap-1.5">
-                        {sizes.map((size: string) => {
-                          const isSelected = selectedSize === size;
-                          return (
-                            <button
-                              key={size}
-                              onClick={() => setSelectedSize(size)}
-                              className={cn(
-                                "h-6 px-3 text-[10px] font-bold border transition-all",
-                                isSelected ? btnSelected : btnUnselected,
-                                sizeBtnRounded
-                              )}
-                            >
-                              {size}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-
-                </div>
-              );
-            })()}
           </div>
+        </div>
+      )}
 
-          {/* Action button redirecting to PDP */}
-          <button
-            onClick={() => router.push(`/${username}/product/${hoveredProduct.id}`)}
-            className={detailBtnClass}
-          >
-            <span>View Full Details</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-          </div>
-        );
-      })()}
-
-      {/* Tracking Modal */}
+      {/* ── Order Tracking Modal ───────────────────────────────── */}
       {isTrackingOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-xl border border-white/10 p-6 shadow-2xl bg-[#1e1e24] text-white space-y-5">
-            <div className="flex justify-between items-center pb-2 border-b border-white/5">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl border border-white/10 p-6 shadow-2xl bg-[#1c1c1f] text-white space-y-5">
+            <div className="flex justify-between items-center pb-2 border-b border-white/8">
               <div className="flex items-center gap-2">
-                <Globe className="w-4 h-4 text-[#b6b2ff]" />
+                <Package className="w-4 h-4 text-[#c4c0ff]" />
                 <span className="text-sm font-bold">Track Your Order</span>
               </div>
-              <button 
-                onClick={() => {
-                  setIsTrackingOpen(false);
-                  setInputOrderId("");
-                }} 
-                className="p-1 rounded hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
+              <button
+                onClick={() => { setIsTrackingOpen(false); setInputOrderId(""); }}
+                className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 text-zinc-400 transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form 
-              onSubmit={(e) => {
+            <form
+              onSubmit={e => {
                 e.preventDefault();
-                if (inputOrderId.trim()) {
-                  router.push(`/track/${inputOrderId.trim()}`);
-                }
+                if (inputOrderId.trim()) router.push(`/track/${inputOrderId.trim()}`);
               }}
-              className="space-y-4"
+              className="space-y-3"
             >
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] uppercase font-bold tracking-wider text-zinc-400">Order ID</label>
+              <div>
+                <label className="text-[10px] uppercase font-bold tracking-widest text-zinc-400 block mb-1.5">
+                  Order ID
+                </label>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     required
                     value={inputOrderId}
-                    onChange={(e) => setInputOrderId(e.target.value)}
-                    placeholder="Enter order ID (e.g. AMD-20260712-...)"
-                    className="w-full bg-[#0e0e0e] border border-[#444748] rounded px-3 py-2 text-xs text-white outline-none"
+                    onChange={e => setInputOrderId(e.target.value)}
+                    placeholder="e.g. AMD-20260712-..."
+                    className="flex-1 bg-[#111] border border-white/15 rounded-lg px-3 py-2.5 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-white/30"
                   />
                   <button
                     type="submit"
-                    className="px-4 py-2 rounded text-xs font-bold bg-[#605ca2] hover:bg-[#605ca2]/90 transition-colors"
+                    className="px-4 py-2 rounded-lg text-xs font-bold"
+                    style={{ backgroundColor: styles.accentColor, color: styles.isDark ? "#000" : "#fff" }}
                   >
                     Track
                   </button>
@@ -750,60 +1053,43 @@ export default function StorefrontPage({ params }: PageProps) {
               </div>
             </form>
 
-            <div className="space-y-2 pt-2 border-t border-white/5">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-400 block">Your Placed Orders ({localOrders.length})</span>
-              {localOrders.length === 0 ? (
-                <p className="text-[11px] text-zinc-500 italic">No recent orders found on this browser for this supplier.</p>
-              ) : (
+            {localOrders.length > 0 && (
+              <div className="space-y-2 pt-2 border-t border-white/8">
+                <span className="text-[10px] uppercase font-bold tracking-widest text-zinc-400 block">
+                  Recent Orders ({localOrders.length})
+                </span>
                 <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
                   {localOrders.map((order, idx) => (
-                    <button
+                    <div
                       key={idx}
                       onClick={() => router.push(`/track/${order.order_id}`)}
-                      className="w-full flex items-center justify-between text-left p-2.5 rounded bg-[#0e0e0e] border border-[#444748]/30 hover:border-[#605ca2] transition-colors relative group"
+                      className="w-full flex items-center justify-between text-left p-2.5 rounded-lg bg-[#111] border border-white/8 hover:border-white/20 transition-colors cursor-pointer"
                     >
                       <div className="space-y-0.5">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-[11px] font-mono font-bold text-[#b6b2ff] block">{order.order_id}</span>
-                          <span
-                            onClick={(e) => {
+                          <span className="text-[11px] font-mono font-bold text-[#c4c0ff]">{order.order_id}</span>
+                          <button
+                            onClick={e => {
                               e.stopPropagation();
-                              const oid = order.order_id;
-                              if (navigator.clipboard && navigator.clipboard.writeText) {
-                                navigator.clipboard.writeText(oid);
-                              } else {
-                                const ta = document.createElement("textarea");
-                                ta.value = oid;
-                                ta.style.position = "fixed";
-                                ta.style.opacity = "0";
-                                document.body.appendChild(ta);
-                                ta.select();
-                                document.execCommand("copy");
-                                document.body.removeChild(ta);
-                              }
+                              navigator.clipboard?.writeText(order.order_id);
                               setCopiedOrderId(order.order_id);
                               setTimeout(() => setCopiedOrderId(null), 2000);
                             }}
-                            title="Copy Order ID"
-                            className="p-1 rounded bg-white/5 hover:bg-white/10 active:scale-95 transition-all text-zinc-400 hover:text-white cursor-pointer"
+                            className="text-[9px] px-1.5 py-0.5 bg-white/5 rounded hover:bg-white/10 text-zinc-400 cursor-pointer"
                           >
-                            {copiedOrderId === order.order_id ? (
-                              <span className="text-emerald-400 text-[8px] font-bold">Copied!</span>
-                            ) : (
-                              <span className="opacity-60 text-[9.5px]">📋</span>
-                            )}
-                          </span>
+                            {copiedOrderId === order.order_id ? "Copied!" : "Copy"}
+                          </button>
                         </div>
-                        {order.product_name && <span className="text-[9px] text-zinc-400 block truncate max-w-[200px]">{order.product_name}</span>}
+                        {order.product_name && (
+                          <span className="text-[9px] text-zinc-500 block truncate max-w-[200px]">{order.product_name}</span>
+                        )}
                       </div>
-                      <span className="text-[9px] text-zinc-500 shrink-0">
-                        {order.timestamp ? new Date(order.timestamp).toLocaleDateString() : ""}
-                      </span>
-                    </button>
+                      <ChevronRight className="w-3.5 h-3.5 text-zinc-600 shrink-0" />
+                    </div>
                   ))}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       )}

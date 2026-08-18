@@ -5,7 +5,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/store";
 import api from "@/lib/services/api.service";
 import { setUser } from "@/store/slices/authSlice";
-import { Gift, Copy, Check, Users, Trophy, Award, Star, Loader2 } from "lucide-react";
+import { Gift, Copy, Check, Users, Trophy, Award, Star, Loader2, Medal } from "lucide-react";
 import Toast from "@/components/Toast";
 
 export default function ReferPage() {
@@ -166,8 +166,9 @@ export default function ReferPage() {
               <span>Redeem 1 month premium</span>
             </button>
           ) : appUser?.plan === "pro" ? (
-            <div className="w-full py-2.5 rounded-md border border-emerald-500/20 bg-emerald-500/5 text-emerald-400 text-xs font-medium flex items-center justify-center gap-1.5">
-              <Star className="w-3.5 h-3.5 fill-current" strokeWidth={1.75} />
+            <div className="w-full py-2.5 rounded-md border border-yellow-500/30 bg-gradient-to-r from-yellow-500/10 via-amber-400/15 to-yellow-600/10 text-yellow-300 text-xs font-semibold flex items-center justify-center gap-1.5 shadow-[0_0_12px_rgba(234,179,8,0.08)]
+">
+              <Medal className="w-3.5 h-3.5 fill-current" strokeWidth={1.75} />
               <span>Creator pro active</span>
             </div>
           ) : (
@@ -183,7 +184,7 @@ export default function ReferPage() {
         <div className="bg-[#1c1b1b] p-5 rounded-lg border border-[#2a2a2a] flex flex-col gap-3">
           <h3 className="text-sm font-semibold text-[#e5e2e1] flex items-center gap-2">
             <Copy className="w-4 h-4 text-[#c4c0ff]" strokeWidth={1.75} />
-            <span>Share your referral link</span>
+            <span>Share your referral link to get {stats?.referral_points} points/user</span>
           </h3>
 
           <div className="flex flex-col sm:flex-row gap-2.5">

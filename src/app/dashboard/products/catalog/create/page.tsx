@@ -816,7 +816,6 @@ export default function ProductCreatePage() {
                       className="w-full bg-[#1c1b1b] border border-[#444748]/60 rounded-[4px] px-3 py-2 text-sm focus:border-white outline-none transition-colors text-white cursor-pointer"
                     >
                       <option value="INR">INR (₹)</option>
-                      <option value="USD">USD ($)</option>
                       <option value="KWD">KWD (KWD)</option>
                       <option value="EUR">EUR (€)</option>
                       <option value="GBP">GBP (£)</option>

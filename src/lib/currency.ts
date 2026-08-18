@@ -1,6 +1,5 @@
 export const SUPPORTED_CURRENCIES = [
   { code: 'INR', label: 'INR (₹)', symbol: '₹' },
-  { code: 'USD', label: 'USD ($)', symbol: '$' },
   { code: 'KWD', label: 'KWD (KWD)', symbol: 'KWD' },
   { code: 'EUR', label: 'EUR (€)', symbol: '€' },
   { code: 'GBP', label: 'GBP (£)', symbol: '£' },

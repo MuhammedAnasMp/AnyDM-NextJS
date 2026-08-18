@@ -413,7 +413,7 @@ export default function ProductDetailPage({ params }: PageProps) {
   const isOutOfStock = product ? (product.stock <= 0 || product.status === "OUT_OF_STOCK") : true;
 
   const styles: TemplateStyle = getTemplateStyles(settings.template_id, settings.theme_id);
-  const isLight = styles.textColorClass === "text-black" || styles.textColorClass === "text-[#1c1c1c]" || styles.textColorClass === "text-[#2D362E]";
+  const isLight = !styles.isDark;
 
   // Generate Social Buttons URLs
   const currentUrl = typeof window !== 'undefined' ? window.location.href : "";
