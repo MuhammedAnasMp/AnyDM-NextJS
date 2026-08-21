@@ -110,7 +110,7 @@ export function getTemplateStyles(templateId: string, themeId: string): Template
       instagramButtonClass: isSage
         ? "border border-white/20 text-white rounded-none py-4 hover:bg-white/5 transition-all text-center tracking-widest uppercase font-medium text-xs"
         : "border border-[#E1306C]/30 text-[#2D362E] rounded-none py-4 hover:bg-[#E1306C]/5 transition-all text-center tracking-widest uppercase font-medium text-xs",
-      logoWrapperClass: "w-9 h-9 rounded-none overflow-hidden bg-transparent border border-current flex items-center justify-center",
+      logoWrapperClass: "w-9 h-9 rounded-full overflow-hidden bg-transparent border border-current flex items-center justify-center",
       inputClass: isSage
         ? "bg-white/5 border border-white/15 text-white placeholder-white/40 rounded-none px-4 py-2.5 focus:outline-none focus:border-white/40 transition-colors"
         : "bg-[#F2EFE9] border border-[#C2C9C3]/60 text-[#2D362E] placeholder-[#6A786C] rounded-none px-4 py-2.5 focus:outline-none focus:border-[#4A5D4E] transition-colors",
@@ -208,7 +208,7 @@ export function getTemplateStyles(templateId: string, themeId: string): Template
       instagramButtonClass: isLight
         ? "bg-black text-white text-xs font-bold uppercase py-3.5 hover:bg-black/90 transition-all text-center rounded-none"
         : "bg-white text-black text-xs font-bold uppercase py-3.5 hover:bg-[#eaeaea] transition-all text-center rounded-none",
-      logoWrapperClass: "w-9 h-9 rounded-none overflow-hidden bg-transparent border border-current flex items-center justify-center",
+      logoWrapperClass: "w-9 h-9 rounded-full overflow-hidden bg-transparent border border-current flex items-center justify-center",
       inputClass: isLight
         ? "bg-transparent border border-black/20 text-black placeholder-gray-400 font-mono rounded-none px-4 py-2.5 focus:outline-none focus:border-black transition-colors"
         : "bg-transparent border border-white/20 text-white placeholder-gray-600 font-mono rounded-none px-4 py-2.5 focus:outline-none focus:border-white transition-colors",
@@ -251,7 +251,7 @@ export function getTemplateStyles(templateId: string, themeId: string): Template
       instagramButtonClass: isDark
         ? "bg-[#c5a880] text-black tracking-widest text-xs uppercase font-semibold py-4 hover:opacity-90 transition-all text-center"
         : "bg-[#1c1c1c] text-white tracking-widest text-xs uppercase font-semibold py-4 hover:bg-black transition-all text-center",
-      logoWrapperClass: "w-9 h-9 rounded-none overflow-hidden bg-transparent border border-current flex items-center justify-center",
+      logoWrapperClass: "w-9 h-9 rounded-full overflow-hidden bg-transparent border border-current flex items-center justify-center",
       inputClass: isDark
         ? "bg-transparent border-b border-white/20 text-white placeholder-zinc-600 font-serif rounded-none px-0 py-2 focus:outline-none focus:border-[#c5a880] transition-colors"
         : "bg-transparent border-b border-black/20 text-black placeholder-zinc-500 font-serif rounded-none px-0 py-2 focus:outline-none focus:border-black transition-colors",

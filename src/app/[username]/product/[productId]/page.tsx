@@ -1678,137 +1678,19 @@ export default function ProductDetailPage({ params }: PageProps) {
 
           {/* Right Column: Floating Info and Purchase Card */}
           <aside className="w-full lg:w-[45%] lg:sticky lg:top-24 space-y-6">
-            {isCheckoutOpen ? (
-              /* ── Inline Checkout Panel ── */
-              <div className={cn("p-6 md:p-8 space-y-6 shadow-2xl relative overflow-hidden bg-transparent border border-black/10 rounded-none hover:border-black transition-all duration-200", isLight ? "text-black" : "text-white")}>
-                {/* Back button */}
-                <div className="flex items-center gap-2 pb-2 border-b border-black/10">
-                  <button
-                    type="button"
-                    onClick={() => setIsCheckoutOpen(false)}
-                    className={cn("flex items-center gap-1.5 text-xs font-bold hover:opacity-70 transition-opacity", styles.textMutedClass)}
-                  >
-                    <ArrowLeft className="w-4 h-4" />
-                    <span>Back to Product</span>
-                  </button>
-                </div>
-
-                <h3 className={cn("text-sm font-bold tracking-tight uppercase", styles.textColorClass)}>Checkout Order</h3>
-
-                {/* Order summary */}
-                <div className={cn("flex items-center gap-3 p-3 rounded-lg", isLight ? "bg-black/[0.03] border border-black/10" : "bg-white/[0.03] border border-white/10")}>
-                  {activeMediaUrl && (
-                    <img src={activeMediaUrl} alt={product.title} className="w-14 h-14 object-cover rounded shrink-0" />
+            {/* ── Product Details Panel ── */}
+            <div className={cn("p-6 md:p-8 space-y-6 shadow-2xl relative overflow-hidden", styles.cardClass)}>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className={cn("text-[10px] tracking-widest uppercase font-black", styles.badgeClass)}>
+                    {product.category || "Apparel"}
+                  </span>
+                  {product.stock > 0 ? (
+                    <span className="text-[10px] uppercase font-bold text-emerald-400">In Stock</span>
+                  ) : (
+                    <span className="text-[10px] uppercase font-bold text-red-500">Sold Out</span>
                   )}
-                  <div className="flex-1 min-w-0">
-                    <p className={cn("text-xs font-bold truncate", styles.textColorClass)}>{product.title}</p>
-                    {selectedVariant && <p className={cn("text-[10px] mt-0.5", styles.textMutedClass)}>Size: {selectedVariant}</p>}
-                    <p className={cn("text-xs font-black mt-0.5", styles.priceClass)}>{product.price ? `${product.price} ${product.currency}` : "Price TBD"}</p>
-                  </div>
-                  <span className={cn("text-[10px] font-bold px-2 py-1 rounded", isLight ? "bg-black/5 text-black" : "bg-white/5 text-white")}>×{quantity}</span>
                 </div>
-
-                <form onSubmit={handleCheckout} className="space-y-3">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[9px] font-bold uppercase tracking-wider opacity-60">Full Name</label>
-                    <input type="text" required value={checkoutName} onChange={(e) => setCheckoutName(e.target.value)} placeholder="Enter your name"
-                      className={cn("w-full px-3 py-2 text-xs rounded border outline-none", isLight ? "bg-zinc-100 border-zinc-300 text-black" : "bg-[#0e0e0e] border-[#444748] text-white")} />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[9px] font-bold uppercase tracking-wider opacity-60">Email Address</label>
-                    <input type="email" required value={checkoutEmail} onChange={(e) => setCheckoutEmail(e.target.value)} placeholder="Enter email address"
-                      className={cn("w-full px-3 py-2 text-xs rounded border outline-none", isLight ? "bg-zinc-100 border-zinc-300 text-black" : "bg-[#0e0e0e] border-[#444748] text-white")} />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[9px] font-bold uppercase tracking-wider opacity-60">Phone Number</label>
-                    <input type="tel" required value={checkoutPhone} onChange={(e) => setCheckoutPhone(e.target.value)} placeholder="Enter phone number"
-                      className={cn("w-full px-3 py-2 text-xs rounded border outline-none", isLight ? "bg-zinc-100 border-zinc-300 text-black" : "bg-[#0e0e0e] border-[#444748] text-white")} />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[9px] font-bold uppercase tracking-wider opacity-60">Shipping Address</label>
-                    <textarea required rows={2} value={checkoutAddress} onChange={(e) => setCheckoutAddress(e.target.value)} placeholder="Detailed shipping address"
-                      className={cn("w-full px-3 py-2 text-xs rounded border outline-none resize-none", isLight ? "bg-zinc-100 border-zinc-300 text-black" : "bg-[#0e0e0e] border-[#444748] text-white")} />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="flex flex-col gap-1">
-                      <label className="text-[9px] font-bold uppercase tracking-wider opacity-60">Pin Code</label>
-                      <input type="text" required value={checkoutPincode} onChange={(e) => setCheckoutPincode(e.target.value)} placeholder="Pin Code"
-                        className={cn("w-full px-3 py-2 text-xs rounded border outline-none", isLight ? "bg-zinc-100 border-zinc-300 text-black" : "bg-[#0e0e0e] border-[#444748] text-white")} />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-[9px] font-bold uppercase tracking-wider opacity-60">Place / City</label>
-                      <input type="text" required value={checkoutPlace} onChange={(e) => setCheckoutPlace(e.target.value)} placeholder="Place / City"
-                        className={cn("w-full px-3 py-2 text-xs rounded border outline-none", isLight ? "bg-zinc-100 border-zinc-300 text-black" : "bg-[#0e0e0e] border-[#444748] text-white")} />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="flex flex-col gap-1">
-                      <label className="text-[9px] font-bold uppercase tracking-wider opacity-60">District</label>
-                      <input type="text" required value={checkoutDistrict} onChange={(e) => setCheckoutDistrict(e.target.value)} placeholder="District"
-                        className={cn("w-full px-3 py-2 text-xs rounded border outline-none", isLight ? "bg-zinc-100 border-zinc-300 text-black" : "bg-[#0e0e0e] border-[#444748] text-white")} />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-[9px] font-bold uppercase tracking-wider opacity-60">State</label>
-                      <input type="text" required value={checkoutState} onChange={(e) => setCheckoutState(e.target.value)} placeholder="State"
-                        className={cn("w-full px-3 py-2 text-xs rounded border outline-none", isLight ? "bg-zinc-100 border-zinc-300 text-black" : "bg-[#0e0e0e] border-[#444748] text-white")} />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[9px] font-bold uppercase tracking-wider opacity-60">Payment Method</label>
-                    {(() => {
-                      const isCodAvailable = settings?.cod_enabled && product?.cod_enabled;
-                      const isOnlineAvailable = !!settings?.online_payment_enabled;
-                      if (isCodAvailable && isOnlineAvailable) {
-                        return (
-                          <div className="grid grid-cols-2 gap-2">
-                            <button type="button" onClick={() => setCheckoutPaymentMethod("COD")}
-                              className={cn("py-2 rounded border text-xs font-semibold transition-all",
-                                checkoutPaymentMethod === "COD" ? "border-[#605ca2] bg-[#605ca2]/15 text-[#b6b2ff]" : isLight ? "border-zinc-300 hover:border-zinc-400 text-black" : "border-white/10 hover:border-white/20 text-white")}>
-                              Cash on Delivery
-                            </button>
-                            <button type="button" onClick={() => setCheckoutPaymentMethod("RAZORPAY")}
-                              className={cn("py-2 rounded border text-xs font-semibold transition-all",
-                                checkoutPaymentMethod === "RAZORPAY" ? "border-[#605ca2] bg-[#605ca2]/15 text-[#b6b2ff]" : isLight ? "border-zinc-300 hover:border-zinc-400 text-black" : "border-white/10 hover:border-white/20 text-white")}>
-                              Online
-                            </button>
-                          </div>
-                        );
-                      } else if (isCodAvailable) {
-                        return <button type="button" onClick={() => setCheckoutPaymentMethod("COD")} className="py-2 rounded  text-xs font-semibold border-[#605ca2] bg-[#605ca2]/15 text-[#5047ff] text-center w-full">Cash on Delivery</button>;
-                      } else if (isOnlineAvailable) {
-                        return <button type="button" onClick={() => setCheckoutPaymentMethod("RAZORPAY")} className="py-2 rounded  text-xs font-semibold border-[#605ca2] bg-[#605ca2]/15 text-[#5047ff] text-center w-full">Online</button>;
-                      } else {
-                        return (
-                          <div className="rounded border border-red-500/20 bg-red-500/5 p-3 text-center">
-                            <p className="text-xs font-bold text-red-400">No Payment Methods Available</p>
-                            <p className="text-[10px] text-zinc-400 mt-1">This store is currently not accepting any orders.</p>
-                          </div>
-                        );
-                      }
-                    })()}
-                  </div>
-
-                  <button type="submit" disabled={isSubmittingOrder}
-                    className="w-full mt-2 h-10 rounded bg-[#605ca2] hover:bg-[#605ca2]/90 text-white text-xs font-bold transition-all disabled:opacity-50">
-                    {isSubmittingOrder ? "Placing Order..." : "Confirm & Place Order"}
-                  </button>
-                </form>
-              </div>
-            ) : (
-              /* ── Product Details Panel ── */
-              <div className={cn("p-6 md:p-8 space-y-6 shadow-2xl relative overflow-hidden", styles.cardClass)}>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className={cn("text-[10px] tracking-widest uppercase font-black", styles.badgeClass)}>
-                      {product.category || "Apparel"}
-                    </span>
-                    {product.stock > 0 ? (
-                      <span className="text-[10px] uppercase font-bold text-emerald-400">In Stock</span>
-                    ) : (
-                      <span className="text-[10px] uppercase font-bold text-red-500">Sold Out</span>
-                    )}
-                  </div>
 
                   <h1 className={cn("text-2xl md:text-3xl font-black tracking-tight", styles.fontHeadline, styles.textColorClass)}>
                     {product.title}
@@ -2020,8 +1902,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                   </div>
                 </div>
               </div>
-            )}
-          </aside>
+            </aside>
         </div>
 
         {/* Product Details Section */}
@@ -2241,8 +2122,139 @@ export default function ProductDetailPage({ params }: PageProps) {
           </div>
         </footer>
       )}
+      {/* ── Global Checkout Modal ── */}
+      {isCheckoutOpen && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          onClick={() => setIsCheckoutOpen(false)}
+        >
+          <div 
+            className={cn(
+              "w-full max-w-lg rounded-2xl p-6 md:p-8 shadow-2xl overflow-y-auto max-h-[90vh] relative border text-left", 
+              styles.bodyClass, 
+              styles.cardClass
+            )}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button
+              onClick={() => setIsCheckoutOpen(false)}
+              className={cn("absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors", styles.textMutedClass)}
+            >
+              <X className="w-4 h-4" />
+            </button>
 
+            <h3 className={cn("text-base font-bold tracking-tight uppercase mb-4", styles.fontHeadline, styles.textColorClass)}>Checkout Order</h3>
 
+            {/* Order summary */}
+            <div className={cn("flex items-center gap-3 p-3 rounded-lg mb-4", isLight ? "bg-black/[0.03] border border-black/10" : "bg-white/[0.03] border border-white/10")}>
+              {activeMediaUrl && (
+                <img src={activeMediaUrl} alt={product.title} className="w-14 h-14 object-cover rounded shrink-0" />
+              )}
+              <div className="flex-1 min-w-0">
+                <p className={cn("text-xs font-bold truncate", styles.textColorClass)}>{product.title}</p>
+                {selectedVariant && <p className={cn("text-[10px] mt-0.5", styles.textMutedClass)}>Size: {selectedVariant}</p>}
+                <p className={cn("text-xs font-black mt-0.5", styles.priceClass)}>{product.price ? `${product.price} ${product.currency}` : "Price TBD"}</p>
+              </div>
+              <span className={cn("text-[10px] font-bold px-2 py-1 rounded", isLight ? "bg-black/5 text-black" : "bg-white/5 text-white")}>×{quantity}</span>
+            </div>
+
+            <form onSubmit={handleCheckout} className="space-y-4">
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider opacity-60">Full Name</label>
+                <input type="text" required value={checkoutName} onChange={(e) => setCheckoutName(e.target.value)} placeholder="Enter your name"
+                  className={cn("w-full px-3 py-2 text-xs rounded border outline-none", styles.inputClass)} />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider opacity-60">Email Address</label>
+                <input type="email" required value={checkoutEmail} onChange={(e) => setCheckoutEmail(e.target.value)} placeholder="Enter email address"
+                  className={cn("w-full px-3 py-2 text-xs rounded border outline-none", styles.inputClass)} />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider opacity-60">Phone Number</label>
+                <input type="tel" required value={checkoutPhone} onChange={(e) => setCheckoutPhone(e.target.value)} placeholder="Enter phone number"
+                  className={cn("w-full px-3 py-2 text-xs rounded border outline-none", styles.inputClass)} />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider opacity-60">Shipping Address</label>
+                <textarea required rows={2} value={checkoutAddress} onChange={(e) => setCheckoutAddress(e.target.value)} placeholder="Detailed shipping address"
+                  className={cn("w-full px-3 py-2 text-xs rounded border outline-none resize-none", styles.inputClass)} />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider opacity-60">Pin Code</label>
+                  <input type="text" required value={checkoutPincode} onChange={(e) => setCheckoutPincode(e.target.value)} placeholder="Pin Code"
+                    className={cn("w-full px-3 py-2 text-xs rounded border outline-none", styles.inputClass)} />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider opacity-60">Place / City</label>
+                  <input type="text" required value={checkoutPlace} onChange={(e) => setCheckoutPlace(e.target.value)} placeholder="Place / City"
+                    className={cn("w-full px-3 py-2 text-xs rounded border outline-none", styles.inputClass)} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider opacity-60">District</label>
+                  <input type="text" required value={checkoutDistrict} onChange={(e) => setCheckoutDistrict(e.target.value)} placeholder="District"
+                    className={cn("w-full px-3 py-2 text-xs rounded border outline-none", styles.inputClass)} />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider opacity-60">State</label>
+                  <input type="text" required value={checkoutState} onChange={(e) => setCheckoutState(e.target.value)} placeholder="State"
+                    className={cn("w-full px-3 py-2 text-xs rounded border outline-none", styles.inputClass)} />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5 text-left">
+                <label className="text-[10px] font-bold uppercase tracking-wider opacity-60">Payment Method</label>
+                {(() => {
+                  const isCodAvailable = settings?.cod_enabled && product?.cod_enabled;
+                  const isOnlineAvailable = !!settings?.online_payment_enabled;
+                  if (isCodAvailable && isOnlineAvailable) {
+                    return (
+                      <div className="grid grid-cols-2 gap-2">
+                        <button type="button" onClick={() => setCheckoutPaymentMethod("COD")}
+                          className={cn("py-2 rounded border text-xs font-semibold transition-all",
+                            checkoutPaymentMethod === "COD" ? "border-[#605ca2] bg-[#605ca2]/15 text-[#b6b2ff]" : isLight ? "border-zinc-300 hover:border-zinc-400 text-black" : "border-white/10 hover:border-white/20 text-white")}
+                          style={{ borderColor: checkoutPaymentMethod === "COD" ? styles.accentColor : undefined }}
+                        >
+                          Cash on Delivery
+                        </button>
+                        <button type="button" onClick={() => setCheckoutPaymentMethod("RAZORPAY")}
+                          className={cn("py-2 rounded border text-xs font-semibold transition-all",
+                            checkoutPaymentMethod === "RAZORPAY" ? "border-[#605ca2] bg-[#605ca2]/15 text-[#b6b2ff]" : isLight ? "border-zinc-300 hover:border-zinc-400 text-black" : "border-white/10 hover:border-white/20 text-white")}
+                          style={{ borderColor: checkoutPaymentMethod === "RAZORPAY" ? styles.accentColor : undefined }}
+                        >
+                          Online
+                        </button>
+                      </div>
+                    );
+                  } else if (isCodAvailable) {
+                    return <button type="button" onClick={() => setCheckoutPaymentMethod("COD")} className="py-2 rounded text-xs font-semibold border-[#605ca2] bg-[#605ca2]/15 text-[#5047ff] text-center w-full">Cash on Delivery</button>;
+                  } else if (isOnlineAvailable) {
+                    return <button type="button" onClick={() => setCheckoutPaymentMethod("RAZORPAY")} className="py-2 rounded text-xs font-semibold border-[#605ca2] bg-[#605ca2]/15 text-[#5047ff] text-center w-full">Online</button>;
+                  } else {
+                    return (
+                      <div className="rounded border border-red-500/20 bg-red-500/5 p-3 text-center">
+                        <p className="text-xs font-bold text-red-400">No Payment Methods Available</p>
+                        <p className="text-[10px] text-zinc-400 mt-1">This store is currently not accepting any orders.</p>
+                      </div>
+                    );
+                  }
+                })()}
+              </div>
+
+              <button 
+                type="submit" 
+                disabled={isSubmittingOrder}
+                className={cn("w-full mt-2 py-3 rounded-lg text-xs font-bold transition-all disabled:opacity-50", styles.buttonClass)}
+              >
+                {isSubmittingOrder ? "Placing Order..." : "Confirm & Place Order"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Policy Modal */}
       {activePolicyModal && (

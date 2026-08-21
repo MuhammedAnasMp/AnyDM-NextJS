@@ -832,32 +832,14 @@ export default function WebsiteSettingsPage() {
                         )}
 
                         {/* Filters */}
-                        {previewDevice === "mobile" ? (
-                          <div className="w-full relative">
-                            <select
-                              disabled
-                              className={cn("w-full appearance-none pr-6 text-[8px] font-semibold cursor-pointer", previewStyles.inputClass, "!py-1")}
-                            >
-                              {["All", "Tops", "Bottoms"].map((cat) => (
-                                <option key={cat} value={cat}>
-                                  {cat}
-                                </option>
-                              ))}
-                            </select>
-                            <div className={cn("pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2", previewStyles.textMutedClass)}>
-                              <ChevronDown className="w-2.5 h-2.5" />
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex gap-1.5 overflow-hidden">
-                            {["All", "Tops", "Bottoms"].map((cat, i) => (
-                              <span key={cat} className={cn("text-[8px] shrink-0 truncate", i === 0 ? previewStyles.filterPillActiveClass : previewStyles.filterPillClass)}
-                                style={{ padding: "2px 8px" }}>
-                                {cat}
-                              </span>
-                            ))}
-                          </div>
-                        )}
+                        <div className="flex justify-center gap-1.5 overflow-x-auto scrollbar-hide py-1">
+                          {["All", "Tops", "Bottoms"].map((cat, i) => (
+                            <span key={cat} className={cn("text-[8px] shrink-0 truncate", i === 0 ? previewStyles.filterPillActiveClass : previewStyles.filterPillClass)}
+                              style={{ padding: "2px 8px" }}>
+                              {cat}
+                            </span>
+                          ))}
+                        </div>
 
                         {/* Product grid */}
                         <div className="grid grid-cols-2 gap-2">

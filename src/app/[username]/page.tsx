@@ -434,52 +434,34 @@ export default function StorefrontPage({ params }: PageProps) {
         </div>
       </div>
 
+      {/* ── Category Filters (Shown right after Trust Badges) ── */}
+      {categories.length > 1 && (
+        <div className={cn("border-b py-4", styles.dividerClass)}>
+          <div className={cn("flex items-center justify-center gap-2 overflow-x-auto scrollbar-hide pb-1", styles.containerClass)}>
+            {categories.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setActiveCategory(cat)}
+                className={cn("shrink-0 transition-all", activeCategory === cat ? styles.filterPillActiveClass : styles.filterPillClass)}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ── Product Catalog ────────────────────────────────────── */}
       <main id="product-grid" className={cn("flex-1 py-12", styles.containerClass)}>
 
         {/* Filter & Sort Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-          {/* Category Filters */}
-          {categories.length > 1 && (
-            <>
-              {/* Desktop Filters: Horizontal Tabs */}
-              <div className="hidden sm:flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
-                {categories.map(cat => (
-                  <button
-                    key={cat}
-                    onClick={() => setActiveCategory(cat)}
-                    className={cn("shrink-0 transition-all", activeCategory === cat ? styles.filterPillActiveClass : styles.filterPillClass)}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
+        <div className="flex items-center justify-between gap-4 mb-8">
+          <span className={cn("text-xs font-semibold", styles.textMutedClass)}>
+            Showing {filteredProducts.length} {filteredProducts.length === 1 ? "item" : "items"}
+          </span>
 
-              {/* Mobile Filter: Dropdown Select */}
-              <div className="block sm:hidden w-full relative">
-                <select
-                  value={activeCategory}
-                  onChange={e => setActiveCategory(e.target.value)}
-                  className={cn("w-full appearance-none pr-8 text-xs font-semibold cursor-pointer", styles.inputClass, "!py-2")}
-                >
-                  {categories.map(cat => (
-                    <option key={cat} value={cat} className="text-black bg-white">
-                      {cat}
-                    </option>
-                  ))}
-                </select>
-                <div className={cn("pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3", styles.textMutedClass)}>
-                  <ChevronDown className="w-3.5 h-3.5" />
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* Sort + Count */}
-          <div className="flex items-center gap-3 shrink-0 ml-auto">
-            <span className={cn("text-xs hidden sm:block", styles.textMutedClass)}>
-              {filteredProducts.length} {filteredProducts.length === 1 ? "item" : "items"}
-            </span>
+          {/* Sort */}
+          <div className="flex items-center gap-3 shrink-0">
             <div className="relative">
               <select
                 value={sortOrder}

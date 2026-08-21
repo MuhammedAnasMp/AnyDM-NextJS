@@ -448,7 +448,7 @@ export default function CatalogPage() {
 
                       {/* Status Column */}
                       <td className="px-6 py-3.5">
-                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-medium border ${p.status?.toUpperCase() === "PUBLISHED"
+                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-medium .border ${p.status?.toUpperCase() === "PUBLISHED"
                           ? "bg-green-500/5 text-green-400 border-green-500/15"
                           : "bg-white/[0.02] text-[#8e9192] border-white/5"
                           }`}>
