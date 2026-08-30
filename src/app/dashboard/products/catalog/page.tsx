@@ -353,11 +353,10 @@ export default function CatalogPage() {
                 </tr>
               ) : (
                 filteredProducts.map((p: any, i: number) => {
-                  const hashId = typeof p.id === "number" ? p.id : (p.id?.charCodeAt(0) || 5);
-                  const inquiriesVal = p.inquiries || Math.floor((hashId * 7) % 150) + 12;
-                  const clicksVal = p.clicks || Math.floor(inquiriesVal * 6.5) + 32;
-                  const convPercentage = p.conv || ((inquiriesVal / clicksVal) * 100).toFixed(1) + "%";
-                  const convProgress = Math.min(100, Math.floor((inquiriesVal / clicksVal) * 100));
+                  const inquiriesVal = p.inquiries ?? 0;
+                  const clicksVal = p.clicks ?? 0;
+                  const convPercentage = p.conversion_rate || "0.0%";
+                  const convProgress = Math.min(100, parseFloat(convPercentage) || 0);
 
                   const titleText = p.title || p.name || "Untitled product";
                   const skuCode = p.sku || (titleText.substring(0, 3).toUpperCase() + "-" + String(p.id).substring(0, 4).toUpperCase());

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import {
   Plus,
   Trash2,
@@ -16,19 +16,24 @@ import {
   AlertCircle,
   Loader2,
   Shield,
-  Settings,
   Users,
+  User,
   Pencil,
   Clock,
-  Gift
+  Gift,
+  ExternalLink,
+  RefreshCw,
+  Sparkles,
+  Check,
+  ShieldCheck
 } from "lucide-react";
-import { Avatar, OverlappingAvatars } from "@/components/Avatar";
-import { motion } from "framer-motion";
+import { Avatar, OverlappingAvatars, UserAvatar } from "@/components/Avatar";
+import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { auth } from "@/lib/firebase";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/store";
-import { setInstagramAccounts, setUser } from "@/store/slices/authSlice";
+import { setInstagramAccounts } from "@/store/slices/authSlice";
 import {
   GoogleAuthProvider,
   EmailAuthProvider,
@@ -42,8 +47,6 @@ import Toast from "@/components/Toast";
 import ConfirmationModal from "@/components/ConfirmationModal";
 import InstagramIcon from "@/components/ui/InstagramIcon";
 
-
-
 const GoogleIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -54,21 +57,26 @@ const GoogleIcon = ({ className }: { className?: string }) => (
 );
 
 const ProviderCard = ({ icon, title, subtitle, isConnected, onAction, actionText, children }: any) => (
-  <div className="p-4 rounded-md bg-[#1c1b1b] border border-[#444748]/60 hover:border-[#444748] hover:bg-[#20201f] transition-colors duration-200 flex flex-col gap-4 relative">
+  <div className="p-4 rounded-lg bg-[#1c1b1b] border border-[#2a2a2a] hover:border-[#444748] transition-colors duration-200 flex flex-col gap-3 relative">
     <div className="flex items-start gap-3">
-      <div className="w-10 h-10 rounded-md bg-[#2a2a2a] flex items-center justify-center border border-[#444748] shrink-0 text-[#e5e2e1]">
+      <div className="w-9 h-9 rounded-md bg-[#20201f] flex items-center justify-center border border-[#2a2a2a] shrink-0 text-[#e5e2e1]">
         {icon}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <h3 className="text-sm font-semibold text-[#e5e2e1] tracking-tight leading-none">{title}</h3>
-          {isConnected && (
-            <span className="bg-[#34d399]/10 border border-[#34d399]/20 text-[#34d399] text-[9px] font-semibold uppercase px-2 py-0.5 rounded tracking-wider leading-none">
-              Linked
+          <h3 className="text-xs font-semibold text-[#e5e2e1] tracking-tight">{title}</h3>
+          {isConnected ? (
+            <span className="inline-flex items-center gap-1 bg-[#10b981]/10 border border-[#10b981]/20 text-[#34d399] text-[10px] font-semibold px-2 py-0.5 rounded tracking-wide">
+              <Check className="w-3 h-3" />
+              Connected
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 bg-[#8e9192]/10 border border-[#8e9192]/20 text-[#8e9192] text-[10px] font-medium px-2 py-0.5 rounded tracking-wide">
+              Not linked
             </span>
           )}
         </div>
-        <p className="text-xs text-[#c4c7c8]/60 mt-1.5 leading-relaxed break-all">{subtitle}</p>
+        <p className="text-[11px] text-[#8e9192] mt-1 leading-relaxed break-all">{subtitle}</p>
       </div>
     </div>
 
@@ -76,7 +84,7 @@ const ProviderCard = ({ icon, title, subtitle, isConnected, onAction, actionText
       <button
         onClick={onAction}
         className={cn(
-          "flex items-center justify-center gap-2 w-full py-2 rounded-md text-xs font-semibold transition-colors active:scale-[0.98] border cursor-pointer mt-auto",
+          "flex items-center justify-center gap-2 w-full py-2 rounded text-xs font-semibold transition-all active:scale-[0.98] border cursor-pointer mt-1",
           (actionText === "Cancel" || isConnected)
             ? "text-red-400 border-red-500/20 bg-red-500/5 hover:bg-red-500/10"
             : "bg-[#2a2a2a] text-[#e5e2e1] hover:bg-[#353535] border-[#444748] hover:border-[#8e9192]"
@@ -93,119 +101,152 @@ const ProviderCard = ({ icon, title, subtitle, isConnected, onAction, actionText
       </button>
     )}
 
-    {children && (
-      <div className="w-full">
-        {children}
-      </div>
-    )}
+    {children && <div className="w-full mt-1">{children}</div>}
   </div>
 );
 
 const InstagramRow = ({ account, isPrimary, onRemove, onToggleEnabled, onToggleLogin, onSetPrimary, onReLogin }: any) => (
-  <div className={cn(
-    "flex flex-col sm:flex-row sm:items-center justify-between p-4 mb-3 last:mb-0 rounded-md bg-[#1c1b1b] border transition-colors duration-200 group",
-    isPrimary
-      ? "border-[#8FE3FF]/30 bg-[#8FE3FF]/5 shadow-[0_0_20px_rgba(143,227,255,0.05)]"
-      : "border-[#444748]/60 hover:border-[#444748] hover:bg-[#20201f]"
-  )}>
-    <div className="flex items-center space-x-4 mb-4 sm:mb-0">
+  <div
+    className={cn(
+      "p-4 rounded-lg bg-[#1c1b1b] border transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group",
+      isPrimary
+        ? "border-[#8fe3ff]/40 bg-[#8fe3ff]/[0.03] shadow-[0_0_15px_rgba(143,227,255,0.04)]"
+        : "border-[#2a2a2a] hover:border-[#444748] hover:bg-[#20201f]"
+    )}
+  >
+    {/* Account Identity */}
+    <div className="flex items-center gap-3.5 min-w-0">
       <div
-        className="relative cursor-pointer select-none"
+        className="relative cursor-pointer select-none shrink-0"
         onClick={() => !isPrimary && !account.is_token_expired && onSetPrimary(account.id)}
+        title={isPrimary ? "Primary Account" : "Click to set as primary"}
       >
-        <div className={cn(
-          "w-12 h-12 rounded-full overflow-hidden shadow-md transition-transform duration-200 group-hover:scale-105 p-0.5 bg-zinc-800",
-          isPrimary && "ring-2 ring-[#8FE3FF]/50 ring-offset-2 ring-offset-[#131313]"
-        )}>
-          <img
-            src={account.profile_picture_url || "https://i.pravatar.cc/150?u=ig"}
+        <div
+          className={cn(
+            "w-11 h-11 rounded-full overflow-hidden transition-transform duration-200 group-hover:scale-105 p-0.5 bg-[#20201f] border border-[#2a2a2a] flex items-center justify-center",
+            isPrimary && "ring-2 ring-[#8fe3ff]/60 ring-offset-2 ring-offset-[#131313]"
+          )}
+        >
+          <UserAvatar
+            src={account.profile_picture_url}
             alt={account.username}
             className="w-full h-full object-cover rounded-full"
+            fallbackIcon={<User className="w-5 h-5 text-gray-400" />}
           />
         </div>
-        <div className="absolute -bottom-1 -right-1 bg-[#131313] rounded-full p-1 shadow-md">
-          <div className="insta-gradient p-0.5 rounded-full text-white">
+        <div className="absolute -bottom-1 -right-1 bg-[#131313] rounded-full p-0.5 shadow-md">
+          <div className="bg-gradient-to-tr from-amber-500 via-pink-500 to-purple-600 p-0.5 rounded-full text-white">
             <InstagramIcon className="w-2.5 h-2.5" />
           </div>
         </div>
         {isPrimary && (
-          <div className="absolute -top-1.5 -left-1.5 bg-[#8FE3FF] text-[#131313] p-1 rounded-full shadow-lg z-10 border border-[#131313]">
+          <div className="absolute -top-1 -left-1 bg-[#8fe3ff] text-[#131313] p-1 rounded-full shadow-lg z-10 border border-[#131313]">
             <Star className="w-2.5 h-2.5 fill-current" />
           </div>
         )}
       </div>
-      <div>
-        <div className="flex items-center space-x-2.5">
-          <span className="text-sm font-semibold text-[#e5e2e1] group-hover:text-[#8fe3ff] transition-colors">@{account.username}</span>
+
+      <div className="min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs font-semibold text-white tracking-tight group-hover:text-[#8fe3ff] transition-colors truncate">
+            @{account.username}
+          </span>
+          {isPrimary && (
+            <span className="bg-[#8fe3ff]/10 text-[#8fe3ff] border border-[#8fe3ff]/20 text-[9px] font-bold uppercase px-2 py-0.5 rounded tracking-wider">
+              Primary
+            </span>
+          )}
           {account.is_token_expired ? (
-            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 text-[9px] font-semibold uppercase tracking-wider border border-red-500/20">
+            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-red-500/10 text-red-400 text-[9px] font-semibold uppercase tracking-wider border border-red-500/20">
               <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-              Expired
+              Token Expired
             </span>
           ) : account.is_enabled ? (
-            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#34d399]/10 text-[#34d399] text-[9px] font-semibold uppercase tracking-wider border border-[#34d399]/20">
+            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-[#10b981]/10 text-[#34d399] text-[9px] font-semibold uppercase tracking-wider border border-[#10b981]/20">
               <div className="w-1.5 h-1.5 rounded-full bg-[#34d399] animate-pulse" />
-              Active
+              Automations Active
             </span>
           ) : (
-            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 text-[9px] font-semibold uppercase tracking-wider border border-red-500/20">
-              <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
-              Paused
+            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 text-[9px] font-semibold uppercase tracking-wider border border-amber-500/20">
+              <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+              Automations Paused
             </span>
           )}
         </div>
-        <span className="text-xs text-[#c4c7c8]/60 truncate max-w-[220px] block mt-1">{account.full_name || "Instagram business account"}</span>
+        <p className="text-[11px] text-[#8e9192] truncate mt-0.5">
+          {account.full_name || "Instagram Business Profile"}
+        </p>
       </div>
     </div>
 
-    <div className="flex items-center space-x-4">
-      <div className="flex items-center space-x-1 sm:space-x-2">
+    {/* Actions Toolbar */}
+    <div className="flex items-center gap-2 flex-wrap justify-end shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#2a2a2a]">
+      {!isPrimary && !account.is_token_expired && (
         <button
-          onClick={() => !account.is_token_expired && onToggleEnabled(account.id, !account.is_enabled)}
-          disabled={account.is_token_expired}
-          className={cn(
-            "flex items-center justify-center p-2 text-xs font-semibold rounded-md border border-transparent transition-colors cursor-pointer",
-            account.is_token_expired
-              ? "text-zinc-600 cursor-not-allowed"
-              : account.is_enabled
-                ? "text-amber-400 hover:bg-amber-500/10"
-                : "text-[#34d399] hover:bg-[#34d399]/10"
-          )}
-          title={account.is_token_expired ? "Token expired" : account.is_enabled ? "Pause automations" : "Resume automations"}
+          onClick={() => onSetPrimary(account.id)}
+          className="px-2.5 py-1.5 rounded border border-[#2a2a2a] hover:border-[#444748] text-[#c4c7c8] hover:text-white text-xs font-medium transition-colors bg-[#20201f] active:scale-[0.98]"
+          title="Set as active primary account"
         >
-          {account.is_enabled ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+          Make Primary
         </button>
-        <button
-          onClick={() => onRemove(account.id)}
-          className="flex items-center justify-center p-2 text-xs font-semibold text-red-400 hover:bg-red-500/10 rounded-md transition-colors cursor-pointer"
-          title="Delete account"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
-      </div>
+      )}
+
+      <button
+        onClick={() => !account.is_token_expired && onToggleEnabled(account.id, !account.is_enabled)}
+        disabled={account.is_token_expired}
+        className={cn(
+          "p-1.5 text-xs font-semibold rounded border transition-colors cursor-pointer flex items-center gap-1 px-2.5",
+          account.is_token_expired
+            ? "text-[#8e9192] border-[#2a2a2a] bg-[#131313] cursor-not-allowed"
+            : account.is_enabled
+              ? "text-amber-400 border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/10"
+              : "text-[#34d399] border-[#10b981]/20 bg-[#10b981]/5 hover:bg-[#10b981]/10"
+        )}
+        title={account.is_token_expired ? "Token expired" : account.is_enabled ? "Pause automations" : "Resume automations"}
+      >
+        {account.is_enabled ? (
+          <>
+            <Pause className="w-3.5 h-3.5" />
+            <span className="text-[11px]">Pause</span>
+          </>
+        ) : (
+          <>
+            <Play className="w-3.5 h-3.5" />
+            <span className="text-[11px]">Resume</span>
+          </>
+        )}
+      </button>
 
       {account.is_token_expired ? (
         <button
           onClick={onReLogin}
-          className="flex items-center justify-center gap-2 w-32 py-2 rounded-md text-xs font-semibold bg-red-500 hover:bg-red-600 text-white border border-transparent cursor-pointer transition-colors"
+          className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold bg-red-500 hover:bg-red-600 text-white cursor-pointer transition-colors active:scale-[0.98]"
         >
-          <InstagramIcon className="w-3.5 h-3.5" />
+          <RefreshCw className="w-3.5 h-3.5" />
           <span>Re-login</span>
         </button>
       ) : (
         <button
           onClick={() => onToggleLogin(account.id, !account.used_for_login)}
           className={cn(
-            "flex items-center justify-center gap-2 w-32 py-2 rounded-md text-xs font-semibold transition-colors active:scale-[0.98] border cursor-pointer",
+            "flex items-center justify-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all active:scale-[0.98] border cursor-pointer",
             account.used_for_login
               ? "text-red-400 border-red-500/20 bg-red-500/5 hover:bg-red-500/10"
               : "bg-[#2a2a2a] text-[#e5e2e1] hover:bg-[#353535] border-[#444748] hover:border-[#8e9192]"
           )}
         >
           {account.used_for_login ? <Link2Off className="w-3.5 h-3.5" /> : <Link2 className="w-3.5 h-3.5" />}
-          <span>{account.used_for_login ? "Disconnect" : "Connect"}</span>
+          <span>{account.used_for_login ? "Unlink Login" : "Link Login"}</span>
         </button>
       )}
+
+      <button
+        onClick={() => onRemove(account.id)}
+        className="p-1.5 text-red-400 hover:bg-red-500/10 rounded border border-transparent hover:border-red-500/20 transition-colors cursor-pointer"
+        title="Remove account"
+      >
+        <Trash2 className="w-3.5 h-3.5" />
+      </button>
     </div>
   </div>
 );
@@ -237,58 +278,24 @@ function AccountsContent() {
 
 
 
-  const [globalSettings, setGlobalSettings] = useState({
-    trial_days: 14,
-    extend_days: 7,
-    referral_points: 50,
-    points_to_redeem: 100,
-    premium_plan_price: 499.00
-  });
-  const [isSavingSettings, setIsSavingSettings] = useState(false);
-
-  // Fetch settings on mount
-  useEffect(() => {
-    api.get("/accounts/settings/system/")
-      .then(res => {
-        setGlobalSettings(res.data);
-      })
-      .catch(err => console.error("Error fetching global settings:", err));
-  }, []);
-
-
-
-  const handleSaveSettings = async () => {
-    setIsSavingSettings(true);
-    try {
-      const res = await api.post("/accounts/settings/system/", globalSettings);
-      showToast("Global system settings updated!", "success");
-      setGlobalSettings(res.data.settings);
-    } catch (err: any) {
-      const msg = err.response?.data?.details || err.response?.data?.error || "Failed to save settings.";
-      showToast(msg, "error");
-    } finally {
-      setIsSavingSettings(false);
-    }
-  };
-
   const showToast = (message: string, type: "error" | "success" | "info" = "error") => {
     setToast({ isVisible: true, message, type });
   };
 
   const getAccountTypeLabel = () => {
     if (appUser?.plan === "pro") {
-      return { text: "Creator Pro", color: "text-amber-400", icon: Star };
+      return { text: "Creator Pro Plan", color: "text-amber-400", icon: Star };
     }
     const trialDaysLeft = appUser?.trial_days_left ?? 0;
     const isPremiumActive = appUser?.is_premium_active ?? false;
 
     if (isPremiumActive) {
       if (appUser?.has_extended_trial) {
-        return { text: `Extended trial (${trialDaysLeft} days left)`, color: "text-[#8FE3FF]", icon: Clock };
+        return { text: `Extended Trial (${trialDaysLeft} days left)`, color: "text-[#8fe3ff]", icon: Clock };
       }
-      return { text: `Free trial (${trialDaysLeft} days left)`, color: "text-[#34d399]", icon: Clock };
+      return { text: `Free Trial (${trialDaysLeft} days left)`, color: "text-[#34d399]", icon: Clock };
     } else {
-      return { text: "Trial expired", color: "text-red-400", icon: AlertCircle };
+      return { text: "Trial Expired", color: "text-red-400", icon: AlertCircle };
     }
   };
 
@@ -305,7 +312,7 @@ function AccountsContent() {
     }
   }, [appUser?.display_name, isEditingName]);
 
-  // Handle Instagram OAuth code
+  // Handle Instagram OAuth code return
   useEffect(() => {
     const code = searchParams.get('code');
     if (code) {
@@ -360,15 +367,12 @@ function AccountsContent() {
 
   const handleEmailLink = async () => {
     if (!firebaseUser) return;
-
     if (!isLinkingEmail) {
       setEmailToLink(firebaseUser.email || "");
       setIsLinkingEmail(true);
-      return;
     } else {
       setIsLinkingEmail(false);
       setPasswordToLink("");
-      return;
     }
   };
 
@@ -552,9 +556,14 @@ function AccountsContent() {
   if (!mounted) return null;
 
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#444748] pb-6">
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25 }}
+      className="space-y-6 text-[#e5e2e1]"
+    >
+      {/* User & Account Profile Banner */}
+      <div className="bg-[#1c1b1b] border border-[#2a2a2a] rounded-lg p-5 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-5">
         <div className="flex items-center gap-4">
           {accounts.length > 0 ? (
             <OverlappingAvatars accounts={accounts} size="md" />
@@ -565,98 +574,112 @@ function AccountsContent() {
               size="lg"
             />
           )}
-          <div>
-            {isEditingName ? (
-              <input
-                type="text"
-                value={tempName}
-                onChange={(e) => setTempName(e.target.value)}
-                onBlur={handleUpdateName}
-                onKeyDown={(e) => e.key === "Enter" && handleUpdateName()}
-                autoFocus
-                className="text-xl font-semibold text-[#e5e2e1] bg-transparent border-b border-[#444748] focus:border-[#e5e2e1] focus:outline-none py-0.5"
-              />
-            ) : (
-              <h1
-                onClick={() => {
-                  setTempName(appUser?.display_name || "");
-                  setIsEditingName(true);
-                }}
-                className="text-xl font-semibold tracking-tight text-[#e5e2e1] flex items-center gap-2 cursor-pointer group"
-              >
-                <span>{appUser?.display_name || "AnyDM User"}</span>
-                <Pencil className="w-3.5 h-3.5 text-[#c4c7c8]/60 group-hover:text-[#e5e2e1] transition-colors" strokeWidth={1.75} />
-              </h1>
-            )}
-            <p className={`text-xs ${planInfo.color} mt-1 flex items-center gap-1.5 font-semibold`}>
-              <PlanIcon className="w-3.5 h-3.5" strokeWidth={2} />
-              <span>{planInfo.text}</span>
-            </p>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              {isEditingName ? (
+                <input
+                  type="text"
+                  value={tempName}
+                  onChange={(e) => setTempName(e.target.value)}
+                  onBlur={handleUpdateName}
+                  onKeyDown={(e) => e.key === "Enter" && handleUpdateName()}
+                  autoFocus
+                  className="text-lg font-semibold text-white bg-[#131313] border border-[#444748] rounded px-2 py-0.5 focus:outline-none focus:border-white transition-colors"
+                />
+              ) : (
+                <h1
+                  onClick={() => {
+                    setTempName(appUser?.display_name || "");
+                    setIsEditingName(true);
+                  }}
+                  className="text-lg font-semibold tracking-tight text-white flex items-center gap-2 cursor-pointer group"
+                >
+                  <span>{appUser?.display_name || "AnyDM Workspace"}</span>
+                  <Pencil className="w-3.5 h-3.5 text-[#8e9192] group-hover:text-white transition-colors" strokeWidth={1.75} />
+                </h1>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3 flex-wrap text-xs text-[#8e9192]">
+              <span>{appUser?.email || firebaseUser?.email || "No email linked"}</span>
+              <span>•</span>
+              <span className={`flex items-center gap-1 font-medium ${planInfo.color}`}>
+                <PlanIcon className="w-3.5 h-3.5" strokeWidth={2} />
+                <span>{planInfo.text}</span>
+              </span>
+            </div>
           </div>
         </div>
 
-        <button
-          onClick={handleAddInstagram}
-          disabled={isInstagramLinking}
-          className="insta-gradient text-white px-4 py-2 rounded-md font-semibold flex items-center gap-2 hover:brightness-110 active:scale-[0.98] transition-all text-xs cursor-pointer disabled:opacity-50"
-        >
-          {isInstagramLinking ? (
-            <span className="w-4 h-4 rounded-full border-2 border-white/20 border-t-white animate-spin"></span>
-          ) : (
-            <InstagramIcon className="w-4 h-4 mr-1" />
-          )}
-          <span>Add new Instagram</span>
-        </button>
+        <div className="flex items-center gap-3 shrink-0">
+          <button
+            onClick={handleAddInstagram}
+            disabled={isInstagramLinking}
+            className="h-9 px-4 rounded bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 text-white font-semibold flex items-center gap-2 hover:brightness-110 active:scale-[0.98] transition-all text-xs cursor-pointer disabled:opacity-50 shadow-sm"
+          >
+            {isInstagramLinking ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <InstagramIcon className="w-4 h-4" />
+            )}
+            <span>Add Instagram Account</span>
+          </button>
+        </div>
       </div>
 
+      {/* 2-Column Responsive Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Primary Connections */}
-        <div className="lg:col-span-1 flex flex-col gap-4">
-          <div className="bg-[#20201f] border border-[#444748] rounded-md p-4">
-            <h3 className="text-sm font-semibold text-[#e5e2e1] mb-4 flex items-center gap-2">
-              <Link2 className="w-4 h-4 text-[#e5e2e1]" strokeWidth={1.75} />
-              <span>Connected accounts</span>
-            </h3>
+        {/* Left Column: Authentication & Security */}
+        <div className="lg:col-span-1 space-y-6">
+          {/* Identity Providers Card */}
+          <div className="bg-[#1c1b1b] border border-[#2a2a2a] rounded-lg p-5 space-y-4">
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-[#8e9192] flex items-center gap-2">
+                <Link2 className="w-4 h-4 text-white" strokeWidth={1.75} />
+                <span>Authentication &amp; Login</span>
+              </h3>
+              <p className="text-[11px] text-[#8e9192] mt-1">Manage linked single sign-on credentials.</p>
+            </div>
 
-            <div className="flex flex-col gap-3">
+            <div className="space-y-3">
               <ProviderCard
                 icon={<GoogleIcon className="w-5 h-5" />}
-                title="Google account"
-                subtitle={hasGoogle ? "Connected securely via Google" : "One-click secure login"}
+                title="Google Account"
+                subtitle={hasGoogle ? "Connected securely via Google SSO" : "One-click login credential"}
                 isConnected={hasGoogle}
                 onAction={hasGoogle ? undefined : handleGoogleLink}
               />
 
               <ProviderCard
                 icon={<Mail className="w-5 h-5 text-[#c4c7c8]" />}
-                title="Email & password"
-                subtitle={firebaseUser?.email || "Connect an email address"}
+                title="Email &amp; Password"
+                subtitle={firebaseUser?.email || "Link an email address for password access"}
                 isConnected={hasPassword}
                 onAction={hasPassword ? undefined : handleEmailLink}
                 actionText={isLinkingEmail ? "Cancel" : "Connect"}
               >
                 {isLinkingEmail && !hasPassword && (
-                  <div className="flex flex-col gap-2 w-full mt-2">
+                  <div className="flex flex-col gap-2 w-full mt-2 pt-2 border-t border-[#2a2a2a]">
                     <input
                       type="email"
                       value={emailToLink}
                       onChange={(e) => setEmailToLink(e.target.value)}
                       placeholder="Enter account email"
-                      className="w-full bg-[#131313] border border-[#444748] rounded py-2 px-3 text-xs text-[#e5e2e1] focus:outline-none focus:border-[#8e9192] transition-colors"
+                      className="w-full bg-[#131313] border border-[#2a2a2a] rounded py-1.5 px-3 text-xs text-white focus:outline-none focus:border-[#8e9192] transition-colors"
                     />
                     <input
                       type="password"
                       value={passwordToLink}
                       onChange={(e) => setPasswordToLink(e.target.value)}
                       placeholder="Create a strong password"
-                      className="w-full bg-[#131313] border border-[#444748] rounded py-2 px-3 text-xs text-[#e5e2e1] focus:outline-none focus:border-[#8e9192] transition-colors"
+                      className="w-full bg-[#131313] border border-[#2a2a2a] rounded py-1.5 px-3 text-xs text-white focus:outline-none focus:border-[#8e9192] transition-colors"
                     />
                     <button
                       onClick={handleConfirmEmailLink}
                       disabled={isLinkingLoading}
-                      className="w-full bg-white text-black rounded py-2 text-xs font-semibold hover:bg-[#eaeaea] transition-colors cursor-pointer disabled:opacity-50"
+                      className="w-full bg-white text-black rounded py-1.5 text-xs font-semibold hover:bg-[#eaeaea] transition-colors cursor-pointer disabled:opacity-50"
                     >
-                      {isLinkingLoading ? "Connecting..." : "Link account"}
+                      {isLinkingLoading ? "Connecting..." : "Link Account"}
                     </button>
                   </div>
                 )}
@@ -664,39 +687,44 @@ function AccountsContent() {
             </div>
           </div>
 
-          <div className="bg-[#20201f] border border-[#444748] rounded-md p-4">
-            <div className="flex gap-3">
-              <Shield className="w-4 h-4 text-[#e5e2e1] shrink-0 mt-0.5" strokeWidth={1.75} />
-              <div>
-                <h4 className="font-semibold text-xs text-[#e5e2e1] mb-1">Data & privacy</h4>
-                <p className="text-[11px] text-[#c4c7c8]/60 leading-relaxed">
-                  We use official Graph API tokens and Firebase Authentication. Your passwords are never stored on our servers. You can revoke access from Facebook at any time.
-                </p>
-              </div>
+          {/* Security & Token Guarantee Card */}
+          <div className="bg-[#1c1b1b] border border-[#2a2a2a] rounded-lg p-5 space-y-3">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-[#8fe3ff]" strokeWidth={1.75} />
+              <h4 className="font-semibold text-xs text-white">Meta Security &amp; Token Encryption</h4>
             </div>
+            <p className="text-[11px] text-[#8e9192] leading-relaxed">
+              AnyDM uses long-lived OAuth tokens obtained via Meta Graph API v25.0. Credentials are tokenized with AES-256 encryption. We never access personal passphrases.
+            </p>
           </div>
-
-          {/* Referral Entry Card */}
 
 
         </div>
 
-        {/* Right Column: Instagram Accounts List */}
-        <div className="lg:col-span-2 flex flex-col gap-4">
-          <div className="bg-[#20201f] border border-[#444748] rounded-md p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-[#e5e2e1] flex items-center gap-2">
-                <Users className="w-4 h-4 text-[#e5e2e1]" strokeWidth={1.75} />
-                <span>Instagram accounts</span>
-              </h3>
-              <span className="px-2.5 py-1 bg-[#2a2a2a] text-[#e5e2e1] rounded-full text-[10px] font-semibold">
-                {accounts.length} accounts active
+        {/* Right Column: Connected Instagram Accounts List */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="bg-[#1c1b1b] border border-[#2a2a2a] rounded-lg p-5 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#2a2a2a] pb-4">
+              <div>
+                <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                  <Users className="w-4 h-4 text-[#8fe3ff]" strokeWidth={1.75} />
+                  <span>Instagram Business Accounts</span>
+                </h3>
+                <p className="text-[11px] text-[#8e9192] mt-0.5">
+                  Connected Instagram profiles available for AI automation and DM campaign tracking.
+                </p>
+              </div>
+              <span className="px-2.5 py-1 bg-[#20201f] border border-[#2a2a2a] text-[#e5e2e1] rounded text-[10px] font-semibold self-start sm:self-auto">
+                {accounts.length} {accounts.length === 1 ? "Account" : "Accounts"} Connected
               </span>
             </div>
 
-            <div className="flex flex-col gap-3">
+            <div className="space-y-3">
               {isLoading ? (
-                <div className="py-12 text-center text-sm text-[#c4c7c8]/60">Loading connected accounts...</div>
+                <div className="py-16 text-center text-xs text-[#8e9192] flex flex-col items-center justify-center gap-2">
+                  <Loader2 className="w-5 h-5 animate-spin text-[#8fe3ff]" />
+                  <span>Loading connected Instagram profiles...</span>
+                </div>
               ) : accounts.length > 0 ? (
                 accounts.map((acc: any) => (
                   <InstagramRow
@@ -711,14 +739,21 @@ function AccountsContent() {
                   />
                 ))
               ) : (
-                <div className="p-8 text-center flex flex-col items-center justify-center bg-[#1c1b1b] rounded-md border border-dashed border-[#444748]">
-                  <InstagramIcon className="w-8 h-8 text-[#c4c7c8]/30 mb-3" />
-                  <p className="text-xs text-[#c4c7c8]/60 mb-4">No Instagram accounts connected yet.</p>
+                <div className="p-10 text-center flex flex-col items-center justify-center bg-[#131313] rounded-lg border border-dashed border-[#2a2a2a] space-y-3">
+                  <div className="w-12 h-12 rounded-full bg-[#1c1b1b] border border-[#2a2a2a] flex items-center justify-center text-[#8e9192]">
+                    <InstagramIcon className="w-6 h-6 text-pink-500" />
+                  </div>
+                  <div className="max-w-xs space-y-1">
+                    <p className="text-xs font-semibold text-white">No Instagram accounts connected</p>
+                    <p className="text-[11px] text-[#8e9192]">
+                      Link your Instagram Professional or Creator account to start automating DMs, comments, and lead engagement.
+                    </p>
+                  </div>
                   <button
                     onClick={handleAddInstagram}
-                    className="bg-white text-black px-4 py-2 rounded-md font-semibold text-xs transition-colors active:scale-[0.98] cursor-pointer hover:bg-[#eaeaea]"
+                    className="h-8 px-4 bg-white text-black rounded text-xs font-semibold hover:bg-[#eaeaea] transition-colors active:scale-[0.98] cursor-pointer"
                   >
-                    Connect first account
+                    Connect Instagram Business
                   </button>
                 </div>
               )}
@@ -738,9 +773,9 @@ function AccountsContent() {
         isOpen={isPauseModalOpen}
         onClose={() => setIsPauseModalOpen(false)}
         onConfirm={confirmPause}
-        title="Pause automations?"
-        message="All automations for this account will be blocked until you turn them back on. This account will not reply to any DMs or comments while paused."
-        confirmText="Pause account"
+        title="Pause Automations?"
+        message="All DMs and comment trigger automations for this account will be paused until manually resumed."
+        confirmText="Pause Account"
         isDestructive={false}
       />
 
@@ -748,25 +783,28 @@ function AccountsContent() {
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleRemoveAccount}
-        title={accounts.length === 1 ? "Delete all data?" : "Remove account?"}
-        message={accounts.length === 1
-          ? "Are you sure? This is your last connected account. Removing it will delete all your automations and related data from the dashboard."
-          : "Are you sure you want to disconnect this Instagram account? You will not be able to log in with this account anymore."
+        title={accounts.length === 1 ? "Delete All Account Data?" : "Remove Instagram Account?"}
+        message={
+          accounts.length === 1
+            ? "Removing your only connected Instagram account will disable all active automations."
+            : "Are you sure you want to disconnect this Instagram account from your workspace?"
         }
-        confirmText={accounts.length === 1 ? "Delete everything" : "Remove account"}
+        confirmText={accounts.length === 1 ? "Delete & Disconnect" : "Remove Account"}
         isDestructive={true}
       />
-    </div>
+    </motion.div>
   );
 }
 
 export default function AccountsPage() {
   return (
-    <Suspense fallback={
-      <div className="max-w-4xl mx-auto py-12 flex justify-center items-center">
-        <div className="w-8 h-8 rounded-full border-4 border-white/20 border-t-white animate-spin"></div>
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="max-w-4xl mx-auto py-16 flex justify-center items-center">
+          <Loader2 className="w-8 h-8 text-[#8fe3ff] animate-spin" />
+        </div>
+      }
+    >
       <AccountsContent />
     </Suspense>
   );

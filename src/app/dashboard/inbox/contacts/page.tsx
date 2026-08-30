@@ -56,6 +56,35 @@ export default function ContactsPage() {
   // Checkbox/Selection State for Broadcast
   const [selectedContacts, setSelectedContacts] = useState<Set<string>>(new Set());
 
+  // Instagram Rate Limits & Anti-Block State
+  const [rateLimitData, setRateLimitData] = useState<{
+    hourly_dm_count: number;
+    hourly_dm_limit: number;
+    hourly_dm_remaining: number;
+    rate_limit_utilization_pct: number;
+    reset_time_seconds: number;
+    health_status: string;
+    username: string | null;
+  } | null>(null);
+
+  useEffect(() => {
+    const fetchRateLimits = async () => {
+      try {
+        const res = await api.get("/accounts/instagram/rate-limits/", {
+          params: activeAccount?.id ? { account_id: activeAccount.id } : {}
+        });
+        if (res.data) {
+          setRateLimitData(res.data);
+        }
+      } catch (e) {
+        console.error("Error fetching rate limits:", e);
+      }
+    };
+    fetchRateLimits();
+    const interval = setInterval(fetchRateLimits, 20000);
+    return () => clearInterval(interval);
+  }, [activeAccount?.id]);
+
   // Broadcast Modal State
   const [showBroadcastModal, setShowBroadcastModal] = useState(false);
   const [broadcastTab, setBroadcastTab] = useState<"text" | "products">("text");
@@ -385,6 +414,57 @@ export default function ContactsPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── Active Instagram Account DM Rate & Anti-Block Safety Bar ── */}
+      <div className="p-3 rounded bg-[#1c1b1b] border border-white/10 flex flex-col lg:flex-row lg:items-center justify-between gap-3 text-xs shadow-xs">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Account Indicator */}
+          <div className="flex items-center gap-2 px-2 py-1 rounded bg-[#20201f] border border-white/5">
+            <span className="w-2 h-2 rounded-full bg-[#c4c0ff] animate-pulse" />
+            <span className="text-[11px] font-bold text-white">
+              {rateLimitData?.username ? `@${rateLimitData.username}` : activeAccount?.username ? `@${activeAccount.username}` : "Account Connected"}
+            </span>
+          </div>
+
+          {/* Hourly DM Velocity Indicator */}
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-[#8e9192] font-semibold uppercase tracking-wider">DM Hourly Velocity:</span>
+            <div className="flex items-center gap-1.5 font-bold">
+              <span className="text-white font-mono">{rateLimitData?.hourly_dm_count || 0}</span>
+              <span className="text-[#8e9192]">/ {rateLimitData?.hourly_dm_limit || 200} safe DMs/hr</span>
+            </div>
+          </div>
+
+          {/* Visual Mini Progress Bar */}
+          <div className="w-28 h-2 bg-white/5 rounded-full overflow-hidden shrink-0">
+            <div
+              className="h-full rounded-full transition-all duration-500"
+              style={{
+                width: `${Math.min(100, (((rateLimitData?.hourly_dm_count || 0) / (rateLimitData?.hourly_dm_limit || 200)) * 100))}%`,
+                backgroundColor: (rateLimitData?.hourly_dm_count || 0) > 160 ? "#ef4444" : (rateLimitData?.hourly_dm_count || 0) > 120 ? "#f59e0b" : "#34d399"
+              }}
+            />
+          </div>
+
+          <span className="text-[11px] text-[#34d399] font-medium">
+            {rateLimitData?.hourly_dm_remaining ?? 200} safe sends left
+          </span>
+        </div>
+
+        {/* Protection Badges */}
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-white/[0.03] border border-white/5 text-[10px] text-[#c4c7c8]">
+            <span>Meta API Usage:</span>
+            <strong className="text-white font-mono">{rateLimitData?.rate_limit_utilization_pct || 0}%</strong>
+            <span className="text-[#8e9192]">({Math.ceil((rateLimitData?.reset_time_seconds || 3600) / 60)}m reset)</span>
+          </div>
+
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-[#10b981]/10 border border-[#10b981]/20 text-[#34d399] text-[10px] font-bold">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#34d399] animate-pulse" />
+            <span>Anti-Block Safe</span>
+          </div>
+        </div>
+      </div>
 
       {/* Control Panel (Search, Filters, Sort) */}
       <div className="flex flex-col gap-3 bg-white/[0.02] border border-white/5 p-3 rounded-lg backdrop-blur-md relative overflow-hidden">
@@ -749,10 +829,16 @@ export default function ContactsPage() {
               <div className="p-5 overflow-y-auto space-y-4 flex-1 custom-scrollbar">
                 {!broadcastResults ? (
                   <>
-                    <div className="p-3 bg-white/5 rounded-xl border border-white/5 text-[11px] text-white/70">
-                      You are preparing a broadcast to{" "}
-                      <strong className="text-white font-bold">{selectedContacts.size}</strong> selected contact(s).
-                      Instagram API only allows broadcasting to recipients with an active 24-hour message window.
+                    <div className="p-3 bg-white/5 rounded-xl border border-white/5 space-y-1.5 text-[11px] text-white/70">
+                      <div className="flex items-center justify-between text-white font-medium">
+                        <span>Selected Recipients: <strong>{selectedContacts.size}</strong> contacts</span>
+                        <span className="text-[#34d399] font-mono text-[10px] bg-[#10b981]/10 px-2 py-0.5 rounded border border-[#10b981]/20">
+                          ⚡ {rateLimitData?.hourly_dm_remaining ?? 200} Hourly DM quota left
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-[#8e9192]">
+                        Messages are filtered for the 24h compliance window and sent with randomized jitter delays (1.5s–3.5s) to guarantee account protection.
+                      </p>
                     </div>
 
                     {/* Mode Select Tabs */}

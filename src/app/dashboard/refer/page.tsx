@@ -5,7 +5,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/store";
 import api from "@/lib/services/api.service";
 import { setUser } from "@/store/slices/authSlice";
-import { Gift, Copy, Check, Users, Trophy, Award, Star, Loader2, Medal } from "lucide-react";
+import { Gift, Copy, Check, Users, Trophy, Award, Star, Loader2, Medal, Sparkles, Pencil, ChevronLeft, ChevronRight } from "lucide-react";
 import Toast from "@/components/Toast";
 
 export default function ReferPage() {
@@ -18,6 +18,11 @@ export default function ReferPage() {
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [redeemLoading, setRedeemLoading] = useState(false);
+  const [isEditingCode, setIsEditingCode] = useState(false);
+  const [customCodeInput, setCustomCodeInput] = useState("");
+  const [isSavingCode, setIsSavingCode] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
   const [toast, setToast] = useState<{
     isVisible: boolean;
     message: string;
@@ -56,6 +61,24 @@ export default function ReferPage() {
 
   const showToast = (message: string, type: "success" | "error" | "info") => {
     setToast({ isVisible: true, message, type });
+  };
+
+  const handleSaveCustomCode = async () => {
+    const code = customCodeInput.trim().toUpperCase();
+    if (!code) return;
+    setIsSavingCode(true);
+    try {
+      const res = await api.post("/accounts/referral/custom-code/", { code });
+      showToast(res.data?.message || `Referral ID set to ${code}!`, "success");
+      setStats((prev: any) => ({ ...prev, referral_code: code, custom_code_set: true }));
+      if (res.data?.user) dispatch(setUser(res.data.user));
+      setIsEditingCode(false);
+    } catch (err: any) {
+      const msg = err.response?.data?.error || err.response?.data?.details || "Failed to update referral ID.";
+      showToast(msg, "error");
+    } finally {
+      setIsSavingCode(false);
+    }
   };
 
   const handleSubmitReferral = async () => {
@@ -144,7 +167,7 @@ export default function ReferPage() {
             Invite friends, earn points, and get <span className="text-[#8fe3ff]">premium for free</span>.
           </h1>
           <p className="text-sm text-[#c4c7c8]/70 leading-relaxed">
-            Share your unique referral link with fellow creators. For every friend who signs up, you get <span className="text-white font-medium">{stats?.referral_points} points</span>. Collect <span className="text-white font-medium">{stats?.points_needed_for_premium} points</span> to redeem a free month of premium subscription.
+            Share your custom referral link with fellow creators &amp; audience. Viewers get <span className="text-white font-medium">15 Days Extended Trial</span> when signing up with your link. You earn <span className="text-[#8fe3ff] font-medium">20 points</span> on every referred user's first paid subscription (up to 5 months redemption cap).
           </p>
         </div>
 
@@ -182,31 +205,91 @@ export default function ReferPage() {
 
         {/* Copy referral link card */}
         <div className="bg-[#1c1b1b] p-5 rounded-lg border border-[#2a2a2a] flex flex-col gap-3">
-          <h3 className="text-sm font-semibold text-[#e5e2e1] flex items-center gap-2">
-            <Copy className="w-4 h-4 text-[#c4c0ff]" strokeWidth={1.75} />
-            <span>Share your referral link to get {stats?.referral_points} points/user</span>
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-[#e5e2e1] flex items-center gap-2">
+              <Copy className="w-4 h-4 text-[#c4c0ff]" strokeWidth={1.75} />
+              <span>Share your referral link to earn points</span>
+            </h3>
 
-          <div className="flex flex-col sm:flex-row gap-2.5">
-            <input
-              type="text"
-              readOnly
-              value={referralLink}
-              className="flex-1 bg-[#0e0e0e] border border-[#444748] rounded-md py-2 px-3 text-xs font-mono text-[#c4c7c8] select-all focus:outline-none"
-            />
-
-            <button
-              onClick={handleCopyLink}
-              className="bg-white hover:bg-[#e2e2e2] text-black font-semibold text-xs px-5 py-2 rounded-md transition-colors cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
-            >
-              {copied ? (
-                <Check className="w-4 h-4 text-emerald-600" strokeWidth={1.75} />
+            {!isEditingCode && (
+              (stats?.custom_code_set || appUser?.custom_code_set) ? (
+                <span className="text-[11px] font-semibold text-zinc-400 flex items-center gap-1 bg-white/5 border border-white/10 px-2 py-0.5 rounded">
+                  <Check className="w-3 h-3 text-emerald-400" />
+                  <span>Custom ID Set ({stats?.referral_code})</span>
+                </span>
               ) : (
-                <Copy className="w-4 h-4" strokeWidth={1.75} />
-              )}
-              <span>{copied ? "Copied" : "Copy link"}</span>
-            </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCustomCodeInput(stats?.referral_code || "");
+                    setIsEditingCode(true);
+                  }}
+                  className="text-[11px] font-semibold text-[#8fe3ff] hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  <Pencil className="w-3 h-3" />
+                  <span>Customize ID ({stats?.referral_code || "Set Code"})</span>
+                </button>
+              )
+            )}
           </div>
+
+          {isEditingCode ? (
+            <div className="flex flex-col sm:flex-row gap-2.5">
+              <div className="relative flex-1">
+                <span className="absolute left-3 top-2.5 text-xs text-zinc-500 font-mono font-semibold">
+                  ID:
+                </span>
+                <input
+                  type="text"
+                  value={customCodeInput}
+                  onChange={(e) => setCustomCodeInput(e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, ""))}
+                  placeholder="e.g. YT200 or CREATOR30"
+                  maxLength={20}
+                  className="w-full bg-[#0e0e0e] border border-[#8fe3ff]/50 rounded-md py-2 pl-9 pr-3 text-xs font-mono text-white tracking-wider outline-none uppercase"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleSaveCustomCode}
+                  disabled={isSavingCode || !customCodeInput.trim()}
+                  className="bg-white hover:bg-[#e2e2e2] text-black font-semibold text-xs px-4 py-2 rounded-md transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50 shadow-sm"
+                >
+                  {isSavingCode ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5 text-emerald-600" />}
+                  <span>Save Code</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsEditingCode(false)}
+                  className="bg-white/5 hover:bg-white/10 text-zinc-400 font-semibold text-xs px-3 py-2 rounded-md transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col sm:flex-row gap-2.5">
+              <input
+                type="text"
+                readOnly
+                value={referralLink}
+                className="flex-1 bg-[#0e0e0e] border border-[#444748] rounded-md py-2 px-3 text-xs font-mono text-[#c4c7c8] select-all focus:outline-none"
+              />
+
+              <button
+                type="button"
+                onClick={handleCopyLink}
+                className="bg-white hover:bg-[#e2e2e2] text-black font-semibold text-xs px-5 py-2 rounded-md transition-colors cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
+              >
+                {copied ? (
+                  <Check className="w-4 h-4 text-emerald-600" strokeWidth={1.75} />
+                ) : (
+                  <Copy className="w-4 h-4" strokeWidth={1.75} />
+                )}
+                <span>{copied ? "Copied" : "Copy link"}</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Referred by card */}
@@ -266,43 +349,105 @@ export default function ReferPage() {
           </div>
 
           {stats?.referred_users && stats.referred_users.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="border-b border-[#2a2a2a] text-[#c4c7c8]/50 uppercase tracking-wider text-[11px] font-semibold">
-                    <th className="pb-2.5 font-medium">User</th>
-                    <th className="pb-2.5 font-medium">Joined date</th>
-                    {/* <th className="pb-2.5 font-medium">Plan status</th> */}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#2a2a2a]/40">
-                  {stats.referred_users.map((ref: any, idx: number) => (
-                    <tr key={idx} className="hover:bg-white/[0.01] transition-colors">
-                      <td className="py-3 font-medium text-[#e5e2e1]">
-                        {ref.display_name ? `${ref.display_name}` : `${ref.username}`}
-                      </td>
-                      <td className="py-3 text-[#c4c7c8]/70">
-                        {new Date(ref.date_joined).toLocaleDateString(undefined, {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric'
-                        })}
-                      </td>
-                      {/* <td className="py-3">
-                        {ref.is_premium_active ? (
-                          <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-semibold">
-                            Active
-                          </span>
-                        ) : (
-                          <span className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[#c4c7c8]/50 text-[10px] font-semibold">
-                            Expired
-                          </span>
-                        )}
-                      </td> */}
+            <div className="flex flex-col justify-between flex-1">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-[#2a2a2a] text-[#c4c7c8]/50 uppercase tracking-wider text-[11px] font-semibold">
+                      <th className="pb-2.5 font-medium">User</th>
+                      <th className="pb-2.5 font-medium">Joined date</th>
+                      <th className="pb-2.5 font-medium text-right">Plan status</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-[#2a2a2a]/40">
+                    {stats.referred_users
+                      .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                      .map((ref: any, idx: number) => (
+                        <tr key={idx} className="hover:bg-white/[0.01] transition-colors">
+                          <td className="py-3 font-medium text-[#e5e2e1]">
+                            {ref.display_name ? `${ref.display_name}` : `${ref.username}`}
+                          </td>
+                          <td className="py-3 text-[#c4c7c8]/70">
+                            {new Date(ref.date_joined).toLocaleDateString(undefined, {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric'
+                            })}
+                          </td>
+                          <td className="py-3 text-right">
+                            {ref.is_premium_active ? (
+                              <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-semibold">
+                                Active Pro
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[#c4c7c8]/50 text-[10px] font-semibold">
+                                Extended Trial
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination controls */}
+              {Math.ceil((stats?.referred_users?.length || 0) / itemsPerPage) > 1 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between border-t border-[#2a2a2a] pt-4 mt-4 gap-2">
+                  <span className="text-[11px] text-[#c4c7c8]/60 font-medium">
+                    Showing <span className="text-white font-semibold">{(currentPage - 1) * itemsPerPage + 1}</span> to{" "}
+                    <span className="text-white font-semibold">
+                      {Math.min(currentPage * itemsPerPage, stats.referred_users.length)}
+                    </span>{" "}
+                    of <span className="text-white font-semibold">{stats.referred_users.length}</span> referrals
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="p-1.5 rounded bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                      aria-label="Previous page"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+
+                    <div className="flex items-center gap-1">
+                      {Array.from(
+                        { length: Math.ceil(stats.referred_users.length / itemsPerPage) },
+                        (_, i) => i + 1
+                      ).map((pageNum) => (
+                        <button
+                          key={pageNum}
+                          type="button"
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={`w-7 h-7 rounded text-xs font-semibold transition-colors cursor-pointer ${
+                            currentPage === pageNum
+                              ? "bg-white text-black font-bold shadow-sm"
+                              : "bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-white"
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setCurrentPage((p) =>
+                          Math.min(Math.ceil(stats.referred_users.length / itemsPerPage), p + 1)
+                        )
+                      }
+                      disabled={currentPage === Math.ceil(stats.referred_users.length / itemsPerPage)}
+                      className="p-1.5 rounded bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                      aria-label="Next page"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="text-center py-10 flex flex-col items-center justify-center gap-2">

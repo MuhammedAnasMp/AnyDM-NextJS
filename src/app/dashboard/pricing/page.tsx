@@ -5,7 +5,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/store";
 import api from "@/lib/services/api.service";
 import { setUser } from "@/store/slices/authSlice";
-import { Check, CreditCard, Sparkles, Star, Zap, Gift, RefreshCw, Loader2 } from "lucide-react";
+import { Check, CreditCard, Sparkles, Star, Zap, Gift, RefreshCw, Loader2, Calendar } from "lucide-react";
 import Toast from "@/components/Toast";
 import { useRouter } from "next/navigation";
 
@@ -206,6 +206,48 @@ export default function PricingPage() {
   const isPro = stats?.plan === "pro" && stats?.is_premium_active;
   const pointsProgress = Math.min(100, Math.round(((stats?.points || 0) / (stats?.points_needed_for_premium || 100)) * 100));
 
+  const getFormattedExpiryDate = () => {
+    const rawDate =
+      stats?.expires_at ||
+      stats?.plan_expires_at ||
+      stats?.subscription_expires_at ||
+      stats?.expiry_date ||
+      appUser?.expires_at ||
+      appUser?.plan_expires_at ||
+      appUser?.subscription_expires_at ||
+      appUser?.trial_expires_at;
+
+    if (rawDate) {
+      try {
+        const parsed = new Date(rawDate);
+        if (!isNaN(parsed.getTime())) {
+          return parsed.toLocaleDateString("en-US", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          });
+        }
+      } catch (e) {
+        console.error("Error parsing expiry date:", e);
+      }
+    }
+
+    const daysLeft = stats?.trial_days_left ?? appUser?.trial_days_left;
+    if (typeof daysLeft === "number" && daysLeft > 0) {
+      const expiry = new Date();
+      expiry.setDate(expiry.getDate() + daysLeft);
+      return expiry.toLocaleDateString("en-US", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+    }
+
+    return null;
+  };
+
+  const formattedExpiryDate = getFormattedExpiryDate();
+
   return (
     <div className="space-y-6">
       {toast.isVisible && (
@@ -218,13 +260,31 @@ export default function PricingPage() {
       )}
 
       {/* Header (Dense) */}
-      <div className="border-b border-[#444748] pb-4 space-y-1">
-        <h1 className="text-xl md:text-2xl font-bold tracking-tight text-[#e5e2e1]">
-          Subscription <span className="text-[#c4c0ff]">&amp; Billing</span>
-        </h1>
-        <p className="text-xs text-[#c4c7c8] max-w-2xl leading-relaxed">
-          Manage your subscription plans, claim accumulated referral points, or configure Instagram store trial timelines.
-        </p>
+      <div className="border-b border-[#444748] pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-[#e5e2e1]">
+            Subscription <span className="text-[#c4c0ff]">&amp; Billing</span>
+          </h1>
+          <p className="text-xs text-[#c4c7c8] max-w-2xl leading-relaxed">
+            Manage your subscription plans, claim accumulated referral points, or configure Instagram store trial timelines.
+          </p>
+        </div>
+
+        {formattedExpiryDate && (
+          <div className="bg-[#1c1b1b] border border-[#444748] rounded-[6px] px-3.5 py-2 flex items-center gap-3 shrink-0 self-start sm:self-auto">
+            <div className="p-2 rounded bg-[#c4c0ff]/10 text-[#c4c0ff]">
+              <Calendar className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="text-[10px] uppercase font-bold text-[#c4c7c8]/60 tracking-wider block">
+                {isPro ? "Subscription Expiry" : "Trial Expiry Date"}
+              </span>
+              <span className="text-xs font-bold text-white">
+                {formattedExpiryDate}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Dense Grid containing the pricing blocks. Configured with lg:grid-cols-12 to comfortably align beside a persistent side-bar. */}
@@ -287,10 +347,17 @@ export default function PricingPage() {
           {!isPro && (
             <div className="p-3 rounded-[4px] bg-[#20201f] border border-[#444748] flex flex-wrap sm:flex-nowrap items-center justify-between gap-3">
               <div className="space-y-0.5">
-                <div className="text-xs font-semibold text-[#e5e2e1]">
-                  {stats?.trial_days_left > 0
-                    ? `${stats?.trial_days_left} Days Remaining in Trial`
-                    : "Trial Window Expired"}
+                <div className="text-xs font-semibold text-[#e5e2e1] flex items-center gap-2">
+                  <span>
+                    {stats?.trial_days_left > 0
+                      ? `${stats?.trial_days_left} Days Remaining in Trial`
+                      : "Trial Window Expired"}
+                  </span>
+                  {formattedExpiryDate && (
+                    <span className="text-[10px] bg-[#c4c0ff]/10 text-[#c4c0ff] border border-[#c4c0ff]/20 px-2 py-0.5 rounded font-medium">
+                      Expires: {formattedExpiryDate}
+                    </span>
+                  )}
                 </div>
                 <div className="text-[10px] text-[#c4c7c8]/60 leading-tight">
                   {stats?.has_extended_trial
@@ -366,9 +433,16 @@ export default function PricingPage() {
           {/* Actions */}
           <div className="space-y-2">
             {isPro ? (
-              <div className="w-full py-2.5 rounded-[4px] border border-emerald-500/20 bg-emerald-500/5 text-emerald-400 font-semibold text-xs flex items-center justify-center gap-1.5 uppercase tracking-wide">
-                <Star className="w-3.5 h-3.5 fill-current" />
-                <span>Subscription Active</span>
+              <div className="w-full py-3 px-4 rounded-[4px] border border-emerald-500/20 bg-emerald-500/5 text-emerald-400 font-semibold text-xs flex flex-col items-center justify-center gap-1 uppercase tracking-wide">
+                <div className="flex items-center gap-1.5">
+                  <Star className="w-3.5 h-3.5 fill-current" />
+                  <span>Subscription Active</span>
+                </div>
+                {formattedExpiryDate && (
+                  <span className="text-[11px] text-emerald-300/90 normal-case tracking-normal font-normal">
+                    Expiry Date: <strong className="font-semibold text-emerald-200">{formattedExpiryDate}</strong>
+                  </span>
+                )}
               </div>
             ) : (
               <>

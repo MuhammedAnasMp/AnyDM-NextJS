@@ -9,6 +9,7 @@ import { RootState } from "@/store";
 import { authService } from "@/lib/services/auth.service";
 import { auth } from "@/lib/firebase";
 import Toast from "./Toast";
+import { UserAvatar } from "./Avatar";
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -108,6 +109,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
     if (pathname.startsWith("/dashboard/inbox")) return "Inbox";
     if (pathname.startsWith("/dashboard/games")) return "Games";
     if (pathname.startsWith("/dashboard/settings")) return "Settings";
+    if (pathname.startsWith("/dashboard/schedule") || pathname.startsWith("/dashboard/publisher")) return "Schedule";
     if (pathname.startsWith("/dashboard/refer")) return "Refer";
     if (pathname.startsWith("/dashboard/pricing")) return "Pricing";
     if (pathname.startsWith("/dashboard/admin")) return "Admin";
@@ -162,6 +164,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
       { name: "Order Settings", href: "/dashboard/admin/order-settings" },
       { name: "Payment Settlements", href: "/dashboard/admin/payment-settlement" },
     ],
+    Schedule: [],
     Refer: [],
     Pricing: [],
   };
@@ -234,14 +237,12 @@ export default function Header({ onMenuClick }: HeaderProps) {
                 className={`relative flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 bg-white/5 backdrop-blur-md cursor-pointer hover:bg-white/10 transition-all mr-1 md:mr-2 select-none ${instagramAccounts.length > 1 ? "active:scale-[0.98]" : ""
                   }`}
               >
-                <div className="w-5 h-5 rounded-full overflow-hidden border border-white/20">
-                  <img
-                    src={
-                      activeAccount?.profile_picture_url ||
-                      "https://static.vecteezy.com/system/resources/previews/002/318/271/non_2x/user-profile-icon-free-vector.jpg"
-                    }
+                <div className="w-5 h-5 rounded-full overflow-hidden border border-white/20 flex items-center justify-center bg-white/10 shrink-0">
+                  <UserAvatar
+                    src={activeAccount?.profile_picture_url}
                     alt="Instagram Profile"
                     className="w-full h-full object-cover"
+                    fallbackIcon={<span className="material-symbols-outlined text-[13px] text-white/70">person</span>}
                   />
                 </div>
 
@@ -271,10 +272,11 @@ export default function Header({ onMenuClick }: HeaderProps) {
                         : "hover:bg-white/5 text-[#c4c7c8]/60 hover:text-white"
                         } ${acc.is_token_expired ? "opacity-75" : ""}`}
                     >
-                      <img
+                      <UserAvatar
                         src={acc.profile_picture_url}
-                        className="w-5 h-5 rounded-full object-cover"
                         alt={acc.username}
+                        className="w-5 h-5 rounded-full object-cover shrink-0"
+                        fallbackIcon={<span className="material-symbols-outlined text-[13px] text-[#c4c7c8]">person</span>}
                       />
 
                       <div className="flex flex-col min-w-0">
@@ -309,12 +311,13 @@ export default function Header({ onMenuClick }: HeaderProps) {
           <div className="relative" ref={profileMenuRef}>
             <div
               onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-              className="w-7 h-7 md:w-8 h-8 rounded-full border border-white/20 bg-white/5 overflow-hidden cursor-pointer hover:border-white transition-colors active:scale-95 select-none"
+              className="w-7 h-7 md:w-8 h-8 rounded-full border border-white/20 bg-white/5 overflow-hidden cursor-pointer hover:border-white transition-colors active:scale-95 select-none flex items-center justify-center"
             >
-              <img
+              <UserAvatar
+                src={userPhoto}
                 alt="Profile"
                 className="w-full h-full object-cover"
-                src={userPhoto}
+                fallbackIcon={<span className="material-symbols-outlined text-[16px] text-white/70">person</span>}
               />
             </div>
 

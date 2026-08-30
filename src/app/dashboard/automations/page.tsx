@@ -183,22 +183,104 @@ export default function BuilderPage() {
               }
             }
 
+            // Fallback for regular automations that have no visual nodes saved yet
+            if (nodesList.length === 0 && !isIcebreakers && !isMenu) {
+              const ruleType = res.data.rule_type || 'comment_automation';
+              const targetMode = res.data.target_mode || 'selected';
+              const targetMediaIds = res.data.target_media_ids || [];
+              const keywords = res.data.keywords || [];
+
+              const tId = `node-t-${res.data.id || Date.now()}`;
+              nodesList.push({
+                id: tId,
+                type: 'trigger',
+                position: { x: 100, y: 150 },
+                ruleType,
+                data: {
+                  target_mode: targetMode,
+                  media_ids: targetMediaIds,
+                  start_at: res.data.start_at,
+                  end_at: res.data.end_at
+                }
+              });
+
+              let parentId = tId;
+              const isShare = ruleType.includes('share');
+              if (!isShare) {
+                const cId = `node-c-${res.data.id || Date.now()}`;
+                nodesList.push({
+                  id: cId,
+                  type: 'condition',
+                  position: { x: 550, y: 150 },
+                  ruleType,
+                  data: {
+                    match_type: 'contains',
+                    keywords: keywords,
+                    keywords_contains: keywords,
+                    keywords_equals: []
+                  }
+                });
+                edgesList.push({
+                  id: `edge-${res.data.id || Date.now()}-tc`,
+                  source: tId,
+                  target: cId
+                });
+                parentId = cId;
+              }
+
+              const actions = res.data.actions || [];
+              if (actions.length === 0) {
+                const aId = `node-a-${res.data.id || Date.now()}-0`;
+                nodesList.push({
+                  id: aId,
+                  type: 'action',
+                  position: { x: 1000, y: 150 },
+                  ruleType,
+                  data: {
+                    action_type: 'send_dm',
+                    dm_format: 'text',
+                    messages: ['Sent you a DM! Check your inbox.'],
+                    is_placeholder: false,
+                    isPrimary: true,
+                    action_label: 'DIRECT MESSAGE'
+                  }
+                });
+                edgesList.push({
+                  id: `edge-${res.data.id || Date.now()}-act-0`,
+                  source: parentId,
+                  target: aId
+                });
+              } else {
+                actions.forEach((act: any, idx: number) => {
+                  const aId = `node-a-${res.data.id || Date.now()}-${idx}`;
+                  nodesList.push({
+                    id: aId,
+                    type: 'action',
+                    position: { x: 1000, y: 80 + (idx * 200) },
+                    ruleType,
+                    data: {
+                      action_type: act.action_type || 'send_dm',
+                      dm_format: act.dm_format || 'text',
+                      messages: act.messages || [],
+                      is_placeholder: false,
+                      isPrimary: act.action_type === 'send_dm',
+                      action_label: act.action_type === 'send_dm' ? 'DIRECT MESSAGE' : (act.action_type === 'reply_comment' ? 'PUBLIC REPLY' : 'ACTION')
+                    }
+                  });
+                  edgesList.push({
+                    id: `edge-${res.data.id || Date.now()}-act-${idx}`,
+                    source: parentId,
+                    target: aId
+                  });
+                });
+              }
+            }
+
             dispatch(setFlow({
               id: res.data.id,
               name: res.data.name,
               nodes: nodesList,
               edges: edgesList,
-              selectedNodeId: null,
-              mediaPicker: null
-            }));
-          } else if (res.data) {
-            // Automation exists but has no visual_data yet (newly created)
-            // Dispatch with empty nodes so Canvas screenshotFlow doesn't hijack
-            dispatch(setFlow({
-              id: res.data.id,
-              name: res.data.name,
-              nodes: [],
-              edges: [],
               selectedNodeId: null,
               mediaPicker: null
             }));

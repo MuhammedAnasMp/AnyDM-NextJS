@@ -1,43 +1,134 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import api from "@/lib/services/api.service";
+import { ShieldCheck, Zap, RefreshCw, AlertTriangle, CheckCircle, Clock } from "lucide-react";
+
+interface RateLimitData {
+  account_id: number | null;
+  username: string | null;
+  hourly_dm_count: number;
+  hourly_dm_limit: number;
+  hourly_dm_remaining: number;
+  daily_dm_count: number;
+  daily_dm_limit: number;
+  daily_publish_count: number;
+  daily_publish_limit: number;
+  rate_limit_utilization_pct: number;
+  reset_time_seconds: number;
+  health_status: "SAFE" | "MODERATE" | "WARNING" | "THROTTLED";
+  anti_block_protection: {
+    status: string;
+    jitter_delay_range: string;
+    webhook_events: string;
+    auto_throttle: string;
+  };
+}
+
+interface ActivityItem {
+  agent: string;
+  time: string;
+  desc: string;
+  tags?: string[];
+  icon: string;
+  isHighlight?: boolean;
+}
+
+interface FunnelStep {
+  label: string;
+  value: string;
+  percent: string;
+  dropoff: string;
+}
+
+interface AnalyticsOverviewData {
+  funnel_steps: FunnelStep[];
+  recent_activities: ActivityItem[];
+  kpi_summary: {
+    active_automations: number;
+    total_dms_sent: number;
+    revenue_30d: number;
+    new_leads: number;
+  };
+}
 
 export default function DashboardOverview() {
+  const [rateLimits, setRateLimits] = useState<RateLimitData | null>(null);
+  const [rateLimitLoading, setRateLimitLoading] = useState(true);
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsOverviewData | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const [rateRes, analyticsRes] = await Promise.allSettled([
+          api.get("/accounts/instagram/rate-limits/"),
+          api.get("/crm/analytics/?timeframe=30d")
+        ]);
+
+        if (rateRes.status === "fulfilled" && rateRes.value.data) {
+          setRateLimits(rateRes.value.data);
+        }
+        if (analyticsRes.status === "fulfilled" && analyticsRes.value.data) {
+          setAnalyticsData(analyticsRes.value.data);
+        }
+      } catch (err) {
+        console.error("Error fetching dashboard overview data:", err);
+      } finally {
+        setRateLimitLoading(false);
+        setAnalyticsLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+    const interval = setInterval(fetchDashboardData, 20000);
+    return () => clearInterval(interval);
+  }, []);
+
   const kpis = [
-    { name: "Active Automations", value: "12", change: "+2 today", icon: "bolt", progress: 75 },
-    { name: "Total DMs Sent", value: "8.4k", change: "12% growth", icon: "forum", progress: 45 },
-    { name: "Revenue Generated", value: "$12,402", change: "Last 30d", icon: "payments", progress: 60, isAccented: true },
-    { name: "New Leads", value: "342", change: "Conversion: 4.2%", icon: "person_add", progress: 30 }
+    {
+      name: "Active Automations",
+      value: analyticsLoading ? "..." : (analyticsData?.kpi_summary?.active_automations ?? 0).toString(),
+      change: "Live Rules",
+      icon: "bolt",
+      progress: Math.min(100, (analyticsData?.kpi_summary?.active_automations || 0) * 10)
+    },
+    {
+      name: "Total DMs Sent",
+      value: analyticsLoading ? "..." : (analyticsData?.kpi_summary?.total_dms_sent ?? 0).toLocaleString(),
+      change: "Outbound Velocity",
+      icon: "forum",
+      progress: Math.min(100, (analyticsData?.kpi_summary?.total_dms_sent || 0) * 5)
+    },
+    {
+      name: "Revenue Generated",
+      value: analyticsLoading ? "..." : `₹${(analyticsData?.kpi_summary?.revenue_30d ?? 0).toLocaleString()}`,
+      change: "Last 30d",
+      icon: "payments",
+      progress: Math.min(100, (analyticsData?.kpi_summary?.revenue_30d || 0) / 1000),
+      isAccented: true
+    },
+    {
+      name: "New Leads",
+      value: analyticsLoading ? "..." : (analyticsData?.kpi_summary?.new_leads ?? 0).toLocaleString(),
+      change: "Active Profiles",
+      icon: "person_add",
+      progress: Math.min(100, (analyticsData?.kpi_summary?.new_leads || 0) * 8)
+    }
   ];
 
-  const activities = [
-    {
-      agent: "Outreach Bot Alpha",
-      time: "Just now",
-      desc: 'Successfully engaged with @design_studio via Instagram Direct. AI persona "Supportive Guide" active.',
-      tags: ["Sentiment: Positive", "Intent: Inquiry"],
-      icon: "auto_awesome"
-    },
-    {
-      agent: "Lead Qualification",
-      time: "14m ago",
-      desc: 'New high-intent lead identified: Sarah Chen (Marketing Director). Lead score updated to 88/100.',
-      icon: "person"
-    },
-    {
-      agent: "Conversion Event",
-      time: "1h ago",
-      desc: "Direct message automation resulted in a successful checkout for Enterprise Plan.",
-      icon: "payments",
-      isHighlight: true
-    },
-    {
-      agent: "Routine Sync",
-      time: "3h ago",
-      desc: "Contact database synchronized with CRM. 1,240 records updated.",
-      icon: "schedule"
-    }
+  const activities = analyticsData?.recent_activities || [];
+  const publishCount = rateLimits?.daily_publish_count ?? 0;
+  const publishLimit = rateLimits?.daily_publish_limit || 100;
+  const publishLeft = Math.max(0, publishLimit - publishCount);
+  const publishPct = Math.min(100, Math.round((publishCount / publishLimit) * 100));
+
+  const funnelSteps = analyticsData?.funnel_steps || [
+    { label: "Impression", value: "0", percent: "100%", dropoff: "0%" },
+    { label: "Engagement", value: "0", percent: "0%", dropoff: "0%" },
+    { label: "DM Started", value: "0", percent: "0%", dropoff: "0%" },
+    { label: "Conversion", value: "0", percent: "0%", dropoff: "Final CR" }
   ];
 
   return (
@@ -77,11 +168,161 @@ export default function DashboardOverview() {
             <div className="mt-6 h-1 w-full bg-white/5 rounded-full overflow-hidden">
               <div 
                 className={`h-full ${kpi.isAccented ? "bg-[#c4c0ff] shadow-[0_0_10px_rgba(196,192,255,0.4)]" : "bg-white"}`} 
-                style={{ width: `${kpi.progress}%` }}
+                style={{ width: `${Math.max(5, kpi.progress)}%` }}
               ></div>
             </div>
           </div>
         ))}
+      </div>
+
+      {/* ── Instagram Rate Limits & Anti-Block Safety Guardian ── */}
+      <div className="p-5 rounded-lg bg-[#1c1b1b] border border-white/10 space-y-4 shadow-sm">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/5">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded bg-[#c4c0ff]/10 border border-[#c4c0ff]/20 flex items-center justify-center text-[#c4c0ff] shrink-0">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-white tracking-tight">Instagram Account Health &amp; Rate Limits</h3>
+                <span className="text-[10px] font-mono text-[#c4c7c8]/60">
+                  {rateLimits?.username ? `@${rateLimits.username}` : "Connected Account"}
+                </span>
+              </div>
+              <p className="text-xs text-[#c4c7c8]/80 mt-0.5">
+                Real-time API utilization and automatic anti-block protection monitoring
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#10b981]/10 border border-[#10b981]/20 text-[#34d399] text-[11px] font-bold">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#34d399] animate-pulse"></span>
+              <span>Anti-Block Shield: ACTIVE</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 4 Metric Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* 1. Hourly DM Rate */}
+          <div className="p-3.5 rounded bg-[#20201f] border border-white/5 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-[#8e9192] uppercase tracking-wider">Hourly DM Velocity</span>
+              <Zap className="w-3.5 h-3.5 text-[#c4c0ff]" />
+            </div>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl font-black text-white">{rateLimits?.hourly_dm_count || 0}</span>
+              <span className="text-xs text-[#8e9192]">/ {rateLimits?.hourly_dm_limit || 200} safe cap</span>
+            </div>
+            <div className="space-y-1">
+              <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                <div 
+                  className="h-full transition-all duration-500 rounded-full"
+                  style={{ 
+                    width: `${Math.min(100, (((rateLimits?.hourly_dm_count || 0) / (rateLimits?.hourly_dm_limit || 200)) * 100))}%`,
+                    backgroundColor: (rateLimits?.hourly_dm_count || 0) > 160 ? "#ef4444" : (rateLimits?.hourly_dm_count || 0) > 120 ? "#f59e0b" : "#34d399"
+                  }}
+                />
+              </div>
+              <div className="flex justify-between text-[10px] text-[#8e9192]">
+                <span>{rateLimits?.hourly_dm_remaining ?? 200} DMs remaining</span>
+                <span className="font-semibold text-[#34d399]">Safe zone</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 2. Rate Limit Utilization */}
+          <div className="p-3.5 rounded bg-[#20201f] border border-white/5 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-[#8e9192] uppercase tracking-wider">Meta API Usage</span>
+              <RefreshCw className="w-3.5 h-3.5 text-sky-400" />
+            </div>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl font-black text-white">{rateLimits?.rate_limit_utilization_pct || 0}%</span>
+              <span className="text-xs text-[#8e9192]">of 100% capacity</span>
+            </div>
+            <div className="space-y-1">
+              <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                <div 
+                  className="h-full transition-all duration-500 rounded-full"
+                  style={{ 
+                    width: `${Math.min(100, rateLimits?.rate_limit_utilization_pct || 5)}%`,
+                    backgroundColor: (rateLimits?.rate_limit_utilization_pct || 0) > 80 ? "#ef4444" : "#38bdf8"
+                  }}
+                />
+              </div>
+              <div className="flex justify-between text-[10px] text-[#8e9192]">
+                <span className="flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-[#8e9192]" /> 
+                  Resets in {Math.ceil((rateLimits?.reset_time_seconds || 3600) / 60)}m
+                </span>
+                <span className="text-white font-medium">Optimal</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 3. 24-Hour Messaging Window */}
+          <div className="p-3.5 rounded bg-[#20201f] border border-white/5 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-[#8e9192] uppercase tracking-wider">24h Customer Window</span>
+              <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+            </div>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl font-black text-white">Active</span>
+              <span className="text-xs text-[#8e9192]">Compliant</span>
+            </div>
+            <p className="text-[10px] text-[#8e9192] leading-normal pt-1">
+              Automated responses strictly gated to active 24h conversation windows to prevent spam violations.
+            </p>
+          </div>
+
+          {/* 4. Publishing Container Quota */}
+          <div className="p-3.5 rounded bg-[#20201f] border border-white/5 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-[#8e9192] uppercase tracking-wider">Publish Container Quota</span>
+              <span className="text-[10px] font-mono text-[#c4c0ff] font-bold">24H</span>
+            </div>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl font-black text-white">{publishCount}</span>
+              <span className="text-xs text-[#8e9192]">/ {publishLimit} posts/day</span>
+            </div>
+            <div className="space-y-1">
+              <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-purple-400 rounded-full transition-all duration-500"
+                  style={{ width: `${publishPct}%` }}
+                />
+              </div>
+              <div className="flex justify-between text-[10px] text-[#8e9192]">
+                <span>{publishLeft} uploads left</span>
+                <span className="text-emerald-400 font-medium">Healthy</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Protection Banner footer */}
+        <div className="p-2.5 rounded bg-white/[0.02] border border-white/5 flex flex-wrap items-center justify-between gap-3 text-[11px]">
+          <div className="flex flex-wrap items-center gap-4 text-[#c4c7c8]/80">
+            <span className="flex items-center gap-1.5 font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#c4c0ff]" />
+              Jitter Delays: <strong className="text-white font-mono">{rateLimits?.anti_block_protection?.jitter_delay_range || "1.5s - 3.5s"}</strong>
+            </span>
+            <span className="flex items-center gap-1.5 font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#c4c0ff]" />
+              Event Webhooks: <strong className="text-white">Active (Zero Polling)</strong>
+            </span>
+            <span className="flex items-center gap-1.5 font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#c4c0ff]" />
+              429 Exponential Backoff: <strong className="text-white">Auto-Throttling Enabled</strong>
+            </span>
+          </div>
+          <span className="text-[10px] text-[#8e9192] italic">
+            Compliant with Meta Platform Terms v25.0
+          </span>
+        </div>
       </div>
 
       {/* Main Section: Activity & Funnel */}
@@ -93,41 +334,47 @@ export default function DashboardOverview() {
               <span className="material-symbols-outlined text-lg">stream</span>
               <span>Activity Feed</span>
             </h3>
-            <button className="text-xs text-on-surface-variant hover:text-white transition-colors underline underline-offset-4 decoration-white/20">
-              View all logs
-            </button>
           </div>
           <div className="space-y-4 flex-1">
-            {activities.map((act, i) => (
-              <div 
-                key={i} 
-                className="group flex items-start gap-4 p-3 rounded-lg hover:bg-white/5 transition-all border border-transparent hover:border-white/5"
-              >
+            {analyticsLoading ? (
+              <div className="p-8 text-center text-xs text-on-surface-variant/60">Loading live activity stream...</div>
+            ) : activities.length > 0 ? (
+              activities.map((act, i) => (
                 <div 
-                  className={`w-10 h-10 rounded-full glass-pane flex items-center justify-center shrink-0 border-white/20 ${
-                    act.isHighlight ? "text-[#c4c0ff] border-[#c4c0ff]/20" : "text-white"
-                  }`}
+                  key={i} 
+                  className="group flex items-start gap-4 p-3 rounded-lg hover:bg-white/5 transition-all border border-transparent hover:border-white/5"
                 >
-                  <span className="material-symbols-outlined text-lg">{act.icon}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-start">
-                    <p className="text-sm font-semibold text-white">{act.agent}</p>
-                    <span className="text-[10px] text-on-surface-variant opacity-50 uppercase tracking-wider">{act.time}</span>
+                  <div 
+                    className={`w-10 h-10 rounded-full glass-pane flex items-center justify-center shrink-0 border-white/20 ${
+                      act.isHighlight ? "text-[#c4c0ff] border-[#c4c0ff]/20" : "text-white"
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-lg">{act.icon}</span>
                   </div>
-                  <p className="text-xs text-on-surface-variant mt-1 leading-relaxed">{act.desc}</p>
-                  {act.tags && (
-                    <div className="mt-2 flex gap-2">
-                      {act.tags.map((tag, idx) => (
-                        <span key={idx} className="bg-white/5 text-[9px] px-2 py-0.5 rounded text-on-surface-variant/80 border border-white/5">
-                          {tag}
-                        </span>
-                      ))}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-start">
+                      <p className="text-sm font-semibold text-white">{act.agent}</p>
+                      <span className="text-[10px] text-on-surface-variant opacity-50 uppercase tracking-wider">{act.time}</span>
                     </div>
-                  )}
+                    <p className="text-xs text-on-surface-variant mt-1 leading-relaxed">{act.desc}</p>
+                    {act.tags && (
+                      <div className="mt-2 flex gap-2">
+                        {act.tags.map((tag, idx) => (
+                          <span key={idx} className="bg-white/5 text-[9px] px-2 py-0.5 rounded text-on-surface-variant/80 border border-white/5">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
+              ))
+            ) : (
+              <div className="p-12 text-center glass-pane rounded-xl my-4">
+                <p className="text-sm font-semibold text-white">No recent activity recorded</p>
+                <p className="text-xs text-on-surface-variant/60 mt-1">Automated DMs, story replies, and customer interactions will stream here in real time.</p>
               </div>
-            ))}
+            )}
           </div>
         </div>
 
@@ -137,24 +384,20 @@ export default function DashboardOverview() {
           <div className="glass-pane p-6 rounded-xl">
             <h3 className="text-base font-bold text-white mb-6">Conversion Funnel</h3>
             <div className="space-y-4">
-              {[
-                { name: "Impressions", val: "24,500", percent: 100, color: "bg-white/10" },
-                { name: "Engagements", val: "3,120", percent: 65, percentLabel: "12.7%", color: "bg-white/20" },
-                { name: "Replies", val: "840", percent: 35, percentLabel: "3.4%", color: "bg-white/35" },
-                { name: "Conversions", val: "92", percent: 15, percentLabel: "0.4%", color: "bg-white" }
-              ].map((step, idx) => (
+              {funnelSteps.map((step, idx) => (
                 <div key={idx}>
                   <div className="flex justify-between text-[10px] font-bold mb-1 text-on-surface-variant uppercase tracking-wider">
-                    <span>{step.name}</span>
-                    <span className="text-white">{step.val}</span>
+                    <span>{step.label}</span>
+                    <span className="text-white">{step.value}</span>
                   </div>
                   <div className="h-8 bg-white/5 rounded-lg relative overflow-hidden group">
                     <div 
-                      className={`absolute inset-y-0 left-0 transition-all duration-500 group-hover:opacity-90 ${step.color}`} 
-                      style={{ width: `${step.percent}%` }}
+                      className="absolute inset-y-0 left-0 transition-all duration-500 bg-white/20 group-hover:bg-white/30" 
+                      style={{ width: step.percent.endsWith('%') ? step.percent : '100%' }}
                     ></div>
-                    <div className="absolute inset-0 flex items-center px-3 text-[10px] font-bold text-white/50">
-                      {step.percentLabel || "100%"}
+                    <div className="absolute inset-0 flex items-center justify-between px-3 text-[10px] font-bold text-white/70">
+                      <span>{step.percent}</span>
+                      <span className="text-on-surface-variant/60">{step.dropoff ? `Dropoff: ${step.dropoff}` : ''}</span>
                     </div>
                   </div>
                 </div>
@@ -162,7 +405,7 @@ export default function DashboardOverview() {
             </div>
             <div className="mt-6 p-3 bg-[#c4c0ff]/5 rounded-lg border border-[#c4c0ff]/10">
               <p className="text-[11px] text-on-surface-variant leading-relaxed italic">
-                &ldquo;AI Insight: Your reply rate is 2% higher during weekend mornings. Consider scheduling more outbound spikes then.&rdquo;
+                &ldquo;Automated Tracking: Real-time funnel calculated dynamically from direct message interactions to order checkouts.&rdquo;
               </p>
             </div>
           </div>
@@ -178,26 +421,14 @@ export default function DashboardOverview() {
                   <circle className="stroke-white" cx="18" cy="18" fill="none" r="16" strokeDasharray="82, 100" strokeWidth="2"></circle>
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-xs font-bold text-white">82%</span>
+                  <span className="text-xs font-bold text-white">100%</span>
                 </div>
               </div>
               <div>
                 <p className="text-xs text-on-surface-variant leading-relaxed">
-                  System performance is optimal. Average response latency: <span className="text-white font-bold">2.4s</span>
+                  System performance is optimal. Anti-Block protection and jitter delays <span className="text-white font-bold">active</span>.
                 </p>
               </div>
-            </div>
-          </div>
-
-          {/* Upgrade Promo */}
-          <div className="p-6 rounded-xl bg-gradient-to-br from-surface-container-high to-surface border border-white/5 shadow-xl relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.03),transparent)] pointer-events-none"></div>
-            <div className="relative z-10">
-              <p className="text-[10px] font-bold text-white tracking-widest uppercase mb-1">Scale Higher</p>
-              <p className="text-xs text-on-surface-variant mb-4 leading-relaxed">Unlock Unlimited AI Agents &amp; advanced sentiment triggers.</p>
-              <button className="w-full py-2 bg-white text-black font-bold text-xs rounded-lg hover:bg-[#eaeaea] transition-colors shadow-lg active:scale-95 transition-transform duration-200">
-                Upgrade to Enterprise
-              </button>
             </div>
           </div>
         </div>

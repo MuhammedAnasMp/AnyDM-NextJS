@@ -1,14 +1,22 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
+import { User } from 'lucide-react';
 
 interface AvatarProps {
   src?: string | null;
   name?: string;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
+  fallbackIcon?: React.ReactNode;
 }
 
-export function Avatar({ src, name, size = 'md', className }: AvatarProps) {
+export function Avatar({ src, name, size = 'md', className, fallbackIcon }: AvatarProps) {
+  const [hasError, setHasError] = React.useState(false);
+
+  React.useEffect(() => {
+    setHasError(false);
+  }, [src]);
+
   const sizeClasses = {
     sm: 'w-8 h-8 text-xs',
     md: 'w-10 h-10 text-sm',
@@ -23,9 +31,16 @@ export function Avatar({ src, name, size = 'md', className }: AvatarProps) {
       sizeClasses[size],
       className
     )}>
-      {src ? (
+      {src && !hasError ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt={name || "Avatar"} className="w-full h-full object-cover" />
+        <img
+          src={src}
+          alt={name || "Avatar"}
+          className="w-full h-full object-cover"
+          onError={() => setHasError(true)}
+        />
+      ) : fallbackIcon ? (
+        fallbackIcon
       ) : (
         <span>{fallback}</span>
       )}
@@ -47,7 +62,7 @@ export function OverlappingAvatars({ accounts, size = 'md' }: OverlappingAvatars
       {visible.map((acc, index) => (
         <Avatar
           key={index}
-          src={acc.profile_picture_url || "https://static.vecteezy.com/system/resources/previews/002/318/271/non_2x/user-profile-icon-free-vector.jpg"}
+          src={acc.profile_picture_url}
           name={acc.username || "User"}
           size={size}
           className="ring-2 ring-[#131313]"
@@ -56,3 +71,47 @@ export function OverlappingAvatars({ accounts, size = 'md' }: OverlappingAvatars
     </div>
   );
 }
+
+interface UserAvatarProps {
+  src?: string | null;
+  alt?: string;
+  className?: string;
+  fallbackIcon?: React.ReactNode;
+}
+
+export function UserAvatar({
+  src,
+  alt = "User Avatar",
+  className = "w-5 h-5 rounded-full object-cover",
+  fallbackIcon,
+}: UserAvatarProps) {
+  const [hasError, setHasError] = React.useState(false);
+
+  React.useEffect(() => {
+    setHasError(false);
+  }, [src]);
+
+  if (!src || hasError) {
+    return (
+      <div
+        className={cn(
+          "shrink-0 flex items-center justify-center bg-white/10 text-zinc-400 rounded-full select-none overflow-hidden",
+          className
+        )}
+      >
+        {fallbackIcon || <User className="w-1/2 h-1/2 text-zinc-400" />}
+      </div>
+    );
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={alt}
+      className={className}
+      onError={() => setHasError(true)}
+    />
+  );
+}
+

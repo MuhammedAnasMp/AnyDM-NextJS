@@ -21,6 +21,7 @@ import {
   ShieldAlert,
   ChevronLeft,
   ChevronRight,
+  CalendarClock,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -43,6 +44,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const getActiveTab = () => {
     if (pathname.startsWith("/dashboard/automations") || pathname.startsWith("/dashboard/automation")) return "Automations";
+    if (pathname.startsWith("/dashboard/schedule") || pathname.startsWith("/dashboard/publisher")) return "Schedule Posts";
     if (pathname.startsWith("/dashboard/videos")) return "Videos";
     if (pathname === "/dashboard" || pathname.startsWith("/dashboard/analytics") || pathname.startsWith("/dashboard/revenue")) return "Dashboard";
     if (pathname.startsWith("/dashboard/products")) return "Products";
@@ -62,6 +64,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const menuItems = [
     { name: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
     { name: "Automations", icon: Zap, href: "/dashboard/automation" },
+    { name: "Schedule Posts", icon: CalendarClock, href: "/dashboard/schedule" },
     // { name: "Videos", icon: Video, href: "/dashboard/videos" },
     // { name: "Games", icon: Gamepad2, href: "/dashboard/games/spin" },
     { name: "Products", icon: Package, href: "/dashboard/products/catalog" },
