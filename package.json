@@ -11,6 +11,8 @@
   "dependencies": {
     "@radix-ui/react-tooltip": "^1.2.8",
     "@reduxjs/toolkit": "^2.12.0",
+    "ag-grid-community": "^36.1.0",
+    "ag-grid-react": "^36.1.0",
     "axios": "^1.17.0",
     "clsx": "^2.1.1",
     "firebase": "^12.14.0",

@@ -184,3 +184,66 @@ body {
 .animate-shake {
   animation: cardShake 0.5s ease-in-out both;
 }
+
+/* Golden Glow & Shimmer Effect */
+.golden-glow {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(
+      circle at 50% 50%,
+      rgba(255, 235, 150, 0.95) 0%,
+      rgba(255, 205, 40, 0.75) 25%,
+      rgba(212, 175, 55, 0.3) 50%,
+      transparent 75%
+    ),
+    linear-gradient(
+      45deg,
+      #C59B27 0%,
+      #D4AF37 20%,
+      #FFBF00 40%,
+      #FFD700 60%,
+      #FFE57F 80%,
+      #D4AF37 100%
+    );
+  background-size: 200% 200%, 300% 300%;
+  animation: goldGlow 6s ease-in-out infinite;
+}
+
+.golden-glow::after {
+  content: "";
+  position: absolute;
+  inset: -50%;
+  background: linear-gradient(
+    45deg,
+    transparent 35%,
+    rgba(255, 245, 190, 0.5) 48%,
+    rgba(255, 255, 220, 0.9) 50%,
+    rgba(255, 245, 190, 0.5) 52%,
+    transparent 65%
+  );
+  animation: shimmer 4s linear infinite;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+@keyframes goldGlow {
+  0% {
+    background-position: 30% 30%, 0% 50%;
+  }
+  50% {
+    background-position: 70% 70%, 100% 50%;
+  }
+  100% {
+    background-position: 30% 30%, 0% 50%;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translate(-30%, -30%) rotate(0deg);
+  }
+  100% {
+    transform: translate(30%, 30%) rotate(0deg);
+  }
+}

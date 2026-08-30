@@ -214,7 +214,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             )}
           >
             {/* Gold Gradient Ring Outer Container */}
-            <div className="w-8 h-8 rounded-full shrink-0 p-[1.5px] bg-gradient-to-tr from-[#A67C1E] via-[#F1C40F] to-[#F9E79F] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full shrink-0 p-[1.5px] bg-gradient-to-tr from-[#A67C00] via-[#BF9B30] via-[#FFBF00] via-[#FFCF40] to-[#FFDC73] flex items-center justify-center">
               {/* Inner dark separator boundary */}
               <div className="w-full h-full rounded-full overflow-hidden border border-[#131313] bg-[#20201f]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}

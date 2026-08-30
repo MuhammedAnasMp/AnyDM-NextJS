@@ -284,18 +284,38 @@ function AccountsContent() {
 
   const getAccountTypeLabel = () => {
     if (appUser?.plan === "pro") {
-      return { text: "Creator Pro Plan", color: "text-amber-400", icon: Star };
+      return {
+        text: "Creator Pro Plan",
+        textColor: "bg-gradient-to-r from-[#A67C00] via-[#BF9B30] via-[#FFBF00] via-[#FFCF40] to-[#FFDC73] bg-clip-text text-transparent font-bold",
+        iconColor: "text-[#FFBF00]",
+        icon: Star
+      };
     }
     const trialDaysLeft = appUser?.trial_days_left ?? 0;
     const isPremiumActive = appUser?.is_premium_active ?? false;
 
     if (isPremiumActive) {
       if (appUser?.has_extended_trial) {
-        return { text: `Extended Trial (${trialDaysLeft} days left)`, color: "text-[#8fe3ff]", icon: Clock };
+        return {
+          text: `Extended Trial (${trialDaysLeft} days left)`,
+          textColor: "text-[#8fe3ff]",
+          iconColor: "text-[#8fe3ff]",
+          icon: Clock
+        };
       }
-      return { text: `Free Trial (${trialDaysLeft} days left)`, color: "text-[#34d399]", icon: Clock };
+      return {
+        text: `Free Trial (${trialDaysLeft} days left)`,
+        textColor: "text-[#34d399]",
+        iconColor: "text-[#34d399]",
+        icon: Clock
+      };
     } else {
-      return { text: "Trial Expired", color: "text-red-400", icon: AlertCircle };
+      return {
+        text: "Trial Expired",
+        textColor: "text-red-400",
+        iconColor: "text-red-400",
+        icon: AlertCircle
+      };
     }
   };
 
@@ -603,9 +623,9 @@ function AccountsContent() {
             <div className="flex items-center gap-3 flex-wrap text-xs text-[#8e9192]">
               <span>{appUser?.email || firebaseUser?.email || "No email linked"}</span>
               <span>•</span>
-              <span className={`flex items-center gap-1 font-medium ${planInfo.color}`}>
-                <PlanIcon className="w-3.5 h-3.5" strokeWidth={2} />
-                <span>{planInfo.text}</span>
+              <span className="flex items-center gap-1 font-medium">
+                <PlanIcon className={`w-3.5 h-3.5 ${planInfo.iconColor}`} strokeWidth={2} />
+                <span className={planInfo.textColor}>{planInfo.text}</span>
               </span>
             </div>
           </div>

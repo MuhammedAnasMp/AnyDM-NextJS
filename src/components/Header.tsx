@@ -160,6 +160,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
     ],
     Admin: [
       { name: "System Settings", href: "/dashboard/admin" },
+      { name: "User Analytics", href: "/dashboard/admin/users" },
       { name: "Verify KYC", href: "/dashboard/admin/verify-kyc" },
       { name: "Order Settings", href: "/dashboard/admin/order-settings" },
       { name: "Payment Settlements", href: "/dashboard/admin/payment-settlement" },
@@ -311,14 +312,16 @@ export default function Header({ onMenuClick }: HeaderProps) {
           <div className="relative" ref={profileMenuRef}>
             <div
               onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-              className="w-7 h-7 md:w-8 h-8 rounded-full border border-white/20 bg-white/5 overflow-hidden cursor-pointer hover:border-white transition-colors active:scale-95 select-none flex items-center justify-center"
+              className="w-8 h-8 md:w-9 md:h-9 rounded-full shrink-0 p-[1.5px] bg-gradient-to-tr from-[#A67C00] via-[#BF9B30] via-[#FFBF00] via-[#FFCF40] to-[#FFDC73] flex items-center justify-center cursor-pointer hover:scale-105 transition-all active:scale-95 select-none"
             >
-              <UserAvatar
-                src={userPhoto}
-                alt="Profile"
-                className="w-full h-full object-cover"
-                fallbackIcon={<span className="material-symbols-outlined text-[16px] text-white/70">person</span>}
-              />
+              <div className="w-full h-full rounded-full overflow-hidden border border-[#131313] bg-[#20201f]">
+                <UserAvatar
+                  src={userPhoto}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                  fallbackIcon={<span className="material-symbols-outlined text-[16px] text-white/70">person</span>}
+                />
+              </div>
             </div>
 
             {isProfileMenuOpen && (

@@ -433,14 +433,14 @@ export default function PricingPage() {
           {/* Actions */}
           <div className="space-y-2">
             {isPro ? (
-              <div className="w-full py-3 px-4 rounded-[4px] border border-emerald-500/20 bg-emerald-500/5 text-emerald-400 font-semibold text-xs flex flex-col items-center justify-center gap-1 uppercase tracking-wide">
-                <div className="flex items-center gap-1.5">
+              <div className="golden-glow w-full py-3 px-4 rounded-[4px] border border-amber-300/40 text-[#131313] font-semibold text-xs flex flex-col items-center justify-center gap-1 uppercase tracking-wide shadow-[0_0_15px_rgba(255,191,0,0.3)]">
+                <div className="flex items-center gap-1.5 z-10 font-bold [text-shadow:0_1px_0_rgba(255,245,190,0.6)]">
                   <Star className="w-3.5 h-3.5 fill-current" />
                   <span>Subscription Active</span>
                 </div>
                 {formattedExpiryDate && (
-                  <span className="text-[11px] text-emerald-300/90 normal-case tracking-normal font-normal">
-                    Expiry Date: <strong className="font-semibold text-emerald-200">{formattedExpiryDate}</strong>
+                  <span className="text-[11px] text-[#131313]/90 normal-case tracking-normal font-medium z-10 [text-shadow:0_1px_0_rgba(255,245,190,0.5)]">
+                    Expiry Date: <strong className="font-bold text-[#131313]">{formattedExpiryDate}</strong>
                   </span>
                 )}
               </div>
