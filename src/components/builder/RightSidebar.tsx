@@ -255,14 +255,14 @@ export function RightSidebar() {
                   (selectedNode.data?.icebreakers || []).map((ib: any, idx: number) => (
                     <div key={idx} className="bg-white/5 border border-white/10 rounded-lg p-2.5 text-left text-xs font-semibold text-white flex items-center justify-between gap-3">
                       <span>{ib.question || `Question ${idx + 1}`}</span>
-                      {/* <span className="text-[8px] bg-[#8FE3FF]/15 text-[#8FE3FF] border border-[#8FE3FF]/20 px-1 py-0.2 rounded font-mono shrink-0 uppercase">{ib.payload}</span> */}
+                      {/* <span className="text-[8px] bg-[#8FE3FF]/15 text-[#8FE3FF] border border-[#8FE3FF]/20 px-1 py-0.2 rounded font-mono shrink-0 ">{ib.payload}</span> */}
                     </div>
                   ))
                 ) : (
                   (selectedNode.data?.persistent_menu_items || []).map((item: any, idx: number) => (
                     <div key={idx} className="bg-white/5 border border-white/10 rounded-lg p-2.5 text-left text-xs font-semibold text-white flex items-center justify-between gap-3">
                       <span className="truncate">{item.title || `Button ${idx + 1}`}</span>
-                      {/* <span className="text-[8px] bg-purple-500/15 text-purple-400 border border-purple-500/20 px-1 py-0.2 rounded font-mono shrink-0 uppercase">
+                      {/* <span className="text-[8px] bg-purple-500/15 text-purple-400 border border-purple-500/20 px-1 py-0.2 rounded font-mono shrink-0 ">
                         {item.type === 'web_url' ? 'URL' : item.payload || 'POSTBACK'}
                       </span> */}
                     </div>

@@ -2432,7 +2432,7 @@ export default function InboxPage() {
                               <p className="text-[11px] font-semibold text-white truncate">{ep.title}</p>
                               {ep.price && <p className="text-[10px] font-bold text-[#b6b2ff] mt-0.5">{ep.price} {ep.currency || '₹'}</p>}
                               <div className="flex gap-1 mt-1">
-                                <span className={cn("px-1.5 py-0.5 rounded text-[8px] font-bold uppercase", enquiry.status === "OPEN" ? "bg-emerald-500/10 text-emerald-400" : "bg-white/5 text-white/30")}>{enquiry.status}</span>
+                                <span className={cn("px-1.5 py-0.5 rounded text-[8px] font-bold ", enquiry.status === "OPEN" ? "bg-emerald-500/10 text-emerald-400" : "bg-white/5 text-white/30")}>{enquiry.status}</span>
                                 {ep.confidence_score != null && <span className="px-1.5 py-0.5 rounded bg-[#c4c0ff]/10 text-[#c4c0ff] text-[8px] font-bold">{Math.round(ep.confidence_score * 100)}%</span>}
                               </div>
                             </div>

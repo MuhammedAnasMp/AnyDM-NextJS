@@ -432,7 +432,7 @@ export default function ConditionContentEditor({ nodeId, onClose }: ConditionCon
                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
                             <div className="absolute top-1 sm:top-1.5 left-1 sm:left-1.5 flex items-center gap-1">
                               <div className="w-3 sm:w-3.5 h-3 sm:h-3.5 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 p-[1px]">
-                                <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-[5px] sm:text-[6px] font-bold text-white uppercase">
+                                <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-[5px] sm:text-[6px] font-bold text-white ">
                                   S
                                 </div>
                               </div>

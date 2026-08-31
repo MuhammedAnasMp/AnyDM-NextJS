@@ -25,7 +25,10 @@ import {
   RefreshCw,
   Sparkles,
   Check,
-  ShieldCheck
+  ShieldCheck,
+  Calendar,
+  ArrowRight,
+  Hash
 } from "lucide-react";
 import { Avatar, OverlappingAvatars, UserAvatar } from "@/components/Avatar";
 import { motion, AnimatePresence } from "framer-motion";
@@ -47,75 +50,105 @@ import Toast from "@/components/Toast";
 import ConfirmationModal from "@/components/ConfirmationModal";
 import InstagramIcon from "@/components/ui/InstagramIcon";
 
+/* -------------------------------------------------------------------------- */
+/*                                SUBCOMPONENTS                               */
+/* -------------------------------------------------------------------------- */
+
 const GoogleIcon = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+  <svg className={className || "w-5 h-5"} viewBox="0 0 24 24">
+    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
   </svg>
 );
 
-const ProviderCard = ({ icon, title, subtitle, isConnected, onAction, actionText, children }: any) => (
-  <div className="p-4 rounded-lg bg-[#1c1b1b] border border-[#2a2a2a] hover:border-[#444748] transition-colors duration-200 flex flex-col gap-3 relative">
-    <div className="flex items-start gap-3">
-      <div className="w-9 h-9 rounded-md bg-[#20201f] flex items-center justify-center border border-[#2a2a2a] shrink-0 text-[#e5e2e1]">
-        {icon}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <h3 className="text-xs font-semibold text-[#e5e2e1] tracking-tight">{title}</h3>
-          {isConnected ? (
-            <span className="inline-flex items-center gap-1 bg-[#10b981]/10 border border-[#10b981]/20 text-[#34d399] text-[10px] font-semibold px-2 py-0.5 rounded tracking-wide">
-              <Check className="w-3 h-3" />
-              Connected
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1 bg-[#8e9192]/10 border border-[#8e9192]/20 text-[#8e9192] text-[10px] font-medium px-2 py-0.5 rounded tracking-wide">
-              Not linked
-            </span>
-          )}
+interface ProviderCardProps {
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
+  isConnected: boolean;
+  onAction?: () => void;
+  actionText?: string;
+  children?: React.ReactNode;
+}
+
+const ProviderCard = ({
+  icon,
+  title,
+  subtitle,
+  isConnected,
+  onAction,
+  actionText,
+  children
+}: ProviderCardProps) => (
+  <div className="p-3.5 rounded-md bg-[#101115] border border-[#2a2a2a] hover:border-[#444748] transition-colors flex flex-col gap-3">
+    <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="w-8 h-8 rounded bg-[#1c1b1b] flex items-center justify-center border border-[#2a2a2a] shrink-0 text-[#e5e2e1]">
+          {icon}
         </div>
-        <p className="text-[11px] text-[#8e9192] mt-1 leading-relaxed break-all">{subtitle}</p>
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5">
+            <h4 className="text-xs font-semibold text-[#e5e2e1] truncate">{title}</h4>
+            {isConnected && (
+              <Check className="w-3.5 h-3.5 text-emerald-400 stroke-[2.5] shrink-0" />
+            )}
+          </div>
+          <p className="text-[11px] text-[#8e9192] truncate mt-0.5">{subtitle}</p>
+        </div>
       </div>
+
+      {onAction && (
+        <button
+          onClick={onAction}
+          className={cn(
+            "px-3 py-1.5 rounded-md text-xs font-medium border transition-all cursor-pointer shrink-0 active:scale-[0.98]",
+            actionText === "Cancel"
+              ? "bg-[#1c1b1b] text-[#8e9192] border-[#2a2a2a] hover:text-[#e5e2e1]"
+              : isConnected
+                ? "text-red-400 border-red-500/20 bg-red-500/5 hover:bg-red-500/10"
+                : "bg-[#1c1e26] hover:bg-[#252732] border-[#2a2a2a] text-[#e5e2e1]"
+          )}
+        >
+          {actionText || (isConnected ? "Manage" : "Connect")}
+        </button>
+      )}
     </div>
 
-    {onAction && (
-      <button
-        onClick={onAction}
-        className={cn(
-          "flex items-center justify-center gap-2 w-full py-2 rounded text-xs font-semibold transition-all active:scale-[0.98] border cursor-pointer mt-1",
-          (actionText === "Cancel" || isConnected)
-            ? "text-red-400 border-red-500/20 bg-red-500/5 hover:bg-red-500/10"
-            : "bg-[#2a2a2a] text-[#e5e2e1] hover:bg-[#353535] border-[#444748] hover:border-[#8e9192]"
-        )}
-      >
-        {actionText === "Cancel" ? (
-          <X className="w-3.5 h-3.5" />
-        ) : isConnected ? (
-          <Link2Off className="w-3.5 h-3.5" />
-        ) : (
-          <Link2 className="w-3.5 h-3.5" />
-        )}
-        <span>{actionText || (isConnected ? "Disconnect" : "Connect")}</span>
-      </button>
-    )}
-
-    {children && <div className="w-full mt-1">{children}</div>}
+    {children && <div className="w-full">{children}</div>}
   </div>
 );
 
-const InstagramRow = ({ account, isPrimary, onRemove, onToggleEnabled, onToggleLogin, onSetPrimary, onReLogin }: any) => (
+interface InstagramRowProps {
+  account: any;
+  isPrimary: boolean;
+  onRemove: (id: number) => void;
+  onToggleEnabled: (id: number, isEnabled: boolean) => void;
+  onToggleLogin: (id: string, newValue: boolean) => void;
+  onSetPrimary: (id: number) => void;
+  onReLogin: () => void;
+}
+
+const InstagramRow = ({
+  account,
+  isPrimary,
+  onRemove,
+  onToggleEnabled,
+  onToggleLogin,
+  onSetPrimary,
+  onReLogin
+}: InstagramRowProps) => (
   <div
     className={cn(
-      "p-4 rounded-lg bg-[#1c1b1b] border transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group",
+      "p-3.5 rounded-md bg-[#101115] border transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 group",
       isPrimary
         ? "border-[#c4c0ff]/40 bg-[#c4c0ff]/[0.03] shadow-[0_0_15px_rgba(196,192,255,0.04)]"
-        : "border-[#2a2a2a] hover:border-[#444748] hover:bg-[#20201f]"
+        : "border-[#2a2a2a] hover:border-[#444748] hover:bg-[#14151a]"
     )}
   >
     {/* Account Identity */}
-    <div className="flex items-center gap-3.5 min-w-0">
+    <div className="flex items-center gap-3 min-w-0">
       <div
         className="relative cursor-pointer select-none shrink-0"
         onClick={() => !isPrimary && !account.is_token_expired && onSetPrimary(account.id)}
@@ -123,7 +156,7 @@ const InstagramRow = ({ account, isPrimary, onRemove, onToggleEnabled, onToggleL
       >
         <div
           className={cn(
-            "w-11 h-11 rounded-full overflow-hidden transition-transform duration-200 group-hover:scale-105 p-0.5 bg-[#20201f] border border-[#2a2a2a] flex items-center justify-center",
+            "w-10 h-10 rounded-full overflow-hidden transition-transform duration-200 group-hover:scale-105 p-0.5 bg-[#20201f] border border-[#2a2a2a] flex items-center justify-center",
             isPrimary && "ring-2 ring-[#c4c0ff]/60 ring-offset-2 ring-offset-[#131313]"
           )}
         >
@@ -131,7 +164,7 @@ const InstagramRow = ({ account, isPrimary, onRemove, onToggleEnabled, onToggleL
             src={account.profile_picture_url}
             alt={account.username}
             className="w-full h-full object-cover rounded-full"
-            fallbackIcon={<User className="w-5 h-5 text-gray-400" />}
+            fallbackIcon={<User className="w-4 h-4 text-[#8e9192]" />}
           />
         </div>
         <div className="absolute -bottom-1 -right-1 bg-[#131313] rounded-full p-0.5 shadow-md">
@@ -140,7 +173,7 @@ const InstagramRow = ({ account, isPrimary, onRemove, onToggleEnabled, onToggleL
           </div>
         </div>
         {isPrimary && (
-          <div className="absolute -top-1 -left-1 bg-[#c4c0ff] text-[#131313] p-1 rounded-full shadow-lg z-10 border border-[#131313]">
+          <div className="absolute -top-1 -left-1 bg-[#c4c0ff] text-[#131313] p-0.5 rounded-full shadow-lg z-10 border border-[#131313]">
             <Star className="w-2.5 h-2.5 fill-current" />
           </div>
         )}
@@ -148,10 +181,10 @@ const InstagramRow = ({ account, isPrimary, onRemove, onToggleEnabled, onToggleL
 
       <div className="min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs font-semibold text-white tracking-tight group-hover:text-[#c4c0ff] transition-colors truncate">
+          <span className="text-xs font-semibold text-[#e5e2e1] tracking-tight group-hover:text-[#c4c0ff] transition-colors truncate">
             @{account.username}
           </span>
-          {isPrimary && (
+          {/* {isPrimary && (
             <span className="bg-[#c4c0ff]/10 text-[#c4c0ff] border border-[#c4c0ff]/20 text-[9px] font-bold px-2 py-0.5 rounded tracking-wider">
               Primary
             </span>
@@ -159,23 +192,21 @@ const InstagramRow = ({ account, isPrimary, onRemove, onToggleEnabled, onToggleL
           {account.is_token_expired ? (
             <span className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-red-500/10 text-red-400 text-[9px] font-semibold tracking-wider border border-red-500/20">
               <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-              Token Expired
+              Expired
             </span>
           ) : account.is_enabled ? (
             <span className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-[#10b981]/10 text-[#34d399] text-[9px] font-semibold tracking-wider border border-[#10b981]/20">
               <div className="w-1.5 h-1.5 rounded-full bg-[#34d399] animate-pulse" />
-              Automations Active
+              Active
             </span>
           ) : (
             <span className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 text-[9px] font-semibold tracking-wider border border-amber-500/20">
               <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-              Automations Paused
+              Paused
             </span>
-          )}
+          )} */}
         </div>
-        <p className="text-[11px] text-[#8e9192] truncate mt-0.5">
-          {account.full_name || "Instagram Business Profile"}
-        </p>
+
       </div>
     </div>
 
@@ -184,7 +215,7 @@ const InstagramRow = ({ account, isPrimary, onRemove, onToggleEnabled, onToggleL
       {!isPrimary && !account.is_token_expired && (
         <button
           onClick={() => onSetPrimary(account.id)}
-          className="px-2.5 py-1.5 rounded border border-[#2a2a2a] hover:border-[#444748] text-[#c4c7c8] hover:text-white text-xs font-medium transition-colors bg-[#20201f] active:scale-[0.98]"
+          className="px-2.5 py-1.5 rounded-md border border-[#2a2a2a] hover:border-[#444748] text-zinc-300 hover:text-white text-xs font-medium transition-colors bg-[#1c1b1b] active:scale-[0.98] cursor-pointer"
           title="Set as active primary account"
         >
           Make Primary
@@ -195,7 +226,7 @@ const InstagramRow = ({ account, isPrimary, onRemove, onToggleEnabled, onToggleL
         onClick={() => !account.is_token_expired && onToggleEnabled(account.id, !account.is_enabled)}
         disabled={account.is_token_expired}
         className={cn(
-          "p-1.5 text-xs font-semibold rounded border transition-colors cursor-pointer flex items-center gap-1 px-2.5",
+          "p-1.5 text-xs font-semibold rounded-md border transition-colors cursor-pointer flex items-center gap-1 px-2.5 active:scale-[0.98]",
           account.is_token_expired
             ? "text-[#8e9192] border-[#2a2a2a] bg-[#131313] cursor-not-allowed"
             : account.is_enabled
@@ -220,7 +251,7 @@ const InstagramRow = ({ account, isPrimary, onRemove, onToggleEnabled, onToggleL
       {account.is_token_expired ? (
         <button
           onClick={onReLogin}
-          className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold bg-red-500 hover:bg-red-600 text-white cursor-pointer transition-colors active:scale-[0.98]"
+          className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-red-500 hover:bg-red-600 text-white cursor-pointer transition-colors active:scale-[0.98]"
         >
           <RefreshCw className="w-3.5 h-3.5" />
           <span>Re-login</span>
@@ -229,7 +260,7 @@ const InstagramRow = ({ account, isPrimary, onRemove, onToggleEnabled, onToggleL
         <button
           onClick={() => onToggleLogin(account.id, !account.used_for_login)}
           className={cn(
-            "flex items-center justify-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-all active:scale-[0.98] border cursor-pointer",
+            "flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all active:scale-[0.98] border cursor-pointer",
             account.used_for_login
               ? "text-red-400 border-red-500/20 bg-red-500/5 hover:bg-red-500/10"
               : "bg-[#2a2a2a] text-[#e5e2e1] hover:bg-[#353535] border-[#444748] hover:border-[#8e9192]"
@@ -242,7 +273,7 @@ const InstagramRow = ({ account, isPrimary, onRemove, onToggleEnabled, onToggleL
 
       <button
         onClick={() => onRemove(account.id)}
-        className="p-1.5 text-red-400 hover:bg-red-500/10 rounded border border-transparent hover:border-red-500/20 transition-colors cursor-pointer"
+        className="p-1.5 text-red-400 hover:bg-red-500/10 rounded-md border border-transparent hover:border-red-500/20 transition-colors cursor-pointer"
         title="Remove account"
       >
         <Trash2 className="w-3.5 h-3.5" />
@@ -250,6 +281,10 @@ const InstagramRow = ({ account, isPrimary, onRemove, onToggleEnabled, onToggleL
     </div>
   </div>
 );
+
+/* -------------------------------------------------------------------------- */
+/*                                MAIN CONTENT                                */
+/* -------------------------------------------------------------------------- */
 
 function AccountsContent() {
   const dispatch = useDispatch();
@@ -259,8 +294,11 @@ function AccountsContent() {
 
   const appUser = useSelector((state: RootState) => state.auth.user);
   const accounts = useSelector((state: RootState) => state.auth.instagramAccounts);
-  const isLoading = useSelector((state: RootState) => state.auth.isFetchingAccounts || state.auth.isHydrating);
+  const isLoading = useSelector(
+    (state: RootState) => state.auth.isFetchingAccounts || state.auth.isHydrating
+  );
 
+  const [stats, setStats] = useState<any>(null);
   const [firebaseUser, setFirebaseUser] = useState<any>(null);
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState(appUser?.display_name || "");
@@ -276,54 +314,29 @@ function AccountsContent() {
     type: "error" | "success" | "info";
   }>({ isVisible: false, message: "", type: "error" });
 
-
+  const [isPauseModalOpen, setIsPauseModalOpen] = useState(false);
+  const [accountToPause, setAccountToPause] = useState<number | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [accountToDelete, setAccountToDelete] = useState<number | null>(null);
 
   const showToast = (message: string, type: "error" | "success" | "info" = "error") => {
     setToast({ isVisible: true, message, type });
   };
 
-  const getAccountTypeLabel = () => {
-    if (appUser?.plan === "pro") {
-      return {
-        text: "Creator Pro Plan",
-        textColor: "bg-gradient-to-r from-[#A67C00] via-[#BF9B30] via-[#FFBF00] via-[#FFCF40] to-[#FFDC73] bg-clip-text text-transparent font-bold",
-        iconColor: "text-[#FFBF00]",
-        icon: Star
-      };
-    }
-    const trialDaysLeft = appUser?.trial_days_left ?? 0;
-    const isPremiumActive = appUser?.is_premium_active ?? false;
-
-    if (isPremiumActive) {
-      if (appUser?.has_extended_trial) {
-        return {
-          text: `Extended Trial (${trialDaysLeft} days left)`,
-          textColor: "text-[#c4c0ff]",
-          iconColor: "text-[#c4c0ff]",
-          icon: Clock
-        };
-      }
-      return {
-        text: `Free Trial (${trialDaysLeft} days left)`,
-        textColor: "text-[#34d399]",
-        iconColor: "text-[#34d399]",
-        icon: Clock
-      };
-    } else {
-      return {
-        text: "Trial Expired",
-        textColor: "text-red-400",
-        iconColor: "text-red-400",
-        icon: AlertCircle
-      };
+  const fetchStats = async () => {
+    try {
+      const res = await api.get("/accounts/referral/stats/", {
+        headers: { 'x-bypass-cache': 'true' }
+      });
+      setStats(res.data);
+    } catch (err) {
+      console.error("Error fetching referral stats:", err);
     }
   };
 
-  const planInfo = getAccountTypeLabel();
-  const PlanIcon = planInfo.icon;
-
   useEffect(() => {
     setMounted(true);
+    fetchStats();
   }, []);
 
   useEffect(() => {
@@ -483,9 +496,6 @@ function AccountsContent() {
     }
   };
 
-  const [isPauseModalOpen, setIsPauseModalOpen] = useState(false);
-  const [accountToPause, setAccountToPause] = useState<number | null>(null);
-
   const handleToggleEnabled = async (accountId: number, isEnabled: boolean) => {
     if (!isEnabled) {
       setAccountToPause(accountId);
@@ -522,9 +532,6 @@ function AccountsContent() {
       setAccountToPause(null);
     }
   };
-
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [accountToDelete, setAccountToDelete] = useState<number | null>(null);
 
   const confirmRemoveAccount = (id: number) => {
     setAccountToDelete(id);
@@ -573,180 +580,252 @@ function AccountsContent() {
     setIsEditingName(false);
   };
 
+  const getFormattedExpiryDate = () => {
+    const rawDate =
+      stats?.expires_at ||
+      stats?.plan_expires_at ||
+      stats?.subscription_expires_at ||
+      stats?.expiry_date ||
+      appUser?.expires_at ||
+      appUser?.plan_expires_at ||
+      appUser?.subscription_expires_at ||
+      appUser?.trial_expires_at;
+
+    if (rawDate) {
+      try {
+        const parsed = new Date(rawDate);
+        if (!isNaN(parsed.getTime())) {
+          return parsed.toLocaleDateString("en-US", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          });
+        }
+      } catch (e) {
+        console.error("Error parsing expiry date:", e);
+      }
+    }
+
+    const daysLeft = stats?.trial_days_left ?? appUser?.trial_days_left;
+    if (typeof daysLeft === "number" && daysLeft > 0) {
+      const expiry = new Date();
+      expiry.setDate(expiry.getDate() + daysLeft);
+      return expiry.toLocaleDateString("en-US", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+    }
+
+    return null;
+  };
+
+  const formattedExpiryDate = getFormattedExpiryDate();
+  const trialDaysLeft = stats?.trial_days_left ?? appUser?.trial_days_left ?? 0;
+  const isPro = (stats?.plan === "pro" || appUser?.plan === "pro") && (stats?.is_premium_active ?? appUser?.is_premium_active);
+
   if (!mounted) return null;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25 }}
-      className="space-y-6 text-[#e5e2e1]"
-    >
-      {/* User & Account Profile Banner */}
-      <div className="bg-[#1c1b1b] border border-[#2a2a2a] rounded-lg p-5 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-5">
-        <div className="flex items-center gap-4">
-          {accounts.length > 0 ? (
-            <OverlappingAvatars accounts={accounts} size="md" />
-          ) : (
-            <Avatar
-              src={firebaseUser?.photoURL}
-              name={appUser?.display_name || "User"}
-              size="lg"
-            />
-          )}
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              {isEditingName ? (
-                <input
-                  type="text"
-                  value={tempName}
-                  onChange={(e) => setTempName(e.target.value)}
-                  onBlur={handleUpdateName}
-                  onKeyDown={(e) => e.key === "Enter" && handleUpdateName()}
-                  autoFocus
-                  className="text-lg font-semibold text-white bg-[#131313] border border-[#444748] rounded px-2 py-0.5 focus:outline-none focus:border-white transition-colors"
-                />
-              ) : (
-                <h1
-                  onClick={() => {
-                    setTempName(appUser?.display_name || "");
-                    setIsEditingName(true);
-                  }}
-                  className="text-lg font-semibold tracking-tight text-white flex items-center gap-2 cursor-pointer group"
-                >
-                  <span>{appUser?.display_name || "AnyDM Workspace"}</span>
-                  <Pencil className="w-3.5 h-3.5 text-[#8e9192] group-hover:text-white transition-colors" strokeWidth={1.75} />
-                </h1>
-              )}
-            </div>
+    <div className="relative space-y-6 overflow-hidden  text-[#e5e2e1]">
+      {/* Background Soft Purple/Lavender Ambient Glow */}
+      <div
+        className="pointer-events-none absolute left-1/2 top-[-50px] h-[320px] w-[600px] -translate-x-1/2 rounded-[50%] bg-gradient-to-r from-[#c4c0ff]/0 via-[#c4c0ff]/15 to-[#c4c0ff]/0 blur-3xl"
+      />
 
-            <div className="flex items-center gap-3 flex-wrap text-xs text-[#8e9192]">
-              <span>{appUser?.email || firebaseUser?.email || "No email linked"}</span>
-              <span>•</span>
-              <span className="flex items-center gap-1 font-medium">
-                <PlanIcon className={`w-3.5 h-3.5 ${planInfo.iconColor}`} strokeWidth={2} />
-                <span className={planInfo.textColor}>{planInfo.text}</span>
-              </span>
-            </div>
-          </div>
-        </div>
 
-        <div className="flex items-center gap-3 shrink-0">
-          <button
-            onClick={handleAddInstagram}
-            disabled={isInstagramLinking}
-            className="h-9 px-4 rounded bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 text-white font-semibold flex items-center gap-2 hover:brightness-110 active:scale-[0.98] transition-all text-xs cursor-pointer disabled:opacity-50 shadow-sm"
-          >
-            {isInstagramLinking ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+
+      {/* MAIN CONTENT CONTAINER */}
+      <div className="relative mx-auto space-y-4">
+
+        {/* USER INFO CARD */}
+        <div className="bg-[#1c1b1b] border border-[#2a2a2a] rounded-md p-4 md:p-5 flex items-center justify-between shadow-xl">
+          <div className="flex items-center gap-4 min-w-0">
+            {accounts.length > 0 ? (
+              <OverlappingAvatars accounts={accounts} size="md" />
             ) : (
-              <InstagramIcon className="w-4 h-4" />
+              <div className="w-11 h-11 rounded-full bg-[#20201f] border border-[#2a2a2a] flex items-center justify-center text-[#e5e2e1] text-lg font-semibold shrink-0">
+                {(appUser?.display_name || appUser?.email || "U").slice(0, 1).toUpperCase()}
+              </div>
             )}
-            <span>Add Instagram Account</span>
-          </button>
-        </div>
-      </div>
 
-      {/* 2-Column Responsive Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Authentication & Security */}
-        <div className="lg:col-span-1 space-y-6">
-          {/* Identity Providers Card */}
-          <div className="bg-[#1c1b1b] border border-[#2a2a2a] rounded-lg p-5 space-y-4">
-            <div>
-              <h3 className="text-xs font-semibold tracking-wider text-[#8e9192] flex items-center gap-2">
-                <Link2 className="w-4 h-4 text-white" strokeWidth={1.75} />
-                <span>Authentication &amp; Login</span>
-              </h3>
-              <p className="text-[11px] text-[#8e9192] mt-1">Manage linked single sign-on credentials.</p>
-            </div>
-
-            <div className="space-y-3">
-              <ProviderCard
-                icon={<GoogleIcon className="w-5 h-5" />}
-                title="Google Account"
-                subtitle={hasGoogle ? "Connected securely via Google SSO" : "One-click login credential"}
-                isConnected={hasGoogle}
-                onAction={hasGoogle ? undefined : handleGoogleLink}
-              />
-
-              <ProviderCard
-                icon={<Mail className="w-5 h-5 text-[#c4c7c8]" />}
-                title="Email &amp; Password"
-                subtitle={firebaseUser?.email || "Link an email address for password access"}
-                isConnected={hasPassword}
-                onAction={hasPassword ? undefined : handleEmailLink}
-                actionText={isLinkingEmail ? "Cancel" : "Connect"}
-              >
-                {isLinkingEmail && !hasPassword && (
-                  <div className="flex flex-col gap-2 w-full mt-2 pt-2 border-t border-[#2a2a2a]">
-                    <input
-                      type="email"
-                      value={emailToLink}
-                      onChange={(e) => setEmailToLink(e.target.value)}
-                      placeholder="Enter account email"
-                      className="w-full bg-[#131313] border border-[#2a2a2a] rounded py-1.5 px-3 text-xs text-white focus:outline-none focus:border-[#8e9192] transition-colors"
-                    />
-                    <input
-                      type="password"
-                      value={passwordToLink}
-                      onChange={(e) => setPasswordToLink(e.target.value)}
-                      placeholder="Create a strong password"
-                      className="w-full bg-[#131313] border border-[#2a2a2a] rounded py-1.5 px-3 text-xs text-white focus:outline-none focus:border-[#8e9192] transition-colors"
-                    />
-                    <button
-                      onClick={handleConfirmEmailLink}
-                      disabled={isLinkingLoading}
-                      className="w-full bg-white text-black rounded py-1.5 text-xs font-semibold hover:bg-[#eaeaea] transition-colors cursor-pointer disabled:opacity-50"
-                    >
-                      {isLinkingLoading ? "Connecting..." : "Link Account"}
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                {isEditingName ? (
+                  <input
+                    type="text"
+                    value={tempName}
+                    onChange={(e) => setTempName(e.target.value)}
+                    onBlur={handleUpdateName}
+                    onKeyDown={(e) => e.key === "Enter" && handleUpdateName()}
+                    autoFocus
+                    className="text-base font-semibold text-white bg-[#131313] border border-[#444748] rounded-md px-2 py-0.5 focus:outline-none focus:border-white transition-colors"
+                  />
+                ) : (
+                  <div
+                    onClick={() => {
+                      setTempName(appUser?.display_name || "");
+                      setIsEditingName(true);
+                    }}
+                    className="flex items-center gap-2 cursor-pointer group truncate"
+                  >
+                    <span className="text-base md:text-lg font-semibold text-[#e5e2e1] group-hover:text-[#c4c0ff] transition-colors truncate">
+                      {appUser?.email || appUser?.display_name || firebaseUser?.email || "AnyDM User"}
+                    </span>
+                    <button type="button" className="text-zinc-400 group-hover:text-white transition shrink-0">
+                      <Pencil className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 )}
-              </ProviderCard>
+              </div>
+              <p className="text-xs text-[#8e9192] truncate mt-0.5">
+                {appUser?.display_name ? `${appUser.display_name} • ` : ""}{appUser?.email || firebaseUser?.email || "Workspace User"}
+              </p>
             </div>
           </div>
 
-          {/* Security & Token Guarantee Card */}
-          <div className="bg-[#1c1b1b] border border-[#2a2a2a] rounded-lg p-5 space-y-3">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-[#c4c0ff]" strokeWidth={1.75} />
-              <h4 className="font-semibold text-xs text-white">Meta Security &amp; Token Encryption</h4>
+          <div className="flex items-center gap-2.5 shrink-0 ml-3">
+            <button
+              onClick={handleAddInstagram}
+              disabled={isInstagramLinking}
+              className="h-8 px-3 rounded-md bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 text-white font-semibold flex items-center gap-1.5 hover:brightness-110 active:scale-[0.98] transition-all text-xs cursor-pointer disabled:opacity-50 shadow-sm"
+            >
+              {isInstagramLinking ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+              )}
+              <span>Connect Account</span>
+            </button>
+
+            <div className="border border-[#444748]/60 bg-[#20201f] text-[#c4c7c8] text-xs font-semibold px-3 py-1.5 rounded-md">
+              {isPro ? (
+                <span className="bg-gradient-to-r from-[#A67C00] via-[#BF9B30] via-[#FFBF00] via-[#FFCF40] to-[#FFDC73] bg-clip-text text-transparent font-bold">
+                  Creator Pro
+                </span>
+              ) : trialDaysLeft > 0 ? (
+                `${trialDaysLeft} Days Remaining`
+              ) : (
+                <span className="text-red-400 font-medium">Trial Expired</span>
+              )}
             </div>
-            <p className="text-[11px] text-[#8e9192] leading-relaxed">
-              AnyDM uses long-lived OAuth tokens obtained via Meta Graph API v25.0. Credentials are tokenized with AES-256 encryption. We never access personal passphrases.
-            </p>
           </div>
-
-
         </div>
 
-        {/* Right Column: Connected Instagram Accounts List */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-[#1c1b1b] border border-[#2a2a2a] rounded-lg p-5 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#2a2a2a] pb-4">
-              <div>
-                <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-                  <Users className="w-4 h-4 text-[#c4c0ff]" strokeWidth={1.75} />
-                  <span>Instagram Business Accounts</span>
-                </h3>
-                <p className="text-[11px] text-[#8e9192] mt-0.5">
-                  Connected Instagram profiles available for AI automation and DM campaign tracking.
-                </p>
+        {/* TWO COLUMN GRID (AUTH & INSTAGRAM) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
+
+          {/* LEFT COLUMN: AUTHENTICATION & SECURITY */}
+          <div className="space-y-4 flex flex-col justify-between">
+
+            {/* Authentication & Login Card */}
+            <div className="bg-[#1c1b1b] border border-[#2a2a2a] rounded-md p-5 shadow-xl">
+              <div className="flex items-center gap-2 text-[#e5e2e1] font-semibold text-sm">
+                <Link2 className="w-4 h-4 text-[#c4c0ff]" />
+                <h2>Authentication &amp; Login</h2>
               </div>
-              <span className="px-2.5 py-1 bg-[#20201f] border border-[#2a2a2a] text-[#e5e2e1] rounded text-[10px] font-semibold self-start sm:self-auto">
-                {accounts.length} {accounts.length === 1 ? "Account" : "Accounts"} Connected
-              </span>
+              <p className="text-[#8e9192] text-xs mt-1">Manage linked single sign-on credentials.</p>
+
+              <h3 className="text-[#e5e2e1] text-xs font-semibold mt-5 mb-3">Linked Login Credentials</h3>
+
+              <div className="space-y-2.5">
+                {/* Google Row */}
+                <ProviderCard
+                  icon={<GoogleIcon className="w-5 h-5" />}
+                  title="Google Account"
+                  subtitle={hasGoogle ? "One-click login credential linked" : "One-click login credential"}
+                  isConnected={hasGoogle}
+                  onAction={hasGoogle ? undefined : handleGoogleLink}
+                />
+
+                {/* Email & Password Row */}
+                <ProviderCard
+                  icon={<Mail className="w-4 h-4 text-zinc-400" />}
+                  title="Email &amp; Password"
+                  subtitle={firebaseUser?.email || appUser?.email || "Manage password login access"}
+                  isConnected={hasPassword}
+                  onAction={hasPassword ? undefined : handleEmailLink}
+                  actionText={isLinkingEmail ? "Cancel" : "Connect"}
+                >
+                  {isLinkingEmail && !hasPassword && (
+                    <div className="flex flex-col gap-2 w-full mt-2 pt-2 border-t border-[#2a2a2a]">
+                      <input
+                        type="email"
+                        value={emailToLink}
+                        onChange={(e) => setEmailToLink(e.target.value)}
+                        placeholder="Enter account email"
+                        className="w-full bg-[#131313] border border-[#2a2a2a] rounded-md py-1.5 px-3 text-xs text-white focus:outline-none focus:border-[#8e9192] transition-colors"
+                      />
+                      <input
+                        type="password"
+                        value={passwordToLink}
+                        onChange={(e) => setPasswordToLink(e.target.value)}
+                        placeholder="Create password"
+                        className="w-full bg-[#131313] border border-[#2a2a2a] rounded-md py-1.5 px-3 text-xs text-white focus:outline-none focus:border-[#8e9192] transition-colors"
+                      />
+                      <button
+                        onClick={handleConfirmEmailLink}
+                        disabled={isLinkingLoading}
+                        className="w-full bg-white text-black rounded-md py-1.5 text-xs font-semibold hover:bg-[#eaeaea] transition-colors cursor-pointer disabled:opacity-50"
+                      >
+                        {isLinkingLoading ? "Connecting..." : "Link Credentials"}
+                      </button>
+                    </div>
+                  )}
+                </ProviderCard>
+              </div>
             </div>
 
-            <div className="space-y-3">
-              {isLoading ? (
-                <div className="py-16 text-center text-xs text-[#8e9192] flex flex-col items-center justify-center gap-2">
-                  <Loader2 className="w-5 h-5 animate-spin text-[#c4c0ff]" />
-                  <span>Loading connected Instagram profiles...</span>
-                </div>
-              ) : accounts.length > 0 ? (
-                accounts.map((acc: any) => (
+            {/* Meta Security Card */}
+            <div className="bg-[#1c1b1b] border border-[#2a2a2a] rounded-md p-4 shadow-xl">
+              <div className="flex items-center gap-2 text-[#e5e2e1] font-semibold text-xs">
+                <ShieldCheck className="w-4 h-4 text-[#c4c0ff]" />
+                <span>Meta Security &amp; Token Encryption</span>
+              </div>
+              <p className="text-[#8e9192] text-[11px] leading-relaxed mt-2">
+                AnyDM uses long-lived OAuth tokens obtained via Meta Graph API v25.0. Credentials are tokenized with AES-256 encryption. We never access personal passphrases.
+              </p>
+            </div>
+
+          </div>
+
+          {/* RIGHT COLUMN: INSTAGRAM CONNECTION & PROFILES */}
+          <div className="bg-[#1c1b1b] border border-[#c4c0ff]/30 rounded-md p-5 flex flex-col justify-between relative shadow-xl shadow-purple-950/10 min-h-[380px]">
+
+            {/* Top Row */}
+            <div className="flex items-center justify-between pb-3 border-b border-[#2a2a2a]">
+              <div className="flex items-center gap-2 text-[#e5e2e1] font-semibold text-sm">
+                <Hash className="w-4 h-4 text-[#c4c0ff]" />
+                <h2>Instagram Account</h2>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="bg-[#20201f] border border-[#2a2a2a] text-[#c4c7c8] text-[11px] font-semibold px-2.5 py-1 rounded-full">
+                  {accounts.length} {accounts.length === 1 ? "Account" : "Accounts"}
+                </span>
+                {/* <button
+                  onClick={handleAddInstagram}
+                  disabled={isInstagramLinking}
+                  className="bg-white hover:bg-zinc-200 text-zinc-950 font-bold px-3 py-1 rounded-md text-xs flex items-center gap-1 transition-all active:scale-95 cursor-pointer disabled:opacity-50 shadow-sm"
+                >
+                  {isInstagramLinking ? (
+                    <Loader2 className="w-3 h-3 animate-spin text-black" />
+                  ) : (
+                    <Plus className="w-3 h-3 stroke-[2.5]" />
+                  )}
+                  <span>Connect</span>
+                </button> */}
+              </div>
+            </div>
+
+            {/* Center Area: Connected Accounts List OR Empty Glow CTA */}
+            {isLoading ? (
+              <div className="py-16 text-center text-xs text-[#8e9192] flex flex-col items-center justify-center gap-2 my-auto">
+                <Loader2 className="w-6 h-6 animate-spin text-[#c4c0ff]" />
+                <span>Loading connected Instagram profiles...</span>
+              </div>
+            ) : accounts.length > 0 ? (
+              <div className="my-4 space-y-3 max-h-[300px] overflow-y-auto pr-1 scrollbar-thin">
+                {accounts.map((acc: any) => (
                   <InstagramRow
                     key={acc.id}
                     account={acc}
@@ -757,29 +836,46 @@ function AccountsContent() {
                     onSetPrimary={handleSetPrimary}
                     onReLogin={handleAddInstagram}
                   />
-                ))
-              ) : (
-                <div className="p-10 text-center flex flex-col items-center justify-center bg-[#131313] rounded-lg border border-dashed border-[#2a2a2a] space-y-3">
-                  <div className="w-12 h-12 rounded-full bg-[#1c1b1b] border border-[#2a2a2a] flex items-center justify-center text-[#8e9192]">
-                    <InstagramIcon className="w-6 h-6 text-pink-500" />
+                ))}
+              </div>
+            ) : (
+              /* Center Instagram Icon with Glow */
+              <div className="flex flex-col items-center justify-center my-8 md:my-10">
+                <div className="relative flex items-center justify-center">
+                  {/* Glow backdrop */}
+                  <div className="absolute w-28 h-28 bg-gradient-to-tr from-pink-600/30 via-purple-600/20 to-orange-500/30 rounded-full blur-2xl"></div>
+
+                  {/* Circular Button Outer */}
+                  <div className="w-20 h-20 rounded-full bg-[#131313] border border-[#444748]/50 flex items-center justify-center relative shadow-inner">
+                    {/* Instagram Gradient Icon */}
+                    <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none">
+                      <defs>
+                        <linearGradient id="ig-grad" x1="2" y1="21" x2="22" y2="3" gradientUnits="userSpaceOnUse">
+                          <stop offset="0%" stopColor="#FFDD55" />
+                          <stop offset="30%" stopColor="#FF543E" />
+                          <stop offset="70%" stopColor="#C837AB" />
+                          <stop offset="100%" stopColor="#3771C8" />
+                        </linearGradient>
+                      </defs>
+                      <rect x="2" y="2" width="20" height="20" rx="5" stroke="url(#ig-grad)" strokeWidth="2" />
+                      <circle cx="12" cy="12" r="4.5" stroke="url(#ig-grad)" strokeWidth="2" />
+                      <circle cx="18" cy="6" r="1" fill="url(#ig-grad)" />
+                    </svg>
                   </div>
-                  <div className="max-w-xs space-y-1">
-                    <p className="text-xs font-semibold text-white">No Instagram accounts connected</p>
-                    <p className="text-[11px] text-[#8e9192]">
-                      Link your Instagram Professional or Creator account to start automating DMs, comments, and lead engagement.
-                    </p>
-                  </div>
-                  <button
-                    onClick={handleAddInstagram}
-                    className="h-8 px-4 bg-white text-black rounded text-xs font-semibold hover:bg-[#eaeaea] transition-colors active:scale-[0.98] cursor-pointer"
-                  >
-                    Connect Instagram Business
-                  </button>
                 </div>
-              )}
-            </div>
+
+                <p className="text-[#e5e2e1] text-xs md:text-sm font-medium mt-4">No Instagram accounts connected</p>
+                <p className="text-[11px] text-[#8e9192] text-center max-w-xs mt-1">
+                  Link your Instagram Business or Creator profile to start automating DMs, comments, &amp; sales.
+                </p>
+              </div>
+            )}
+
+
           </div>
+
         </div>
+
       </div>
 
       <Toast
@@ -812,7 +908,7 @@ function AccountsContent() {
         confirmText={accounts.length === 1 ? "Delete & Disconnect" : "Remove Account"}
         isDestructive={true}
       />
-    </motion.div>
+    </div>
   );
 }
 

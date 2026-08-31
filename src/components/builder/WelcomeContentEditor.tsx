@@ -1186,7 +1186,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                         {/* Editor Header */}
                         <div className="hidden sm:flex items-center justify-between pb-3 border-b border-white/10 shrink-0">
                             <div>
-                                <h3 className="text-xs font-semibold text-white tracking-wider uppercase">
+                                <h3 className="text-xs font-semibold text-white tracking-wider ">
                                     {modalTab === 'icebreakers' ? "Configure Welcome Message" : "Configure Menu Options"}
                                 </h3>
                                 <p className="text-[10px] text-zinc-500 mt-1">
@@ -1277,7 +1277,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
 
                                     <div className="space-y-3 pt-2">
                                         <div className="flex justify-between items-center">
-                                            <h3 className="text-[10px] font-bold text-zinc-400 tracking-wider uppercase">Navigation Menu Buttons ({tempPersistentMenuItems.length}/3)</h3>
+                                            <h3 className="text-[10px] font-bold text-zinc-400 tracking-wider ">Navigation Menu Buttons ({tempPersistentMenuItems.length}/3)</h3>
                                             {tempPersistentMenuItems.length < 3 && (
                                                 <button
                                                     type="button"

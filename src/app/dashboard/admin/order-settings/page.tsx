@@ -226,7 +226,7 @@ export default function AdminOrderSettingsPage() {
                     </td>
                     <td className="px-4 py-4 max-w-[200px] truncate font-medium">
                       <span className={cn(
-                        "px-2 py-0.5 rounded text-[10px] font-bold uppercase",
+                        "px-2 py-0.5 rounded text-[10px] font-bold ",
                         store.return_policy
                           ? "bg-green-500/10 border border-green-500/30 text-green-400"
                           : "bg-red-500/10 border border-red-500/30 text-red-400"
@@ -236,7 +236,7 @@ export default function AdminOrderSettingsPage() {
                     </td>
                     <td className="px-4 py-4 max-w-[200px] truncate font-medium">
                       <span className={cn(
-                        "px-2 py-0.5 rounded text-[10px] font-bold uppercase",
+                        "px-2 py-0.5 rounded text-[10px] font-bold ",
                         store.cancellation_policy
                           ? "bg-green-500/10 border border-green-500/30 text-green-400"
                           : "bg-red-500/10 border border-red-500/30 text-red-400"

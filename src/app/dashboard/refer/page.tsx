@@ -173,7 +173,7 @@ export default function ReferPage() {
 
         {/* Points display card - Overlaid on banner using glass effect parameters */}
         <div className="bg-[#20201f]/60 backdrop-blur-md p-5 rounded-xl border border-white/10 w-full md:w-[280px] flex flex-col items-center justify-center text-center gap-4 z-10">
-          <span className="text-[11px] font-semibold text-[#c4c7c8]/60 tracking-wider uppercase">Your points balance</span>
+          <span className="text-[11px] font-semibold text-[#c4c7c8]/60 tracking-wider ">Your points balance</span>
           <div className="flex items-baseline gap-1">
             <span className="text-5xl font-bold text-white tracking-tight">{stats?.points || 0}</span>
             <span className="text-xs text-[#c4c0ff] font-semibold tracking-wider">pts</span>
@@ -210,21 +210,16 @@ export default function ReferPage() {
               <span>Share your referral link to earn points</span>
             </h3>
 
-            {!isEditingCode && (stats?.custom_code_set || appUser?.custom_code_set) && (
-              <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-md shadow-sm">
-                <Check className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Custom ID Set: <strong className="font-mono text-white">{stats?.referral_code}</strong></span>
-              </span>
-            )}
+
           </div>
 
           <div className="flex flex-col sm:flex-row gap-2.5">
             <div className="relative flex-1 flex items-center">
               {isEditingCode ? (
                 <>
-                  <span className="absolute left-3 text-xs text-zinc-500 font-mono font-semibold z-10 pointer-events-none">
-                    ID:
-                  </span>
+                  {/* <span className="absolute left-3 text-xs text-zinc-500 font-mono font-semibold z-10 pointer-events-none">
+                    Refferal Code:
+                  </span> */}
                   <input
                     type="text"
                     value={customCodeInput}
@@ -232,7 +227,7 @@ export default function ReferPage() {
                     placeholder="e.g. YT200 or CREATOR30"
                     maxLength={20}
                     autoFocus
-                    className="w-full bg-[#0e0e0e] border border-[#c4c0ff]/50 rounded-md py-2 pl-9 pr-16 text-xs font-mono text-white tracking-wider outline-none uppercase"
+                    className="w-full bg-[#0e0e0e] border border-[#c4c0ff]/50 rounded-md py-2 pl-4 pr-16 text-xs font-mono text-white tracking-wider outline-none "
                   />
                   <div className="absolute right-1.5 flex items-center gap-1">
                     <button
@@ -282,8 +277,8 @@ export default function ReferPage() {
               onClick={handleCopyLink}
               disabled={isEditingCode}
               className={`font-semibold text-xs px-5 py-2 rounded-md transition-colors flex items-center justify-center gap-1.5 shrink-0 ${isEditingCode
-                  ? "bg-white/10 text-zinc-500 border border-white/5 cursor-not-allowed opacity-50"
-                  : "bg-white hover:bg-[#eaeaea] text-black cursor-pointer"
+                ? "bg-white/10 text-zinc-500 border border-white/5 cursor-not-allowed opacity-50"
+                : "bg-white hover:bg-[#eaeaea] text-black cursor-pointer"
                 }`}
             >
               {copied ? (
@@ -426,8 +421,8 @@ export default function ReferPage() {
                           type="button"
                           onClick={() => setCurrentPage(pageNum)}
                           className={`w-7 h-7 rounded text-xs font-semibold transition-colors cursor-pointer ${currentPage === pageNum
-                              ? "bg-white text-black font-bold shadow-sm"
-                              : "bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-white"
+                            ? "bg-white text-black font-bold shadow-sm"
+                            : "bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-white"
                             }`}
                         >
                           {pageNum}

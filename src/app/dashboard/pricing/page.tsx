@@ -291,7 +291,7 @@ export default function PricingPage() {
         <div className="flex flex-col justify-between rounded-xl border border-[#2a2a2a] bg-[#1c1b1b] p-6 shadow-xl relative overflow-hidden group hover:border-[#444748] transition-all">
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-[#c4c0ff] tracking-wide uppercase">
+              <span className="text-xs font-semibold text-[#c4c0ff] tracking-wide ">
                 Free Trial
               </span>
               <span className="text-[10px] px-2 py-0.5 rounded bg-white/5 border border-white/10 text-zinc-400">
@@ -469,13 +469,14 @@ export default function PricingPage() {
               <Gift className="w-3.5 h-3.5" />
               <span>Referral Points Balance</span>
             </span>
-            <span className="text-xs font-mono font-bold text-white bg-white/5 border border-white/10 px-2.5 py-0.5 rounded-full">
+            <span className="text-xs  font-bold text-white bg-white/5 border border-white/10 px-2.5 py-0.5 rounded-full">
               {stats?.points || 0} / {stats?.points_needed_for_premium || 100} pts
             </span>
           </div>
 
           <p className="text-xs text-[#c4c7c8]/70 max-w-xl leading-relaxed">
-            Invite friends &amp; creators to AnyDM. Earn 20 points for every referral signup and claim free Creator Pro access without paying!
+            Invite friends & creators to AnyDM. Earn 20 points per signup and get free Creator Pro!
+
           </p>
 
           {/* Progress Bar */}

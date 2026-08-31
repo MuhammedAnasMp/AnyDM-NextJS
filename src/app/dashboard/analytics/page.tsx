@@ -181,8 +181,8 @@ export default function AnalyticsPage() {
                 key={tf.id}
                 onClick={() => setTimeframe(tf.id)}
                 className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${timeframe === tf.id
-                    ? "bg-white text-black shadow-md"
-                    : "text-on-surface-variant hover:text-white hover:bg-white/5"
+                  ? "bg-white text-black shadow-md"
+                  : "text-on-surface-variant hover:text-white hover:bg-white/5"
                   }`}
               >
                 {tf.label}
@@ -369,7 +369,7 @@ export default function AnalyticsPage() {
                         : "3.4%"}
                 </span>
               </div>
-              <span className="text-[10px] font-mono px-2 py-1 rounded bg-white/5 text-zinc-400 border border-white/5 uppercase">
+              <span className="text-[10px] font-mono px-2 py-1 rounded bg-white/5 text-zinc-400 border border-white/5 ">
                 {timeframe} Window
               </span>
             </div>
@@ -425,8 +425,8 @@ export default function AnalyticsPage() {
                         }}
                         transition={{ duration: 0.8, delay: idx * 0.1 }}
                         className={`h-full rounded-full ${isLast
-                            ? "bg-gradient-to-r from-emerald-500 to-teal-400"
-                            : "bg-gradient-to-r from-white/40 to-white"
+                          ? "bg-gradient-to-r from-emerald-500 to-teal-400"
+                          : "bg-gradient-to-r from-white/40 to-white"
                           }`}
                       />
                     </div>
@@ -439,8 +439,8 @@ export default function AnalyticsPage() {
                     </span>
                     <span
                       className={`font-semibold font-mono ${isLast
-                          ? "text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20"
-                          : "text-zinc-400"
+                        ? "text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20"
+                        : "text-zinc-400"
                         }`}
                     >
                       {isLast

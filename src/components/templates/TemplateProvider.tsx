@@ -116,11 +116,11 @@ export function getTemplateStyles(templateId: string, themeId: string): Template
         : "bg-[#F2EFE9] border border-[#C2C9C3]/60 text-[#2D362E] placeholder-[#6A786C] rounded-none px-4 py-2.5 focus:outline-none focus:border-[#4A5D4E] transition-colors",
       dividerClass: isSage ? "border-white/10" : "border-[#C2C9C3]/30",
       filterPillClass: isSage
-        ? "px-4 py-1.5 text-xs font-semibold border border-white/15 text-white/70 hover:text-white hover:border-white/30 transition-all tracking-wider uppercase"
-        : "px-4 py-1.5 text-xs font-semibold border border-[#4A5D4E]/20 text-[#6A786C] hover:text-[#2D362E] hover:border-[#4A5D4E]/40 transition-all tracking-wider uppercase",
+        ? "px-4 py-1.5 text-xs font-semibold border border-white/15 text-white/70 hover:text-white hover:border-white/30 transition-all tracking-wider "
+        : "px-4 py-1.5 text-xs font-semibold border border-[#4A5D4E]/20 text-[#6A786C] hover:text-[#2D362E] hover:border-[#4A5D4E]/40 transition-all tracking-wider ",
       filterPillActiveClass: isSage
-        ? "px-4 py-1.5 text-xs font-semibold bg-white text-[#4A5D4E] tracking-wider uppercase"
-        : "px-4 py-1.5 text-xs font-semibold bg-[#4A5D4E] text-white tracking-wider uppercase",
+        ? "px-4 py-1.5 text-xs font-semibold bg-white text-[#4A5D4E] tracking-wider "
+        : "px-4 py-1.5 text-xs font-semibold bg-[#4A5D4E] text-white tracking-wider ",
     };
   }
 

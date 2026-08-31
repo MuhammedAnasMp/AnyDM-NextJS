@@ -466,7 +466,7 @@ export default function ProductDetailPage({ params }: PageProps) {
           <div className="lg:col-span-5 lg:sticky lg:top-32 space-y-10">
             <section className="space-y-4">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] tracking-[0.2em] font-semibold text-[#4A5D4E] uppercase">Limited Edition</span>
+                <span className="text-[10px] tracking-[0.2em] font-semibold text-[#4A5D4E] ">Limited Edition</span>
                 <div className="h-px flex-1 bg-[#C2C9C3]/40"></div>
               </div>
               <h1 className="text-3xl md:text-4xl font-serif text-[#2D362E] leading-tight font-bold">
@@ -624,7 +624,7 @@ export default function ProductDetailPage({ params }: PageProps) {
         <section className="mt-32 py-24 border-y border-[#C2C9C3]/40">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-24 items-center">
             <div className="space-y-8">
-              <span className="text-[10px] tracking-[0.2em] font-semibold text-[#4A5D4E] uppercase">Artisan Story</span>
+              <span className="text-[10px] tracking-[0.2em] font-semibold text-[#4A5D4E] ">Artisan Story</span>
               <h2 className="text-3xl md:text-4xl font-serif text-[#2D362E] leading-tight font-bold">Preserving the <br />Human Touch.</h2>
               <p className="text-sm md:text-base text-[#6A786C] leading-relaxed max-w-lg">
                 Every stitch is placed with conscious intent in our artisan workshop. We believe that clothing should carry the energy of its creator, resulting in a garment that feels alive and sustainable.
@@ -711,7 +711,7 @@ export default function ProductDetailPage({ params }: PageProps) {
         {/* Right Column (5 Columns) */}
         <section className="md:col-span-5 flex flex-col gap-6 sticky top-24 h-fit">
           <div className="flex flex-col gap-2">
-            <span className="font-mono text-[10px] tracking-widest text-[#ff24e4] uppercase">Limited Release / Series 01</span>
+            <span className="font-mono text-[10px] tracking-widest text-[#ff24e4] ">Limited Release / Series 01</span>
             <h1 className="font-bold text-3xl md:text-4xl tracking-tight text-[#dbfcff] font-sans">
               {product.title}
             </h1>
@@ -723,9 +723,9 @@ export default function ProductDetailPage({ params }: PageProps) {
               {product.description || "Engineered for the urban vanguard. Featuring reactive fiber integration and ultra-matte technical fabrics."}
             </p>
             <div className="flex flex-wrap gap-2">
-              <span className="px-3 py-1 border border-[#00f0ff]/40 text-[#00f0ff] font-mono text-[9px] uppercase">WATERPROOF</span>
-              <span className="px-3 py-1 border border-[#ff24e4]/40 text-[#ff24e4] font-mono text-[9px] uppercase">THERMAL-TECH</span>
-              <span className="px-3 py-1 border border-white/20 text-white font-mono text-[9px] uppercase">REACTIVE_GLOW</span>
+              <span className="px-3 py-1 border border-[#00f0ff]/40 text-[#00f0ff] font-mono text-[9px] ">WATERPROOF</span>
+              <span className="px-3 py-1 border border-[#ff24e4]/40 text-[#ff24e4] font-mono text-[9px] ">THERMAL-TECH</span>
+              <span className="px-3 py-1 border border-white/20 text-white font-mono text-[9px] ">REACTIVE_GLOW</span>
             </div>
           </div>
 
@@ -833,7 +833,7 @@ export default function ProductDetailPage({ params }: PageProps) {
               </li>
               {product.metadata && typeof product.metadata === "object" && Object.entries(product.metadata).map(([key, value], idx, arr) => (
                 <li key={key} className={cn("flex justify-between pb-2", idx < arr.length - 1 && "border-b border-white/5")}>
-                  <span className="uppercase">{key}</span>
+                  <span className="">{key}</span>
                   <span className="text-white">{String(value)}</span>
                 </li>
               ))}
@@ -1436,16 +1436,16 @@ export default function ProductDetailPage({ params }: PageProps) {
 
               {/* Store Policies */}
               <div className="space-y-2 pt-4 border-t border-black">
-                <span className="text-[10px] font-black uppercase">Store Policies</span>
+                <span className="text-[10px] font-black ">Store Policies</span>
                 <div className="grid grid-cols-2 gap-2 text-xs font-bold">
                   <div className="border-2 border-black p-2 flex flex-col gap-0.5">
-                    <span className="text-zinc-500 font-bold text-[9px] uppercase">Returns &amp; Exchanges</span>
+                    <span className="text-zinc-500 font-bold text-[9px] ">Returns &amp; Exchanges</span>
                     <span className={settings?.return_policy ? "text-emerald-600" : "text-red-600"}>
                       {settings?.return_policy ? "Accepted" : "Not Accepted"}
                     </span>
                   </div>
                   <div className="border-2 border-black p-2 flex flex-col gap-0.5">
-                    <span className="text-zinc-500 font-bold text-[9px] uppercase">Cancellations</span>
+                    <span className="text-zinc-500 font-bold text-[9px] ">Cancellations</span>
                     <span className={settings?.cancellation_policy ? "text-emerald-600" : "text-red-600"}>
                       {settings?.cancellation_policy ? "Allowed" : "Not Allowed"}
                     </span>
@@ -1456,7 +1456,7 @@ export default function ProductDetailPage({ params }: PageProps) {
               {/* Quantity Selector */}
               {!isOutOfStock && (
                 <div className="flex items-center justify-between py-3 border-t border-black">
-                  <span className="text-[10px] font-black uppercase">Quantity</span>
+                  <span className="text-[10px] font-black ">Quantity</span>
                   <div className="flex items-center gap-4">
                     <button type="button" disabled={quantity <= 1}
                       onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
@@ -1525,7 +1525,7 @@ export default function ProductDetailPage({ params }: PageProps) {
 
             {/* Info Pane Details */}
             <div className="bg-white border-2 border-black shadow-[4px_4px_0px_#000] p-4 text-black space-y-3">
-              <h3 className="font-black text-xs flex items-center gap-1.5 uppercase">
+              <h3 className="font-black text-xs flex items-center gap-1.5 ">
                 <span>ℹ</span>
                 <span>Specifications</span>
               </h3>
@@ -1578,7 +1578,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                     />
                   </div>
                   <div className="p-4 bg-white border-t border-black flex justify-between items-center">
-                    <span className="font-black text-sm uppercase">{relatedProducts[0].title}</span>
+                    <span className="font-black text-sm ">{relatedProducts[0].title}</span>
                     <span className="font-mono text-sm font-black">{relatedProducts[0].price} {relatedProducts[0].currency}</span>
                   </div>
                 </div>

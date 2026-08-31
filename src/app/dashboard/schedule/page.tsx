@@ -1520,7 +1520,7 @@ export default function InstagramSchedulerPage() {
                   <div className="w-full max-w-[310px] flex items-center justify-between mb-2 px-1 z-10">
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-[#34d399] animate-pulse" />
-                      <span className="text-[11px] font-bold text-white tracking-wide uppercase">
+                      <span className="text-[11px] font-bold text-white tracking-wide ">
                         iPhone 16 Pro Simulator
                       </span>
                     </div>

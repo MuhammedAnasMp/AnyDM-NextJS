@@ -886,7 +886,7 @@ export default function ContactsPage() {
                             Select Products (Max 10)
                           </label>
                           {selectedBroadcastProducts.length > 0 && (
-                            <span className="text-[9px] bg-[#B6B2FF]/20 text-[#B6B2FF] px-2.5 py-0.5 rounded-full font-bold uppercase">
+                            <span className="text-[9px] bg-[#B6B2FF]/20 text-[#B6B2FF] px-2.5 py-0.5 rounded-full font-bold ">
                               {selectedBroadcastProducts.length} Selected
                             </span>
                           )}

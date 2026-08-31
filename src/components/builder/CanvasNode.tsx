@@ -499,7 +499,7 @@ export function CanvasNode({ id }: { id: string }) {
                                             {(node.data?.icebreakers || []).map((ib: any, idx: number) => (
                                                 <div key={idx} className="bg-white/5 border border-[#444748] rounded-lg p-2.5 text-left text-xs font-semibold text-white flex items-center justify-between gap-3">
                                                     <span>{ib.question || `Question ${idx + 1}`}</span>
-                                                    {/* <span className="text-[8px] bg-[#8FE3FF]/10 text-[#8FE3FF] border border-[#8FE3FF]/20 px-1 py-0.2 rounded font-mono shrink-0 uppercase">{ib.payload}</span> */}
+                                                    {/* <span className="text-[8px] bg-[#8FE3FF]/10 text-[#8FE3FF] border border-[#8FE3FF]/20 px-1 py-0.2 rounded font-mono shrink-0 ">{ib.payload}</span> */}
                                                 </div>
                                             ))}
                                             {(!node.data?.icebreakers || node.data.icebreakers.length === 0) && (
@@ -525,7 +525,7 @@ export function CanvasNode({ id }: { id: string }) {
                                             {(node.data?.persistent_menu_items || []).map((item: any, idx: number) => (
                                                 <div key={idx} className="bg-white/5 border border-[#444748] rounded-lg p-2.5 text-left text-xs font-semibold text-white flex items-center justify-between gap-3">
                                                     <span className="truncate">{item.title || `Button ${idx + 1}`}</span>
-                                                    {/* <span className="text-[8px] bg-purple-500/10 text-purple-400 border border-purple-500/20 px-1 py-0.2 rounded font-mono shrink-0 uppercase">
+                                                    {/* <span className="text-[8px] bg-purple-500/10 text-purple-400 border border-purple-500/20 px-1 py-0.2 rounded font-mono shrink-0 ">
                                                     {item.type === 'web_url' ? 'URL' : item.payload || 'POSTBACK'}
                                                 </span> */}
                                                 </div>
@@ -619,7 +619,7 @@ export function CanvasNode({ id }: { id: string }) {
                             >
                                 <div className="flex items-center justify-between">
                                     <span className="text-[10px] font-bold text-[#c4c7c8] tracking-widest">Match Type</span>
-                                    <span className="text-[10px] px-2 py-0.5 rounded-[4px] font-bold bg-[#E6F1FB] text-[#185FA5] uppercase">
+                                    <span className="text-[10px] px-2 py-0.5 rounded-[4px] font-bold bg-[#E6F1FB] text-[#185FA5] ">
                                         {node.ruleType?.includes('share') ? 'Auto Share Match' : (node.data?.match_type || 'Contains')}
                                     </span>
                                 </div>
@@ -737,11 +737,11 @@ export function CanvasNode({ id }: { id: string }) {
                         <div className="flex flex-col gap-3 text-xs">
                             <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col gap-2">
                                 <div className="flex items-center justify-between">
-                                    <span className="bg-[#F1EFE8] text-[#444441] text-[9px] font-bold px-2 py-0.5 rounded-md uppercase">
+                                    <span className="bg-[#F1EFE8] text-[#444441] text-[9px] font-bold px-2 py-0.5 rounded-md ">
                                         {node.data?.action_type?.replace('_', ' ') || 'Reply Comment'}
                                     </span>
                                     {node.data?.dm_format && (
-                                        <span className="bg-[#EEEDFE] text-[#534AB7] text-[9px] font-bold px-2 py-0.5 rounded-md uppercase">
+                                        <span className="bg-[#EEEDFE] text-[#534AB7] text-[9px] font-bold px-2 py-0.5 rounded-md ">
                                             {node.data.dm_format.replace('_', ' ')}
                                         </span>
                                     )}
@@ -979,7 +979,7 @@ export function CanvasNode({ id }: { id: string }) {
                         <div className="flex flex-col gap-3 text-xs">
                             <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col gap-2 relative overflow-hidden">
                                 <div className="absolute right-0 top-0 bottom-0 w-1 bg-[#FAC775]" />
-                                <span className="bg-[#FAEEDA] text-[#854F0B] text-[10px] font-bold px-2 py-0.5 rounded-md self-start uppercase">
+                                <span className="bg-[#FAEEDA] text-[#854F0B] text-[10px] font-bold px-2 py-0.5 rounded-md self-start ">
                                     {(node.data?.selection_method || node.data?.method || 'Random').replace(/_/g, ' ')}
                                 </span>
                                 <span className="text-xs text-white font-semibold mt-1">

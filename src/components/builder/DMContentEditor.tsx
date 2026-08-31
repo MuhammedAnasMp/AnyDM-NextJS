@@ -1524,7 +1524,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
                         <div className="absolute top-1.5 left-1.5 flex items-center gap-1">
                           <div className="w-3 sm:w-3.5 h-3 sm:h-3.5 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 p-[1px]">
-                            <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-[5px] sm:text-[6px] font-bold text-white uppercase">
+                            <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-[5px] sm:text-[6px] font-bold text-white ">
                               S
                             </div>
                           </div>
@@ -2193,7 +2193,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                 <div className="space-y-4">
                   <div className="flex justify-between items-center pb-2 border-b border-white/10">
                     <div>
-                      <h3 className="font-sora text-xs font-semibold text-zinc-400 tracking-wider uppercase">Interactive Pills ({quickRepliesTitles.length}/13)</h3>
+                      <h3 className="font-sora text-xs font-semibold text-zinc-400 tracking-wider ">Interactive Pills ({quickRepliesTitles.length}/13)</h3>
                       <p className="text-[9px] text-[#CECBF6]/60 font-semibold tracking-wider font-sora mt-1">Tapped in Instagram. Max 13 pills.</p>
                     </div>
                     {quickRepliesTitles.length < 13 && (
@@ -2545,7 +2545,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                 <div className="bg-white/5 p-3 sm:p-5 rounded-xl sm:rounded-2xl border border-white/10 space-y-3 sm:space-y-4">
                   <div className="flex justify-between items-center">
                     <div>
-                      <h3 className="font-sora text-xs font-semibold text-zinc-400 tracking-wider uppercase">Carousel Slides ({carouselElements.length}/10)</h3>
+                      <h3 className="font-sora text-xs font-semibold text-zinc-400 tracking-wider ">Carousel Slides ({carouselElements.length}/10)</h3>
                       <p className="text-[9px] text-[#CECBF6]/60 font-semibold tracking-wider font-sora mt-1">Horizontal slider card deck.</p>
                     </div>
                     {carouselElements.length < 10 && (
@@ -3402,7 +3402,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                 {/* Current Attachments Grid/List */}
                 <div className="space-y-4">
                   <div className="flex justify-between items-center pb-2 border-b border-white/10">
-                    <h3 className="font-sora text-xs font-semibold text-white tracking-wider .uppercase">Attachments List ({attachments.length})</h3>
+                    <h3 className="font-sora text-xs font-semibold text-white tracking-wider .">Attachments List ({attachments.length})</h3>
                     {attachments.length > 0 && (
                       <button
                         onClick={() => setAttachments([])}

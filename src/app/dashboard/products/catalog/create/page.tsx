@@ -1094,7 +1094,7 @@ export default function ProductCreatePage() {
             {productSource === "instagram" && (
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-xs font-semibold tracking-wider text-[#c4c7c8] uppercase">Social context</h3>
+                  <h3 className="text-xs font-semibold tracking-wider text-[#c4c7c8] ">Social context</h3>
                   <span className="text-[10px] bg-[#1c1b1b] text-white px-2 py-0.5 rounded-full border border-[#444748]/40 font-medium">
                     Instagram post
                   </span>
@@ -1141,7 +1141,7 @@ export default function ProductCreatePage() {
 
             {/* Inventory Management Panel */}
             <div className="space-y-4">
-              <h3 className="text-xs font-semibold tracking-wider text-[#c4c7c8] uppercase">Inventory & details</h3>
+              <h3 className="text-xs font-semibold tracking-wider text-[#c4c7c8] ">Inventory & details</h3>
 
               <div className="space-y-3.5">
                 <div>
@@ -1339,7 +1339,7 @@ export default function ProductCreatePage() {
             {/* Technical Specification Details */}
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <h3 className="text-xs font-semibold tracking-wider text-[#c4c7c8] uppercase">Specifications</h3>
+                <h3 className="text-xs font-semibold tracking-wider text-[#c4c7c8] ">Specifications</h3>
                 <button
                   onClick={() => setMetadata([...metadata, { key: "", value: "" }])}
                   className="text-white bg-[#1c1b1b] hover:bg-[#1c1b1b] px-2.5 py-1 rounded-[4px] border border-[#444748]/60 text-[10px] font-medium transition-colors"
@@ -1540,7 +1540,7 @@ export default function ProductCreatePage() {
                                   alt={activeAccount?.username || "store"}
                                 />
                               ) : (
-                                <div className="w-5 h-5 sm:w-7 sm:h-7 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[9px] font-bold text-white uppercase">
+                                <div className="w-5 h-5 sm:w-7 sm:h-7 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[9px] font-bold text-white ">
                                   {activeAccount?.username ? activeAccount.username[0] : "Z"}
                                 </div>
                               )}
@@ -1685,7 +1685,7 @@ export default function ProductCreatePage() {
                                 alt="Avatar"
                               />
                             ) : (
-                              <span className="text-xs font-bold text-white uppercase">
+                              <span className="text-xs font-bold text-white ">
                                 {activeAccount?.username ? activeAccount.username[0] : "Z"}
                               </span>
                             )}

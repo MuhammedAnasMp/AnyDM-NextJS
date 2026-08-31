@@ -261,7 +261,7 @@ export default function AdminVerifyKYCPage() {
                         <td className="py-3.5 px-4 font-mono tracking-wide text-zinc-400">{sub.pan_number || "N/A"}</td>
                         <td className="py-3.5 px-4">
                           <span className={cn(
-                            "px-2 py-0.5 rounded-full text-[9px] font-bold uppercase",
+                            "px-2 py-0.5 rounded-full text-[9px] font-bold ",
                             sub.status === "APPROVED" && "bg-green-500/10 border border-green-500/30 text-green-400",
                             sub.status === "REJECTED" && "bg-red-500/10 border border-red-500/30 text-red-400",
                             (sub.status === "SUBMITTED" || sub.status === "REVIEW") && "bg-yellow-500/10 border border-yellow-500/30 text-yellow-400",
@@ -355,7 +355,7 @@ export default function AdminVerifyKYCPage() {
                   </div>
                   <div className="flex flex-col gap-0.5">
                     <span className="text-[10px] text-zinc-500 font-bold tracking-wider">IFSC Code</span>
-                    <span className="font-mono text-zinc-200 uppercase">{selectedKyc.bank_ifsc}</span>
+                    <span className="font-mono text-zinc-200 ">{selectedKyc.bank_ifsc}</span>
                   </div>
                   <div className="flex flex-col gap-0.5">
                     <span className="text-[10px] text-zinc-500 font-bold tracking-wider">Account Number</span>

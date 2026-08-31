@@ -290,7 +290,7 @@ export default function SellerOrdersPage() {
                     </td>
                     <td className="px-6 py-3.5 cursor-pointer" onClick={() => setSelectedOrder(o)}>
                       <div className="font-bold text-white">₹{o.total_amount}</div>
-                      <span className={cn("text-[9px] font-bold block mt-1 uppercase", o.payment_method === "COD" ? "text-orange-400" : "text-sky-400")}>
+                      <span className={cn("text-[9px] font-bold block mt-1 ", o.payment_method === "COD" ? "text-orange-400" : "text-sky-400")}>
                         {o.payment_method}
                       </span>
                       {o.payment_method === "RAZORPAY" && o.seller_payout_amount && (
@@ -310,7 +310,7 @@ export default function SellerOrdersPage() {
                       ))}
                     </td>
                     <td className="px-6 py-3.5 cursor-pointer" onClick={() => setSelectedOrder(o)}>
-                      <span className={cn("px-2 py-0.5 rounded text-[9px] font-bold uppercase", getStatusColorClass(o.order_status))}>
+                      <span className={cn("px-2 py-0.5 rounded text-[9px] font-bold ", getStatusColorClass(o.order_status))}>
                         {o.order_status.replace("_", " ")}
                       </span>
                     </td>
@@ -464,7 +464,7 @@ export default function SellerOrdersPage() {
                   <div className="space-y-2 text-xs">
                     <div className="flex justify-between">
                       <span className="text-zinc-400">Payment Method</span>
-                      <span className="font-bold text-[#b6b2ff] uppercase">{selectedOrder.payment_method}</span>
+                      <span className="font-bold text-[#b6b2ff] ">{selectedOrder.payment_method}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-zinc-400">Shipping Charge</span>
@@ -502,12 +502,12 @@ export default function SellerOrdersPage() {
                   <div className="space-y-3">
                     <div className="flex justify-between items-center text-xs">
                       <span className="text-zinc-400">Current Status</span>
-                      <span className={cn("px-2 py-0.5 rounded text-[9px] font-bold uppercase", getStatusColorClass(selectedOrder.order_status))}>
+                      <span className={cn("px-2 py-0.5 rounded text-[9px] font-bold ", getStatusColorClass(selectedOrder.order_status))}>
                         {selectedOrder.order_status.replace("_", " ")}
                       </span>
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-[9px] font-bold text-zinc-400 uppercase">Change Status</label>
+                      <label className="text-[9px] font-bold text-zinc-400 ">Change Status</label>
                       {updatingOrderId === selectedOrder.order_id ? (
                         <div className="flex items-center gap-2 text-xs text-[#b6b2ff]">
                           <RefreshCw className="w-3.5 h-3.5 animate-spin" />

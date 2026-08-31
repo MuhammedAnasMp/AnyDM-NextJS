@@ -629,7 +629,7 @@ export default function WebsiteSettingsPage() {
                       <span className="text-zinc-200">Online Payments</span>
                       <span className="text-[10px] text-zinc-400 font-normal">Accept credit card, debit card, and UPI payments.</span>
                     </div>
-                    <span className="px-2 py-0.5 rounded bg-red-500/10 border border-red-500/30 text-red-400 text-[10px] font-bold uppercase">Disabled</span>
+                    <span className="px-2 py-0.5 rounded bg-red-500/10 border border-red-500/30 text-red-400 text-[10px] font-bold ">Disabled</span>
                   </div>
                 )}
                 {kycStatus?.toUpperCase() !== "APPROVED" && (
