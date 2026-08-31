@@ -82,9 +82,9 @@ const ProviderCard = ({
   actionText,
   children
 }: ProviderCardProps) => (
-  <div className="p-3.5 rounded-md bg-[#101115] border border-[#2a2a2a] hover:border-[#444748] transition-colors flex flex-col gap-3">
-    <div className="flex items-center justify-between gap-3">
-      <div className="flex items-center gap-3 min-w-0">
+  <div className="p-3 sm:p-3.5 rounded-md bg-[#101115] border border-[#2a2a2a] hover:border-[#444748] transition-colors flex flex-col gap-3">
+    <div className="flex items-center justify-between gap-2.5">
+      <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
         <div className="w-8 h-8 rounded bg-[#1c1b1b] flex items-center justify-center border border-[#2a2a2a] shrink-0 text-[#e5e2e1]">
           {icon}
         </div>
@@ -103,7 +103,7 @@ const ProviderCard = ({
         <button
           onClick={onAction}
           className={cn(
-            "px-3 py-1.5 rounded-md text-xs font-medium border transition-all cursor-pointer shrink-0 active:scale-[0.98]",
+            "px-2.5 sm:px-3 py-1.5 rounded-md text-xs font-medium border transition-all cursor-pointer shrink-0 active:scale-[0.98]",
             actionText === "Cancel"
               ? "bg-[#1c1b1b] text-[#8e9192] border-[#2a2a2a] hover:text-[#e5e2e1]"
               : isConnected
@@ -141,7 +141,7 @@ const InstagramRow = ({
 }: InstagramRowProps) => (
   <div
     className={cn(
-      "p-3.5 rounded-md bg-[#101115] border transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 group",
+      "p-3 sm:p-3.5 rounded-md bg-[#101115] border transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 group",
       isPrimary
         ? "border-[#c4c0ff]/40 bg-[#c4c0ff]/[0.03] shadow-[0_0_15px_rgba(196,192,255,0.04)]"
         : "border-[#2a2a2a] hover:border-[#444748] hover:bg-[#14151a]"
@@ -179,39 +179,17 @@ const InstagramRow = ({
         )}
       </div>
 
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs font-semibold text-[#e5e2e1] tracking-tight group-hover:text-[#c4c0ff] transition-colors truncate">
             @{account.username}
           </span>
-          {/* {isPrimary && (
-            <span className="bg-[#c4c0ff]/10 text-[#c4c0ff] border border-[#c4c0ff]/20 text-[9px] font-bold px-2 py-0.5 rounded tracking-wider">
-              Primary
-            </span>
-          )}
-          {account.is_token_expired ? (
-            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-red-500/10 text-red-400 text-[9px] font-semibold tracking-wider border border-red-500/20">
-              <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-              Expired
-            </span>
-          ) : account.is_enabled ? (
-            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-[#10b981]/10 text-[#34d399] text-[9px] font-semibold tracking-wider border border-[#10b981]/20">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#34d399] animate-pulse" />
-              Active
-            </span>
-          ) : (
-            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 text-[9px] font-semibold tracking-wider border border-amber-500/20">
-              <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-              Paused
-            </span>
-          )} */}
         </div>
-
       </div>
     </div>
 
     {/* Actions Toolbar */}
-    <div className="flex items-center gap-2 flex-wrap justify-end shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#2a2a2a]">
+    <div className="flex items-center gap-2 flex-wrap justify-start sm:justify-end shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#2a2a2a]">
       {!isPrimary && !account.is_token_expired && (
         <button
           onClick={() => onSetPrimary(account.id)}
@@ -639,8 +617,8 @@ function AccountsContent() {
       <div className="relative mx-auto space-y-4">
 
         {/* USER INFO CARD */}
-        <div className="bg-[#1c1b1b] border border-[#2a2a2a] rounded-md p-4 md:p-5 flex items-center justify-between shadow-xl">
-          <div className="flex items-center gap-4 min-w-0">
+        <div className="bg-[#1c1b1b] border border-[#2a2a2a] rounded-md p-4 md:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl">
+          <div className="flex items-center gap-3.5 sm:gap-4 min-w-0">
             {accounts.length > 0 ? (
               <OverlappingAvatars accounts={accounts} size="md" />
             ) : (
@@ -684,7 +662,7 @@ function AccountsContent() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 shrink-0 ml-3">
+          <div className="flex items-center gap-2.5 shrink-0 sm:ml-3 flex-wrap">
             <button
               onClick={handleAddInstagram}
               disabled={isInstagramLinking}
@@ -802,18 +780,6 @@ function AccountsContent() {
                 <span className="bg-[#20201f] border border-[#2a2a2a] text-[#c4c7c8] text-[11px] font-semibold px-2.5 py-1 rounded-full">
                   {accounts.length} {accounts.length === 1 ? "Account" : "Accounts"}
                 </span>
-                {/* <button
-                  onClick={handleAddInstagram}
-                  disabled={isInstagramLinking}
-                  className="bg-white hover:bg-zinc-200 text-zinc-950 font-bold px-3 py-1 rounded-md text-xs flex items-center gap-1 transition-all active:scale-95 cursor-pointer disabled:opacity-50 shadow-sm"
-                >
-                  {isInstagramLinking ? (
-                    <Loader2 className="w-3 h-3 animate-spin text-black" />
-                  ) : (
-                    <Plus className="w-3 h-3 stroke-[2.5]" />
-                  )}
-                  <span>Connect</span>
-                </button> */}
               </div>
             </div>
 
@@ -916,7 +882,7 @@ export default function AccountsPage() {
   return (
     <Suspense
       fallback={
-        <div className="max-w-4xl mx-auto py-16 flex justify-center items-center">
+        <div className="w-full py-16 flex justify-center items-center">
           <Loader2 className="w-8 h-8 text-[#c4c0ff] animate-spin" />
         </div>
       }

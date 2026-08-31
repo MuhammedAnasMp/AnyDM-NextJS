@@ -97,6 +97,7 @@ export default function ReferPage() {
       setIsSubmittingReferral(false);
     }
   };
+
   const handleRedeemPoints = async () => {
     if (!stats || stats.points < stats.points_needed_for_premium) {
       setToast({
@@ -131,8 +132,8 @@ export default function ReferPage() {
 
   if (loading) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
-        <Loader2 className="w-6 h-6 text-[#c8c6c5] animate-spin" strokeWidth={1.75} />
+      <div className="min-h-[50vh] flex flex-col items-center justify-center gap-2">
+        <Loader2 className="w-6 h-6 text-[#c4c0ff] animate-spin" />
         <p className="text-xs text-[#c4c7c8]/60">Loading your referral circle...</p>
       </div>
     );
@@ -143,7 +144,12 @@ export default function ReferPage() {
     : "Generating code...";
 
   return (
-    <div className="space-y-6">
+    <div className="relative space-y-5 overflow-hidden py-2 text-[#e5e2e1] w-full font-sans">
+      {/* Background Soft Purple/Lavender Ambient Glow */}
+      <div
+        className="pointer-events-none absolute left-1/2 top-[-50px] h-[320px] w-[600px] -translate-x-1/2 rounded-[50%] bg-gradient-to-r from-[#c4c0ff]/0 via-[#c4c0ff]/15 to-[#c4c0ff]/0 blur-3xl"
+      />
+
       {toast.isVisible && (
         <Toast
           isVisible={toast.isVisible}
@@ -153,73 +159,62 @@ export default function ReferPage() {
         />
       )}
 
-      {/* Hero promo banner - Exempt from strict flat monochrome rules for high visual appeal */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#1c1b1b] to-[#131313] border border-[#2a2a2a] p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="absolute top-[-250px] left-[-250px] w-[500px] h-[500px] rounded-full bg-[#c4c0ff]/5 blur-[100px] pointer-events-none" />
-        <div className="absolute bottom-[-250px] right-[-250px] w-[500px] h-[500px] rounded-full bg-white/[0.02] blur-[100px] pointer-events-none" />
+      {/* Hero promo banner */}
+      <div className="relative overflow-hidden rounded-lg bg-[#1c1b1b] border border-[#2a2a2a] p-5 md:p-6 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
+        <div className="space-y-2 max-w-xl z-10">
 
-        <div className="space-y-3 max-w-xl z-10">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[11px] font-semibold text-[#c4c0ff]">
-            <Gift className="w-3.5 h-3.5" strokeWidth={1.75} />
-            <span>Referral program active</span>
-          </div>
-          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-[#e5e2e1] leading-tight">
-            Invite friends, earn points, and get <span className="text-[#c4c0ff]">premium for free</span>.
+          <h1 className="text-2xl md:text-[28px] font-semibold tracking-tight text-[#e5e2e1] leading-tight">
+            Invite friends, earn points, and get <span className="text-[#c4c0ff]">Creator Pro for free</span>.
           </h1>
-          <p className="text-sm text-[#c4c7c8]/70 leading-relaxed">
-            Share your custom referral link with fellow creators &amp; audience. Viewers get <span className="text-white font-medium">15 Days Extended Trial</span> when signing up with your link. You earn <span className="text-[#c4c0ff] font-medium">20 points</span> on every referred user's first paid subscription (up to 5 months redemption cap).
+          <p className="text-xs md:text-sm text-[#c4c7c8] leading-relaxed">
+            Share your custom referral link. Invited creators get <span className="text-white font-semibold">15 Days Extended Trial</span> upon signup. You earn <span className="text-[#c4c0ff] font-semibold">20 points</span> on every referred user's first subscription.
           </p>
         </div>
 
-        {/* Points display card - Overlaid on banner using glass effect parameters */}
-        <div className="bg-[#20201f]/60 backdrop-blur-md p-5 rounded-xl border border-white/10 w-full md:w-[280px] flex flex-col items-center justify-center text-center gap-4 z-10">
-          <span className="text-[11px] font-semibold text-[#c4c7c8]/60 tracking-wider ">Your points balance</span>
+        {/* Points display card */}
+        <div className="bg-[#101115] p-5 rounded-lg border border-[#2a2a2a] w-full md:w-[260px] flex flex-col items-center justify-center text-center gap-3 z-10 shrink-0 shadow-md">
+          <span className="text-[11px] font-semibold text-[#8e9192]">Your Points Balance</span>
           <div className="flex items-baseline gap-1">
-            <span className="text-5xl font-bold text-white tracking-tight">{stats?.points || 0}</span>
-            <span className="text-xs text-[#c4c0ff] font-semibold tracking-wider">pts</span>
+            <span className="text-4xl md:text-5xl font-bold text-white tracking-tight">{stats?.points || 0}</span>
+            <span className="text-xs text-[#c4c0ff] font-semibold">pts</span>
           </div>
 
           {stats?.points >= stats?.points_needed_for_premium && appUser?.plan !== "pro" ? (
             <button
               onClick={handleRedeemPoints}
               disabled={redeemLoading}
-              className="w-full bg-[#c4c0ff] hover:bg-[#c4c0ff]/90 text-[#131313] py-2.5 rounded-md text-xs font-semibold transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-[#c4c0ff]/10 active:scale-[0.98]"
+              className="w-full bg-[#c4c0ff] hover:bg-[#b0acfc] text-zinc-950 py-2 rounded-md text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md active:scale-[0.98]"
             >
-              {redeemLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={1.75} /> : <Star className="w-3.5 h-3.5 fill-current" strokeWidth={1.75} />}
-              <span>Redeem 1 month premium</span>
+              {redeemLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Star className="w-3.5 h-3.5 fill-current" />}
+              <span>Redeem 1 Month Pro</span>
             </button>
           ) : appUser?.plan === "pro" ? (
-            <div className="golden-glow w-full py-2.5 rounded-md border border-amber-300/40 text-[#131313] text-xs font-bold flex items-center justify-center gap-1.5 shadow-[0_0_15px_rgba(255,191,0,0.3)] [text-shadow:0_1px_0_rgba(255,245,190,0.6)]">
-              <Medal className="w-3.5 h-3.5 fill-current z-10" strokeWidth={1.75} />
-              <span className="z-10">Creator pro active</span>
+            <div className="golden-glow w-full py-2 rounded-md border border-amber-300/40 text-[#131313] text-xs font-bold flex items-center justify-center gap-1.5 shadow-[0_0_15px_rgba(255,191,0,0.3)]">
+              <Medal className="w-3.5 h-3.5 fill-current z-10" />
+              <span className="z-10">Creator Pro Active</span>
             </div>
           ) : (
-            <div className="w-full py-2.5 rounded-md border border-white/5 bg-white/5 text-xs text-[#c4c7c8]/60 flex items-center justify-center gap-1 font-medium">
-              <span>{stats?.points_needed_for_premium - (stats?.points || 0)} more points to redeem premium</span>
+            <div className="w-full py-2 rounded-md border border-[#2a2a2a] bg-[#1c1b1b] text-[11px] text-[#8e9192] flex items-center justify-center gap-1 font-medium">
+              <span>{stats?.points_needed_for_premium - (stats?.points || 0)} more points to redeem</span>
             </div>
           )}
         </div>
       </div>
+
+      {/* Copy link & Referred by grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
         {/* Copy referral link card */}
-        <div className="bg-[#1c1b1b] p-5 rounded-lg border border-[#2a2a2a] flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-[#e5e2e1] flex items-center gap-2">
-              <Copy className="w-4 h-4 text-[#c4c0ff]" strokeWidth={1.75} />
-              <span>Share your referral link to earn points</span>
-            </h3>
-
-
-          </div>
+        <div className="bg-[#1c1b1b] p-5 rounded-lg border border-[#2a2a2a] flex flex-col gap-3 shadow-xl">
+          <h3 className="text-xs md:text-sm font-semibold text-[#e5e2e1] flex items-center gap-2">
+            <Copy className="w-4 h-4 text-[#c4c0ff]" />
+            <span>Share your referral link</span>
+          </h3>
 
           <div className="flex flex-col sm:flex-row gap-2.5">
             <div className="relative flex-1 flex items-center">
               {isEditingCode ? (
                 <>
-                  {/* <span className="absolute left-3 text-xs text-zinc-500 font-mono font-semibold z-10 pointer-events-none">
-                    Refferal Code:
-                  </span> */}
                   <input
                     type="text"
                     value={customCodeInput}
@@ -227,25 +222,25 @@ export default function ReferPage() {
                     placeholder="e.g. YT200 or CREATOR30"
                     maxLength={20}
                     autoFocus
-                    className="w-full bg-[#0e0e0e] border border-[#c4c0ff]/50 rounded-md py-2 pl-4 pr-16 text-xs font-mono text-white tracking-wider outline-none "
+                    className="w-full bg-[#101115] border border-[#c4c0ff]/50 rounded-md py-2 pl-3 pr-16 text-xs font-semibold text-white tracking-wide outline-none"
                   />
                   <div className="absolute right-1.5 flex items-center gap-1">
                     <button
                       type="button"
                       onClick={handleSaveCustomCode}
                       disabled={isSavingCode || !customCodeInput.trim()}
-                      className="p-1 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 rounded transition-colors disabled:opacity-30 cursor-pointer"
+                      className="p-1 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 rounded-md transition-colors disabled:opacity-30 cursor-pointer"
                       title="Save code"
                     >
-                      {isSavingCode ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" strokeWidth={2.2} />}
+                      {isSavingCode ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5 stroke-[2.5]" />}
                     </button>
                     <button
                       type="button"
                       onClick={() => setIsEditingCode(false)}
-                      className="p-1 text-zinc-400 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors cursor-pointer"
+                      className="p-1 text-[#8e9192] hover:text-red-400 hover:bg-red-500/10 rounded-md transition-colors cursor-pointer"
                       title="Cancel"
                     >
-                      <X className="w-3.5 h-3.5" strokeWidth={2.2} />
+                      <X className="w-3.5 h-3.5 stroke-[2.5]" />
                     </button>
                   </div>
                 </>
@@ -255,7 +250,7 @@ export default function ReferPage() {
                     type="text"
                     readOnly
                     value={referralLink}
-                    className="w-full bg-[#0e0e0e] border border-[#444748] rounded-md py-2 pl-3 pr-9 text-xs font-mono text-[#c4c7c8] select-all focus:outline-none"
+                    className="w-full bg-[#101115] border border-[#2a2a2a] rounded-md py-2 pl-3 pr-9 text-xs font-medium text-[#c4c7c8] select-all outline-none"
                   />
                   <button
                     type="button"
@@ -263,10 +258,10 @@ export default function ReferPage() {
                       setCustomCodeInput(stats?.referral_code || "");
                       setIsEditingCode(true);
                     }}
-                    className="absolute right-2 p-1 text-zinc-400 hover:text-white hover:bg-white/10 rounded transition-colors cursor-pointer"
+                    className="absolute right-2 p-1 text-[#8e9192] hover:text-white hover:bg-white/10 rounded-md transition-colors cursor-pointer"
                     title="Edit custom referral code"
                   >
-                    <Pencil className="w-3.5 h-3.5" strokeWidth={1.75} />
+                    <Pencil className="w-3.5 h-3.5" />
                   </button>
                 </>
               )}
@@ -276,15 +271,15 @@ export default function ReferPage() {
               type="button"
               onClick={handleCopyLink}
               disabled={isEditingCode}
-              className={`font-semibold text-xs px-5 py-2 rounded-md transition-colors flex items-center justify-center gap-1.5 shrink-0 ${isEditingCode
-                ? "bg-white/10 text-zinc-500 border border-white/5 cursor-not-allowed opacity-50"
-                : "bg-white hover:bg-[#eaeaea] text-black cursor-pointer"
+              className={`font-semibold text-xs px-4 py-2 rounded-md transition-all flex items-center justify-center gap-1.5 shrink-0 active:scale-[0.98] ${isEditingCode
+                  ? "bg-white/10 text-zinc-500 border border-white/5 cursor-not-allowed opacity-50"
+                  : "bg-white hover:bg-zinc-200 text-zinc-950 cursor-pointer shadow-sm"
                 }`}
             >
               {copied ? (
-                <Check className="w-4 h-4 text-emerald-600" strokeWidth={1.75} />
+                <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[2.5]" />
               ) : (
-                <Copy className="w-4 h-4" strokeWidth={1.75} />
+                <Copy className="w-3.5 h-3.5" />
               )}
               <span>{copied ? "Copied" : "Copy link"}</span>
             </button>
@@ -292,23 +287,23 @@ export default function ReferPage() {
         </div>
 
         {/* Referred by card */}
-        <div className="bg-[#20201f] border border-[#444748] rounded-md p-4">
-          <h3 className="text-sm font-semibold text-[#e5e2e1] mb-3 flex items-center gap-2">
-            <Gift className="w-4 h-4 text-[#c4c0ff]" strokeWidth={1.75} />
+        <div className="bg-[#1c1b1b] p-5 rounded-lg border border-[#2a2a2a] flex flex-col gap-3 shadow-xl">
+          <h3 className="text-xs md:text-sm font-semibold text-[#e5e2e1] flex items-center gap-2">
+            <Gift className="w-4 h-4 text-[#c4c0ff]" />
             <span>Referred by</span>
           </h3>
 
           {appUser?.referred_by ? (
-            <div className="flex-1 bg-[#0e0e0e] border border-[#444748] rounded-md py-2 px-3 text-xs font-mono text-[#c4c7c8] select-all focus:outline-none">
+            <div className="bg-[#101115] border border-[#2a2a2a] rounded-md py-2 px-3 text-xs font-medium text-[#c4c7c8] select-all outline-none">
               You were referred by:{" "}
-              <span className="text-[#e5e2e1] font-mono font-semibold">
+              <span className="text-[#e5e2e1] font-semibold">
                 {appUser.referred_by}
               </span>
             </div>
           ) : (
-            <div className="flex flex-col gap-3">
-              <p className="text-[11px] text-[#c4c7c8]/60 leading-relaxed">
-                If you signed up without a referral link, within 14 days of signup to support them.
+            <div className="flex flex-col gap-2.5">
+              <p className="text-[11px] text-[#8e9192] leading-relaxed">
+                If you signed up without a referral link, enter your friend's referral code below within 14 days.
               </p>
 
               <div className="flex gap-2">
@@ -316,16 +311,16 @@ export default function ReferPage() {
                   type="text"
                   value={referralCodeInput}
                   onChange={(e) => setReferralCodeInput(e.target.value)}
-                  placeholder="Enter REF-XXXXXX"
-                  className="flex-1 bg-[#1c1b1b] border border-[#444748] rounded py-2 px-3 text-xs text-[#e5e2e1] focus:outline-none focus:border-[#8e9192]"
+                  placeholder="Enter referral code"
+                  className="flex-1 bg-[#101115] border border-[#2a2a2a] rounded-md py-1.5 px-3 text-xs text-[#e5e2e1] placeholder-[#8e9192] outline-none focus:border-[#c4c0ff]"
                 />
 
                 <button
                   onClick={handleSubmitReferral}
                   disabled={isSubmittingReferral}
-                  className="bg-white text-black font-semibold text-xs px-4 py-2 rounded transition-colors cursor-pointer hover:bg-[#eaeaea] disabled:opacity-50"
+                  className="bg-white hover:bg-zinc-200 text-zinc-950 font-semibold text-xs px-4 py-1.5 rounded-md transition-all cursor-pointer disabled:opacity-50 active:scale-[0.98] shadow-sm"
                 >
-                  {isSubmittingReferral ? "..." : "Link"}
+                  {isSubmittingReferral ? "Linking..." : "Link"}
                 </button>
               </div>
             </div>
@@ -333,16 +328,17 @@ export default function ReferPage() {
         </div>
 
       </div>
+
       {/* Referral stats and leaderboard grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Referred friends table */}
-        <div className="lg:col-span-2 bg-[#1c1b1b] p-5 rounded-lg border border-[#2a2a2a] flex flex-col gap-5">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-[#e5e2e1] flex items-center gap-2">
-              <Users className="w-4 h-4 text-[#c4c0ff]" strokeWidth={1.75} />
+        <div className="lg:col-span-2 bg-[#1c1b1b] p-5 rounded-lg border border-[#2a2a2a] flex flex-col gap-4 shadow-xl">
+          <div className="flex items-center justify-between pb-2 border-b border-[#2a2a2a]">
+            <h3 className="text-xs md:text-sm font-semibold text-[#e5e2e1] flex items-center gap-2">
+              <Users className="w-4 h-4 text-[#c4c0ff]" />
               <span>People referred by you</span>
             </h3>
-            <span className="bg-white/5 border border-white/10 text-[#c4c7c8] text-xs font-medium px-2.5 py-0.5 rounded-full">
+            <span className="bg-[#20201f] border border-[#2a2a2a] text-[#c4c7c8] text-[11px] font-semibold px-2.5 py-0.5 rounded-full">
               {stats?.referral_count || 0} joined
             </span>
           </div>
@@ -352,34 +348,34 @@ export default function ReferPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="border-b border-[#2a2a2a] text-[#c4c7c8]/50 tracking-wider text-[11px] font-semibold">
-                      <th className="pb-2.5 font-medium">User</th>
-                      <th className="pb-2.5 font-medium">Joined date</th>
-                      <th className="pb-2.5 font-medium text-right">Plan status</th>
+                    <tr className="border-b border-[#2a2a2a] text-[#8e9192] text-[11px] font-semibold">
+                      <th className="pb-2 font-semibold">User</th>
+                      <th className="pb-2 font-semibold">Joined date</th>
+                      <th className="pb-2 font-semibold text-right">Plan status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#2a2a2a]/40">
+                  <tbody className="divide-y divide-[#2a2a2a]/60">
                     {stats.referred_users
                       .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
                       .map((ref: any, idx: number) => (
-                        <tr key={idx} className="hover:bg-white/[0.01] transition-colors">
-                          <td className="py-3 font-medium text-[#e5e2e1]">
+                        <tr key={idx} className="hover:bg-white/[0.02] transition-colors">
+                          <td className="py-2.5 font-semibold text-[#e5e2e1]">
                             {ref.display_name ? `${ref.display_name}` : `${ref.username}`}
                           </td>
-                          <td className="py-3 text-[#c4c7c8]/70">
+                          <td className="py-2.5 text-[#8e9192]">
                             {new Date(ref.date_joined).toLocaleDateString(undefined, {
                               year: 'numeric',
                               month: 'short',
                               day: 'numeric'
                             })}
                           </td>
-                          <td className="py-3 text-right">
+                          <td className="py-2.5 text-right">
                             {ref.is_premium_active ? (
-                              <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-semibold">
+                              <span className="px-2 py-0.5 rounded-md bg-[#10b981]/10 border border-[#10b981]/30 text-[#34d399] text-[10px] font-semibold">
                                 Active Pro
                               </span>
                             ) : (
-                              <span className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[#c4c7c8]/50 text-[10px] font-semibold">
+                              <span className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[#8e9192] text-[10px] font-semibold">
                                 Extended Trial
                               </span>
                             )}
@@ -392,8 +388,8 @@ export default function ReferPage() {
 
               {/* Pagination controls */}
               {Math.ceil((stats?.referred_users?.length || 0) / itemsPerPage) > 1 && (
-                <div className="flex flex-col sm:flex-row items-center justify-between border-t border-[#2a2a2a] pt-4 mt-4 gap-2">
-                  <span className="text-[11px] text-[#c4c7c8]/60 font-medium">
+                <div className="flex flex-col sm:flex-row items-center justify-between border-t border-[#2a2a2a] pt-3 mt-3 gap-2">
+                  <span className="text-[11px] text-[#8e9192]">
                     Showing <span className="text-white font-semibold">{(currentPage - 1) * itemsPerPage + 1}</span> to{" "}
                     <span className="text-white font-semibold">
                       {Math.min(currentPage * itemsPerPage, stats.referred_users.length)}
@@ -405,10 +401,10 @@ export default function ReferPage() {
                       type="button"
                       onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                       disabled={currentPage === 1}
-                      className="p-1.5 rounded bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                      className="p-1 rounded-md bg-[#20201f] border border-[#2a2a2a] text-[#8e9192] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
                       aria-label="Previous page"
                     >
-                      <ChevronLeft className="w-4 h-4" />
+                      <ChevronLeft className="w-3.5 h-3.5" />
                     </button>
 
                     <div className="flex items-center gap-1">
@@ -420,9 +416,9 @@ export default function ReferPage() {
                           key={pageNum}
                           type="button"
                           onClick={() => setCurrentPage(pageNum)}
-                          className={`w-7 h-7 rounded text-xs font-semibold transition-colors cursor-pointer ${currentPage === pageNum
-                            ? "bg-white text-black font-bold shadow-sm"
-                            : "bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-white"
+                          className={`w-6 h-6 rounded-md text-xs font-semibold transition-colors cursor-pointer ${currentPage === pageNum
+                              ? "bg-white text-zinc-950 font-bold shadow-sm"
+                              : "bg-[#20201f] text-[#8e9192] hover:text-white"
                             }`}
                         >
                           {pageNum}
@@ -438,72 +434,74 @@ export default function ReferPage() {
                         )
                       }
                       disabled={currentPage === Math.ceil(stats.referred_users.length / itemsPerPage)}
-                      className="p-1.5 rounded bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                      className="p-1 rounded-md bg-[#20201f] border border-[#2a2a2a] text-[#8e9192] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
                       aria-label="Next page"
                     >
-                      <ChevronRight className="w-4 h-4" />
+                      <ChevronRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
               )}
             </div>
           ) : (
-            <div className="text-center py-10 flex flex-col items-center justify-center gap-2">
-              <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center border border-white/5 text-[#c4c7c8]/40">
-                <Users className="w-5 h-5" strokeWidth={1.75} />
+            <div className="text-center py-8 flex flex-col items-center justify-center gap-2">
+              <div className="w-9 h-9 rounded-md bg-[#20201f] flex items-center justify-center border border-[#2a2a2a] text-[#8e9192]">
+                <Users className="w-4 h-4" />
               </div>
-              <p className="text-xs text-[#c4c7c8]/50">No referrals yet. Share your link to start earning.</p>
+              <p className="text-xs text-[#8e9192]">No referrals yet. Share your link to start earning.</p>
             </div>
           )}
         </div>
 
         {/* Leaderboard layout */}
-        <div className="lg:col-span-1 bg-[#1c1b1b] p-5 rounded-lg border border-[#2a2a2a] flex flex-col gap-5">
-          <h3 className="text-sm font-semibold text-[#e5e2e1] flex items-center gap-2">
-            <Trophy className="w-4 h-4 text-[#c8c6c5]" strokeWidth={1.75} />
-            <span>Leaderboard</span>
-          </h3>
+        <div className="lg:col-span-1 bg-[#1c1b1b] p-5 rounded-lg border border-[#2a2a2a] flex flex-col gap-4 shadow-xl">
+          <div className="pb-2 border-b border-[#2a2a2a]">
+            <h3 className="text-xs md:text-sm font-semibold text-[#e5e2e1] flex items-center gap-2">
+              <Trophy className="w-4 h-4 text-[#c4c0ff]" />
+              <span>Leaderboard</span>
+            </h3>
+          </div>
 
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2.5">
             {stats?.leaderboard && stats.leaderboard.length > 0 ? (
               stats.leaderboard.map((leader: any, idx: number) => {
                 const getRankStyle = (rank: number) => {
                   switch (rank) {
                     case 1:
-                      return "border-amber-500/20 bg-amber-500/5 text-amber-400";
+                      return "border-amber-500/30 bg-amber-500/10 text-amber-400";
                     case 2:
-                      return "border-slate-300/20 bg-slate-300/5 text-slate-300";
+                      return "border-slate-300/30 bg-slate-300/10 text-slate-300";
                     case 3:
-                      return "border-amber-700/20 bg-amber-700/5 text-amber-600";
+                      return "border-amber-700/30 bg-amber-700/10 text-amber-500";
                     default:
-                      return "border-[#2a2a2a] text-[#c4c7c8]";
+                      return "border-[#2a2a2a] text-[#8e9192]";
                   }
                 };
                 return (
                   <div
                     key={idx}
-                    className="p-3 rounded-md bg-[#131313] border border-[#2a2a2a]/60 flex items-center justify-between"
+                    className="p-2.5 rounded-md bg-[#101115] border border-[#2a2a2a] flex items-center justify-between"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-6 h-6 rounded-md border flex items-center justify-center font-bold text-[11px] ${getRankStyle(leader.rank)}`}>
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={`w-5 h-5 rounded-md border flex items-center justify-center font-bold text-[10px] shrink-0 ${getRankStyle(leader.rank)}`}>
                         {leader.rank}
                       </div>
-                      <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-[#e5e2e1]">@{leader.display_name}</span>
-                        <span className="text-[10px] text-[#c4c7c8]/40">Most referrals</span>
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-xs font-semibold text-[#e5e2e1] truncate">@{leader.display_name}</span>
+                        <span className="text-[10px] text-[#8e9192]">Most referrals</span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 bg-white/5 border border-white/10 px-2 py-0.5 rounded-md">
+                    <div className="flex items-center gap-1 bg-[#20201f] border border-[#2a2a2a] px-2 py-0.5 rounded-md shrink-0">
                       <span className="text-xs font-semibold text-[#e5e2e1]">{leader.referral_count}</span>
-                      <Award className="w-3.5 h-3.5 text-[#c4c0ff]" strokeWidth={1.75} />
+                      <Award className="w-3.5 h-3.5 text-[#c4c0ff]" />
                     </div>
                   </div>
                 );
               })
             ) : (
-              <div className="text-center py-8 flex flex-col items-center justify-center gap-2">
-                <Trophy className="w-6 h-6 text-[#c4c7c8]/20" strokeWidth={1.75} />
-                <p className="text-xs text-[#c4c7c8]/40">No rank listings yet.</p>
+              <div className="text-center py-6 flex flex-col items-center justify-center gap-2">
+                <Trophy className="w-5 h-5 text-[#8e9192]" />
+                <p className="text-xs text-[#8e9192]">No rank listings yet.</p>
               </div>
             )}
           </div>

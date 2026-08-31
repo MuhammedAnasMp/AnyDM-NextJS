@@ -8,8 +8,6 @@ import {
   Clock,
   CheckCircle2,
   AlertCircle,
-  Building2,
-  CreditCard,
   Lock,
   Eye,
   EyeOff,
@@ -97,41 +95,34 @@ export default function SellerKYCPage() {
   const validateForm = () => {
     const errors: Record<string, string> = {};
 
-    // 1. Full Name
     if (kycData.full_name.trim().length < 3) {
       errors.full_name = "Legal name must be at least 3 characters.";
     }
 
-    // 2. PAN Number (5 letters, 4 numbers, 1 letter)
     const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
     if (!panRegex.test(kycData.pan_number)) {
-      errors.pan_number = "Enter a valid 10-character PAN (e.g., ABCDE1234F).";
+      errors.pan_number = "Enter a valid 10-character PAN.";
     }
 
-    // 3. Aadhaar Number (12 digits)
     const aadhaarRegex = /^\d{12}$/;
     if (!aadhaarRegex.test(kycData.aadhaar_number)) {
       errors.aadhaar_number = "Aadhaar number must be exactly 12 digits.";
     }
 
-    // 4. Bank Name
     if (kycData.bank_name.trim().length < 3) {
-      errors.bank_name = "Enter your bank's legal name (e.g. HDFC Bank, ICICI Bank).";
+      errors.bank_name = "Enter your bank's legal name.";
     }
 
-    // 5. IFSC Code (4 letters, 0, 6 alphanumeric)
     const ifscRegex = /^[A-Z]{4}0[A-Z0-9]{6}$/;
     if (!ifscRegex.test(kycData.bank_ifsc)) {
-      errors.bank_ifsc = "Enter a valid 11-digit IFSC code (e.g., HDFC0001234).";
+      errors.bank_ifsc = "Enter a valid 11-digit IFSC code.";
     }
 
-    // 6. Account Number (9 to 18 digits)
     const bankAccountRegex = /^\d{9,18}$/;
     if (!bankAccountRegex.test(kycData.bank_account_number)) {
-      errors.bank_account_number = "Account number must be between 9 and 18 digits.";
+      errors.bank_account_number = "Account number must be 9–18 digits.";
     }
 
-    // 7. Confirm Account Number (only if user is filling it)
     if (isEditable && kycData.bank_account_number !== kycData.confirm_account_number) {
       errors.confirm_account_number = "Account numbers do not match.";
     }
@@ -144,7 +135,7 @@ export default function SellerKYCPage() {
     e.preventDefault();
 
     if (!validateForm()) {
-      showToast("Please correct the highlighted errors before submitting.", "error");
+      showToast("Please correct the highlighted errors.", "error");
       return;
     }
 
@@ -160,7 +151,7 @@ export default function SellerKYCPage() {
       };
 
       const res = await api.post("/crm/seller/kyc/", payload);
-      showToast("KYC documents submitted for verification!", "success");
+      showToast("KYC documents submitted successfully!", "success");
       if (res.data && res.data.status) {
         setKycData((prev) => ({
           ...prev,
@@ -181,30 +172,30 @@ export default function SellerKYCPage() {
     switch (kycData.status) {
       case "APPROVED":
         return (
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold tracking-wide">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#10b981]/10 border border-[#10b981]/30 text-[#34d399] text-xs font-semibold">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#34d399]"></span>
             <span>VERIFIED &amp; ACTIVE</span>
           </div>
         );
       case "SUBMITTED":
       case "REVIEW":
         return (
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold tracking-wide">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-semibold">
             <Clock className="w-3.5 h-3.5 animate-pulse" />
             <span>UNDER REVIEW</span>
           </div>
         );
       case "REJECTED":
         return (
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-bold tracking-wide">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-semibold">
             <ShieldAlert className="w-3.5 h-3.5" />
             <span>ACTION REQUIRED</span>
           </div>
         );
       default:
         return (
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/15 text-zinc-400 text-xs font-semibold tracking-wide">
-            <span className="w-1.5 h-1.5 rounded-full bg-zinc-500"></span>
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-white/5 border border-white/10 text-[#8e9192] text-xs font-semibold">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#8e9192]"></span>
             <span>NOT SUBMITTED</span>
           </div>
         );
@@ -213,52 +204,48 @@ export default function SellerKYCPage() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[55vh] gap-3">
-        <RefreshCw className="w-6 h-6 animate-spin text-white/60" />
-        <p className="text-xs font-medium text-zinc-400">Loading statutory compliance records...</p>
+      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-2">
+        <RefreshCw className="w-6 h-6 text-[#c4c0ff] animate-spin" />
+        <p className="text-xs text-[#c4c7c8]/60">Loading compliance records...</p>
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-6xl mx-auto space-y-6 pb-20 font-sans">
-      {/* ── Top Hero / Breadcrumb Bar ── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#181818] p-5 sm:p-6 rounded-xl border border-white/10 shadow-sm relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-full bg-gradient-to-l from-white/[0.02] via-transparent to-transparent pointer-events-none" />
+    <div className="relative space-y-6 overflow-hidden py-2 text-[#e5e2e1] w-full">
+      {/* Background Soft Purple/Lavender Ambient Glow */}
+      <div
+        className="pointer-events-none absolute left-1/2 top-[-50px] h-[320px] w-[600px] -translate-x-1/2 rounded-[50%] bg-gradient-to-r from-[#c4c0ff]/0 via-[#c4c0ff]/15 to-[#c4c0ff]/0 blur-3xl"
+      />
 
-        <div className="space-y-1.5 relative z-10">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-white/10 border border-white/15 flex items-center justify-center text-white shadow-sm">
-              <ShieldCheck className="w-4 h-4" />
-            </div>
-            <div>
-              <h1 className="text-lg sm:text-xl font-bold tracking-tight text-white flex items-center gap-2">
-                Seller KYC &amp; Settlement Routing
-              </h1>
-            </div>
-          </div>
-          <p className="text-xs text-zinc-400 max-w-2xl">
-            Statutory merchant identity verification &amp; direct bank payout routing. Compliant with RBI/NPCI payment settlement guidelines.
-          </p>
+      {/* SECTION HEADER */}
+      <div className="relative text-center max-w-xl mx-auto space-y-2">
+        {/* <h1 className="text-2xl md:text-[28px] font-semibold tracking-tight text-[#e5e2e1]">
+          Seller KYC Verification
+        </h1> */}
+        <p className="text-xs md:text-sm text-[#c4c7c8] max-w-md mx-auto leading-relaxed">
+          Merchant identity &amp; direct bank payout verification.
+        </p>
+
+        <div className="inline-flex items-center gap-2 mt-1">
+          {getStatusPill()}
         </div>
-
-        <div className="flex items-center gap-3 relative z-10">{getStatusPill()}</div>
       </div>
 
-      {/* ── Status Banner Notification ── */}
+      {/* STATUS NOTIFICATION BANNER */}
       <AnimatePresence>
         {kycData.status === "APPROVED" && (
           <motion.div
             initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
-            className="p-4 rounded-xl bg-emerald-950/20 border border-emerald-500/30 flex items-start gap-3.5"
+            className="p-4 rounded-md bg-[#10b981]/10 border border-[#10b981]/30 flex items-start gap-3 shadow-sm"
           >
-            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <h4 className="text-xs font-bold text-emerald-300">Identity Verified &amp; Direct Payouts Active</h4>
-              <p className="text-xs text-emerald-400/80 leading-relaxed">
-                Your PAN, Aadhaar, and Bank Account records have been fully verified. Store order settlements are automatically routed to{" "}
-                <span className="font-semibold text-emerald-200">{kycData.bank_name || "your registered bank"}</span> on a T+1 daily rolling cycle.
+            <CheckCircle2 className="w-5 h-5 text-[#34d399] shrink-0 mt-0.5" />
+            <div className="space-y-0.5">
+              <h4 className="text-xs font-semibold text-[#34d399]">Identity Verified &amp; Payouts Active</h4>
+              <p className="text-xs text-[#34d399]/80 leading-relaxed">
+                Your bank details are verified. Settlements are automatically routed to{" "}
+                <span className="font-bold text-white">{kycData.bank_name || "your registered bank"}</span> on a T+1 daily cycle.
               </p>
             </div>
           </motion.div>
@@ -268,13 +255,13 @@ export default function SellerKYCPage() {
           <motion.div
             initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
-            className="p-4 rounded-xl bg-amber-950/20 border border-amber-500/30 flex items-start gap-3.5"
+            className="p-4 rounded-md bg-amber-500/10 border border-amber-500/30 flex items-start gap-3 shadow-sm"
           >
-            <Clock className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <h4 className="text-xs font-bold text-amber-300">Verification Under Review</h4>
+            <Clock className="w-5 h-5 text-amber-400 shrink-0 mt-0.5 animate-pulse" />
+            <div className="space-y-0.5">
+              <h4 className="text-xs font-semibold text-amber-300">Verification Under Review</h4>
               <p className="text-xs text-amber-400/80 leading-relaxed">
-                Your submitted documents are currently undergoing automated and compliance desk validation. Verification is completed within 12–24 business hours. Order payouts will be queued and released automatically once approved.
+                Your submitted details are undergoing validation (12–24h). Payouts will resume automatically once verified.
               </p>
             </div>
           </motion.div>
@@ -284,380 +271,285 @@ export default function SellerKYCPage() {
           <motion.div
             initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
-            className="p-4 rounded-xl bg-rose-950/20 border border-rose-500/30 flex items-start gap-3.5"
+            className="p-4 rounded-md bg-rose-500/10 border border-rose-500/30 flex items-start gap-3 shadow-sm"
           >
             <ShieldAlert className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <h4 className="text-xs font-bold text-rose-300">Verification Action Required</h4>
+            <div className="space-y-0.5">
+              <h4 className="text-xs font-semibold text-rose-300">Action Required</h4>
               <p className="text-xs text-rose-400/80 leading-relaxed">
-                Some details could not be matched with government verification registries (name mismatch on PAN/Aadhaar or invalid IFSC). Please correct your details below and resubmit.
+                Details mismatch on PAN/Aadhaar or invalid IFSC. Please correct and resubmit below.
               </p>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ── Main Content Grid ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left 8 Cols: Verification Form */}
-        <div className="lg:col-span-8 space-y-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Section 1: Legal Identity & Tax Info */}
-            <div className="p-5 sm:p-6 rounded-xl bg-[#181818] border border-white/10 space-y-5">
-              <div className="flex items-center justify-between border-b border-white/5 pb-3.5">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-md bg-white/5 border border-white/10 flex items-center justify-center text-white">
-                    <FileText className="w-3.5 h-3.5" />
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-bold text-white tracking-wider">
-                      1. Legal Identity &amp; Tax Credentials
-                    </h3>
-                    <p className="text-[11px] text-zinc-400">Must match government-issued identity cards</p>
-                  </div>
-                </div>
-                <span className="text-[10px] px-2 py-0.5 rounded bg-white/5 text-zinc-400 border border-white/5">
-                  Mandatory
-                </span>
+      {/* MAIN FORM */}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Section 1: Legal Identity */}
+        <div className="p-5 sm:p-6 rounded-md bg-[#1c1b1b] border border-[#2a2a2a] space-y-4 shadow-xl">
+          <div className="flex items-center gap-2.5 border-b border-[#2a2a2a] pb-3">
+            <div className="w-7 h-7 rounded-md bg-[#20201f] border border-[#2a2a2a] flex items-center justify-center text-[#c4c0ff]">
+              <FileText className="w-4 h-4" />
+            </div>
+            <h3 className="text-xs font-semibold text-[#e5e2e1]">
+              1. Legal Identity
+            </h3>
+          </div>
+
+          <div className="space-y-4">
+            {/* Legal Identity Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Full Legal Name */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-[#e5e2e1]">Full Legal Name</label>
+                <input
+                  type="text"
+                  disabled={!isEditable}
+                  value={kycData.full_name}
+                  onChange={(e) => {
+                    setKycData({ ...kycData, full_name: e.target.value });
+                    if (formErrors.full_name) setFormErrors((prev) => ({ ...prev, full_name: "" }));
+                  }}
+                  placeholder="As per PAN & Bank Account"
+                  className={`w-full bg-[#101115] border rounded-md px-3.5 py-2.5 text-xs text-[#e5e2e1] placeholder-[#8e9192] outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed ${formErrors.full_name
+                      ? "border-rose-500 focus:border-rose-400"
+                      : "border-[#2a2a2a] focus:border-[#c4c0ff]"
+                    }`}
+                />
+                {formErrors.full_name && (
+                  <p className="text-[11px] text-rose-400 flex items-center gap-1 mt-1 font-medium">
+                    <AlertCircle className="w-3 h-3 shrink-0" />
+                    <span>{formErrors.full_name}</span>
+                  </p>
+                )}
               </div>
 
-              <div className="space-y-4">
-                {/* Full Legal Name */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-zinc-300 flex items-center justify-between">
-                    <span>Full Legal Name (as per PAN &amp; Bank Account)</span>
-                    <span className="text-[10px] text-zinc-500">Government Identity Match</span>
-                  </label>
-                  <input
-                    type="text"
-                    disabled={!isEditable}
-                    value={kycData.full_name}
-                    onChange={(e) => {
-                      setKycData({ ...kycData, full_name: e.target.value });
-                      if (formErrors.full_name) setFormErrors((prev) => ({ ...prev, full_name: "" }));
-                    }}
-                    placeholder="e.g. Ramesh Kumar Sharma"
-                    className={`w-full bg-[#121212] border rounded-lg px-3.5 py-2.5 text-xs text-white placeholder-zinc-600 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed ${formErrors.full_name
-                        ? "border-rose-500 focus:border-rose-400"
-                        : "border-white/10 focus:border-white focus:ring-1 focus:ring-white/20"
-                      }`}
-                  />
-                  {formErrors.full_name && (
-                    <p className="text-[11px] text-rose-400 flex items-center gap-1 font-medium">
-                      <AlertCircle className="w-3 h-3 shrink-0" />
-                      <span>{formErrors.full_name}</span>
-                    </p>
-                  )}
-                </div>
+              {/* PAN Card */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-[#e5e2e1]">PAN Card Number</label>
+                <input
+                  type="text"
+                  maxLength={10}
+                  disabled={!isEditable}
+                  value={kycData.pan_number}
+                  onChange={(e) => {
+                    setKycData({ ...kycData, pan_number: e.target.value.toUpperCase() });
+                    if (formErrors.pan_number) setFormErrors((prev) => ({ ...prev, pan_number: "" }));
+                  }}
+                  placeholder="ABCDE1234F"
+                  className={`w-full bg-[#101115] border rounded-md px-3.5 py-2.5 text-xs text-[#e5e2e1] placeholder-[#8e9192] outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed ${formErrors.pan_number
+                      ? "border-rose-500 focus:border-rose-400"
+                      : "border-[#2a2a2a] focus:border-[#c4c0ff]"
+                    }`}
+                />
+                {formErrors.pan_number && (
+                  <p className="text-[11px] text-rose-400 flex items-center gap-1 mt-1 font-medium">
+                    <AlertCircle className="w-3 h-3 shrink-0" />
+                    <span>{formErrors.pan_number}</span>
+                  </p>
+                )}
+              </div>
 
-                {/* PAN & Aadhaar 2-Col Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* PAN Card */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-zinc-300 flex items-center justify-between">
-                      <span>PAN Card Number</span>
-                      <span className="text-[10px] text-zinc-500">10-Digit Alphanumeric</span>
-                    </label>
-                    <input
-                      type="text"
-                      maxLength={10}
-                      disabled={!isEditable}
-                      value={kycData.pan_number}
-                      onChange={(e) => {
-                        setKycData({ ...kycData, pan_number: e.target.value.toUpperCase() });
-                        if (formErrors.pan_number) setFormErrors((prev) => ({ ...prev, pan_number: "" }));
-                      }}
-                      placeholder="ABCDE1234F"
-                      className={`w-full bg-[#121212] border rounded-lg px-3.5 py-2.5 text-xs text-white placeholder-zinc-600 outline-none tracking-wide transition-all disabled:opacity-50 disabled:cursor-not-allowed ${formErrors.pan_number
-                          ? "border-rose-500 focus:border-rose-400"
-                          : "border-white/10 focus:border-white focus:ring-1 focus:ring-white/20"
-                        }`}
-                    />
-                    {formErrors.pan_number && (
-                      <p className="text-[11px] text-rose-400 flex items-center gap-1 font-medium">
-                        <AlertCircle className="w-3 h-3 shrink-0" />
-                        <span>{formErrors.pan_number}</span>
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Aadhaar Card */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-zinc-300 flex items-center justify-between">
-                      <span>Aadhaar Card Number</span>
-                      <span className="text-[10px] text-zinc-500">12-Digit UIDAI</span>
-                    </label>
-                    <input
-                      type="text"
-                      maxLength={12}
-                      disabled={!isEditable}
-                      value={kycData.aadhaar_number}
-                      onChange={(e) => {
-                        setKycData({ ...kycData, aadhaar_number: e.target.value.replace(/\D/g, "") });
-                        if (formErrors.aadhaar_number) setFormErrors((prev) => ({ ...prev, aadhaar_number: "" }));
-                      }}
-                      placeholder="123456789012"
-                      className={`w-full bg-[#121212] border rounded-lg px-3.5 py-2.5 text-xs text-white placeholder-zinc-600 outline-none tracking-wide transition-all disabled:opacity-50 disabled:cursor-not-allowed ${formErrors.aadhaar_number
-                          ? "border-rose-500 focus:border-rose-400"
-                          : "border-white/10 focus:border-white focus:ring-1 focus:ring-white/20"
-                        }`}
-                    />
-                    {formErrors.aadhaar_number && (
-                      <p className="text-[11px] text-rose-400 flex items-center gap-1 font-medium">
-                        <AlertCircle className="w-3 h-3 shrink-0" />
-                        <span>{formErrors.aadhaar_number}</span>
-                      </p>
-                    )}
-                  </div>
-                </div>
+              {/* Aadhaar Card */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-[#e5e2e1]">Aadhaar Number</label>
+                <input
+                  type="text"
+                  maxLength={12}
+                  disabled={!isEditable}
+                  value={kycData.aadhaar_number}
+                  onChange={(e) => {
+                    setKycData({ ...kycData, aadhaar_number: e.target.value.replace(/\D/g, "") });
+                    if (formErrors.aadhaar_number) setFormErrors((prev) => ({ ...prev, aadhaar_number: "" }));
+                  }}
+                  placeholder="12-digit Aadhaar Number"
+                  className={`w-full bg-[#101115] border rounded-md px-3.5 py-2.5 text-xs text-[#e5e2e1] placeholder-[#8e9192] outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed ${formErrors.aadhaar_number
+                      ? "border-rose-500 focus:border-rose-400"
+                      : "border-[#2a2a2a] focus:border-[#c4c0ff]"
+                    }`}
+                />
+                {formErrors.aadhaar_number && (
+                  <p className="text-[11px] text-rose-400 flex items-center gap-1 mt-1 font-medium">
+                    <AlertCircle className="w-3 h-3 shrink-0" />
+                    <span>{formErrors.aadhaar_number}</span>
+                  </p>
+                )}
               </div>
             </div>
+          </div>
+        </div>
 
-            {/* Section 2: Settlement Bank Account */}
-            <div className="p-5 sm:p-6 rounded-xl bg-[#181818] border border-white/10 space-y-5">
-              <div className="flex items-center justify-between border-b border-white/5 pb-3.5">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-md bg-white/5 border border-white/10 flex items-center justify-center text-white">
-                    <Landmark className="w-3.5 h-3.5" />
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-bold text-white tracking-wider">
-                      2. Direct Settlement Bank Account
-                    </h3>
-                    <p className="text-[11px] text-zinc-400">All customer sales settlements are transferred here</p>
-                  </div>
-                </div>
-                <span className="text-[10px] px-2 py-0.5 rounded bg-white/5 text-zinc-400 border border-white/5">
-                  T+1 Daily Cycle
-                </span>
-              </div>
-
-              <div className="space-y-4">
-                {/* Bank Name & IFSC */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Bank Name */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-zinc-300">Bank Name</label>
-                    <input
-                      type="text"
-                      disabled={!isEditable}
-                      value={kycData.bank_name}
-                      onChange={(e) => {
-                        setKycData({ ...kycData, bank_name: e.target.value });
-                        if (formErrors.bank_name) setFormErrors((prev) => ({ ...prev, bank_name: "" }));
-                      }}
-                      placeholder="e.g. HDFC Bank, SBI, ICICI"
-                      className={`w-full bg-[#121212] border rounded-lg px-3.5 py-2.5 text-xs text-white placeholder-zinc-600 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed ${formErrors.bank_name
-                          ? "border-rose-500 focus:border-rose-400"
-                          : "border-white/10 focus:border-white focus:ring-1 focus:ring-white/20"
-                        }`}
-                    />
-                    {formErrors.bank_name && (
-                      <p className="text-[11px] text-rose-400 flex items-center gap-1 font-medium">
-                        <AlertCircle className="w-3 h-3 shrink-0" />
-                        <span>{formErrors.bank_name}</span>
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Bank IFSC Code */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-zinc-300 flex items-center justify-between">
-                      <span>Bank IFSC Code</span>
-                      <span className="text-[10px] text-zinc-500">11-Digit Code</span>
-                    </label>
-                    <input
-                      type="text"
-                      maxLength={11}
-                      disabled={!isEditable}
-                      value={kycData.bank_ifsc}
-                      onChange={(e) => {
-                        setKycData({ ...kycData, bank_ifsc: e.target.value.toUpperCase() });
-                        if (formErrors.bank_ifsc) setFormErrors((prev) => ({ ...prev, bank_ifsc: "" }));
-                      }}
-                      placeholder="HDFC0001234"
-                      className={`w-full bg-[#121212] border rounded-lg px-3.5 py-2.5 text-xs text-white placeholder-zinc-600 outline-none tracking-wide transition-all disabled:opacity-50 disabled:cursor-not-allowed ${formErrors.bank_ifsc
-                          ? "border-rose-500 focus:border-rose-400"
-                          : "border-white/10 focus:border-white focus:ring-1 focus:ring-white/20"
-                        }`}
-                    />
-                    {formErrors.bank_ifsc && (
-                      <p className="text-[11px] text-rose-400 flex items-center gap-1 font-medium">
-                        <AlertCircle className="w-3 h-3 shrink-0" />
-                        <span>{formErrors.bank_ifsc}</span>
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Account Number & Confirm Account Number */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Account Number */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-zinc-300 flex items-center justify-between">
-                      <span>Bank Account Number</span>
-                      <button
-                        type="button"
-                        onClick={() => setShowAccountNumber(!showAccountNumber)}
-                        className="text-[11px] text-zinc-400 hover:text-white flex items-center gap-1 cursor-pointer transition-colors"
-                      >
-                        {showAccountNumber ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                        <span>{showAccountNumber ? "Hide" : "Show"}</span>
-                      </button>
-                    </label>
-                    <div className="relative flex items-center">
-                      <input
-                        type={showAccountNumber ? "text" : "password"}
-                        maxLength={18}
-                        disabled={!isEditable}
-                        value={kycData.bank_account_number}
-                        onChange={(e) => {
-                          setKycData({
-                            ...kycData,
-                            bank_account_number: e.target.value.replace(/\D/g, ""),
-                          });
-                          if (formErrors.bank_account_number)
-                            setFormErrors((prev) => ({ ...prev, bank_account_number: "" }));
-                        }}
-                        placeholder="Enter Account Number"
-                        className={`w-full bg-[#121212] border rounded-lg pl-3.5 pr-9 py-2.5 text-xs text-white placeholder-zinc-600 outline-none tracking-wide transition-all disabled:opacity-50 disabled:cursor-not-allowed ${formErrors.bank_account_number
-                            ? "border-rose-500 focus:border-rose-400"
-                            : "border-white/10 focus:border-white focus:ring-1 focus:ring-white/20"
-                          }`}
-                      />
-                      <Lock className="w-3.5 h-3.5 text-zinc-500 absolute right-3 pointer-events-none" />
-                    </div>
-                    {formErrors.bank_account_number && (
-                      <p className="text-[11px] text-rose-400 flex items-center gap-1 font-medium">
-                        <AlertCircle className="w-3 h-3 shrink-0" />
-                        <span>{formErrors.bank_account_number}</span>
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Confirm Account Number */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-zinc-300">Confirm Account Number</label>
-                    <input
-                      type="text"
-                      maxLength={18}
-                      disabled={!isEditable}
-                      value={kycData.confirm_account_number}
-                      onChange={(e) => {
-                        setKycData({
-                          ...kycData,
-                          confirm_account_number: e.target.value.replace(/\D/g, ""),
-                        });
-                        if (formErrors.confirm_account_number)
-                          setFormErrors((prev) => ({ ...prev, confirm_account_number: "" }));
-                      }}
-                      placeholder="Re-enter Account Number"
-                      className={`w-full bg-[#121212] border rounded-lg px-3.5 py-2.5 text-xs text-white placeholder-zinc-600 outline-none tracking-wide transition-all disabled:opacity-50 disabled:cursor-not-allowed ${formErrors.confirm_account_number
-                          ? "border-rose-500 focus:border-rose-400"
-                          : "border-white/10 focus:border-white focus:ring-1 focus:ring-white/20"
-                        }`}
-                    />
-                    {formErrors.confirm_account_number && (
-                      <p className="text-[11px] text-rose-400 flex items-center gap-1 font-medium">
-                        <AlertCircle className="w-3 h-3 shrink-0" />
-                        <span>{formErrors.confirm_account_number}</span>
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
+        {/* Section 2: Bank Account */}
+        <div className="p-5 sm:p-6 rounded-md bg-[#1c1b1b] border border-[#2a2a2a] space-y-4 shadow-xl">
+          <div className="flex items-center gap-2.5 border-b border-[#2a2a2a] pb-3">
+            <div className="w-7 h-7 rounded-md bg-[#20201f] border border-[#2a2a2a] flex items-center justify-center text-[#c4c0ff]">
+              <Landmark className="w-4 h-4" />
             </div>
+            <h3 className="text-xs font-semibold text-[#e5e2e1]">
+              2. Bank Account Details
+            </h3>
+          </div>
 
-            {/* Submit Action Bar */}
-            {isEditable && (
-              <div className="flex items-center justify-between pt-2">
-                <p className="text-[11px] text-zinc-500">
-                  By submitting, you certify that the provided PAN and bank details belong to you or your registered business entity.
+          {/* Bank Details Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Bank Name */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-[#e5e2e1]">Bank Name</label>
+              <input
+                type="text"
+                disabled={!isEditable}
+                value={kycData.bank_name}
+                onChange={(e) => {
+                  setKycData({ ...kycData, bank_name: e.target.value });
+                  if (formErrors.bank_name) setFormErrors((prev) => ({ ...prev, bank_name: "" }));
+                }}
+                placeholder="e.g. HDFC Bank, SBI"
+                className={`w-full bg-[#101115] border rounded-md px-3.5 py-2.5 text-xs text-[#e5e2e1] placeholder-[#8e9192] outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                  formErrors.bank_name
+                    ? "border-rose-500 focus:border-rose-400"
+                    : "border-[#2a2a2a] focus:border-[#c4c0ff]"
+                }`}
+              />
+              {formErrors.bank_name && (
+                <p className="text-[11px] text-rose-400 flex items-center gap-1 mt-1 font-medium">
+                  <AlertCircle className="w-3 h-3 shrink-0" />
+                  <span>{formErrors.bank_name}</span>
                 </p>
+              )}
+            </div>
 
+            {/* Bank IFSC Code */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-[#e5e2e1]">Bank IFSC Code</label>
+              <input
+                type="text"
+                maxLength={11}
+                disabled={!isEditable}
+                value={kycData.bank_ifsc}
+                onChange={(e) => {
+                  setKycData({ ...kycData, bank_ifsc: e.target.value.toUpperCase() });
+                  if (formErrors.bank_ifsc) setFormErrors((prev) => ({ ...prev, bank_ifsc: "" }));
+                }}
+                placeholder="HDFC0001234"
+                className={`w-full bg-[#101115] border rounded-md px-3.5 py-2.5 text-xs text-[#e5e2e1] placeholder-[#8e9192] outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                  formErrors.bank_ifsc
+                    ? "border-rose-500 focus:border-rose-400"
+                    : "border-[#2a2a2a] focus:border-[#c4c0ff]"
+                }`}
+              />
+              {formErrors.bank_ifsc && (
+                <p className="text-[11px] text-rose-400 flex items-center gap-1 mt-1 font-medium">
+                  <AlertCircle className="w-3 h-3 shrink-0" />
+                  <span>{formErrors.bank_ifsc}</span>
+                </p>
+              )}
+            </div>
+
+            {/* Account Number */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-[#e5e2e1] flex items-center justify-between">
+                <span>Bank Account Number</span>
                 <button
-                  type="submit"
-                  disabled={isSaving}
-                  className="px-6 py-2.5 bg-gradient-to-r from-white to-[#eaeaea] hover:from-white hover:to-white text-black text-xs font-bold rounded-lg shadow flex items-center gap-2 active:scale-95 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                  type="button"
+                  onClick={() => setShowAccountNumber(!showAccountNumber)}
+                  className="text-[11px] text-[#8e9192] hover:text-white flex items-center gap-1 cursor-pointer transition-colors"
                 >
-                  {isSaving ? (
-                    <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      <span>Submitting Records...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Submit for Verification</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </>
-                  )}
+                  {showAccountNumber ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                  <span>{showAccountNumber ? "Hide" : "Show"}</span>
                 </button>
+              </label>
+              <div className="relative flex items-center">
+                <input
+                  type={showAccountNumber ? "text" : "password"}
+                  maxLength={18}
+                  disabled={!isEditable}
+                  value={kycData.bank_account_number}
+                  onChange={(e) => {
+                    setKycData({
+                      ...kycData,
+                      bank_account_number: e.target.value.replace(/\D/g, ""),
+                    });
+                    if (formErrors.bank_account_number)
+                      setFormErrors((prev) => ({ ...prev, bank_account_number: "" }));
+                  }}
+                  placeholder="Account Number"
+                  className={`w-full bg-[#101115] border rounded-md pl-3.5 pr-9 py-2.5 text-xs text-[#e5e2e1] placeholder-[#8e9192] outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                    formErrors.bank_account_number
+                      ? "border-rose-500 focus:border-rose-400"
+                      : "border-[#2a2a2a] focus:border-[#c4c0ff]"
+                  }`}
+                />
+                <Lock className="w-3.5 h-3.5 text-[#8e9192] absolute right-3 pointer-events-none" />
               </div>
-            )}
-          </form>
+              {formErrors.bank_account_number && (
+                <p className="text-[11px] text-rose-400 flex items-center gap-1 mt-1 font-medium">
+                  <AlertCircle className="w-3 h-3 shrink-0" />
+                  <span>{formErrors.bank_account_number}</span>
+                </p>
+              )}
+            </div>
+
+            {/* Confirm Account Number */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-[#e5e2e1]">Confirm Account Number</label>
+              <input
+                type="text"
+                maxLength={18}
+                disabled={!isEditable}
+                value={kycData.confirm_account_number}
+                onChange={(e) => {
+                  setKycData({
+                    ...kycData,
+                    confirm_account_number: e.target.value.replace(/\D/g, ""),
+                  });
+                  if (formErrors.confirm_account_number)
+                    setFormErrors((prev) => ({ ...prev, confirm_account_number: "" }));
+                }}
+                placeholder="Re-enter Account Number"
+                className={`w-full bg-[#101115] border rounded-md px-3.5 py-2.5 text-xs text-[#e5e2e1] placeholder-[#8e9192] outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                  formErrors.confirm_account_number
+                    ? "border-rose-500 focus:border-rose-400"
+                    : "border-[#2a2a2a] focus:border-[#c4c0ff]"
+                }`}
+              />
+              {formErrors.confirm_account_number && (
+                <p className="text-[11px] text-rose-400 flex items-center gap-1 mt-1 font-medium">
+                  <AlertCircle className="w-3 h-3 shrink-0" />
+                  <span>{formErrors.confirm_account_number}</span>
+                </p>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* Right 4 Cols: Compliance & Settlement Blueprint */}
-        <div className="lg:col-span-4 space-y-4">
-          {/* Card 1: Settlement Cycle Blueprint */}
-          <div className="p-5 rounded-xl bg-[#181818] border border-white/10 space-y-3.5">
-            <div className="flex items-center gap-2 text-white">
-              <Zap className="w-4 h-4 text-amber-400" />
-              <h4 className="text-xs font-bold tracking-wider">Settlement Architecture</h4>
-            </div>
-            <div className="space-y-2.5 text-xs text-zinc-400">
-              <div className="flex items-start justify-between gap-2 p-2.5 rounded-lg bg-white/[0.02] border border-white/5">
-                <span className="text-zinc-400">Settlement Frequency:</span>
-                <span className="font-bold text-white">T+1 Daily Cycle</span>
-              </div>
-              <div className="flex items-start justify-between gap-2 p-2.5 rounded-lg bg-white/[0.02] border border-white/5">
-                <span className="text-zinc-400">Payout Network:</span>
-                <span className="font-bold text-white">NEFT / IMPS / RTGS</span>
-              </div>
-              <div className="flex items-start justify-between gap-2 p-2.5 rounded-lg bg-white/[0.02] border border-white/5">
-                <span className="text-zinc-400">Platform Deductions:</span>
-                <span className="font-bold text-emerald-400">0% Platform Fee</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 2: Security & RBI Data Localization */}
-          <div className="p-5 rounded-xl bg-[#181818] border border-white/10 space-y-3.5">
-            <div className="flex items-center gap-2 text-white">
-              <Lock className="w-4 h-4 text-emerald-400" />
-              <h4 className="text-xs font-bold tracking-wider">Bank-Grade Encryption</h4>
-            </div>
-            <ul className="text-xs space-y-2.5 text-zinc-400 leading-relaxed">
-              <li className="flex items-start gap-2">
-                <BadgeCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                <span>256-Bit AES encryption for banking credentials and tax identifiers.</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <BadgeCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                <span>Complies with RBI Data Localization guidelines. Hosted on certified secure infrastructure.</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <BadgeCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                <span>Direct payout routing with no intermediary wallet holds.</span>
-              </li>
-            </ul>
-          </div>
-
-          {/* Card 3: Need Expedited Verification */}
-          <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 space-y-2">
-            <div className="flex items-center gap-2 text-zinc-300">
-              <HelpCircle className="w-3.5 h-3.5 text-zinc-400" />
-              <span className="text-xs font-semibold">Need Expedited Approval?</span>
-            </div>
-            <p className="text-[11px] text-zinc-400 leading-relaxed">
-              For high-volume merchants or enterprise accounts requiring immediate payout activation, contact our compliance desk at{" "}
-              <a href="mailto:support@zoyee.in" className="text-white underline hover:text-zinc-200">
-                support@zoyee.in
-              </a>
+        {/* Submit Action Bar */}
+        {isEditable && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
+            <p className="text-[11px] text-[#8e9192]">
+              Ensure all details match your official documents.
             </p>
+
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="w-full sm:w-auto px-6 py-2.5 bg-white hover:bg-zinc-200 text-zinc-950 font-bold rounded-md text-xs transition-all active:scale-[0.98] shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 shrink-0"
+            >
+              {isSaving ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>Submitting...</span>
+                </>
+              ) : (
+                <>
+                  <span>Submit for Verification</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </>
+              )}
+            </button>
           </div>
-        </div>
-      </div>
+        )}
+      </form>
 
       {/* Global Toast */}
       <Toast
