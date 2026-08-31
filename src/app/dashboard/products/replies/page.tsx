@@ -11,7 +11,7 @@ export default function DMRepliesPage() {
   ];
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
@@ -36,9 +36,8 @@ export default function DMRepliesPage() {
               <h3 className="text-sm font-bold text-white mb-1">{rule.trigger}</h3>
               <p className="text-xs text-on-surface-variant/80">{rule.response}</p>
             </div>
-            <span className={`px-2 py-1 rounded text-[9px] font-bold uppercase ${
-              rule.active ? "bg-green-500/10 text-green-400 border border-green-500/20" : "bg-white/10 text-on-surface-variant border border-white/5"
-            }`}>
+            <span className={`px-2 py-1 rounded text-[9px] font-bold ${rule.active ? "bg-green-500/10 text-green-400 border border-green-500/20" : "bg-white/10 text-on-surface-variant border border-white/5"
+              }`}>
               {rule.active ? "Active" : "Paused"}
             </span>
           </div>

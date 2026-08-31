@@ -163,12 +163,12 @@ export default function OrderTrackingPage({ params }: PageProps) {
         <div className="rounded-md bg-[#20201f] border border-white/5 p-6 space-y-6 shadow-md">
           <div className="flex justify-between items-start">
             <div className="space-y-1">
-              <span className="text-[9px] uppercase font-bold tracking-wider text-zinc-500">Estimated Delivery</span>
+              <span className="text-[9px] font-bold tracking-wider text-zinc-500">Estimated Delivery</span>
               <div className="text-sm font-bold text-white">Pending dispatch schedule</div>
             </div>
             <div className="text-right space-y-1">
-              <span className="text-[9px] uppercase font-bold tracking-wider text-zinc-500">Carrier Status</span>
-              <div className="text-xs font-bold uppercase text-[#b6b2ff]">
+              <span className="text-[9px] font-bold tracking-wider text-zinc-500">Carrier Status</span>
+              <div className="text-xs font-bold text-[#b6b2ff]">
                 {order.order_status.replace("_", " ")}
               </div>
             </div>
@@ -215,7 +215,7 @@ export default function OrderTrackingPage({ params }: PageProps) {
 
           {/* Order Summary */}
           <div className="rounded-md bg-[#20201f] border border-white/5 p-6 space-y-4 shadow-md">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-white">Items Details</h3>
+            <h3 className="text-xs font-bold tracking-wider text-white">Items Details</h3>
             <div className="space-y-3">
               {order.items?.map((item: any, idx: number) => (
                 <div key={idx} className="flex justify-between items-start text-xs">
@@ -239,14 +239,14 @@ export default function OrderTrackingPage({ params }: PageProps) {
 
           {/* Delivery & policies details */}
           <div className="rounded-md bg-[#20201f] border border-white/5 p-6 space-y-4 shadow-md">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-white">Shipping Details</h3>
+            <h3 className="text-xs font-bold tracking-wider text-white">Shipping Details</h3>
             <div className="space-y-3 text-xs leading-normal">
               <div>
-                <span className="text-[9px] font-bold uppercase text-zinc-500">Recipient Name</span>
+                <span className="text-[9px] font-bold text-zinc-500">Recipient Name</span>
                 <div className="text-zinc-300 font-semibold">{order.customer_name}</div>
               </div>
               <div>
-                <span className="text-[9px] font-bold uppercase text-zinc-500">Shipping Destination</span>
+                <span className="text-[9px] font-bold text-zinc-500">Shipping Destination</span>
                 <div className="text-zinc-400 whitespace-pre-wrap">
                   {order.shipping_address}
                   {order.shipping_pincode && <span className="block mt-1 font-medium text-zinc-300">PIN Code: {order.shipping_pincode}</span>}
@@ -259,13 +259,13 @@ export default function OrderTrackingPage({ params }: PageProps) {
               </div>
               <div className="pt-2 border-t border-white/5 space-y-2">
                 <div>
-                  <span className="text-[9px] font-bold uppercase text-zinc-500 block">Return & Refund Policy</span>
+                  <span className="text-[9px] font-bold text-zinc-500 block">Return & Refund Policy</span>
                   <span className={cn("text-[10px] font-bold block mt-0.5", order.return_policy ? "text-green-400" : "text-zinc-400")}>
                     {order.return_policy ? "Returns & exchanges are accepted" : "Returns & exchanges are not accepted"}
                   </span>
                 </div>
                 <div>
-                  <span className="text-[9px] font-bold uppercase text-zinc-500 block">Cancellation Policy</span>
+                  <span className="text-[9px] font-bold text-zinc-500 block">Cancellation Policy</span>
                   <span className={cn("text-[10px] font-bold block mt-0.5", order.cancellation_policy ? "text-green-400" : "text-zinc-400")}>
                     {order.cancellation_policy ? "Cancellations are allowed before shipment" : "Cancellations are not allowed"}
                   </span>

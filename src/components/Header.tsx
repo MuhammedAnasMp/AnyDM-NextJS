@@ -260,7 +260,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
               {isAccountMenuOpen && instagramAccounts.length > 1 && (
                 <div className="absolute right-0 mt-2 w-56 bg-[#1a1a19]/90 border border-white/10 rounded-xl shadow-2xl p-2 z-50">
-                  <p className="text-[10px] uppercase font-bold text-[#c4c7c8]/60 px-3 py-1.5 tracking-wider">
+                  <p className="text-[10px] font-bold text-[#c4c7c8]/60 px-3 py-1.5 tracking-wider">
                     Switch Account
                   </p>
 

@@ -32,7 +32,7 @@ export function getTemplateStyles(templateId: string, themeId: string): Template
 
     return {
       isDark,
-      accentColor: isLight ? "#605ca2" : isFrosted ? "#8fe3ff" : "#c4c0ff",
+      accentColor: isLight ? "#605ca2" : "#c4c0ff",
       bodyClass: isLight
         ? "bg-[#f5f5f5] text-[#131313]"
         : isFrosted
@@ -48,8 +48,8 @@ export function getTemplateStyles(templateId: string, themeId: string): Template
         ? "bg-black text-white hover:bg-black/90 font-bold rounded-xl py-3.5 px-6 transition-all duration-200"
         : "bg-white text-black hover:bg-[#eaeaea] font-bold rounded-xl py-3.5 px-6 transition-all duration-200",
       badgeClass: isLight
-        ? "bg-black/5 border border-black/10 text-black rounded-full px-3 py-1 text-[10px] uppercase font-bold"
-        : "bg-white/5 border border-white/10 text-white rounded-full px-3 py-1 text-[10px] uppercase font-bold",
+        ? "bg-black/5 border border-black/10 text-black rounded-full px-3 py-1 text-[10px] font-bold"
+        : "bg-white/5 border border-white/10 text-white rounded-full px-3 py-1 text-[10px] font-bold",
       textColorClass: isLight ? "text-black" : "text-white",
       textMutedClass: isLight ? "text-gray-500" : "text-gray-400",
       priceClass: isLight ? "text-black font-extrabold" : "text-white font-extrabold",
@@ -93,11 +93,11 @@ export function getTemplateStyles(templateId: string, themeId: string): Template
         ? "bg-white/[0.06] border border-white/10 rounded-none transition-all duration-300 hover:bg-white/[0.10]"
         : "bg-[#F2EFE9] border border-[#C2C9C3]/40 rounded-none transition-all duration-300 hover:border-[#4A5D4E]/50",
       buttonClass: isSage
-        ? "bg-white text-[#4A5D4E] font-bold tracking-widest uppercase rounded-none py-4 px-8 hover:bg-white/95 transition-all"
-        : "bg-[#4A5D4E] text-white font-bold tracking-widest uppercase rounded-none py-4 px-8 hover:opacity-95 transition-all",
+        ? "bg-white text-[#4A5D4E] font-bold tracking-widest rounded-none py-4 px-8 hover:bg-white/95 transition-all"
+        : "bg-[#4A5D4E] text-white font-bold tracking-widest rounded-none py-4 px-8 hover:opacity-95 transition-all",
       badgeClass: isSage
-        ? "border border-white/20 text-white rounded-none px-3 py-1 text-[10px] uppercase tracking-[0.2em]"
-        : "border border-[#4A5D4E]/30 text-[#4A5D4E] rounded-none px-3 py-1 text-[10px] uppercase tracking-[0.2em]",
+        ? "border border-white/20 text-white rounded-none px-3 py-1 text-[10px] tracking-[0.2em]"
+        : "border border-[#4A5D4E]/30 text-[#4A5D4E] rounded-none px-3 py-1 text-[10px] tracking-[0.2em]",
       textColorClass: isSage ? "text-white" : "text-[#2D362E]",
       textMutedClass: isSage ? "text-[#DCE3DE]/70" : "text-[#6A786C]",
       priceClass: isSage ? "text-white font-medium" : "text-[#4A5D4E] font-medium text-lg",
@@ -105,11 +105,11 @@ export function getTemplateStyles(templateId: string, themeId: string): Template
       fontBody: "font-sans",
       containerClass: "max-w-screen-xl mx-auto px-4 sm:px-8 md:px-12",
       whatsappButtonClass: isSage
-        ? "border border-white/20 text-white rounded-none py-4 hover:bg-white/5 transition-all text-center tracking-widest uppercase font-medium text-xs"
-        : "border border-[#4A5D4E]/30 text-[#2D362E] rounded-none py-4 hover:bg-[#4A5D4E]/5 transition-all text-center tracking-widest uppercase font-medium text-xs",
+        ? "border border-white/20 text-white rounded-none py-4 hover:bg-white/5 transition-all text-center tracking-widest font-medium text-xs"
+        : "border border-[#4A5D4E]/30 text-[#2D362E] rounded-none py-4 hover:bg-[#4A5D4E]/5 transition-all text-center tracking-widest font-medium text-xs",
       instagramButtonClass: isSage
-        ? "border border-white/20 text-white rounded-none py-4 hover:bg-white/5 transition-all text-center tracking-widest uppercase font-medium text-xs"
-        : "border border-[#E1306C]/30 text-[#2D362E] rounded-none py-4 hover:bg-[#E1306C]/5 transition-all text-center tracking-widest uppercase font-medium text-xs",
+        ? "border border-white/20 text-white rounded-none py-4 hover:bg-white/5 transition-all text-center tracking-widest font-medium text-xs"
+        : "border border-[#E1306C]/30 text-[#2D362E] rounded-none py-4 hover:bg-[#E1306C]/5 transition-all text-center tracking-widest font-medium text-xs",
       logoWrapperClass: "w-9 h-9 rounded-full overflow-hidden bg-transparent border border-current flex items-center justify-center",
       inputClass: isSage
         ? "bg-white/5 border border-white/15 text-white placeholder-white/40 rounded-none px-4 py-2.5 focus:outline-none focus:border-white/40 transition-colors"
@@ -145,28 +145,28 @@ export function getTemplateStyles(templateId: string, themeId: string): Template
           ? "bg-[#1e2020] border border-[#ff24e4]/40 rounded-none hover:border-[#ff24e4] hover:shadow-[0_0_20px_rgba(255,36,228,0.25)] transition-all"
           : "bg-[#1e2020] border border-[#00dbe9]/40 rounded-none hover:border-[#00f0ff] hover:shadow-[0_0_20px_rgba(0,240,255,0.3)] transition-all",
       buttonClass: isMatrix
-        ? "bg-[#00ff00] text-black font-extrabold uppercase tracking-widest rounded-none py-4 px-8 hover:bg-black hover:text-[#00ff00] border border-[#00ff00] transition-all"
+        ? "bg-[#00ff00] text-black font-extrabold tracking-widest rounded-none py-4 px-8 hover:bg-black hover:text-[#00ff00] border border-[#00ff00] transition-all"
         : isSynth
-          ? "bg-[#ff24e4] text-white font-extrabold uppercase tracking-widest rounded-none py-4 px-8 hover:bg-black border border-[#ff24e4] transition-all"
-          : "bg-white text-black font-extrabold uppercase tracking-widest rounded-none py-4 px-8 hover:bg-black hover:text-white border border-white transition-all",
-      badgeClass: "border border-current px-2.5 py-0.5 text-[9px] uppercase tracking-widest font-mono font-bold",
+          ? "bg-[#ff24e4] text-white font-extrabold tracking-widest rounded-none py-4 px-8 hover:bg-black border border-[#ff24e4] transition-all"
+          : "bg-white text-black font-extrabold tracking-widest rounded-none py-4 px-8 hover:bg-black hover:text-white border border-white transition-all",
+      badgeClass: "border border-current px-2.5 py-0.5 text-[9px] tracking-widest font-mono font-bold",
       textColorClass: "text-white",
       textMutedClass: "text-zinc-500 font-mono",
       priceClass: isMatrix ? "text-[#00ff00] font-mono text-lg" : isSynth ? "text-[#ff24e4] font-mono text-lg" : "text-[#00f0ff] font-mono text-lg",
-      fontHeadline: "font-sans uppercase tracking-widest font-black",
+      fontHeadline: "font-sans tracking-widest font-black",
       fontBody: "font-mono",
       containerClass: "max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-10",
       whatsappButtonClass: isMatrix
-        ? "border border-[#00ff00]/40 text-[#00ff00] rounded-none py-4 hover:bg-[#00ff00]/10 transition-all font-mono uppercase tracking-widest text-center text-xs"
-        : "border border-[#25D366]/40 text-white rounded-none py-4 hover:bg-[#25D366]/10 transition-all font-mono uppercase tracking-widest text-center text-xs",
+        ? "border border-[#00ff00]/40 text-[#00ff00] rounded-none py-4 hover:bg-[#00ff00]/10 transition-all font-mono tracking-widest text-center text-xs"
+        : "border border-[#25D366]/40 text-white rounded-none py-4 hover:bg-[#25D366]/10 transition-all font-mono tracking-widest text-center text-xs",
       instagramButtonClass: isMatrix
-        ? "border border-[#00ff00]/40 text-[#00ff00] rounded-none py-4 hover:bg-[#00ff00]/10 transition-all font-mono uppercase tracking-widest text-center text-xs"
-        : "bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 text-white font-bold rounded-none py-4 hover:opacity-90 transition-all font-mono uppercase tracking-widest text-center text-xs",
+        ? "border border-[#00ff00]/40 text-[#00ff00] rounded-none py-4 hover:bg-[#00ff00]/10 transition-all font-mono tracking-widest text-center text-xs"
+        : "bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 text-white font-bold rounded-none py-4 hover:opacity-90 transition-all font-mono tracking-widest text-center text-xs",
       logoWrapperClass: "w-9 h-9 rounded-full overflow-hidden bg-transparent border border-zinc-700 flex items-center justify-center",
       inputClass: `bg-black border border-[${accent}]/30 text-white placeholder-zinc-600 font-mono rounded-none px-4 py-2.5 focus:outline-none focus:border-[${accent}] transition-colors`,
       dividerClass: `border-[${accent}]/20`,
-      filterPillClass: `px-4 py-1.5 text-xs font-mono uppercase border border-[${accent}]/30 text-zinc-400 hover:text-[${accent}] hover:border-[${accent}] transition-all tracking-widest`,
-      filterPillActiveClass: `px-4 py-1.5 text-xs font-mono uppercase border border-[${accent}] text-black bg-[${accent}] tracking-widest`,
+      filterPillClass: `px-4 py-1.5 text-xs font-mono border border-[${accent}]/30 text-zinc-400 hover:text-[${accent}] hover:border-[${accent}] transition-all tracking-widest`,
+      filterPillActiveClass: `px-4 py-1.5 text-xs font-mono border border-[${accent}] text-black bg-[${accent}] tracking-widest`,
     };
   }
 
@@ -191,34 +191,34 @@ export function getTemplateStyles(templateId: string, themeId: string): Template
         ? "bg-transparent border border-black/10 rounded-none hover:border-black transition-all duration-200"
         : "bg-transparent border border-white/10 rounded-none hover:border-white transition-all duration-200",
       buttonClass: isLight
-        ? "bg-black text-white rounded-none py-3.5 px-8 text-xs font-bold uppercase hover:bg-black/90 transition-all"
-        : "bg-white text-black rounded-none py-3.5 px-8 text-xs font-bold uppercase hover:bg-[#eaeaea] transition-all",
+        ? "bg-black text-white rounded-none py-3.5 px-8 text-xs font-bold hover:bg-black/90 transition-all"
+        : "bg-white text-black rounded-none py-3.5 px-8 text-xs font-bold hover:bg-[#eaeaea] transition-all",
       badgeClass: isLight
-        ? "border border-black text-black px-2 py-0.5 text-[9px] uppercase font-mono"
-        : "border border-white text-white px-2 py-0.5 text-[9px] uppercase font-mono",
+        ? "border border-black text-black px-2 py-0.5 text-[9px] font-mono"
+        : "border border-white text-white px-2 py-0.5 text-[9px] font-mono",
       textColorClass: isLight ? "text-black" : "text-white",
       textMutedClass: "text-zinc-500 font-mono",
       priceClass: isLight ? "text-black font-bold font-mono" : "text-white font-bold font-mono",
-      fontHeadline: "font-mono uppercase tracking-tighter",
+      fontHeadline: "font-mono tracking-tighter",
       fontBody: "font-mono",
       containerClass: "max-w-7xl mx-auto px-4 sm:px-8",
       whatsappButtonClass: isLight
-        ? "border border-black text-black text-xs font-bold uppercase py-3.5 hover:bg-black/5 transition-all text-center rounded-none"
-        : "border border-white text-white text-xs font-bold uppercase py-3.5 hover:bg-white/5 transition-all text-center rounded-none",
+        ? "border border-black text-black text-xs font-bold py-3.5 hover:bg-black/5 transition-all text-center rounded-none"
+        : "border border-white text-white text-xs font-bold py-3.5 hover:bg-white/5 transition-all text-center rounded-none",
       instagramButtonClass: isLight
-        ? "bg-black text-white text-xs font-bold uppercase py-3.5 hover:bg-black/90 transition-all text-center rounded-none"
-        : "bg-white text-black text-xs font-bold uppercase py-3.5 hover:bg-[#eaeaea] transition-all text-center rounded-none",
+        ? "bg-black text-white text-xs font-bold py-3.5 hover:bg-black/90 transition-all text-center rounded-none"
+        : "bg-white text-black text-xs font-bold py-3.5 hover:bg-[#eaeaea] transition-all text-center rounded-none",
       logoWrapperClass: "w-9 h-9 rounded-full overflow-hidden bg-transparent border border-current flex items-center justify-center",
       inputClass: isLight
         ? "bg-transparent border border-black/20 text-black placeholder-gray-400 font-mono rounded-none px-4 py-2.5 focus:outline-none focus:border-black transition-colors"
         : "bg-transparent border border-white/20 text-white placeholder-gray-600 font-mono rounded-none px-4 py-2.5 focus:outline-none focus:border-white transition-colors",
       dividerClass: isLight ? "border-black/10" : "border-white/10",
       filterPillClass: isLight
-        ? "px-4 py-1.5 text-xs font-mono uppercase border border-black/20 text-gray-500 hover:text-black hover:border-black transition-all"
-        : "px-4 py-1.5 text-xs font-mono uppercase border border-white/20 text-gray-500 hover:text-white hover:border-white transition-all",
+        ? "px-4 py-1.5 text-xs font-mono border border-black/20 text-gray-500 hover:text-black hover:border-black transition-all"
+        : "px-4 py-1.5 text-xs font-mono border border-white/20 text-gray-500 hover:text-white hover:border-white transition-all",
       filterPillActiveClass: isLight
-        ? "px-4 py-1.5 text-xs font-mono uppercase bg-black text-white"
-        : "px-4 py-1.5 text-xs font-mono uppercase bg-white text-black",
+        ? "px-4 py-1.5 text-xs font-mono bg-black text-white"
+        : "px-4 py-1.5 text-xs font-mono bg-white text-black",
     };
   }
 
@@ -238,19 +238,19 @@ export function getTemplateStyles(templateId: string, themeId: string): Template
       navClass: "bg-transparent border-none",
       cardClass: "bg-transparent border-none rounded-none transition-opacity duration-300 hover:opacity-95",
       buttonClass: isDark
-        ? "bg-[#c5a880] text-black font-semibold rounded-none py-4 px-10 tracking-widest text-xs uppercase hover:opacity-90 transition-all"
-        : "bg-[#1c1c1c] text-white font-semibold rounded-none py-4 px-10 tracking-widest text-xs uppercase hover:bg-black transition-all",
-      badgeClass: "border-b border-current pb-0.5 text-[10px] tracking-widest uppercase italic font-serif",
+        ? "bg-[#c5a880] text-black font-semibold rounded-none py-4 px-10 tracking-widest text-xs hover:opacity-90 transition-all"
+        : "bg-[#1c1c1c] text-white font-semibold rounded-none py-4 px-10 tracking-widest text-xs hover:bg-black transition-all",
+      badgeClass: "border-b border-current pb-0.5 text-[10px] tracking-widest italic font-serif",
       textColorClass: isDark ? "text-white" : "text-[#1c1c1c]",
       textMutedClass: isDark ? "text-zinc-500" : "text-zinc-600",
       priceClass: "font-serif text-xl italic font-normal",
       fontHeadline: "font-serif italic font-light tracking-wide",
       fontBody: "font-sans",
       containerClass: "max-w-5xl mx-auto px-4 sm:px-6",
-      whatsappButtonClass: "border-b border-current py-2 tracking-widest text-xs uppercase font-semibold text-center hover:opacity-80 transition-all",
+      whatsappButtonClass: "border-b border-current py-2 tracking-widest text-xs font-semibold text-center hover:opacity-80 transition-all",
       instagramButtonClass: isDark
-        ? "bg-[#c5a880] text-black tracking-widest text-xs uppercase font-semibold py-4 hover:opacity-90 transition-all text-center"
-        : "bg-[#1c1c1c] text-white tracking-widest text-xs uppercase font-semibold py-4 hover:bg-black transition-all text-center",
+        ? "bg-[#c5a880] text-black tracking-widest text-xs font-semibold py-4 hover:opacity-90 transition-all text-center"
+        : "bg-[#1c1c1c] text-white tracking-widest text-xs font-semibold py-4 hover:bg-black transition-all text-center",
       logoWrapperClass: "w-9 h-9 rounded-full overflow-hidden bg-transparent border border-current flex items-center justify-center",
       inputClass: isDark
         ? "bg-transparent border-b border-white/20 text-white placeholder-zinc-600 font-serif rounded-none px-0 py-2 focus:outline-none focus:border-[#c5a880] transition-colors"
@@ -280,21 +280,21 @@ export function getTemplateStyles(templateId: string, themeId: string): Template
           : "bg-[#ffe600] text-black",
       navClass: "bg-white border-b-4 border-black",
       cardClass: "bg-white border-4 border-black shadow-[6px_6px_0px_#000000] hover:shadow-[10px_10px_0px_#000000] hover:-translate-x-1 hover:-translate-y-1 transition-all rounded-none overflow-hidden text-black",
-      buttonClass: "bg-[#0038ff] text-white border-4 border-black font-extrabold uppercase tracking-wide shadow-[4px_4px_0px_#000] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#000] active:translate-x-0 active:translate-y-0 active:shadow-[2px_2px_0px_#000] rounded-none py-3.5 px-8 transition-all",
-      badgeClass: "bg-white text-black border-2 border-black font-black uppercase text-[10px] px-2 py-0.5 rounded-none inline-block",
+      buttonClass: "bg-[#0038ff] text-white border-4 border-black font-extrabold tracking-wide shadow-[4px_4px_0px_#000] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_#000] active:translate-x-0 active:translate-y-0 active:shadow-[2px_2px_0px_#000] rounded-none py-3.5 px-8 transition-all",
+      badgeClass: "bg-white text-black border-2 border-black font-black text-[10px] px-2 py-0.5 rounded-none inline-block",
       textColorClass: "text-black",
       textMutedClass: "text-zinc-600 font-bold",
       priceClass: "font-black text-xl text-black",
-      fontHeadline: "font-sans uppercase tracking-tight font-black",
+      fontHeadline: "font-sans tracking-tight font-black",
       fontBody: "font-sans font-bold",
       containerClass: "max-w-7xl mx-auto px-4 sm:px-6",
-      whatsappButtonClass: "bg-white text-black border-4 border-black font-black uppercase py-3 hover:bg-zinc-100 transition-all shadow-[4px_4px_0px_#000] hover:shadow-[6px_6px_0px_#000] text-center",
-      instagramButtonClass: "bg-[#ffe600] text-black border-4 border-black font-black uppercase py-3.5 hover:bg-[#ffd600] transition-all shadow-[4px_4px_0px_#000] hover:shadow-[6px_6px_0px_#000] text-center",
+      whatsappButtonClass: "bg-white text-black border-4 border-black font-black py-3 hover:bg-zinc-100 transition-all shadow-[4px_4px_0px_#000] hover:shadow-[6px_6px_0px_#000] text-center",
+      instagramButtonClass: "bg-[#ffe600] text-black border-4 border-black font-black py-3.5 hover:bg-[#ffd600] transition-all shadow-[4px_4px_0px_#000] hover:shadow-[6px_6px_0px_#000] text-center",
       logoWrapperClass: "w-9 h-9 rounded-none overflow-hidden bg-transparent border-2 border-black flex items-center justify-center",
       inputClass: "bg-white border-2 border-black text-black placeholder-zinc-400 font-bold rounded-none px-4 py-2.5 focus:outline-none focus:border-[#0038ff] shadow-[2px_2px_0px_#000] transition-colors",
       dividerClass: "border-black/20",
-      filterPillClass: "px-4 py-1.5 text-xs font-black uppercase border-2 border-black text-black bg-white hover:bg-[#ffe600] transition-all",
-      filterPillActiveClass: "px-4 py-1.5 text-xs font-black uppercase border-2 border-black text-white bg-[#0038ff]",
+      filterPillClass: "px-4 py-1.5 text-xs font-black border-2 border-black text-black bg-white hover:bg-[#ffe600] transition-all",
+      filterPillActiveClass: "px-4 py-1.5 text-xs font-black border-2 border-black text-white bg-[#0038ff]",
     };
   }
 
@@ -312,7 +312,7 @@ export function getTemplateStyles(templateId: string, themeId: string): Template
       navClass: "bg-transparent border-none",
       cardClass: "bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-2xl hover:border-white/20 hover:bg-white/[0.06] transition-all",
       buttonClass: "bg-white text-black font-bold rounded-xl py-3.5 px-6 transition-all duration-200",
-      badgeClass: "bg-white/5 border border-white/10 text-white rounded-full px-3 py-1 text-[10px] uppercase font-bold",
+      badgeClass: "bg-white/5 border border-white/10 text-white rounded-full px-3 py-1 text-[10px] font-bold",
       textColorClass: "text-white",
       textMutedClass: "text-gray-400",
       priceClass: "text-white font-extrabold",
@@ -355,15 +355,15 @@ export function getTemplateStyles(templateId: string, themeId: string): Template
           : "bg-[#faf8f4]/95 backdrop-blur-sm border-b border-[#1a1714]/8",
       cardClass: "bg-transparent border-none rounded-none transition-all duration-500 hover:opacity-95 group",
       buttonClass: isNight
-        ? "border border-[#d4a96a] text-[#d4a96a] font-light tracking-[0.2em] text-xs uppercase py-4 px-10 hover:bg-[#d4a96a] hover:text-black transition-all duration-300 rounded-none"
+        ? "border border-[#d4a96a] text-[#d4a96a] font-light tracking-[0.2em] text-xs py-4 px-10 hover:bg-[#d4a96a] hover:text-black transition-all duration-300 rounded-none"
         : isRose
-          ? "bg-[#2a1a1f] text-[#fdf6f0] font-light tracking-[0.2em] text-xs uppercase py-4 px-10 hover:bg-black transition-all duration-300 rounded-none"
-          : "bg-[#1a1714] text-[#faf8f4] font-light tracking-[0.2em] text-xs uppercase py-4 px-10 hover:bg-black transition-all duration-300 rounded-none",
+          ? "bg-[#2a1a1f] text-[#fdf6f0] font-light tracking-[0.2em] text-xs py-4 px-10 hover:bg-black transition-all duration-300 rounded-none"
+          : "bg-[#1a1714] text-[#faf8f4] font-light tracking-[0.2em] text-xs py-4 px-10 hover:bg-black transition-all duration-300 rounded-none",
       badgeClass: isNight
-        ? "text-[#d4a96a] text-[9px] tracking-[0.25em] uppercase font-light"
+        ? "text-[#d4a96a] text-[9px] tracking-[0.25em] font-light"
         : isRose
-          ? "text-[#c4748a] text-[9px] tracking-[0.25em] uppercase font-light"
-          : "text-[#b8955a] text-[9px] tracking-[0.25em] uppercase font-light",
+          ? "text-[#c4748a] text-[9px] tracking-[0.25em] font-light"
+          : "text-[#b8955a] text-[9px] tracking-[0.25em] font-light",
       textColorClass: isNight
         ? "text-[#f5f0e8]"
         : isRose
@@ -379,13 +379,13 @@ export function getTemplateStyles(templateId: string, themeId: string): Template
       fontBody: "font-sans font-light",
       containerClass: "max-w-screen-xl mx-auto px-4 sm:px-8 lg:px-16",
       whatsappButtonClass: isNight
-        ? "border border-white/15 text-white/80 font-light tracking-[0.2em] text-xs uppercase py-4 hover:border-white/30 transition-all text-center rounded-none"
-        : "border border-black/15 text-black/70 font-light tracking-[0.2em] text-xs uppercase py-4 hover:border-black/30 transition-all text-center rounded-none",
+        ? "border border-white/15 text-white/80 font-light tracking-[0.2em] text-xs py-4 hover:border-white/30 transition-all text-center rounded-none"
+        : "border border-black/15 text-black/70 font-light tracking-[0.2em] text-xs py-4 hover:border-black/30 transition-all text-center rounded-none",
       instagramButtonClass: isNight
-        ? "border border-[#d4a96a]/30 text-[#d4a96a] font-light tracking-[0.2em] text-xs uppercase py-4 hover:bg-[#d4a96a]/10 transition-all text-center rounded-none"
+        ? "border border-[#d4a96a]/30 text-[#d4a96a] font-light tracking-[0.2em] text-xs py-4 hover:bg-[#d4a96a]/10 transition-all text-center rounded-none"
         : isRose
-          ? "bg-[#2a1a1f] text-[#fdf6f0] font-light tracking-[0.2em] text-xs uppercase py-4 hover:bg-black transition-all text-center rounded-none"
-          : "bg-[#1a1714] text-[#faf8f4] font-light tracking-[0.2em] text-xs uppercase py-4 hover:bg-black transition-all text-center rounded-none",
+          ? "bg-[#2a1a1f] text-[#fdf6f0] font-light tracking-[0.2em] text-xs py-4 hover:bg-black transition-all text-center rounded-none"
+          : "bg-[#1a1714] text-[#faf8f4] font-light tracking-[0.2em] text-xs py-4 hover:bg-black transition-all text-center rounded-none",
       logoWrapperClass: "w-9 h-9 rounded-none overflow-hidden bg-transparent flex items-center justify-center",
       inputClass: isNight
         ? "bg-transparent border-b border-white/15 text-white placeholder-zinc-600 font-light rounded-none px-0 py-2.5 focus:outline-none focus:border-[#d4a96a] transition-colors"
@@ -394,13 +394,13 @@ export function getTemplateStyles(templateId: string, themeId: string): Template
           : "bg-transparent border-b border-black/15 text-[#1a1714] placeholder-zinc-400 font-light rounded-none px-0 py-2.5 focus:outline-none focus:border-[#b8955a] transition-colors",
       dividerClass: isNight ? "border-white/8" : "border-black/8",
       filterPillClass: isNight
-        ? "text-xs font-light tracking-[0.2em] uppercase text-zinc-500 hover:text-white transition-colors pb-0.5 border-b border-transparent hover:border-white/20"
-        : "text-xs font-light tracking-[0.2em] uppercase text-zinc-400 hover:text-black transition-colors pb-0.5 border-b border-transparent hover:border-black/20",
+        ? "text-xs font-light tracking-[0.2em] text-zinc-500 hover:text-white transition-colors pb-0.5 border-b border-transparent hover:border-white/20"
+        : "text-xs font-light tracking-[0.2em] text-zinc-400 hover:text-black transition-colors pb-0.5 border-b border-transparent hover:border-black/20",
       filterPillActiveClass: isNight
-        ? "text-xs font-light tracking-[0.2em] uppercase text-[#d4a96a] pb-0.5 border-b border-[#d4a96a]"
+        ? "text-xs font-light tracking-[0.2em] text-[#d4a96a] pb-0.5 border-b border-[#d4a96a]"
         : isRose
-          ? "text-xs font-light tracking-[0.2em] uppercase text-[#2a1a1f] pb-0.5 border-b border-[#2a1a1f]"
-          : "text-xs font-light tracking-[0.2em] uppercase text-[#1a1714] pb-0.5 border-b border-[#1a1714]",
+          ? "text-xs font-light tracking-[0.2em] text-[#2a1a1f] pb-0.5 border-b border-[#2a1a1f]"
+          : "text-xs font-light tracking-[0.2em] text-[#1a1714] pb-0.5 border-b border-[#1a1714]",
     };
   }
 
@@ -425,27 +425,27 @@ export function getTemplateStyles(templateId: string, themeId: string): Template
           ? "bg-[#111111] border-2 border-[#1f1f1f] rounded-none hover:border-[#ff5a00] transition-all duration-200 group"
           : "bg-[#111111] border-2 border-[#1f1f1f] rounded-none hover:border-[#7c3aed] transition-all duration-200 group",
       buttonClass: isRed
-        ? "bg-[#ff0000] text-white font-black uppercase tracking-widest text-sm py-4 px-8 rounded-none hover:brightness-110 transition-all active:scale-95"
+        ? "bg-[#ff0000] text-white font-black tracking-widest text-sm py-4 px-8 rounded-none hover:brightness-110 transition-all active:scale-95"
         : isOrange
-          ? "bg-[#ff5a00] text-white font-black uppercase tracking-widest text-sm py-4 px-8 rounded-none hover:brightness-110 transition-all active:scale-95"
-          : "bg-[#7c3aed] text-white font-black uppercase tracking-widest text-sm py-4 px-8 rounded-none hover:brightness-110 transition-all active:scale-95",
+          ? "bg-[#ff5a00] text-white font-black tracking-widest text-sm py-4 px-8 rounded-none hover:brightness-110 transition-all active:scale-95"
+          : "bg-[#7c3aed] text-white font-black tracking-widest text-sm py-4 px-8 rounded-none hover:brightness-110 transition-all active:scale-95",
       badgeClass: isRed
-        ? "bg-[#ff0000] text-white font-black uppercase text-[9px] tracking-widest px-2 py-0.5 rounded-none"
+        ? "bg-[#ff0000] text-white font-black text-[9px] tracking-widest px-2 py-0.5 rounded-none"
         : isOrange
-          ? "bg-[#ff5a00] text-white font-black uppercase text-[9px] tracking-widest px-2 py-0.5 rounded-none"
-          : "bg-[#7c3aed] text-white font-black uppercase text-[9px] tracking-widest px-2 py-0.5 rounded-none",
+          ? "bg-[#ff5a00] text-white font-black text-[9px] tracking-widest px-2 py-0.5 rounded-none"
+          : "bg-[#7c3aed] text-white font-black text-[9px] tracking-widest px-2 py-0.5 rounded-none",
       textColorClass: "text-white",
       textMutedClass: "text-zinc-500",
       priceClass: "text-white font-black text-lg",
-      fontHeadline: "font-sans font-black uppercase tracking-tight",
+      fontHeadline: "font-sans font-black tracking-tight",
       fontBody: "font-sans",
       containerClass: "max-w-screen-xl mx-auto px-4 sm:px-6",
-      whatsappButtonClass: "bg-[#1f1f1f] text-white border-2 border-white/20 font-bold uppercase tracking-widest text-xs py-4 hover:bg-white hover:text-black transition-all text-center rounded-none",
+      whatsappButtonClass: "bg-[#1f1f1f] text-white border-2 border-white/20 font-bold tracking-widest text-xs py-4 hover:bg-white hover:text-black transition-all text-center rounded-none",
       instagramButtonClass: isRed
-        ? "bg-[#ff0000] text-white font-black uppercase tracking-widest text-xs py-4 hover:brightness-110 transition-all text-center rounded-none"
+        ? "bg-[#ff0000] text-white font-black tracking-widest text-xs py-4 hover:brightness-110 transition-all text-center rounded-none"
         : isOrange
-          ? "bg-[#ff5a00] text-white font-black uppercase tracking-widest text-xs py-4 hover:brightness-110 transition-all text-center rounded-none"
-          : "bg-[#7c3aed] text-white font-black uppercase tracking-widest text-xs py-4 hover:brightness-110 transition-all text-center rounded-none",
+          ? "bg-[#ff5a00] text-white font-black tracking-widest text-xs py-4 hover:brightness-110 transition-all text-center rounded-none"
+          : "bg-[#7c3aed] text-white font-black tracking-widest text-xs py-4 hover:brightness-110 transition-all text-center rounded-none",
       logoWrapperClass: "w-9 h-9 rounded-none overflow-hidden bg-transparent border-2 border-white flex items-center justify-center",
       inputClass: isRed
         ? "bg-[#111111] border-2 border-[#1f1f1f] text-white placeholder-zinc-600 font-bold rounded-none px-4 py-2.5 focus:outline-none focus:border-[#ff0000] transition-colors"
@@ -454,15 +454,15 @@ export function getTemplateStyles(templateId: string, themeId: string): Template
           : "bg-[#111111] border-2 border-[#1f1f1f] text-white placeholder-zinc-600 font-bold rounded-none px-4 py-2.5 focus:outline-none focus:border-[#7c3aed] transition-colors",
       dividerClass: "border-white/10",
       filterPillClass: isRed
-        ? "px-4 py-1.5 text-xs font-black uppercase border-2 border-[#1f1f1f] text-zinc-500 hover:border-[#ff0000] hover:text-[#ff0000] transition-all bg-[#0a0a0a]"
+        ? "px-4 py-1.5 text-xs font-black border-2 border-[#1f1f1f] text-zinc-500 hover:border-[#ff0000] hover:text-[#ff0000] transition-all bg-[#0a0a0a]"
         : isOrange
-          ? "px-4 py-1.5 text-xs font-black uppercase border-2 border-[#1f1f1f] text-zinc-500 hover:border-[#ff5a00] hover:text-[#ff5a00] transition-all bg-[#0a0a0a]"
-          : "px-4 py-1.5 text-xs font-black uppercase border-2 border-[#1f1f1f] text-zinc-500 hover:border-[#7c3aed] hover:text-[#7c3aed] transition-all bg-[#0a0a0a]",
+          ? "px-4 py-1.5 text-xs font-black border-2 border-[#1f1f1f] text-zinc-500 hover:border-[#ff5a00] hover:text-[#ff5a00] transition-all bg-[#0a0a0a]"
+          : "px-4 py-1.5 text-xs font-black border-2 border-[#1f1f1f] text-zinc-500 hover:border-[#7c3aed] hover:text-[#7c3aed] transition-all bg-[#0a0a0a]",
       filterPillActiveClass: isRed
-        ? "px-4 py-1.5 text-xs font-black uppercase border-2 border-[#ff0000] text-[#ff0000] bg-[#0a0a0a]"
+        ? "px-4 py-1.5 text-xs font-black border-2 border-[#ff0000] text-[#ff0000] bg-[#0a0a0a]"
         : isOrange
-          ? "px-4 py-1.5 text-xs font-black uppercase border-2 border-[#ff5a00] text-[#ff5a00] bg-[#0a0a0a]"
-          : "px-4 py-1.5 text-xs font-black uppercase border-2 border-[#7c3aed] text-[#7c3aed] bg-[#0a0a0a]",
+          ? "px-4 py-1.5 text-xs font-black border-2 border-[#ff5a00] text-[#ff5a00] bg-[#0a0a0a]"
+          : "px-4 py-1.5 text-xs font-black border-2 border-[#7c3aed] text-[#7c3aed] bg-[#0a0a0a]",
     };
   }
 
@@ -500,10 +500,10 @@ export function getTemplateStyles(templateId: string, themeId: string): Template
           ? "bg-[#0ea5e9] text-white font-bold rounded-full py-3.5 px-8 hover:opacity-90 hover:scale-[1.02] transition-all shadow-md shadow-[#0ea5e9]/25"
           : "bg-[#ec4899] text-white font-bold rounded-full py-3.5 px-8 hover:opacity-90 hover:scale-[1.02] transition-all shadow-md shadow-[#ec4899]/25",
       badgeClass: isTropical
-        ? "bg-[#f97316]/10 border border-[#f97316]/30 text-[#f97316] rounded-full px-3 py-1 text-[10px] uppercase font-bold"
+        ? "bg-[#f97316]/10 border border-[#f97316]/30 text-[#f97316] rounded-full px-3 py-1 text-[10px] font-bold"
         : isOcean
-          ? "bg-[#0ea5e9]/10 border border-[#0ea5e9]/30 text-[#0ea5e9] rounded-full px-3 py-1 text-[10px] uppercase font-bold"
-          : "bg-[#ec4899]/10 border border-[#ec4899]/30 text-[#ec4899] rounded-full px-3 py-1 text-[10px] uppercase font-bold",
+          ? "bg-[#0ea5e9]/10 border border-[#0ea5e9]/30 text-[#0ea5e9] rounded-full px-3 py-1 text-[10px] font-bold"
+          : "bg-[#ec4899]/10 border border-[#ec4899]/30 text-[#ec4899] rounded-full px-3 py-1 text-[10px] font-bold",
       textColorClass: isTropical
         ? "text-[#1a0a00]"
         : isOcean

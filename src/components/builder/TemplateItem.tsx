@@ -24,10 +24,10 @@ export const getCategoryForTemplate = (templateId: string | null): string | null
 
 const categoryColors: Record<string, { border: string, bg: string, text: string, shadow: string }> = {
   user_comment: {
-    border: 'border-[#8FE3FF]/40',
-    bg: 'bg-[#8FE3FF]/10',
-    text: 'text-[#8FE3FF]',
-    shadow: 'shadow-[0_0_15px_rgba(143,227,255,0.15)]'
+    border: 'border-[#c4c0ff]/40',
+    bg: 'bg-[#c4c0ff]/10',
+    text: 'text-[#c4c0ff]',
+    shadow: 'shadow-[0_0_15px_rgba(196,192,255,0.15)]'
   },
   user_dm: {
     border: 'border-[#C084FC]/40',

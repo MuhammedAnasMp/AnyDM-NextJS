@@ -110,7 +110,7 @@ const InstagramRow = ({ account, isPrimary, onRemove, onToggleEnabled, onToggleL
     className={cn(
       "p-4 rounded-lg bg-[#1c1b1b] border transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group",
       isPrimary
-        ? "border-[#8fe3ff]/40 bg-[#8fe3ff]/[0.03] shadow-[0_0_15px_rgba(143,227,255,0.04)]"
+        ? "border-[#c4c0ff]/40 bg-[#c4c0ff]/[0.03] shadow-[0_0_15px_rgba(196,192,255,0.04)]"
         : "border-[#2a2a2a] hover:border-[#444748] hover:bg-[#20201f]"
     )}
   >
@@ -124,7 +124,7 @@ const InstagramRow = ({ account, isPrimary, onRemove, onToggleEnabled, onToggleL
         <div
           className={cn(
             "w-11 h-11 rounded-full overflow-hidden transition-transform duration-200 group-hover:scale-105 p-0.5 bg-[#20201f] border border-[#2a2a2a] flex items-center justify-center",
-            isPrimary && "ring-2 ring-[#8fe3ff]/60 ring-offset-2 ring-offset-[#131313]"
+            isPrimary && "ring-2 ring-[#c4c0ff]/60 ring-offset-2 ring-offset-[#131313]"
           )}
         >
           <UserAvatar
@@ -140,7 +140,7 @@ const InstagramRow = ({ account, isPrimary, onRemove, onToggleEnabled, onToggleL
           </div>
         </div>
         {isPrimary && (
-          <div className="absolute -top-1 -left-1 bg-[#8fe3ff] text-[#131313] p-1 rounded-full shadow-lg z-10 border border-[#131313]">
+          <div className="absolute -top-1 -left-1 bg-[#c4c0ff] text-[#131313] p-1 rounded-full shadow-lg z-10 border border-[#131313]">
             <Star className="w-2.5 h-2.5 fill-current" />
           </div>
         )}
@@ -148,26 +148,26 @@ const InstagramRow = ({ account, isPrimary, onRemove, onToggleEnabled, onToggleL
 
       <div className="min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs font-semibold text-white tracking-tight group-hover:text-[#8fe3ff] transition-colors truncate">
+          <span className="text-xs font-semibold text-white tracking-tight group-hover:text-[#c4c0ff] transition-colors truncate">
             @{account.username}
           </span>
           {isPrimary && (
-            <span className="bg-[#8fe3ff]/10 text-[#8fe3ff] border border-[#8fe3ff]/20 text-[9px] font-bold uppercase px-2 py-0.5 rounded tracking-wider">
+            <span className="bg-[#c4c0ff]/10 text-[#c4c0ff] border border-[#c4c0ff]/20 text-[9px] font-bold px-2 py-0.5 rounded tracking-wider">
               Primary
             </span>
           )}
           {account.is_token_expired ? (
-            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-red-500/10 text-red-400 text-[9px] font-semibold uppercase tracking-wider border border-red-500/20">
+            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-red-500/10 text-red-400 text-[9px] font-semibold tracking-wider border border-red-500/20">
               <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
               Token Expired
             </span>
           ) : account.is_enabled ? (
-            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-[#10b981]/10 text-[#34d399] text-[9px] font-semibold uppercase tracking-wider border border-[#10b981]/20">
+            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-[#10b981]/10 text-[#34d399] text-[9px] font-semibold tracking-wider border border-[#10b981]/20">
               <div className="w-1.5 h-1.5 rounded-full bg-[#34d399] animate-pulse" />
               Automations Active
             </span>
           ) : (
-            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 text-[9px] font-semibold uppercase tracking-wider border border-amber-500/20">
+            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 text-[9px] font-semibold tracking-wider border border-amber-500/20">
               <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
               Automations Paused
             </span>
@@ -298,8 +298,8 @@ function AccountsContent() {
       if (appUser?.has_extended_trial) {
         return {
           text: `Extended Trial (${trialDaysLeft} days left)`,
-          textColor: "text-[#8fe3ff]",
-          iconColor: "text-[#8fe3ff]",
+          textColor: "text-[#c4c0ff]",
+          iconColor: "text-[#c4c0ff]",
           icon: Clock
         };
       }
@@ -654,7 +654,7 @@ function AccountsContent() {
           {/* Identity Providers Card */}
           <div className="bg-[#1c1b1b] border border-[#2a2a2a] rounded-lg p-5 space-y-4">
             <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-[#8e9192] flex items-center gap-2">
+              <h3 className="text-xs font-semibold tracking-wider text-[#8e9192] flex items-center gap-2">
                 <Link2 className="w-4 h-4 text-white" strokeWidth={1.75} />
                 <span>Authentication &amp; Login</span>
               </h3>
@@ -710,7 +710,7 @@ function AccountsContent() {
           {/* Security & Token Guarantee Card */}
           <div className="bg-[#1c1b1b] border border-[#2a2a2a] rounded-lg p-5 space-y-3">
             <div className="flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-[#8fe3ff]" strokeWidth={1.75} />
+              <ShieldCheck className="w-4 h-4 text-[#c4c0ff]" strokeWidth={1.75} />
               <h4 className="font-semibold text-xs text-white">Meta Security &amp; Token Encryption</h4>
             </div>
             <p className="text-[11px] text-[#8e9192] leading-relaxed">
@@ -727,7 +727,7 @@ function AccountsContent() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#2a2a2a] pb-4">
               <div>
                 <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-                  <Users className="w-4 h-4 text-[#8fe3ff]" strokeWidth={1.75} />
+                  <Users className="w-4 h-4 text-[#c4c0ff]" strokeWidth={1.75} />
                   <span>Instagram Business Accounts</span>
                 </h3>
                 <p className="text-[11px] text-[#8e9192] mt-0.5">
@@ -742,7 +742,7 @@ function AccountsContent() {
             <div className="space-y-3">
               {isLoading ? (
                 <div className="py-16 text-center text-xs text-[#8e9192] flex flex-col items-center justify-center gap-2">
-                  <Loader2 className="w-5 h-5 animate-spin text-[#8fe3ff]" />
+                  <Loader2 className="w-5 h-5 animate-spin text-[#c4c0ff]" />
                   <span>Loading connected Instagram profiles...</span>
                 </div>
               ) : accounts.length > 0 ? (
@@ -821,7 +821,7 @@ export default function AccountsPage() {
     <Suspense
       fallback={
         <div className="max-w-4xl mx-auto py-16 flex justify-center items-center">
-          <Loader2 className="w-8 h-8 text-[#8fe3ff] animate-spin" />
+          <Loader2 className="w-8 h-8 text-[#c4c0ff] animate-spin" />
         </div>
       }
     >

@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 
 export default function MysteryBoxPage() {
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
@@ -22,16 +22,16 @@ export default function MysteryBoxPage() {
 
       <div className="glass-pane p-6 rounded-xl space-y-4">
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Claim Trigger Threshold</label>
-          <input 
-            type="text" 
+          <label className="block text-xs font-bold tracking-wider text-on-surface-variant mb-2">Claim Trigger Threshold</label>
+          <input
+            type="text"
             defaultValue="After 3 purchases or $150 total spend"
             className="bg-white/5 border border-white/10 rounded-lg py-2 px-4 text-xs text-white focus:outline-none w-full max-w-md focus:border-white/30"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-[#c4c7c8]/80 mb-2">Prize Pool Type</label>
+          <label className="block text-xs font-bold tracking-wider text-[#c4c7c8]/80 mb-2">Prize Pool Type</label>
           <select className="bg-[#1c1b1b] border border-white/10 rounded-lg py-2 px-4 text-xs text-white focus:outline-none w-full max-w-md">
             <option>Product Discount Vouchers</option>
             <option>Free Accessory Gift</option>

@@ -22,10 +22,9 @@ export default function LandingPage() {
   return (
     <div className="bg-[#f9f9f9] text-[#1a1c1c] min-h-screen selection:bg-black/10 flex flex-col font-sans">
       {/* Top Navigation Bar */}
-      <header 
-        className={`fixed top-0 left-0 right-0 z-50 border-b border-[#eaeaea] transition-all duration-300 ${
-          scrolled ? "bg-white/90 backdrop-blur-md shadow-sm h-14" : "bg-[#ffffff] h-16"
-        }`}
+      <header
+        className={`fixed top-0 left-0 right-0 z-50 border-b border-[#eaeaea] transition-all duration-300 ${scrolled ? "bg-white/90 backdrop-blur-md shadow-sm h-14" : "bg-[#ffffff] h-16"
+          }`}
       >
         <nav className="max-w-[1152px] mx-auto px-6 flex items-center justify-between h-full">
           <div className="flex items-center gap-8">
@@ -45,14 +44,14 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <Link 
-              href="/login" 
+            <Link
+              href="/login"
               className="text-sm text-[#5e5e5e] hover:text-black font-medium transition-colors duration-200"
             >
               Log In
             </Link>
-            <Link 
-              href="/signup" 
+            <Link
+              href="/signup"
               className="bg-black text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition-opacity"
             >
               Sign Up
@@ -65,17 +64,17 @@ export default function LandingPage() {
       <main className="pt-24 flex-1">
         {/* Hero Section */}
         <section className="max-w-[1152px] mx-auto px-6 py-20 flex flex-col items-center text-center">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
             className="inline-flex items-center gap-2 px-3 py-1 bg-[#eeeeee] rounded-full border border-[#eaeaea] mb-8"
           >
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-black">New Launch</span>
+            <span className="text-[10px] font-semibold tracking-widest text-black">New Launch</span>
             <span className="text-[10px] text-[#5e5e5e]">v2.0 is now live</span>
           </motion.div>
 
-          <motion.h1 
+          <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
@@ -84,7 +83,7 @@ export default function LandingPage() {
             Scale your social commerce without limits.
           </motion.h1>
 
-          <motion.p 
+          <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
@@ -93,14 +92,14 @@ export default function LandingPage() {
             The precision-engineered automation tool for high-volume social storefronts. Convert DMs into revenue with zero friction.
           </motion.p>
 
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
             className="flex flex-col sm:flex-row gap-4"
           >
-            <Link 
-              href="/signup" 
+            <Link
+              href="/signup"
               className="text-white text-base font-semibold px-8 py-3.5 rounded-lg shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 text-center"
               style={{
                 background: "linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)"
@@ -114,15 +113,15 @@ export default function LandingPage() {
           </motion.div>
 
           {/* Hero Interface Preview */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
             className="mt-16 w-full aspect-[2.12/1] rounded-xl overflow-hidden border border-[#eaeaea] bg-white shadow-xl relative"
           >
-            <img 
-              alt="AnyDM Hero Interface Preview" 
-              className="w-full h-full object-cover grayscale-[15%] contrast-[1.05]" 
+            <img
+              alt="AnyDM Hero Interface Preview"
+              className="w-full h-full object-cover grayscale-[15%] contrast-[1.05]"
               src="https://lh3.googleusercontent.com/aida-public/AB6AXuDRxGy9WPJZmZgvcSzf797WpvzYiaKcYuRVAH3ow-hKlK5-F2rtV6yQBIzBRJrROcIhv4680TaiHnt2dhfYV5wx8cbQzpVPIYPj9fL88MhST1l-3nG1Phr5Gk6urmxJ5PnMTA9Yo7B1QxPc19WSRMDf5NxjPeEIFXn_nDWcnqhls_Bagb8vULrpt1AkDIiezmkIEvANpbh8Zs_oOT97jYPlzOoWmKEQ5DgtKLqYVoTb9OBTpRVrYGbzJILlXyLNtcnYIEXa-o1zxeE"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-white/30 to-transparent pointer-events-none"></div>
@@ -174,7 +173,7 @@ export default function LandingPage() {
               </div>
               <div className="mt-12">
                 <div className="text-4xl font-extrabold tracking-tight">99.9%</div>
-                <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mt-1">UPTIME SLA</div>
+                <div className="text-[10px] text-zinc-500 font-bold tracking-wider mt-1">UPTIME SLA</div>
               </div>
             </div>
 
@@ -217,10 +216,10 @@ export default function LandingPage() {
             {/* Free Trial Plan */}
             <div className="bg-white p-8 rounded-2xl border border-[#eaeaea] flex flex-col justify-between transition-all duration-300 hover:border-black shadow-sm">
               <div>
-                <h4 className="text-xs font-bold text-[#5e5e5e] uppercase tracking-widest mb-4">Free Trial</h4>
+                <h4 className="text-xs font-bold text-[#5e5e5e] tracking-widest mb-4">Free Trial</h4>
                 <div className="flex items-baseline gap-1">
                   <span className="text-4xl font-black text-black">₹0</span>
-                  <span className="text-[#5e5e5e] text-xs uppercase font-bold ml-1">14 Days</span>
+                  <span className="text-[#5e5e5e] text-xs font-bold ml-1">14 Days</span>
                 </div>
                 <p className="text-xs text-[#888888] mt-4 leading-relaxed">
                   Start risk-free and experience automatic lead captures. No credit card required.
@@ -240,8 +239,8 @@ export default function LandingPage() {
                   </li>
                 </ul>
               </div>
-              <Link 
-                href="/signup" 
+              <Link
+                href="/signup"
                 className="mt-8 block w-full text-center border border-black py-3 rounded-xl text-xs font-bold hover:bg-[#f3f3f3] transition-colors"
               >
                 Start Free Trial
@@ -250,14 +249,14 @@ export default function LandingPage() {
 
             {/* Creator Pro Plan */}
             <div className="bg-white p-8 rounded-2xl border-2 border-black flex flex-col justify-between relative transition-all duration-300 shadow-xl md:scale-105">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-black text-white text-[9px] font-black px-3.5 py-1 rounded-full uppercase tracking-widest">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-black text-white text-[9px] font-black px-3.5 py-1 rounded-full tracking-widest">
                 MONTHLY PREMIUM
               </div>
               <div>
-                <h4 className="text-xs font-bold text-[#5e5e5e] uppercase tracking-widest mb-4">Creator Pro</h4>
+                <h4 className="text-xs font-bold text-[#5e5e5e] tracking-widest mb-4">Creator Pro</h4>
                 <div className="flex items-baseline gap-1">
                   <span className="text-4xl font-black text-black">₹499</span>
-                  <span className="text-[#5e5e5e] text-xs uppercase font-bold ml-1">/ Month</span>
+                  <span className="text-[#5e5e5e] text-xs font-bold ml-1">/ Month</span>
                 </div>
                 <p className="text-xs text-[#888888] mt-4 leading-relaxed">
                   Scale your social commerce engine. Unlimited accounts, complete inbox access, and fully powered DMs.
@@ -281,8 +280,8 @@ export default function LandingPage() {
                   </li>
                 </ul>
               </div>
-              <Link 
-                href="/signup" 
+              <Link
+                href="/signup"
                 className="mt-8 block w-full text-center py-3 rounded-xl text-xs font-black text-white hover:opacity-95 transition-opacity"
                 style={{
                   background: "linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)"
@@ -297,10 +296,10 @@ export default function LandingPage() {
         {/* CTA Section */}
         <section className="max-w-[1152px] mx-auto px-6 py-20 text-center">
           <div className="text-white rounded-3xl p-12 md:p-20 relative bg-black overflow-hidden">
-            <div 
-              className="absolute inset-0 opacity-10 pointer-events-none" 
+            <div
+              className="absolute inset-0 opacity-10 pointer-events-none"
               style={{
-                backgroundImage: "radial-gradient(circle at 2px 2px, white 1px, transparent 0)", 
+                backgroundImage: "radial-gradient(circle at 2px 2px, white 1px, transparent 0)",
                 backgroundSize: "24px 24px"
               }}
             ></div>
@@ -310,7 +309,7 @@ export default function LandingPage() {
             <p className="text-zinc-400 text-base max-w-xl mx-auto mb-10 relative z-10 leading-relaxed">
               Join 2,000+ brands using AnyDM to handle their social interactions with clinical precision.
             </p>
-            <Link 
+            <Link
               href="/signup"
               className="bg-white text-black px-8 py-4 rounded-xl text-sm font-bold hover:scale-105 transition-all duration-200 relative z-10 shadow-md inline-block border border-white/10"
             >

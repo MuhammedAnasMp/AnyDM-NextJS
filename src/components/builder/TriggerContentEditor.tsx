@@ -180,7 +180,7 @@ export default function TriggerContentEditor({ nodeId, onClose }: TriggerContent
             <>
               {/* Target Scope Section */}
               <div className="space-y-2.5">
-                <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block font-inter">
+                <label className="text-[11px] font-bold text-zinc-400 tracking-wider block font-inter">
                   TARGET SCOPE
                 </label>
 

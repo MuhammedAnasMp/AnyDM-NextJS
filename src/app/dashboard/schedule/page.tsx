@@ -577,7 +577,7 @@ export default function InstagramSchedulerPage() {
       {/* ── KPI & Account Health Bento ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
         <div className="p-3.5 sm:p-4 rounded-md bg-[#1c1b1b] border border-white/10 space-y-1 relative overflow-hidden group">
-          <div className="flex items-center justify-between text-[#8e9192] text-[11px] font-bold uppercase tracking-wider">
+          <div className="flex items-center justify-between text-[#8e9192] text-[11px] font-bold tracking-wider">
             <span>Pending Scheduled</span>
             <Clock className="w-4 h-4 text-[#c4c0ff]" />
           </div>
@@ -586,7 +586,7 @@ export default function InstagramSchedulerPage() {
         </div>
 
         <div className="p-3.5 sm:p-4 rounded-md bg-[#1c1b1b] border border-white/10 space-y-1">
-          <div className="flex items-center justify-between text-[#8e9192] text-[11px] font-bold uppercase tracking-wider">
+          <div className="flex items-center justify-between text-[#8e9192] text-[11px] font-bold tracking-wider">
             <span>Published Live</span>
             <CheckCircle2 className="w-4 h-4 text-[#34d399]" />
           </div>
@@ -595,7 +595,7 @@ export default function InstagramSchedulerPage() {
         </div>
 
         <div className="p-3.5 sm:p-4 rounded-md bg-[#1c1b1b] border border-white/10 space-y-1.5">
-          <div className="flex items-center justify-between text-[#8e9192] text-[11px] font-bold uppercase tracking-wider">
+          <div className="flex items-center justify-between text-[#8e9192] text-[11px] font-bold tracking-wider">
             <span>Daily 24h Quota</span>
             <span className="text-[10px] font-mono text-[#c4c0ff] font-bold">{publishedCount}/100</span>
           </div>
@@ -614,7 +614,7 @@ export default function InstagramSchedulerPage() {
         </div>
 
         <div className="p-3.5 sm:p-4 rounded-md bg-[#1c1b1b] border border-white/10 space-y-1">
-          <div className="flex items-center justify-between text-[#8e9192] text-[11px] font-bold uppercase tracking-wider">
+          <div className="flex items-center justify-between text-[#8e9192] text-[11px] font-bold tracking-wider">
             <span>Anti-Block Guard</span>
             <Sparkles className="w-4 h-4 text-[#34d399]" />
           </div>
@@ -767,7 +767,7 @@ export default function InstagramSchedulerPage() {
                   )}
 
                   {/* Format Pill */}
-                  <div className="absolute top-2.5 left-2.5 flex items-center gap-1 px-2 py-0.5 rounded bg-black/70 backdrop-blur-md border border-white/10 text-[10px] font-bold text-white uppercase tracking-wider">
+                  <div className="absolute top-2.5 left-2.5 flex items-center gap-1 px-2 py-0.5 rounded bg-black/70 backdrop-blur-md border border-white/10 text-[10px] font-bold text-white tracking-wider">
                     {post.post_type === "REELS" && <Film className="w-3 h-3 text-[#c4c0ff]" />}
                     {post.post_type === "STORIES" && <Play className="w-3 h-3 text-pink-400" />}
                     {post.post_type === "IMAGE" && <ImageIcon className="w-3 h-3 text-emerald-400" />}
@@ -883,7 +883,7 @@ export default function InstagramSchedulerPage() {
           /* ── Table / List View ── */
           <div className="border border-white/10 rounded-md overflow-x-auto bg-[#20201f]">
             <table className="w-full text-left text-xs min-w-[700px]">
-              <thead className="bg-[#181818] border-b border-white/10 text-[#8e9192] uppercase font-bold text-[10px] tracking-wider">
+              <thead className="bg-[#181818] border-b border-white/10 text-[#8e9192] font-bold text-[10px] tracking-wider">
                 <tr>
                   <th className="py-2.5 px-4">Media</th>
                   <th className="py-2.5 px-4">Format</th>
@@ -1137,7 +1137,7 @@ export default function InstagramSchedulerPage() {
 
                   {/* 1. Publishing Schedule (moved to top) */}
                   <div className="space-y-2 border-b border-white/5 pb-4">
-                    <label className="text-[11px] font-bold text-[#8e9192] uppercase tracking-wider">
+                    <label className="text-[11px] font-bold text-[#8e9192] tracking-wider">
                       Publishing Schedule
                     </label>
                     <div className="grid grid-cols-2 gap-2">
@@ -1198,9 +1198,8 @@ export default function InstagramSchedulerPage() {
                                 (e.target as any).showPicker?.();
                               } catch { }
                             }}
-                            className={`w-full bg-[#1c1b1b] border rounded-lg pl-9 pr-3 py-2.5 text-xs text-white outline-none transition-all [color-scheme:dark] cursor-pointer font-medium ${
-                              errors.datetime ? "border-rose-500 focus:border-rose-400" : "border-white/10 focus:border-[#c4c0ff]"
-                            }`}
+                            className={`w-full bg-[#1c1b1b] border rounded-lg pl-9 pr-3 py-2.5 text-xs text-white outline-none transition-all [color-scheme:dark] cursor-pointer font-medium ${errors.datetime ? "border-rose-500 focus:border-rose-400" : "border-white/10 focus:border-[#c4c0ff]"
+                              }`}
                           />
                         </div>
 
@@ -1235,7 +1234,7 @@ export default function InstagramSchedulerPage() {
 
                   {/* 2. Format Selection */}
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-bold text-[#8e9192] uppercase tracking-wider">
+                    <label className="text-[11px] font-bold text-[#8e9192] tracking-wider">
                       Content Format
                     </label>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -1269,7 +1268,7 @@ export default function InstagramSchedulerPage() {
                   {/* 2. Media Upload Section */}
                   {postType === "CAROUSEL" ? (
                     <div className="space-y-2.5">
-                      <div className="flex items-center justify-between text-[11px] font-bold text-[#8e9192] uppercase tracking-wider">
+                      <div className="flex items-center justify-between text-[11px] font-bold text-[#8e9192] tracking-wider">
                         <span>Carousel Slides ({carouselUrls.length}/10)</span>
                         <span className="text-[10px] text-[#c4c0ff] font-semibold">Min 2, Max 10 items</span>
                       </div>
@@ -1346,7 +1345,7 @@ export default function InstagramSchedulerPage() {
                     </div>
                   ) : (
                     <div className="space-y-1.5">
-                      <div className="flex items-center justify-between text-[11px] font-bold text-[#8e9192] uppercase tracking-wider">
+                      <div className="flex items-center justify-between text-[11px] font-bold text-[#8e9192] tracking-wider">
                         <span>Media File</span>
                       </div>
 
@@ -1377,9 +1376,8 @@ export default function InstagramSchedulerPage() {
                           </button>
                         </div>
                       ) : (
-                        <label className={`border border-dashed rounded-lg p-5 flex flex-col items-center justify-center gap-1.5 bg-[#1c1b1b]/40 hover:bg-[#1c1b1b] cursor-pointer transition-all ${
-                          errors.media ? "border-rose-500/60 hover:border-rose-400" : "border-white/15 hover:border-[#c4c0ff]/60"
-                        }`}>
+                        <label className={`border border-dashed rounded-lg p-5 flex flex-col items-center justify-center gap-1.5 bg-[#1c1b1b]/40 hover:bg-[#1c1b1b] cursor-pointer transition-all ${errors.media ? "border-rose-500/60 hover:border-rose-400" : "border-white/15 hover:border-[#c4c0ff]/60"
+                          }`}>
                           <div className="w-8 h-8 rounded bg-[#c4c0ff]/10 flex items-center justify-center text-[#c4c0ff]">
                             <Upload className="w-4 h-4" />
                           </div>
@@ -1413,7 +1411,7 @@ export default function InstagramSchedulerPage() {
                   {/* 3. Custom Reel Thumbnail Cover */}
                   {(postType === "REELS" || postType === "VIDEO") && (
                     <div className="space-y-1.5">
-                      <label className="text-[11px] font-bold text-[#8e9192] uppercase tracking-wider flex items-center justify-between">
+                      <label className="text-[11px] font-bold text-[#8e9192] tracking-wider flex items-center justify-between">
                         <span>Custom Cover Photo (Optional)</span>
                         <span className="text-[10px] text-[#8e9192]">Reels Grid Thumbnail</span>
                       </label>
@@ -1458,7 +1456,7 @@ export default function InstagramSchedulerPage() {
                   {/* 4. Caption & Tag Assistant */}
                   {postType !== "STORIES" && (
                     <div className="space-y-1.5">
-                      <div className="flex items-center justify-between text-[11px] font-bold text-[#8e9192] uppercase tracking-wider">
+                      <div className="flex items-center justify-between text-[11px] font-bold text-[#8e9192] tracking-wider">
                         <span>Caption &amp; Hashtags</span>
                         <span className={caption.length > 2000 ? "text-rose-400" : "text-[#8e9192]"}>
                           {caption.length} / 2200
@@ -1742,7 +1740,7 @@ export default function InstagramSchedulerPage() {
                             <div className="flex items-center gap-2">
                               {/* Story Ring Avatar */}
                               <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#feda75] via-[#d62976] to-[#4f5bd5] p-[1.5px] shadow-lg shrink-0">
-                                <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-[10px] font-black uppercase text-white">
+                                <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-[10px] font-black text-white">
                                   {activeAccount?.username ? activeAccount.username[0] : "Z"}
                                 </div>
                               </div>
@@ -1958,7 +1956,7 @@ export default function InstagramSchedulerPage() {
                                 {caption || "Your post description, highlights, and #hashtags will appear here..."}
                               </p>
                               <p className="text-[10px] text-[#8e9192] pt-0.5">View all 48 comments</p>
-                              <p className="text-[8px] text-[#8e9192] uppercase tracking-wider">2 HOURS AGO</p>
+                              <p className="text-[8px] text-[#8e9192] tracking-wider">2 HOURS AGO</p>
                             </div>
                           </div>
 

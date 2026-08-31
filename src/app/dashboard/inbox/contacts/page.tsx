@@ -388,7 +388,7 @@ export default function ContactsPage() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="bg-gradient-to-r from-[#B6B2FF]/10 to-[#8FE3FF]/10 border border-[#B6B2FF]/30 p-3 rounded-lg flex flex-col md:flex-row justify-between items-center gap-3 shadow-lg backdrop-blur-md relative overflow-hidden"
+            className="bg-gradient-to-r from-[#B6B2FF]/10 to-[#c4c0ff]/10 border border-[#B6B2FF]/30 p-3 rounded-lg flex flex-col md:flex-row justify-between items-center gap-3 shadow-lg backdrop-blur-md relative overflow-hidden"
           >
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-[#B6B2FF] text-lg">group</span>
@@ -428,7 +428,7 @@ export default function ContactsPage() {
 
           {/* Hourly DM Velocity Indicator */}
           <div className="flex items-center gap-2">
-            <span className="text-[11px] text-[#8e9192] font-semibold uppercase tracking-wider">DM Hourly Velocity:</span>
+            <span className="text-[11px] text-[#8e9192] font-semibold tracking-wider">DM Hourly Velocity:</span>
             <div className="flex items-center gap-1.5 font-bold">
               <span className="text-white font-mono">{rateLimitData?.hourly_dm_count || 0}</span>
               <span className="text-[#8e9192]">/ {rateLimitData?.hourly_dm_limit || 200} safe DMs/hr</span>
@@ -470,7 +470,7 @@ export default function ContactsPage() {
       <div className="flex flex-col gap-3 bg-white/[0.02] border border-white/5 p-3 rounded-lg backdrop-blur-md relative overflow-hidden">
         {/* Sleek horizontal progress loading bar */}
         {isFetching && !loading && (
-          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#B6B2FF] to-[#8FE3FF] animate-pulse" />
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#B6B2FF] to-[#c4c0ff] animate-pulse" />
         )}
 
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
@@ -523,8 +523,8 @@ export default function ContactsPage() {
               }}
               disabled={isFetching}
               className={`pb-2 relative font-medium transition-all cursor-pointer disabled:cursor-wait ${windowFilter === tab.id
-                  ? "text-white"
-                  : "text-white/40 hover:text-white/70"
+                ? "text-white"
+                : "text-white/40 hover:text-white/70"
                 }`}
             >
               {tab.label}
@@ -544,7 +544,7 @@ export default function ContactsPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="bg-white/[0.03] border-b border-white/10 text-white/50 font-semibold uppercase tracking-wider">
+              <tr className="bg-white/[0.03] border-b border-white/10 text-white/50 font-semibold tracking-wider">
                 <th className="px-3 py-2.5 text-center w-12">
                   <input
                     type="checkbox"
@@ -665,7 +665,7 @@ export default function ContactsPage() {
                           </div>
                           <div className="w-full bg-white/10 rounded-full h-1 overflow-hidden">
                             <div
-                              className="bg-gradient-to-r from-[#B6B2FF] to-[#8FE3FF] h-full rounded-full transition-all duration-500"
+                              className="bg-gradient-to-r from-[#B6B2FF] to-[#c4c0ff] h-full rounded-full transition-all duration-500"
                               style={{ width: `${Math.max(5, Math.min(100, contact.lead_score))}%` }}
                             />
                           </div>
@@ -704,7 +704,7 @@ export default function ContactsPage() {
                       {/* Window Status */}
                       <td className="px-4 py-2.5">
                         <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 bg-white/5 rounded-full border text-[9px] font-semibold uppercase tracking-wider ${win.badgeClass}`}
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 bg-white/5 rounded-full border text-[9px] font-semibold tracking-wider ${win.badgeClass}`}
                         >
                           <span className={`w-1.5 h-1.5 rounded-full ${win.indicatorClass}`} />
                           {win.text}
@@ -717,8 +717,8 @@ export default function ContactsPage() {
                           onClick={() => handleStartChat(contact)}
                           disabled={!contact.is_within_23h_window}
                           className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all relative overflow-hidden group/btn ${contact.is_within_23h_window
-                              ? "bg-gradient-to-r from-[#8e8aff] to-[#706bff] hover:from-[#7e7aff] hover:to-[#605bff] text-white cursor-pointer active:scale-95 shadow-md shadow-purple-900/20"
-                              : "bg-white/5 border border-white/10 text-white/30 cursor-not-allowed"
+                            ? "bg-gradient-to-r from-[#8e8aff] to-[#706bff] hover:from-[#7e7aff] hover:to-[#605bff] text-white cursor-pointer active:scale-95 shadow-md shadow-purple-900/20"
+                            : "bg-white/5 border border-white/10 text-white/30 cursor-not-allowed"
                             }`}
                         >
                           <span className="material-symbols-outlined text-sm">chat</span>
@@ -766,8 +766,8 @@ export default function ContactsPage() {
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1 || isFetching}
                   className={`w-7 h-7 rounded border flex items-center justify-center transition-all ${page === 1 || isFetching
-                      ? "border-white/5 text-white/20 cursor-not-allowed"
-                      : "border-white/10 text-white hover:bg-white/5 cursor-pointer active:scale-95"
+                    ? "border-white/5 text-white/20 cursor-not-allowed"
+                    : "border-white/10 text-white hover:bg-white/5 cursor-pointer active:scale-95"
                     }`}
                 >
                   <span className="material-symbols-outlined text-base">chevron_left</span>
@@ -781,8 +781,8 @@ export default function ContactsPage() {
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages || isFetching}
                   className={`w-7 h-7 rounded border flex items-center justify-center transition-all ${page === totalPages || isFetching
-                      ? "border-white/5 text-white/20 cursor-not-allowed"
-                      : "border-white/10 text-white hover:bg-white/5 cursor-pointer active:scale-95"
+                    ? "border-white/5 text-white/20 cursor-not-allowed"
+                    : "border-white/10 text-white hover:bg-white/5 cursor-pointer active:scale-95"
                     }`}
                 >
                   <span className="material-symbols-outlined text-base">chevron_right</span>
@@ -868,7 +868,7 @@ export default function ContactsPage() {
                     {/* Tab Panels */}
                     {broadcastTab === "text" ? (
                       <div className="space-y-2">
-                        <label className="text-[10px] uppercase tracking-wider text-white/40 font-semibold block">
+                        <label className="text-[10px] tracking-wider text-white/40 font-semibold block">
                           Broadcast Message
                         </label>
                         <textarea
@@ -882,7 +882,7 @@ export default function ContactsPage() {
                     ) : (
                       <div className="space-y-3.5">
                         <div className="flex justify-between items-center">
-                          <label className="text-[10px] uppercase tracking-wider text-white/40 font-semibold">
+                          <label className="text-[10px] tracking-wider text-white/40 font-semibold">
                             Select Products (Max 10)
                           </label>
                           {selectedBroadcastProducts.length > 0 && (
@@ -918,8 +918,8 @@ export default function ContactsPage() {
                                   key={prod.id}
                                   onClick={() => handleToggleProduct(prod)}
                                   className={`relative flex items-center gap-3 p-2 rounded-xl border cursor-pointer transition-all ${isSelected
-                                      ? "bg-[#B6B2FF]/10 border-[#B6B2FF]/40 shadow-lg"
-                                      : "bg-white/[0.02] border-white/5 hover:border-white/10 hover:bg-white/[0.04]"
+                                    ? "bg-[#B6B2FF]/10 border-[#B6B2FF]/40 shadow-lg"
+                                    : "bg-white/[0.02] border-white/5 hover:border-white/10 hover:bg-white/[0.04]"
                                     }`}
                                 >
                                   <img
@@ -959,21 +959,21 @@ export default function ContactsPage() {
                     <div className="grid grid-cols-3 gap-3">
                       <div className="bg-white/5 border border-white/5 p-3 rounded-xl text-center">
                         <div className="text-xl font-bold text-white">{broadcastResults.total_count}</div>
-                        <div className="text-[9px] text-white/40 uppercase font-semibold mt-0.5">Total</div>
+                        <div className="text-[9px] text-white/40 font-semibold mt-0.5">Total</div>
                       </div>
                       <div className="bg-[#10b981]/10 border border-[#10b981]/20 p-3 rounded-xl text-center">
                         <div className="text-xl font-bold text-[#34d399]">{broadcastResults.success_count}</div>
-                        <div className="text-[9px] text-[#34d399]/60 uppercase font-semibold mt-0.5">Sent</div>
+                        <div className="text-[9px] text-[#34d399]/60 font-semibold mt-0.5">Sent</div>
                       </div>
                       <div className="bg-[#ef4444]/10 border border-[#ef4444]/20 p-3 rounded-xl text-center">
                         <div className="text-xl font-bold text-[#f87171]">{broadcastResults.failed_count}</div>
-                        <div className="text-[9px] text-[#f87171]/60 uppercase font-semibold mt-0.5">Failed</div>
+                        <div className="text-[9px] text-[#f87171]/60 font-semibold mt-0.5">Failed</div>
                       </div>
                     </div>
 
                     {/* Result Logs List */}
                     <div className="space-y-2">
-                      <label className="text-[9px] uppercase tracking-wider text-white/40 font-bold block">
+                      <label className="text-[9px] tracking-wider text-white/40 font-bold block">
                         Detailed Broadcast Logs
                       </label>
                       <div className="max-h-44 overflow-y-auto custom-scrollbar border border-white/5 rounded-xl divide-y divide-white/5 bg-white/[0.01]">
@@ -986,12 +986,12 @@ export default function ContactsPage() {
                             <div key={idx} className="p-3 flex items-center justify-between text-xs">
                               <span className="font-semibold text-white/80">{name}</span>
                               {isSuccess ? (
-                                <span className="text-[9px] font-bold text-[#34d399] bg-[#10b981]/10 border border-[#10b981]/20 px-2 py-0.5 rounded uppercase tracking-wider">
+                                <span className="text-[9px] font-bold text-[#34d399] bg-[#10b981]/10 border border-[#10b981]/20 px-2 py-0.5 rounded tracking-wider">
                                   Sent
                                 </span>
                               ) : (
                                 <span
-                                  className="text-[9px] font-bold text-[#f87171] bg-[#ef4444]/10 border border-[#ef4444]/20 px-2 py-0.5 rounded uppercase tracking-wider cursor-help"
+                                  className="text-[9px] font-bold text-[#f87171] bg-[#ef4444]/10 border border-[#ef4444]/20 px-2 py-0.5 rounded tracking-wider cursor-help"
                                   title={res.error}
                                 >
                                   Failed: {res.error?.includes("Allowed window") ? "Expired Window" : "Error"}

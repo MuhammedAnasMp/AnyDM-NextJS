@@ -231,7 +231,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 <span className="text-xs font-medium text-[#e5e2e1] truncate group-hover:text-[#ffffff] transition-colors">
                   {userDisplayName}
                 </span>
-                <span className="text-[9px] text-[#8e9192] font-semibold tracking-wider uppercase truncate mt-0.5">
+                <span className="text-[9px] text-[#8e9192] font-semibold tracking-wider truncate mt-0.5">
                   {accountType}
                 </span>
               </div>
@@ -245,7 +245,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           className="hidden lg:flex absolute top-1/2 -right-3 -translate-y-1/2 w-8 h-8 rounded-full bg-[#1c1b1b] border border-[#20201f] hover:bg-[#2c2c2c] hover:border-zinc-500 text-zinc-400 hover:text-white items-center justify-center shadow-md cursor-pointer z-50 transition-all duration-200"
           title={isRailMode ? "Expand Sidebar" : "Collapse Sidebar"}
         >
-          {isRailMode ? <ChevronRight className="w-5 h-5 text-[#8FE3FF]" /> : <ChevronLeft className="w-5 h-5 text-zinc-400" />}
+          {isRailMode ? <ChevronRight className="w-5 h-5 text-[#c4c0ff]" /> : <ChevronLeft className="w-5 h-5 text-zinc-400" />}
         </button>
       </aside>
     </>

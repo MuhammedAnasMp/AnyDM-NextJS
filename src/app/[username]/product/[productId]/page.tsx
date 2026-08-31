@@ -484,7 +484,7 @@ export default function ProductDetailPage({ params }: PageProps) {
 
               {product.variants && product.variants.length > 0 && (
                 <div className="space-y-3">
-                  <span className="text-[10px] uppercase tracking-[0.15em] font-semibold text-[#2D362E] block">Select Size</span>
+                  <span className="text-[10px] tracking-[0.15em] font-semibold text-[#2D362E] block">Select Size</span>
                   <div className="flex flex-wrap gap-2">
                     {product.variants.map((v) => (
                       <button
@@ -506,11 +506,11 @@ export default function ProductDetailPage({ params }: PageProps) {
 
               {product.metadata && typeof product.metadata === "object" && Object.keys(product.metadata).length > 0 && (
                 <div className="space-y-3 pt-4 border-t border-[#C2C9C3]/40">
-                  <span className="text-[10px] uppercase tracking-[0.15em] font-semibold text-[#2D362E] block">Specifications</span>
+                  <span className="text-[10px] tracking-[0.15em] font-semibold text-[#2D362E] block">Specifications</span>
                   <div className="grid grid-cols-2 gap-4">
                     {Object.entries(product.metadata).map(([key, value]) => (
                       <div key={key} className="space-y-1">
-                        <span className="block text-[9px] uppercase tracking-wider text-[#6A786C]">{key}</span>
+                        <span className="block text-[9px] tracking-wider text-[#6A786C]">{key}</span>
                         <span className="block text-xs font-semibold text-[#2D362E]">{String(value)}</span>
                       </div>
                     ))}
@@ -522,7 +522,7 @@ export default function ProductDetailPage({ params }: PageProps) {
             <section className="space-y-4">
               {/* Store Policies */}
               <div className="pt-2 border-t border-[#C2C9C3]/40 space-y-3 text-[#2D362E]">
-                <span className="text-[9px] uppercase tracking-[0.15em] font-semibold text-[#6A786C] block">Store Policies</span>
+                <span className="text-[9px] tracking-[0.15em] font-semibold text-[#6A786C] block">Store Policies</span>
                 <div className="space-y-2 text-xs">
                   <div className="flex justify-between">
                     <span className="text-[#6A786C]">Returns &amp; Exchanges</span>
@@ -538,7 +538,7 @@ export default function ProductDetailPage({ params }: PageProps) {
               {/* Quantity Selector */}
               {!isOutOfStock && (
                 <div className="flex items-center justify-between py-3 border-t border-[#C2C9C3]/40">
-                  <span className="text-[10px] uppercase tracking-[0.15em] font-semibold text-[#2D362E]">Quantity</span>
+                  <span className="text-[10px] tracking-[0.15em] font-semibold text-[#2D362E]">Quantity</span>
                   <div className="flex items-center gap-4">
                     <button
                       type="button"
@@ -563,7 +563,7 @@ export default function ProductDetailPage({ params }: PageProps) {
               <button
                 onClick={openCheckout}
                 disabled={isOutOfStock}
-                className={cn("w-full flex items-center justify-center py-5 font-bold text-xs tracking-widest uppercase rounded-none transition-all",
+                className={cn("w-full flex items-center justify-center py-5 font-bold text-xs tracking-widest rounded-none transition-all",
                   isOutOfStock
                     ? "bg-[#C2C9C3]/40 text-[#6A786C] cursor-not-allowed"
                     : "bg-[#4A5D4E] text-white hover:bg-[#4A5D4E]/90")}
@@ -577,7 +577,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                   href={product.instagram_permalink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full flex items-center justify-center py-5 bg-gradient-to-r from-orange-400 via-red-400 to-pink-500 text-white font-bold text-xs tracking-widest uppercase rounded-none hover:opacity-90 transition-all shadow-sm"
+                  className="w-full flex items-center justify-center py-5 bg-gradient-to-r from-orange-400 via-red-400 to-pink-500 text-white font-bold text-xs tracking-widest rounded-none hover:opacity-90 transition-all shadow-sm"
                 >
                   Acquire on Instagram
                 </a>
@@ -589,7 +589,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                     href={whatsappUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 py-4 border border-[#25D366]/40 text-[#2D362E] font-medium text-xs rounded-none hover:bg-[#25D366]/5 transition-colors uppercase tracking-widest"
+                    className="flex items-center justify-center gap-2 py-4 border border-[#25D366]/40 text-[#2D362E] font-medium text-xs rounded-none hover:bg-[#25D366]/5 transition-colors tracking-widest"
                   >
                     WhatsApp
                   </a>
@@ -599,7 +599,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                     href={product.instagram_permalink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 py-4 border border-[#E1306C]/40 text-[#2D362E] font-medium text-xs rounded-none hover:bg-[#E1306C]/5 transition-colors uppercase tracking-widest"
+                    className="flex items-center justify-center gap-2 py-4 border border-[#E1306C]/40 text-[#2D362E] font-medium text-xs rounded-none hover:bg-[#E1306C]/5 transition-colors tracking-widest"
                   >
                     Instagram
                   </a>
@@ -609,11 +609,11 @@ export default function ProductDetailPage({ params }: PageProps) {
 
             <div className="pt-8 border-t border-[#C2C9C3]/40 grid grid-cols-2 gap-6 text-[#2D362E]">
               <div className="space-y-1">
-                <span className="block text-[9px] uppercase tracking-wider text-[#6A786C]">Origin</span>
+                <span className="block text-[9px] tracking-wider text-[#6A786C]">Origin</span>
                 <span className="block text-xs font-semibold">Conscious Atelier</span>
               </div>
               <div className="space-y-1">
-                <span className="block text-[9px] uppercase tracking-wider text-[#6A786C]">Material</span>
+                <span className="block text-[9px] tracking-wider text-[#6A786C]">Material</span>
                 <span className="block text-xs font-semibold">{product.category || "Organic Blend"}</span>
               </div>
             </div>
@@ -635,7 +635,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                 <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuBofp66CgBbw0rukcrAg05l2HrLdP4unVCP_IPQsqOOi6mSteQiRWGZgASEaoGTo4PVi0L22m3toOt8sNBWFMcymwTpGxKNUXRzar9I266IXQMEo3abij9Y3BFwq8EVnh9S4nEk5P9A-GDctbvmy7rjp2249w_C3dsZdG44H0VQBmp-gKMDX9n5pLpO32PKF7O-8Fu5xNT0YgQPM-mx9RcrtQlEOOXgYFsG9qTW1cYGARN6XqmY7mWP4PdWtchTNwnaSAllWMISXVw" alt="Artisan Hands" className="w-full h-full object-cover" />
               </div>
               <div className="absolute -bottom-8 -left-8 w-48 h-48 bg-[#4A5D4E] p-6 hidden md:block text-white">
-                <p className="text-[9px] uppercase tracking-wider leading-relaxed">
+                <p className="text-[9px] tracking-wider leading-relaxed">
                   ESTIMATED PRODUCTION TIME: 14 DAYS PER GARMENT.
                 </p>
               </div>
@@ -712,7 +712,7 @@ export default function ProductDetailPage({ params }: PageProps) {
         <section className="md:col-span-5 flex flex-col gap-6 sticky top-24 h-fit">
           <div className="flex flex-col gap-2">
             <span className="font-mono text-[10px] tracking-widest text-[#ff24e4] uppercase">Limited Release / Series 01</span>
-            <h1 className="font-bold text-3xl md:text-4xl tracking-tight uppercase text-[#dbfcff] font-sans">
+            <h1 className="font-bold text-3xl md:text-4xl tracking-tight text-[#dbfcff] font-sans">
               {product.title}
             </h1>
             <p className="font-mono text-xl text-[#00f0ff]">{product.price} {product.currency}</p>
@@ -731,7 +731,7 @@ export default function ProductDetailPage({ params }: PageProps) {
 
           {product.variants && product.variants.length > 0 && (
             <div className="flex flex-col gap-3 font-mono">
-              <span className="text-[10px] text-[#b9cacb] uppercase tracking-widest">SELECT SIZE [EUR]</span>
+              <span className="text-[10px] text-[#b9cacb] tracking-widest">SELECT SIZE [EUR]</span>
               <div className="grid grid-cols-4 gap-2">
                 {product.variants.map((v) => (
                   <button
@@ -753,7 +753,7 @@ export default function ProductDetailPage({ params }: PageProps) {
 
           {/* Store Policies */}
           <div className="flex flex-col gap-2 font-mono pt-2 border-t border-white/5">
-            <span className="text-[10px] text-[#b9cacb] uppercase tracking-widest">STORE POLICIES</span>
+            <span className="text-[10px] text-[#b9cacb] tracking-widest">STORE POLICIES</span>
             <div className="flex justify-between text-xs">
               <span className="text-[#b9cacb]">Returns &amp; Exchanges</span>
               <span className={settings?.return_policy ? "text-[#00f0ff]" : "text-red-400"}>{settings?.return_policy ? "Accepted" : "Not Accepted"}</span>
@@ -767,7 +767,7 @@ export default function ProductDetailPage({ params }: PageProps) {
           {/* Quantity Selector */}
           {!isOutOfStock && (
             <div className="flex items-center justify-between py-3 border-t border-white/5">
-              <span className="font-mono text-[10px] text-[#b9cacb] uppercase tracking-widest">QUANTITY</span>
+              <span className="font-mono text-[10px] text-[#b9cacb] tracking-widest">QUANTITY</span>
               <div className="flex items-center gap-4">
                 <button type="button" disabled={quantity <= 1}
                   onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
@@ -791,7 +791,7 @@ export default function ProductDetailPage({ params }: PageProps) {
             <button
               onClick={openCheckout}
               disabled={isOutOfStock}
-              className={cn("w-full py-4 text-center font-bold uppercase tracking-widest text-xs rounded-none active:scale-95 transition-transform flex items-center justify-center gap-2",
+              className={cn("w-full py-4 text-center font-bold tracking-widest text-xs rounded-none active:scale-95 transition-transform flex items-center justify-center gap-2",
                 isOutOfStock
                   ? "bg-zinc-800 text-zinc-500 cursor-not-allowed opacity-60"
                   : "bg-[#00f0ff] text-black hover:shadow-[0_0_15px_rgba(0,240,255,0.5)]")}
@@ -805,7 +805,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                 href={product.instagram_permalink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full py-4 text-center bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 text-white font-bold uppercase tracking-widest text-xs rounded-none active:scale-95 transition-transform hover:shadow-[0_0_15px_rgba(255,36,228,0.5)]"
+                className="w-full py-4 text-center bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 text-white font-bold tracking-widest text-xs rounded-none active:scale-95 transition-transform hover:shadow-[0_0_15px_rgba(255,36,228,0.5)]"
               >
                 Buy on Instagram
               </a>
@@ -816,7 +816,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                 href={whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full py-4 text-center bg-[#25D366] text-black font-bold uppercase tracking-widest text-xs rounded-none active:scale-95 transition-transform hover:shadow-[0_0_15px_rgba(37,211,102,0.5)]"
+                className="w-full py-4 text-center bg-[#25D366] text-black font-bold tracking-widest text-xs rounded-none active:scale-95 transition-transform hover:shadow-[0_0_15px_rgba(37,211,102,0.5)]"
               >
                 Order via WhatsApp
               </a>
@@ -825,7 +825,7 @@ export default function ProductDetailPage({ params }: PageProps) {
 
           {/* Specifications Table */}
           <div className="bg-[#1a1c1c] p-6 border border-white/5 rounded-none font-mono">
-            <h3 className="text-[10px] tracking-widest text-[#00f0ff] mb-4 border-b border-[#00f0ff]/20 pb-2 uppercase font-bold">PRODUCT SPECIFICATIONS</h3>
+            <h3 className="text-[10px] tracking-widest text-[#00f0ff] mb-4 border-b border-[#00f0ff]/20 pb-2 font-bold">PRODUCT SPECIFICATIONS</h3>
             <ul className="flex flex-col gap-3 text-xs text-[#b9cacb]">
               <li className="flex justify-between border-b border-white/5 pb-2">
                 <span>CATEGORY</span>
@@ -904,7 +904,7 @@ export default function ProductDetailPage({ params }: PageProps) {
         <section className="w-full md:w-1/2 h-[50vh] md:h-full overflow-y-auto custom-scrollbar bg-black/20 backdrop-blur-xl border-t md:border-t-0 md:border-l border-white/10 px-6 md:px-12 py-8 md:py-12 flex flex-col justify-between">
           <div className="max-w-xl mx-auto w-full space-y-6">
             <div className="flex flex-col gap-1">
-              <span className="text-[10px] text-gray-400 tracking-[0.2em] uppercase font-bold">{product.category || "Apparel"}</span>
+              <span className="text-[10px] text-gray-400 tracking-[0.2em] font-bold">{product.category || "Apparel"}</span>
               <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white">{product.title}</h1>
               <p className="text-lg font-bold text-gray-200">{product.price} {product.currency}</p>
             </div>
@@ -925,7 +925,7 @@ export default function ProductDetailPage({ params }: PageProps) {
 
             {/* Color/Theme Picker mockup */}
             <div className="space-y-2">
-              <span className="text-[10px] uppercase font-bold text-gray-300 block">Colors</span>
+              <span className="text-[10px] font-bold text-gray-300 block">Colors</span>
               <div className="flex gap-2">
                 <button className="w-8 h-8 rounded-full border-2 border-white bg-black"></button>
                 <button className="w-8 h-8 rounded-full border border-white/20 bg-zinc-700"></button>
@@ -935,7 +935,7 @@ export default function ProductDetailPage({ params }: PageProps) {
             {/* Size options */}
             {product.variants && product.variants.length > 0 && (
               <div className="space-y-2">
-                <span className="text-[10px] uppercase font-bold text-gray-300 block">Select Size</span>
+                <span className="text-[10px] font-bold text-gray-300 block">Select Size</span>
                 <div className="grid grid-cols-4 gap-2">
                   {product.variants.map((v) => (
                     <button
@@ -957,7 +957,7 @@ export default function ProductDetailPage({ params }: PageProps) {
 
             {/* Store Policies */}
             <div className="space-y-2 text-xs">
-              <span className="text-[10px] uppercase font-bold text-gray-300 block">Store Policies</span>
+              <span className="text-[10px] font-bold text-gray-300 block">Store Policies</span>
               <div className="flex justify-between p-2 bg-white/5 border border-white/10 rounded-xl">
                 <span className="text-gray-400">Returns &amp; Exchanges</span>
                 <span className={settings?.return_policy ? "text-emerald-400 font-semibold" : "text-red-400 font-semibold"}>
@@ -975,7 +975,7 @@ export default function ProductDetailPage({ params }: PageProps) {
             {/* Quantity Selector */}
             {!isOutOfStock && (
               <div className="flex items-center justify-between py-3 border-t border-white/10">
-                <span className="text-[10px] uppercase font-bold text-gray-300">Quantity</span>
+                <span className="text-[10px] font-bold text-gray-300">Quantity</span>
                 <div className="flex items-center gap-4">
                   <button type="button" disabled={quantity <= 1}
                     onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
@@ -1031,11 +1031,11 @@ export default function ProductDetailPage({ params }: PageProps) {
 
             {product.metadata && typeof product.metadata === "object" && Object.keys(product.metadata).length > 0 && (
               <div className="p-4 bg-white/5 border border-white/10 rounded-2xl space-y-2">
-                <span className="text-[10px] uppercase font-bold text-gray-300 block">Specifications</span>
+                <span className="text-[10px] font-bold text-gray-300 block">Specifications</span>
                 <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
                   {Object.entries(product.metadata).map(([key, value]) => (
                     <div key={key} className="flex justify-between border-b border-white/5 pb-1">
-                      <span className="text-gray-400 uppercase text-[10px]">{key}</span>
+                      <span className="text-gray-400 text-[10px]">{key}</span>
                       <span className="text-white font-semibold">{String(value)}</span>
                     </div>
                   ))}
@@ -1100,7 +1100,7 @@ export default function ProductDetailPage({ params }: PageProps) {
           {/* Product Details Column (1/3 width on desktop) */}
           <aside className="w-full lg:w-1/3 lg:sticky lg:top-32 flex flex-col gap-8">
             <header className="flex flex-col gap-2">
-              <span className="text-[10px] uppercase font-bold tracking-[0.2em] text-zinc-400">
+              <span className="text-[10px] font-bold tracking-[0.2em] text-zinc-400">
                 COLLECTION 04 — {product.category || "STORE CATALOG"}
               </span>
               <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl font-light tracking-wide text-zinc-900 dark:text-white leading-none mt-1">
@@ -1113,7 +1113,7 @@ export default function ProductDetailPage({ params }: PageProps) {
 
             {/* Colors Section */}
             <div className="flex flex-col gap-2">
-              <span className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">COLOR: NOIR OBSIDIEN</span>
+              <span className="text-xs font-semibold text-zinc-400 tracking-widest">COLOR: NOIR OBSIDIEN</span>
               <div className="flex gap-3">
                 <div className="w-8 h-8 rounded-full border border-black dark:border-white bg-[#0e0e0e] flex items-center justify-center cursor-pointer">
                   <div className="w-6 h-6 rounded-full bg-[#1c1b1b]"></div>
@@ -1128,7 +1128,7 @@ export default function ProductDetailPage({ params }: PageProps) {
             {product.variants && product.variants.length > 0 && (
               <div className="flex flex-col gap-2">
                 <div className="flex justify-between items-end">
-                  <span className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">SIZE</span>
+                  <span className="text-xs font-semibold text-zinc-400 tracking-widest">SIZE</span>
                   <span className="text-[10px] text-zinc-400 underline cursor-pointer hover:text-black dark:hover:text-white">SIZE GUIDE</span>
                 </div>
                 <div className="grid grid-cols-4 gap-2">
@@ -1156,7 +1156,7 @@ export default function ProductDetailPage({ params }: PageProps) {
             {/* Store Policies */}
             <div className="flex flex-col gap-2">
               <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 space-y-2 text-xs">
-                <span className="text-xs font-semibold text-zinc-400 uppercase tracking-widest block">Store Policies</span>
+                <span className="text-xs font-semibold text-zinc-400 tracking-widest block">Store Policies</span>
                 <div className="flex justify-between">
                   <span className="text-zinc-500">Returns &amp; Exchanges</span>
                   <span className={settings?.return_policy ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "text-red-500 font-semibold"}>
@@ -1175,7 +1175,7 @@ export default function ProductDetailPage({ params }: PageProps) {
             {/* Quantity Selector */}
             {!isOutOfStock && (
               <div className="flex items-center justify-between py-3 border-t border-zinc-200 dark:border-zinc-800">
-                <span className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">Quantity</span>
+                <span className="text-xs font-semibold text-zinc-400 tracking-widest">Quantity</span>
                 <div className="flex items-center gap-4">
                   <button type="button" disabled={quantity <= 1}
                     onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
@@ -1203,7 +1203,7 @@ export default function ProductDetailPage({ params }: PageProps) {
               <button
                 onClick={openCheckout}
                 disabled={isOutOfStock}
-                className={cn("w-full h-14 font-semibold text-xs tracking-widest uppercase flex items-center justify-center gap-2 transition-all active:scale-[0.98]",
+                className={cn("w-full h-14 font-semibold text-xs tracking-widest flex items-center justify-center gap-2 transition-all active:scale-[0.98]",
                   isOutOfStock
                     ? "bg-zinc-200 dark:bg-zinc-800 text-zinc-400 cursor-not-allowed"
                     : "bg-black dark:bg-white text-white dark:text-black hover:opacity-90")}
@@ -1216,7 +1216,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                   href={product.instagram_permalink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full h-14 bg-black dark:bg-white text-white dark:text-black font-semibold text-xs tracking-widest uppercase flex items-center justify-center gap-2 hover:opacity-90 transition-all active:scale-[0.98]"
+                  className="w-full h-14 bg-black dark:bg-white text-white dark:text-black font-semibold text-xs tracking-widest flex items-center justify-center gap-2 hover:opacity-90 transition-all active:scale-[0.98]"
                 >
                   <span>PURCHASE ON INSTAGRAM</span>
                 </a>
@@ -1226,7 +1226,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                   href={whatsappUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full h-14 border border-zinc-300 dark:border-zinc-800 flex items-center justify-center gap-2 rounded-none hover:border-black dark:hover:border-white transition-all text-xs font-semibold tracking-widest uppercase text-zinc-800 dark:text-zinc-200"
+                  className="w-full h-14 border border-zinc-300 dark:border-zinc-800 flex items-center justify-center gap-2 rounded-none hover:border-black dark:hover:border-white transition-all text-xs font-semibold tracking-widest text-zinc-800 dark:text-zinc-200"
                 >
                   <MessageCircle className="w-4 h-4" />
                   <span>ENQUIRE VIA WHATSAPP</span>
@@ -1244,7 +1244,7 @@ export default function ProductDetailPage({ params }: PageProps) {
               <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800">
                 <button
                   onClick={() => setIsDetailsOpen(!isDetailsOpen)}
-                  className="w-full flex justify-between items-center text-xs font-bold tracking-wider py-1 uppercase text-zinc-800 dark:text-zinc-200 hover:opacity-85 transition-opacity"
+                  className="w-full flex justify-between items-center text-xs font-bold tracking-wider py-1 text-zinc-800 dark:text-zinc-200 hover:opacity-85 transition-opacity"
                 >
                   <span>DETAILS &amp; CARE</span>
                   <ChevronRight className={cn("w-4 h-4 transition-transform duration-200", isDetailsOpen && "rotate-90")} />
@@ -1255,7 +1255,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                       <ul className="space-y-1">
                         {Object.entries(product.metadata).map(([key, value]) => (
                           <li key={key} className="flex justify-between border-b border-zinc-100 dark:border-zinc-800 pb-1">
-                            <span className="uppercase text-[10px] tracking-wider font-semibold">{key}</span>
+                            <span className="text-[10px] tracking-wider font-semibold">{key}</span>
                             <span className="text-zinc-800 dark:text-zinc-200 font-medium">{String(value)}</span>
                           </li>
                         ))}
@@ -1275,7 +1275,7 @@ export default function ProductDetailPage({ params }: PageProps) {
               <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800">
                 <button
                   onClick={() => setIsShippingOpen(!isShippingOpen)}
-                  className="w-full flex justify-between items-center text-xs font-bold tracking-wider py-1 uppercase text-zinc-800 dark:text-zinc-200 hover:opacity-85 transition-opacity"
+                  className="w-full flex justify-between items-center text-xs font-bold tracking-wider py-1 text-zinc-800 dark:text-zinc-200 hover:opacity-85 transition-opacity"
                 >
                   <span>SHIPPING &amp; RETURNS</span>
                   <ChevronRight className={cn("w-4 h-4 transition-transform duration-200", isShippingOpen && "rotate-90")} />
@@ -1382,7 +1382,7 @@ export default function ProductDetailPage({ params }: PageProps) {
 
               {/* Category & Inventory Alert */}
               <div className="flex justify-between items-center">
-                <span className="bg-[#ffe600] text-black border border-black px-2.5 py-0.5 font-bold text-xs uppercase tracking-wider">
+                <span className="bg-[#ffe600] text-black border border-black px-2.5 py-0.5 font-bold text-xs tracking-wider">
                   {product.category || "Apparel"}
                 </span>
                 {product.stock > 0 && product.stock <= 10 && (
@@ -1395,7 +1395,7 @@ export default function ProductDetailPage({ params }: PageProps) {
 
               {/* Title & Price */}
               <div>
-                <h1 className="font-sans uppercase tracking-tight font-black text-3xl lg:text-4xl leading-none">
+                <h1 className="font-sans tracking-tight font-black text-3xl lg:text-4xl leading-none">
                   {product.title}
                 </h1>
                 <p className="font-mono text-xl lg:text-2xl font-black text-zinc-900 mt-2">
@@ -1413,7 +1413,7 @@ export default function ProductDetailPage({ params }: PageProps) {
               {/* Size Option Picker (if available) */}
               {product.variants && product.variants.length > 0 && (
                 <div className="space-y-2 border-t border-black pt-4">
-                  <span className="text-[10px] uppercase font-black block">Select Option / Size</span>
+                  <span className="text-[10px] font-black block">Select Option / Size</span>
                   <div className="flex flex-wrap gap-2">
                     {product.variants.map((v) => {
                       const isActive = selectedVariant === v;
@@ -1480,7 +1480,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                 <button
                   onClick={openCheckout}
                   disabled={isOutOfStock}
-                  className={cn("w-full h-12 border-2 border-black font-black uppercase text-xs tracking-wider flex items-center justify-center gap-2 transition-all",
+                  className={cn("w-full h-12 border-2 border-black font-black text-xs tracking-wider flex items-center justify-center gap-2 transition-all",
                     isOutOfStock
                       ? "bg-zinc-200 text-zinc-400 cursor-not-allowed"
                       : "bg-[#0038ff] text-white shadow-[4px_4px_0px_#000] hover:translate-y-0.5 active:translate-y-1 active:shadow-none")}
@@ -1493,7 +1493,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                     href={product.instagram_permalink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full h-12 bg-gradient-to-r from-[#fdf497] via-[#fd5949] to-[#d6249f] text-white border-2 border-black font-black uppercase text-xs tracking-wider shadow-[4px_4px_0px_#000] hover:translate-y-0.5 active:translate-y-1 active:shadow-none flex items-center justify-center gap-2"
+                    className="w-full h-12 bg-gradient-to-r from-[#fdf497] via-[#fd5949] to-[#d6249f] text-white border-2 border-black font-black text-xs tracking-wider shadow-[4px_4px_0px_#000] hover:translate-y-0.5 active:translate-y-1 active:shadow-none flex items-center justify-center gap-2"
                   >
                     <span>BUY ON INSTAGRAM</span>
                   </a>
@@ -1503,7 +1503,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                     href={whatsappUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full h-12 bg-[#25D366] text-white border-2 border-black font-black uppercase text-xs tracking-wider shadow-[4px_4px_0px_#000] hover:translate-y-0.5 active:translate-y-1 active:shadow-none flex items-center justify-center gap-2"
+                    className="w-full h-12 bg-[#25D366] text-white border-2 border-black font-black text-xs tracking-wider shadow-[4px_4px_0px_#000] hover:translate-y-0.5 active:translate-y-1 active:shadow-none flex items-center justify-center gap-2"
                   >
                     <span>ORDER VIA WHATSAPP</span>
                   </a>
@@ -1559,7 +1559,7 @@ export default function ProductDetailPage({ params }: PageProps) {
         {/* Bento Grid Recommendations Section */}
         {settings.show_related_products && relatedProducts.length > 0 && (
           <section className="mt-16 border-t-2 border-black pt-12">
-            <h2 className="font-sans uppercase tracking-tight font-black text-2xl lg:text-3xl mb-8 text-black">
+            <h2 className="font-sans tracking-tight font-black text-2xl lg:text-3xl mb-8 text-black">
               Complete the look
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -1598,7 +1598,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                     />
                   </div>
                   <div>
-                    <p className="font-bold text-xs uppercase text-zinc-950">{relatedProducts[1].title}</p>
+                    <p className="font-bold text-xs text-zinc-950">{relatedProducts[1].title}</p>
                     <p className="text-zinc-600 font-mono text-xs mt-0.5">{relatedProducts[1].price} {relatedProducts[1].currency}</p>
                   </div>
                 </div>
@@ -1618,7 +1618,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                     />
                   </div>
                   <div>
-                    <p className="font-bold text-xs uppercase text-zinc-950">{relatedProducts[2].title}</p>
+                    <p className="font-bold text-xs text-zinc-950">{relatedProducts[2].title}</p>
                     <p className="text-zinc-600 font-mono text-xs mt-0.5">{relatedProducts[2].price} {relatedProducts[2].currency}</p>
                   </div>
                 </div>
@@ -1682,38 +1682,38 @@ export default function ProductDetailPage({ params }: PageProps) {
             <div className={cn("p-6 md:p-8 space-y-6 shadow-2xl relative overflow-hidden", styles.cardClass)}>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className={cn("text-[10px] tracking-widest uppercase font-black", styles.badgeClass)}>
+                  <span className={cn("text-[10px] tracking-widest font-black", styles.badgeClass)}>
                     {product.category || "Apparel"}
                   </span>
                   {product.stock > 0 ? (
-                    <span className="text-[10px] uppercase font-bold text-emerald-400">In Stock</span>
+                    <span className="text-[10px] font-bold text-emerald-400">In Stock</span>
                   ) : (
-                    <span className="text-[10px] uppercase font-bold text-red-500">Sold Out</span>
+                    <span className="text-[10px] font-bold text-red-500">Sold Out</span>
                   )}
                 </div>
 
-                  <h1 className={cn("text-2xl md:text-3xl font-black tracking-tight", styles.fontHeadline, styles.textColorClass)}>
-                    {product.title}
-                  </h1>
+                <h1 className={cn("text-2xl md:text-3xl font-black tracking-tight", styles.fontHeadline, styles.textColorClass)}>
+                  {product.title}
+                </h1>
 
-                  <div className="flex items-baseline gap-2 pt-1">
-                    <span className={cn("text-2xl font-black", styles.priceClass)}>
-                      {product.price ? `${product.price} ${product.currency}` : "Price TBD"}
+                <div className="flex items-baseline gap-2 pt-1">
+                  <span className={cn("text-2xl font-black", styles.priceClass)}>
+                    {product.price ? `${product.price} ${product.currency}` : "Price TBD"}
+                  </span>
+                  {product.original_price && (
+                    <span className="text-xs text-gray-500 line-through">
+                      {product.original_price} {product.currency}
                     </span>
-                    {product.original_price && (
-                      <span className="text-xs text-gray-500 line-through">
-                        {product.original_price} {product.currency}
-                      </span>
-                    )}
-                    {product.is_negotiable && (
-                      <span className={cn("text-[9px] font-bold py-0.5 px-2 rounded-full", styles.badgeClass)}>
-                        Negotiable
-                      </span>
-                    )}
-                  </div>
+                  )}
+                  {product.is_negotiable && (
+                    <span className={cn("text-[9px] font-bold py-0.5 px-2 rounded-full", styles.badgeClass)}>
+                      Negotiable
+                    </span>
+                  )}
                 </div>
+              </div>
 
-                <div className={cn("h-px", isLight ? "bg-black/10" : "bg-white/5")}></div>
+              <div className={cn("h-px", isLight ? "bg-black/10" : "bg-white/5")}></div>
 
               {/* Description */}
               {product.description && (
@@ -1722,193 +1722,193 @@ export default function ProductDetailPage({ params }: PageProps) {
                 </p>
               )}
 
-                {/* Variants Picker (if available) */}
-                {product.variants && product.variants.length > 0 && (
-                  <div className="space-y-3">
-                    <span className={cn("text-[10px] uppercase tracking-wider font-bold block", styles.textMutedClass)}>
-                      Select Option / Size
-                    </span>
-                    <div className="flex flex-wrap gap-2">
-                      {product.variants.map((v) => {
-                        const isActive = selectedVariant === v;
-                        return (
-                          <button
-                            key={v}
-                            onClick={() => setSelectedVariant(v)}
-                            className={cn(
-                              "px-4 py-2 rounded-lg text-xs font-bold border transition-all select-none",
-                              isLight
-                                ? isActive
-                                  ? "bg-black text-white border-black"
-                                  : "bg-black/5 text-black border-black/20 hover:border-black/40"
-                                : isActive
-                                  ? "bg-white text-black border-white"
-                                  : "bg-white/5 text-white border-white/10 hover:border-white/20"
-                            )}
-                          >
-                            {v}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* Specifications — shown inline after size picker */}
-                {product.metadata && typeof product.metadata === "object" && Object.keys(product.metadata).length > 0 && (
-                  <div className="space-y-2">
-                    <span className={cn("text-[10px] uppercase tracking-wider font-bold block", styles.textMutedClass)}>
-                      Specifications
-                    </span>
-                    <div className={cn("rounded-lg border divide-y overflow-hidden text-xs", isLight ? "border-black/10 divide-black/10" : "border-white/10 divide-white/5")}>
-                      {Object.entries(product.metadata).map(([key, value]) => (
-                        <div key={key} className={cn("flex justify-between items-center px-3 py-2", isLight ? "bg-black/[0.02]" : "bg-white/[0.02]")}>
-                          <span className={cn("font-semibold uppercase tracking-wide text-[10px]", styles.textMutedClass)}>{key}</span>
-                          <span className={cn("font-bold", styles.textColorClass)}>{String(value)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Return & Cancellation Policies */}
-                <div className="space-y-2 pt-1">
-                  <span className={cn("text-[10px] uppercase tracking-wider font-bold block", styles.textMutedClass)}>
-                    Store Policies
+              {/* Variants Picker (if available) */}
+              {product.variants && product.variants.length > 0 && (
+                <div className="space-y-3">
+                  <span className={cn("text-[10px] tracking-wider font-bold block", styles.textMutedClass)}>
+                    Select Option / Size
                   </span>
-                  <div className={cn("rounded-lg border p-3 space-y-2.5 text-xs", isLight ? "border-black/10" : "border-white/10")}>
-                    <div className="flex flex-col gap-0.5">
-                      <span className="font-semibold text-zinc-400 text-[10px] uppercase tracking-wider">Return & Exchange Policy</span>
-                      <p className={cn("text-xs leading-normal opacity-95", styles.textColorClass)}>
-                        {settings?.return_policy ? "Returns and exchanges are accepted." : "Returns and exchanges are not accepted."}
-                      </p>
-                    </div>
-                    <div className="flex flex-col gap-0.5">
-                      <span className="font-semibold text-zinc-400 text-[10px] uppercase tracking-wider">Cancellation Policy</span>
-                      <p className={cn("text-xs leading-normal opacity-95", styles.textColorClass)}>
-                        {settings?.cancellation_policy ? "Cancellations are allowed before order shipment." : "Cancellations are not allowed once order is placed."}
-                      </p>
-                    </div>
+                  <div className="flex flex-wrap gap-2">
+                    {product.variants.map((v) => {
+                      const isActive = selectedVariant === v;
+                      return (
+                        <button
+                          key={v}
+                          onClick={() => setSelectedVariant(v)}
+                          className={cn(
+                            "px-4 py-2 rounded-lg text-xs font-bold border transition-all select-none",
+                            isLight
+                              ? isActive
+                                ? "bg-black text-white border-black"
+                                : "bg-black/5 text-black border-black/20 hover:border-black/40"
+                              : isActive
+                                ? "bg-white text-black border-white"
+                                : "bg-white/5 text-white border-white/10 hover:border-white/20"
+                          )}
+                        >
+                          {v}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
+              )}
 
-                {/* Quantity Selector */}
-                {!isOutOfStock && (
-                  <div className="flex items-center justify-between py-3.5 border-t border-b border-white/5 my-2">
-                    <span className={cn("text-xs font-bold uppercase tracking-wider", styles.textMutedClass)}>
-                      Quantity
-                    </span>
-                    <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        disabled={quantity <= 1}
-                        onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
-                        className={cn(
-                          "w-8 h-8 rounded-full border flex items-center justify-center font-bold text-sm transition-all focus:outline-none",
-                          quantity <= 1
-                            ? "opacity-30 cursor-not-allowed border-white/10 text-zinc-550"
-                            : "border-white/20 text-white hover:bg-white/5 active:scale-95"
-                        )}
-                      >
-                        -
-                      </button>
-                      <span className="w-8 text-center text-sm font-black text-white">{quantity}</span>
-                      <button
-                        type="button"
-                        disabled={quantity >= product.stock}
-                        onClick={() => setQuantity(prev => Math.min(product.stock, prev + 1))}
-                        className={cn(
-                          "w-8 h-8 rounded-full border flex items-center justify-center font-bold text-sm transition-all focus:outline-none",
-                          quantity >= product.stock
-                            ? "opacity-30 cursor-not-allowed border-white/10 text-zinc-550"
-                            : "border-white/20 text-white hover:bg-white/5 active:scale-95"
-                        )}
-                      >
-                        +
-                      </button>
-                    </div>
+              {/* Specifications — shown inline after size picker */}
+              {product.metadata && typeof product.metadata === "object" && Object.keys(product.metadata).length > 0 && (
+                <div className="space-y-2">
+                  <span className={cn("text-[10px] tracking-wider font-bold block", styles.textMutedClass)}>
+                    Specifications
+                  </span>
+                  <div className={cn("rounded-lg border divide-y overflow-hidden text-xs", isLight ? "border-black/10 divide-black/10" : "border-white/10 divide-white/5")}>
+                    {Object.entries(product.metadata).map(([key, value]) => (
+                      <div key={key} className={cn("flex justify-between items-center px-3 py-2", isLight ? "bg-black/[0.02]" : "bg-white/[0.02]")}>
+                        <span className={cn("font-semibold tracking-wide text-[10px]", styles.textMutedClass)}>{key}</span>
+                        <span className={cn("font-bold", styles.textColorClass)}>{String(value)}</span>
+                      </div>
+                    ))}
                   </div>
-                )}
-
-                {/* Purchase Trigger Actions - No Add to Cart button required */}
-                <div className="space-y-3 pt-3">
-                  <button
-                    onClick={openCheckout}
-                    disabled={isOutOfStock}
-                    className={cn(
-                      "w-full flex items-center justify-center gap-2 h-10 rounded-lg text-xs font-bold transition-all active:scale-[0.98]",
-                      isOutOfStock
-                        ? "bg-zinc-800 text-zinc-500 cursor-not-allowed opacity-60 border border-white/5"
-                        : "bg-[#605ca2] text-white hover:bg-[#605ca2]/90"
-                    )}
-                  >
-                    <ShoppingBag className="w-5 h-5 shrink-0" />
-                    <span>{isOutOfStock ? "Out of Stock" : "Buy Now / Checkout"}</span>
-                  </button>
-
-                  {settings.enable_instagram_button && product.instagram_permalink && !isOutOfStock && (
-                    <a
-                      href={product.instagram_permalink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={cn("w-full flex items-center justify-center gap-2", styles.instagramButtonClass)}
-                    >
-                      <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
-                        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-                        <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
-                      </svg>
-                      <span>Purchase on Instagram</span>
-                    </a>
-                  )}
-
-                  {settings.enable_whatsapp_button && !isOutOfStock && (
-                    <a
-                      href={whatsappUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={cn("w-full flex items-center justify-center gap-2", styles.whatsappButtonClass)}
-                    >
-                      <MessageCircle className="w-5 h-5 shrink-0" />
-                      <span>Order via WhatsApp</span>
-                    </a>
-                  )}
-
-                  <button
-                    onClick={toggleFavorite}
-                    className={cn(
-                      "w-full flex items-center justify-center gap-2 h-10 rounded-lg text-xs font-bold border transition-all active:scale-[0.98]",
-                      isFavorited
-                        ? "bg-rose-500/10 border-rose-500/30 text-rose-500 hover:bg-rose-500/20"
-                        : isLight
-                          ? "bg-transparent border-black/20 text-black hover:border-black/40 hover:bg-black/5"
-                          : "bg-transparent border-white/20 text-white hover:border-white/40 hover:bg-white/5"
-                    )}
-                  >
-                    <Heart className={cn("w-4 h-4 shrink-0", isFavorited && "fill-current")} />
-                    <span>{isFavorited ? "Saved to Favorites" : "Add to Favorites"}</span>
-                  </button>
                 </div>
+              )}
 
-                {/* Storefront trust features */}
-                <div className="pt-4 flex flex-col gap-2.5 border-t border-white/5">
-                  <div className={cn("flex items-center gap-2 text-[10px] font-semibold", styles.textMutedClass)}>
-                    <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>Verified Supplier Catalog</span>
+              {/* Return & Cancellation Policies */}
+              <div className="space-y-2 pt-1">
+                <span className={cn("text-[10px] tracking-wider font-bold block", styles.textMutedClass)}>
+                  Store Policies
+                </span>
+                <div className={cn("rounded-lg border p-3 space-y-2.5 text-xs", isLight ? "border-black/10" : "border-white/10")}>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="font-semibold text-zinc-400 text-[10px] tracking-wider">Return & Exchange Policy</span>
+                    <p className={cn("text-xs leading-normal opacity-95", styles.textColorClass)}>
+                      {settings?.return_policy ? "Returns and exchanges are accepted." : "Returns and exchanges are not accepted."}
+                    </p>
                   </div>
-                  <div className={cn("flex items-center gap-2 text-[10px] font-semibold", styles.textMutedClass)}>
-                    <Truck className="w-4 h-4 text-sky-400 shrink-0" />
-                    <span>Doorstep delivery available</span>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="font-semibold text-zinc-400 text-[10px] tracking-wider">Cancellation Policy</span>
+                    <p className={cn("text-xs leading-normal opacity-95", styles.textColorClass)}>
+                      {settings?.cancellation_policy ? "Cancellations are allowed before order shipment." : "Cancellations are not allowed once order is placed."}
+                    </p>
                   </div>
                 </div>
               </div>
-            </aside>
+
+              {/* Quantity Selector */}
+              {!isOutOfStock && (
+                <div className="flex items-center justify-between py-3.5 border-t border-b border-white/5 my-2">
+                  <span className={cn("text-xs font-bold tracking-wider", styles.textMutedClass)}>
+                    Quantity
+                  </span>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      disabled={quantity <= 1}
+                      onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
+                      className={cn(
+                        "w-8 h-8 rounded-full border flex items-center justify-center font-bold text-sm transition-all focus:outline-none",
+                        quantity <= 1
+                          ? "opacity-30 cursor-not-allowed border-white/10 text-zinc-550"
+                          : "border-white/20 text-white hover:bg-white/5 active:scale-95"
+                      )}
+                    >
+                      -
+                    </button>
+                    <span className="w-8 text-center text-sm font-black text-white">{quantity}</span>
+                    <button
+                      type="button"
+                      disabled={quantity >= product.stock}
+                      onClick={() => setQuantity(prev => Math.min(product.stock, prev + 1))}
+                      className={cn(
+                        "w-8 h-8 rounded-full border flex items-center justify-center font-bold text-sm transition-all focus:outline-none",
+                        quantity >= product.stock
+                          ? "opacity-30 cursor-not-allowed border-white/10 text-zinc-550"
+                          : "border-white/20 text-white hover:bg-white/5 active:scale-95"
+                      )}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Purchase Trigger Actions - No Add to Cart button required */}
+              <div className="space-y-3 pt-3">
+                <button
+                  onClick={openCheckout}
+                  disabled={isOutOfStock}
+                  className={cn(
+                    "w-full flex items-center justify-center gap-2 h-10 rounded-lg text-xs font-bold transition-all active:scale-[0.98]",
+                    isOutOfStock
+                      ? "bg-zinc-800 text-zinc-500 cursor-not-allowed opacity-60 border border-white/5"
+                      : "bg-[#605ca2] text-white hover:bg-[#605ca2]/90"
+                  )}
+                >
+                  <ShoppingBag className="w-5 h-5 shrink-0" />
+                  <span>{isOutOfStock ? "Out of Stock" : "Buy Now / Checkout"}</span>
+                </button>
+
+                {settings.enable_instagram_button && product.instagram_permalink && !isOutOfStock && (
+                  <a
+                    href={product.instagram_permalink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cn("w-full flex items-center justify-center gap-2", styles.instagramButtonClass)}
+                  >
+                    <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+                      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                      <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+                    </svg>
+                    <span>Purchase on Instagram</span>
+                  </a>
+                )}
+
+                {settings.enable_whatsapp_button && !isOutOfStock && (
+                  <a
+                    href={whatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cn("w-full flex items-center justify-center gap-2", styles.whatsappButtonClass)}
+                  >
+                    <MessageCircle className="w-5 h-5 shrink-0" />
+                    <span>Order via WhatsApp</span>
+                  </a>
+                )}
+
+                <button
+                  onClick={toggleFavorite}
+                  className={cn(
+                    "w-full flex items-center justify-center gap-2 h-10 rounded-lg text-xs font-bold border transition-all active:scale-[0.98]",
+                    isFavorited
+                      ? "bg-rose-500/10 border-rose-500/30 text-rose-500 hover:bg-rose-500/20"
+                      : isLight
+                        ? "bg-transparent border-black/20 text-black hover:border-black/40 hover:bg-black/5"
+                        : "bg-transparent border-white/20 text-white hover:border-white/40 hover:bg-white/5"
+                  )}
+                >
+                  <Heart className={cn("w-4 h-4 shrink-0", isFavorited && "fill-current")} />
+                  <span>{isFavorited ? "Saved to Favorites" : "Add to Favorites"}</span>
+                </button>
+              </div>
+
+              {/* Storefront trust features */}
+              <div className="pt-4 flex flex-col gap-2.5 border-t border-white/5">
+                <div className={cn("flex items-center gap-2 text-[10px] font-semibold", styles.textMutedClass)}>
+                  <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Verified Supplier Catalog</span>
+                </div>
+                <div className={cn("flex items-center gap-2 text-[10px] font-semibold", styles.textMutedClass)}>
+                  <Truck className="w-4 h-4 text-sky-400 shrink-0" />
+                  <span>Doorstep delivery available</span>
+                </div>
+              </div>
+            </div>
+          </aside>
         </div>
 
         {/* Product Details Section */}
         <section className="mt-16 max-w-3xl space-y-6">
           <div className="space-y-2">
-            <h3 className={cn("text-base font-bold uppercase tracking-wider", styles.textColorClass)}>
+            <h3 className={cn("text-base font-bold tracking-wider", styles.textColorClass)}>
               Product Details
             </h3>
             <p className={cn("text-sm leading-relaxed whitespace-pre-wrap", styles.textColorClass)}>
@@ -1921,7 +1921,7 @@ export default function ProductDetailPage({ params }: PageProps) {
         {/* Related Products Grid (if enabled) */}
         {settings.show_related_products && relatedProducts.length > 0 && (
           <section className=" pt-12 border-t border-white/5 space-y-6">
-            <h3 className={cn("text-base font-bold uppercase tracking-wider", styles.textColorClass)}>
+            <h3 className={cn("text-base font-bold tracking-wider", styles.textColorClass)}>
               Related Products
             </h3>
 
@@ -1955,7 +1955,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                       />
                     ) : (
                       <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
-                        <span className="text-[10px] text-zinc-500 uppercase tracking-wider">No Image</span>
+                        <span className="text-[10px] text-zinc-500 tracking-wider">No Image</span>
                       </div>
                     )}
                   </div>
@@ -2043,7 +2043,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                 )}
                 <div>
                   <p className={cn("text-base font-black tracking-tight", styles.textColorClass)}>{settings.store_name || supplier.full_name || supplier.username}</p>
-                  <p className={cn("text-[10px] uppercase tracking-widest font-semibold mt-0.5", styles.textMutedClass)}>Official Store</p>
+                  <p className={cn("text-[10px] tracking-widest font-semibold mt-0.5", styles.textMutedClass)}>Official Store</p>
                 </div>
               </div>
               <p className={cn("text-xs leading-relaxed max-w-sm", styles.textMutedClass)}>
@@ -2061,7 +2061,7 @@ export default function ProductDetailPage({ params }: PageProps) {
             <div className="hidden md:block md:col-span-1" />
             {/* Contact */}
             <div className="md:col-span-3 space-y-4">
-              <p className={cn("text-[10px] font-bold uppercase tracking-[0.15em]", styles.textMutedClass)}>Contact Us</p>
+              <p className={cn("text-[10px] font-bold tracking-[0.15em]", styles.textMutedClass)}>Contact Us</p>
               <div className="space-y-3">
                 {settings.contact_email && (
                   <div className="flex items-start gap-2.5">
@@ -2069,7 +2069,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                       <svg className="w-3 h-3 text-[#b6b2ff]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                     </div>
                     <div>
-                      <p className={cn("text-[9px] uppercase tracking-wider font-bold", styles.textMutedClass)}>Email</p>
+                      <p className={cn("text-[9px] tracking-wider font-bold", styles.textMutedClass)}>Email</p>
                       <p className={cn("text-xs mt-0.5", styles.textColorClass)}>{settings.contact_email}</p>
                     </div>
                   </div>
@@ -2080,7 +2080,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                       <MessageCircle className="w-3 h-3 text-[#b6b2ff]" />
                     </div>
                     <div>
-                      <p className={cn("text-[9px] uppercase tracking-wider font-bold", styles.textMutedClass)}>Phone</p>
+                      <p className={cn("text-[9px] tracking-wider font-bold", styles.textMutedClass)}>Phone</p>
                       <p className={cn("text-xs mt-0.5", styles.textColorClass)}>{settings.contact_phone}</p>
                     </div>
                   </div>
@@ -2091,7 +2091,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                       <Truck className="w-3 h-3 text-[#b6b2ff]" />
                     </div>
                     <div>
-                      <p className={cn("text-[9px] uppercase tracking-wider font-bold", styles.textMutedClass)}>Address</p>
+                      <p className={cn("text-[9px] tracking-wider font-bold", styles.textMutedClass)}>Address</p>
                       <p className={cn("text-xs mt-0.5 leading-relaxed", styles.textColorClass)}>{settings.shipping_address}</p>
                     </div>
                   </div>
@@ -2100,7 +2100,7 @@ export default function ProductDetailPage({ params }: PageProps) {
             </div>
             {/* Legal */}
             <div className="md:col-span-3 space-y-4">
-              <p className={cn("text-[10px] font-bold uppercase tracking-[0.15em]", styles.textMutedClass)}>Legal &amp; Info</p>
+              <p className={cn("text-[10px] font-bold tracking-[0.15em]", styles.textMutedClass)}>Legal &amp; Info</p>
               <div className="space-y-2.5">
                 {[
                   { label: "Privacy Policy", action: () => setActivePolicyModal("privacy") },
@@ -2124,14 +2124,14 @@ export default function ProductDetailPage({ params }: PageProps) {
       )}
       {/* ── Global Checkout Modal ── */}
       {isCheckoutOpen && (
-        <div 
+        <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
           onClick={() => setIsCheckoutOpen(false)}
         >
-          <div 
+          <div
             className={cn(
-              "w-full max-w-lg rounded-2xl p-6 md:p-8 shadow-2xl overflow-y-auto max-h-[90vh] relative border text-left", 
-              styles.bodyClass, 
+              "w-full max-w-lg rounded-2xl p-6 md:p-8 shadow-2xl overflow-y-auto max-h-[90vh] relative border text-left",
+              styles.bodyClass,
               styles.cardClass
             )}
             onClick={e => e.stopPropagation()}
@@ -2144,7 +2144,7 @@ export default function ProductDetailPage({ params }: PageProps) {
               <X className="w-4 h-4" />
             </button>
 
-            <h3 className={cn("text-base font-bold tracking-tight uppercase mb-4", styles.fontHeadline, styles.textColorClass)}>Checkout Order</h3>
+            <h3 className={cn("text-base font-bold tracking-tight mb-4", styles.fontHeadline, styles.textColorClass)}>Checkout Order</h3>
 
             {/* Order summary */}
             <div className={cn("flex items-center gap-3 p-3 rounded-lg mb-4", isLight ? "bg-black/[0.03] border border-black/10" : "bg-white/[0.03] border border-white/10")}>
@@ -2161,52 +2161,52 @@ export default function ProductDetailPage({ params }: PageProps) {
 
             <form onSubmit={handleCheckout} className="space-y-4">
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider opacity-60">Full Name</label>
+                <label className="text-[10px] font-bold tracking-wider opacity-60">Full Name</label>
                 <input type="text" required value={checkoutName} onChange={(e) => setCheckoutName(e.target.value)} placeholder="Enter your name"
                   className={cn("w-full px-3 py-2 text-xs rounded border outline-none", styles.inputClass)} />
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider opacity-60">Email Address</label>
+                <label className="text-[10px] font-bold tracking-wider opacity-60">Email Address</label>
                 <input type="email" required value={checkoutEmail} onChange={(e) => setCheckoutEmail(e.target.value)} placeholder="Enter email address"
                   className={cn("w-full px-3 py-2 text-xs rounded border outline-none", styles.inputClass)} />
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider opacity-60">Phone Number</label>
+                <label className="text-[10px] font-bold tracking-wider opacity-60">Phone Number</label>
                 <input type="tel" required value={checkoutPhone} onChange={(e) => setCheckoutPhone(e.target.value)} placeholder="Enter phone number"
                   className={cn("w-full px-3 py-2 text-xs rounded border outline-none", styles.inputClass)} />
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider opacity-60">Shipping Address</label>
+                <label className="text-[10px] font-bold tracking-wider opacity-60">Shipping Address</label>
                 <textarea required rows={2} value={checkoutAddress} onChange={(e) => setCheckoutAddress(e.target.value)} placeholder="Detailed shipping address"
                   className={cn("w-full px-3 py-2 text-xs rounded border outline-none resize-none", styles.inputClass)} />
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider opacity-60">Pin Code</label>
+                  <label className="text-[10px] font-bold tracking-wider opacity-60">Pin Code</label>
                   <input type="text" required value={checkoutPincode} onChange={(e) => setCheckoutPincode(e.target.value)} placeholder="Pin Code"
                     className={cn("w-full px-3 py-2 text-xs rounded border outline-none", styles.inputClass)} />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider opacity-60">Place / City</label>
+                  <label className="text-[10px] font-bold tracking-wider opacity-60">Place / City</label>
                   <input type="text" required value={checkoutPlace} onChange={(e) => setCheckoutPlace(e.target.value)} placeholder="Place / City"
                     className={cn("w-full px-3 py-2 text-xs rounded border outline-none", styles.inputClass)} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider opacity-60">District</label>
+                  <label className="text-[10px] font-bold tracking-wider opacity-60">District</label>
                   <input type="text" required value={checkoutDistrict} onChange={(e) => setCheckoutDistrict(e.target.value)} placeholder="District"
                     className={cn("w-full px-3 py-2 text-xs rounded border outline-none", styles.inputClass)} />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider opacity-60">State</label>
+                  <label className="text-[10px] font-bold tracking-wider opacity-60">State</label>
                   <input type="text" required value={checkoutState} onChange={(e) => setCheckoutState(e.target.value)} placeholder="State"
                     className={cn("w-full px-3 py-2 text-xs rounded border outline-none", styles.inputClass)} />
                 </div>
               </div>
 
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-[10px] font-bold uppercase tracking-wider opacity-60">Payment Method</label>
+                <label className="text-[10px] font-bold tracking-wider opacity-60">Payment Method</label>
                 {(() => {
                   const isCodAvailable = settings?.cod_enabled && product?.cod_enabled;
                   const isOnlineAvailable = !!settings?.online_payment_enabled;
@@ -2244,8 +2244,8 @@ export default function ProductDetailPage({ params }: PageProps) {
                 })()}
               </div>
 
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 disabled={isSubmittingOrder}
                 className={cn("w-full mt-2 py-3 rounded-lg text-xs font-bold transition-all disabled:opacity-50", styles.buttonClass)}
               >
@@ -2261,7 +2261,7 @@ export default function ProductDetailPage({ params }: PageProps) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
           <div className="w-full max-w-lg rounded-xl border border-white/10 p-6 shadow-2xl bg-[#1e1e24] text-white space-y-4 max-h-[80vh] overflow-y-auto">
             <div className="flex justify-between items-center pb-2 border-b border-white/5">
-              <span className="text-sm font-bold uppercase tracking-wider text-[#b6b2ff]">
+              <span className="text-sm font-bold tracking-wider text-[#b6b2ff]">
                 {activePolicyModal === "privacy" ? "Privacy Policy" : "Terms of Service"}
               </span>
               <button onClick={() => setActivePolicyModal(null)} className="p-1 rounded hover:bg-white/10 text-zinc-400 hover:text-white transition-colors">

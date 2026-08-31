@@ -249,7 +249,7 @@ export default function PricingPage() {
   const formattedExpiryDate = getFormattedExpiryDate();
 
   return (
-    <div className="space-y-6">
+    <div className="relative space-y-8 overflow-hidden py-4">
       {toast.isVisible && (
         <Toast
           isVisible={toast.isVisible}
@@ -259,181 +259,173 @@ export default function PricingPage() {
         />
       )}
 
-      {/* Header (Dense) */}
-      <div className="border-b border-[#444748] pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-[#e5e2e1]">
-            Subscription <span className="text-[#c4c0ff]">&amp; Billing</span>
-          </h1>
-          <p className="text-xs text-[#c4c7c8] max-w-2xl leading-relaxed">
-            Manage your subscription plans, claim accumulated referral points, or configure Instagram store trial timelines.
-          </p>
-        </div>
+      {/* Background Soft Purple/Lavender Ambient Glow */}
+      <div
+        className="pointer-events-none absolute left-1/2 top-[-50px] h-[320px] w-[600px] -translate-x-1/2 rounded-[50%] bg-gradient-to-r from-[#c4c0ff]/0 via-[#c4c0ff]/15 to-[#c4c0ff]/0 blur-3xl"
+      />
+
+      {/* Section Header */}
+      <div className="relative text-center max-w-xl mx-auto space-y-2">
+        <span className="inline-block text-[11px] font-semibold tracking-wider text-[#c4c0ff] px-3 py-1 rounded-full bg-[#c4c0ff]/10 border border-[#c4c0ff]/20">
+          Pricing Plans
+        </span>
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-[#e5e2e1]">
+          Choose the right plan for your business
+        </h1>
+        <p className="text-xs text-[#c4c7c8]/70 max-w-md mx-auto leading-relaxed">
+          Choose an affordable plan packed with automation features for engaging your audience, creating customer loyalty, and driving Instagram sales.
+        </p>
 
         {formattedExpiryDate && (
-          <div className="bg-[#1c1b1b] border border-[#444748] rounded-[6px] px-3.5 py-2 flex items-center gap-3 shrink-0 self-start sm:self-auto">
-            <div className="p-2 rounded bg-[#c4c0ff]/10 text-[#c4c0ff]">
-              <Calendar className="w-4 h-4" />
-            </div>
-            <div>
-              <span className="text-[10px] uppercase font-bold text-[#c4c7c8]/60 tracking-wider block">
-                {isPro ? "Subscription Expiry" : "Trial Expiry Date"}
-              </span>
-              <span className="text-xs font-bold text-white">
-                {formattedExpiryDate}
-              </span>
-            </div>
+          <div className="inline-flex items-center gap-2 mt-2 px-3 py-1.5 rounded-md bg-[#1c1b1b] border border-[#2a2a2a] text-xs">
+            <Calendar className="w-3.5 h-3.5 text-[#c4c0ff]" />
+            <span className="text-[#c4c7c8]/70">{isPro ? "Subscription Expiry:" : "Trial Expiry Date:"}</span>
+            <span className="font-semibold text-white">{formattedExpiryDate}</span>
           </div>
         )}
       </div>
 
-      {/* Dense Grid containing the pricing blocks. Configured with lg:grid-cols-12 to comfortably align beside a persistent side-bar. */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
-
-        {/* Core Benefits Pane */}
-        <div className="lg:col-span-7 bg-[#1c1b1b] border border-[#444748] rounded-[6px] p-4 flex flex-col justify-between gap-5">
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-[#c4c7c8]">Included Capabilities</h3>
-              <p className="text-[11px] text-[#c4c7c8]/60 mt-0.5">
-                Full operating system limits are unlocked instantly upon purchase or redemption.
-              </p>
+      {/* Pricing Cards Grid */}
+      <div className="relative max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+        {/* Free Trial / Starter Card */}
+        <div className="flex flex-col justify-between rounded-xl border border-[#2a2a2a] bg-[#1c1b1b] p-6 shadow-xl relative overflow-hidden group hover:border-[#444748] transition-all">
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-[#c4c0ff] tracking-wide uppercase">
+                Free Trial
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-white/5 border border-white/10 text-zinc-400">
+                14 Days Included
+              </span>
             </div>
 
-            <div className="space-y-3">
-              <div className="flex items-start gap-2">
-                <div className="w-4 h-4 rounded-sm bg-[#c4c0ff]/10 border border-[#c4c0ff]/20 flex items-center justify-center text-[#c4c0ff] shrink-0 mt-0.5">
-                  <Check className="w-3 h-3" strokeWidth={2} />
-                </div>
-                <div>
-                  <h5 className="text-xs font-medium text-[#e5e2e1]">Unlimited Instagram Accounts</h5>
-                  <p className="text-[10px] text-[#c4c7c8]/60 leading-normal">Configure rule matrices and story mentions across all your store profiles.</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-2">
-                <div className="w-4 h-4 rounded-sm bg-[#c4c0ff]/10 border border-[#c4c0ff]/20 flex items-center justify-center text-[#c4c0ff] shrink-0 mt-0.5">
-                  <Check className="w-3 h-3" strokeWidth={2} />
-                </div>
-                <div>
-                  <h5 className="text-xs font-medium text-[#e5e2e1]">Advanced Messaging Inbox</h5>
-                  <p className="text-[10px] text-[#c4c7c8]/60 leading-normal">Full tracking over direct messages, customer databases, and conversion boards.</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-2">
-                <div className="w-4 h-4 rounded-sm bg-[#c4c0ff]/10 border border-[#c4c0ff]/20 flex items-center justify-center text-[#c4c0ff] shrink-0 mt-0.5">
-                  <Check className="w-3 h-3" strokeWidth={2} />
-                </div>
-                <div>
-                  <h5 className="text-xs font-medium text-[#e5e2e1]">Storefront Products &amp; Catalogs</h5>
-                  <p className="text-[10px] text-[#c4c7c8]/60 leading-normal">Design visual shoppable lists, capture client orders, and custom-brand catalogs.</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-2">
-                <div className="w-4 h-4 rounded-sm bg-[#c4c0ff]/10 border border-[#c4c0ff]/20 flex items-center justify-center text-[#c4c0ff] shrink-0 mt-0.5">
-                  <Check className="w-3 h-3" strokeWidth={2} />
-                </div>
-                <div>
-                  <h5 className="text-xs font-medium text-[#e5e2e1]">Auto-Responder Templates &amp; AI Triggers</h5>
-                  <p className="text-[10px] text-[#c4c7c8]/60 leading-normal">Set spin-to-win game mechanics, automatic story reply loops, and message routers.</p>
-                </div>
-              </div>
+            <div className="mt-3 flex items-baseline gap-1">
+              <span className="text-3xl font-bold text-white tracking-tight">₹0</span>
+              <span className="text-xs text-[#c4c7c8]/60">/ 14 days</span>
             </div>
+
+            <p className="mt-2 text-xs leading-relaxed text-[#c4c7c8]/70">
+              Perfect for exploring Instagram message automations and launching your first storefront catalog.
+            </p>
+
+            {/* Features list */}
+            <ul className="mt-6 space-y-3 text-xs text-[#c4c7c8]">
+              <li className="flex items-center gap-2.5">
+                <div className="w-4 h-4 rounded-full bg-[#c4c0ff]/10 border border-[#c4c0ff]/30 flex items-center justify-center text-[#c4c0ff] shrink-0">
+                  <Check className="w-2.5 h-2.5" strokeWidth={2.5} />
+                </div>
+                <span>1 Instagram Account connected</span>
+              </li>
+              <li className="flex items-center gap-2.5">
+                <div className="w-4 h-4 rounded-full bg-[#c4c0ff]/10 border border-[#c4c0ff]/30 flex items-center justify-center text-[#c4c0ff] shrink-0">
+                  <Check className="w-2.5 h-2.5" strokeWidth={2.5} />
+                </div>
+                <span>Basic Keyword DMs &amp; Story Reply Triggers</span>
+              </li>
+              <li className="flex items-center gap-2.5">
+                <div className="w-4 h-4 rounded-full bg-[#c4c0ff]/10 border border-[#c4c0ff]/30 flex items-center justify-center text-[#c4c0ff] shrink-0">
+                  <Check className="w-2.5 h-2.5" strokeWidth={2.5} />
+                </div>
+                <span>Shoppable Product Catalog (5 items)</span>
+              </li>
+              <li className="flex items-center gap-2.5">
+                <div className="w-4 h-4 rounded-full bg-[#c4c0ff]/10 border border-[#c4c0ff]/30 flex items-center justify-center text-[#c4c0ff] shrink-0">
+                  <Check className="w-2.5 h-2.5" strokeWidth={2.5} />
+                </div>
+                <span>Community Support &amp; Tutorials</span>
+              </li>
+            </ul>
           </div>
 
-          {/* Trial / Extension Banner (Compact) */}
-          {!isPro && (
-            <div className="p-3 rounded-[4px] bg-[#20201f] border border-[#444748] flex flex-wrap sm:flex-nowrap items-center justify-between gap-3">
-              <div className="space-y-0.5">
-                <div className="text-xs font-semibold text-[#e5e2e1] flex items-center gap-2">
-                  <span>
-                    {stats?.trial_days_left > 0
-                      ? `${stats?.trial_days_left} Days Remaining in Trial`
-                      : "Trial Window Expired"}
-                  </span>
-                  {formattedExpiryDate && (
-                    <span className="text-[10px] bg-[#c4c0ff]/10 text-[#c4c0ff] border border-[#c4c0ff]/20 px-2 py-0.5 rounded font-medium">
-                      Expires: {formattedExpiryDate}
-                    </span>
-                  )}
+          {/* Action Button */}
+          <div className="mt-8 pt-4 border-t border-[#2a2a2a]">
+            {!isPro ? (
+              stats?.has_extended_trial ? (
+                <div className="w-full py-2.5 rounded-md bg-white/5 border border-white/10 text-[11px] text-[#c4c7c8]/60 text-center font-medium">
+                  {stats?.trial_days_left > 0 ? `Trial Active (${stats?.trial_days_left}d left)` : "Trial Expired"}
                 </div>
-                <div className="text-[10px] text-[#c4c7c8]/60 leading-tight">
-                  {stats?.has_extended_trial
-                    ? "Your single-use 7-day trial extension has been utilized."
-                    : "Request a one-time 7-day manual trial extension."}
-                </div>
-              </div>
-
-              {!stats?.has_extended_trial && (
+              ) : (
                 <button
                   onClick={handleExtendTrial}
                   disabled={extendLoading}
-                  className="bg-[#2a2a2a] border border-[#444748] hover:bg-[#353535] text-[#e5e2e1] text-[10px] font-semibold py-1.5 px-3 rounded-[4px] transition-colors flex items-center gap-1.5 active:scale-95 disabled:opacity-50 shrink-0"
+                  className="w-full rounded-md bg-[#2a2a2a] hover:bg-[#353535] border border-[#444748] py-2.5 text-xs font-semibold text-[#e5e2e1] transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] disabled:opacity-50"
                 >
-                  {extendLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-                  <span>Extend Trial</span>
+                  {extendLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                  <span>Extend Trial (7 Days Free)</span>
                 </button>
-              )}
-            </div>
-          )}
+              )
+            ) : (
+              <div className="w-full py-2.5 rounded-md bg-white/5 border border-white/10 text-[11px] text-zinc-400 text-center font-medium">
+                Included with Account
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Purchase & Points Panel */}
-        <div className="lg:col-span-5 bg-[#20201f] border border-[#444748] rounded-[6px] p-4 flex flex-col justify-between gap-5 relative overflow-hidden">
-          {/* Subtle top accent strip for active visual distinction */}
-          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#c4c0ff] to-transparent"></div>
+        {/* Creator Pro Card (Popular/Featured) */}
+        <div className="flex flex-col justify-between rounded-xl border border-[#c4c0ff]/40 bg-[#1c1b1b] p-6 shadow-2xl relative overflow-hidden group hover:border-[#c4c0ff]/60 transition-all">
+          {/* Featured Accent Strip */}
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#c4c0ff] via-[#e3dfff] to-[#c4c0ff]" />
 
-          <div className="space-y-4">
-            <div className="flex justify-between items-start border-b border-[#444748] pb-3">
-              <div>
-                <span className="bg-[#c4c0ff]/10 border border-[#c4c0ff]/20 text-[#c4c0ff] text-[9px] font-semibold uppercase px-2 py-0.5 rounded-[4px] tracking-wider">
-                  Monthly Access
-                </span>
-                <h4 className="text-base font-bold text-[#e5e2e1] mt-2">Creator Pro</h4>
-              </div>
-              <div className="text-right">
-                <span className="text-2xl font-bold text-white block">₹{stats?.paid_plan_price || 499}</span>
-                <span className="text-[9px] uppercase tracking-wider text-[#c4c7c8]/50 font-bold">Billing Cycle</span>
-              </div>
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-[#c4c0ff] tracking-wide flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Creator Pro</span>
+              </span>
+              <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-[#c4c0ff]/10 border border-[#c4c0ff]/30 text-[#c4c0ff]">
+                Most Popular
+              </span>
             </div>
 
-            <p className="text-xs text-[#c4c7c8]/80 leading-normal">
-              Activate the operational automation system. No minimum commitment thresholds. Cancel at your discretion.
+            <div className="mt-3 flex items-baseline gap-1">
+              <span className="text-3xl font-bold text-white tracking-tight">₹{stats?.paid_plan_price || 499}</span>
+              <span className="text-xs text-[#c4c7c8]/60">/ month</span>
+            </div>
+
+            <p className="mt-2 text-xs leading-relaxed text-[#c4c7c8]/70">
+              Unlimited automation operating system for creators, stores, and brands scaling Instagram sales.
             </p>
 
-            <hr className="border-[#444748]" />
-
-            {/* Points Indicator */}
-            <div className="space-y-2">
-              <div className="flex justify-between items-center text-xs">
-                <span className="font-semibold text-[#e5e2e1] flex items-center gap-1.5">
-                  <Gift className="w-3.5 h-3.5 text-[#8FE3FF]" />
-                  <span>Referral Balance</span>
-                </span>
-                <span className="text-[#c4c7c8] font-mono text-[11px]">
-                  {stats?.points || 0} / {stats?.points_needed_for_premium || 100} pts
-                </span>
-              </div>
-
-              {/* Linear Dense Progress bar */}
-              <div className="w-full bg-[#131313] h-2 rounded-[4px] overflow-hidden border border-[#444748] p-[1px]">
-                <div
-                  className="h-full rounded-[4px] bg-gradient-to-r from-[#8FE3FF] to-[#c4c0ff] transition-all duration-300"
-                  style={{ width: `${pointsProgress}%` }}
-                ></div>
-              </div>
-              <p className="text-[10px] text-[#c4c7c8]/40 leading-normal">
-                Submit referral signups to earn immediate system points and redeem free monthly terms.
-              </p>
-            </div>
+            {/* Features list */}
+            <ul className="mt-6 space-y-3 text-xs text-[#c4c7c8]">
+              <li className="flex items-center gap-2.5">
+                <div className="w-4 h-4 rounded-full bg-[#c4c0ff]/10 border border-[#c4c0ff]/30 flex items-center justify-center text-[#c4c0ff] shrink-0">
+                  <Check className="w-2.5 h-2.5" strokeWidth={2.5} />
+                </div>
+                <span className="font-semibold text-white">Unlimited Instagram Accounts</span>
+              </li>
+              <li className="flex items-center gap-2.5">
+                <div className="w-4 h-4 rounded-full bg-[#c4c0ff]/10 border border-[#c4c0ff]/30 flex items-center justify-center text-[#c4c0ff] shrink-0">
+                  <Check className="w-2.5 h-2.5" strokeWidth={2.5} />
+                </div>
+                <span>Unlimited DMs, AI Chatbots &amp; Story Loops</span>
+              </li>
+              <li className="flex items-center gap-2.5">
+                <div className="w-4 h-4 rounded-full bg-[#c4c0ff]/10 border border-[#c4c0ff]/30 flex items-center justify-center text-[#c4c0ff] shrink-0">
+                  <Check className="w-2.5 h-2.5" strokeWidth={2.5} />
+                </div>
+                <span>Full Shoppable Product Catalogs &amp; Orders</span>
+              </li>
+              <li className="flex items-center gap-2.5">
+                <div className="w-4 h-4 rounded-full bg-[#c4c0ff]/10 border border-[#c4c0ff]/30 flex items-center justify-center text-[#c4c0ff] shrink-0">
+                  <Check className="w-2.5 h-2.5" strokeWidth={2.5} />
+                </div>
+                <span>Priority Dedicated 24/7 Support</span>
+              </li>
+              <li className="flex items-center gap-2.5">
+                <div className="w-4 h-4 rounded-full bg-[#c4c0ff]/10 border border-[#c4c0ff]/30 flex items-center justify-center text-[#c4c0ff] shrink-0">
+                  <Check className="w-2.5 h-2.5" strokeWidth={2.5} />
+                </div>
+                <span>Custom Referral Code &amp; Points Earning</span>
+              </li>
+            </ul>
           </div>
 
           {/* Actions */}
-          <div className="space-y-2">
+          <div className="mt-8 pt-4 border-t border-[#2a2a2a] space-y-2">
             {isPro ? (
-              <div className="golden-glow w-full py-3 px-4 rounded-[4px] border border-amber-300/40 text-[#131313] font-semibold text-xs flex flex-col items-center justify-center gap-1 uppercase tracking-wide shadow-[0_0_15px_rgba(255,191,0,0.3)]">
+              <div className="golden-glow w-full py-3 px-4 rounded-md border border-amber-300/40 text-[#131313] font-semibold text-xs flex flex-col items-center justify-center gap-1 tracking-wide shadow-[0_0_15px_rgba(255,191,0,0.3)]">
                 <div className="flex items-center gap-1.5 z-10 font-bold [text-shadow:0_1px_0_rgba(255,245,190,0.6)]">
                   <Star className="w-3.5 h-3.5 fill-current" />
                   <span>Subscription Active</span>
@@ -449,25 +441,59 @@ export default function PricingPage() {
                 <button
                   onClick={handleRazorpayPayment}
                   disabled={payLoading}
-                  className="w-full bg-white hover:bg-[#eaeaea] text-black py-2 rounded-[4px] text-xs font-semibold uppercase tracking-wide transition-colors flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] disabled:opacity-50"
+                  className="w-full bg-white hover:bg-[#eaeaea] text-black py-2.5 rounded-md text-xs font-bold tracking-wide transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] disabled:opacity-50 shadow-md"
                 >
                   {payLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CreditCard className="w-3.5 h-3.5" />}
-                  <span>Secure Checkout</span>
+                  <span>Get Started Today (Secure Checkout)</span>
                 </button>
 
                 <button
                   onClick={handleRedeemPoints}
                   disabled={redeemLoading || stats?.points < stats?.points_needed_for_premium}
-                  className="w-full bg-[#1c1b1b] border border-[#444748] hover:bg-[#2a2a2a] text-[#e5e2e1] py-2 rounded-[4px] text-xs font-semibold uppercase tracking-wide transition-colors flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] disabled:opacity-30 disabled:cursor-not-allowed"
+                  className="w-full bg-[#20201f] border border-[#444748] hover:bg-[#2a2a2a] text-[#e5e2e1] py-2 rounded-md text-xs font-semibold tracking-wide transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed"
                 >
-                  {redeemLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Gift className="w-3.5 h-3.5 text-[#8FE3FF]" />}
-                  <span>Redeem {stats?.points_needed_for_premium || 100} Points</span>
+                  {redeemLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Gift className="w-3.5 h-3.5 text-[#c4c0ff]" />}
+                  <span>Redeem {stats?.points_needed_for_premium || 100} Referral Points</span>
                 </button>
               </>
             )}
           </div>
-
         </div>
+      </div>
+
+      {/* Referral & Discount Banner (Matching Bottom Card in Template) */}
+      <div className="relative max-w-4xl mx-auto rounded-xl border border-[#444748] bg-[#1c1b1b] p-5 md:p-6 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-5">
+        <div className="space-y-1.5 text-center sm:text-left flex-1 min-w-0">
+          <div className="flex items-center justify-center sm:justify-start gap-2">
+            <span className="text-xs font-semibold text-[#c4c0ff] tracking-wide flex items-center gap-1.5">
+              <Gift className="w-3.5 h-3.5" />
+              <span>Referral Points Balance</span>
+            </span>
+            <span className="text-xs font-mono font-bold text-white bg-white/5 border border-white/10 px-2.5 py-0.5 rounded-full">
+              {stats?.points || 0} / {stats?.points_needed_for_premium || 100} pts
+            </span>
+          </div>
+
+          <p className="text-xs text-[#c4c7c8]/70 max-w-xl leading-relaxed">
+            Invite friends &amp; creators to AnyDM. Earn 20 points for every referral signup and claim free Creator Pro access without paying!
+          </p>
+
+          {/* Progress Bar */}
+          <div className="w-full max-w-md bg-[#131313] h-2 rounded-full overflow-hidden border border-[#444748] p-[1px] mt-2">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-[#c4c0ff] to-[#e3dfff] transition-all duration-300"
+              style={{ width: `${pointsProgress}%` }}
+            />
+          </div>
+        </div>
+
+        <button
+          onClick={() => router.push("/dashboard/refer")}
+          className="shrink-0 rounded-md bg-[#2a2a2a] hover:bg-[#353535] border border-[#444748] px-4 py-2.5 text-xs font-semibold text-white transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 shadow-sm"
+        >
+          <span>Earn More Points</span>
+          <span>→</span>
+        </button>
       </div>
     </div>
   );

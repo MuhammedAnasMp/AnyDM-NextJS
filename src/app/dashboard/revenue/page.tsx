@@ -118,11 +118,10 @@ export default function RevenuePage() {
               <button
                 key={tf.id}
                 onClick={() => setTimeframe(tf.id)}
-                className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
-                  timeframe === tf.id
+                className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${timeframe === tf.id
                     ? "bg-white text-black shadow-md"
                     : "text-on-surface-variant hover:text-white hover:bg-white/5"
-                }`}
+                  }`}
               >
                 {tf.label}
               </button>
@@ -149,7 +148,7 @@ export default function RevenuePage() {
       {/* Primary Financial Metric Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
         <div className="glass-pane p-6 rounded-2xl">
-          <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Monthly Runrate (MRR)</span>
+          <span className="text-[10px] font-bold text-on-surface-variant tracking-wider">Monthly Runrate (MRR)</span>
           <h3 className="text-3xl font-extrabold text-white mt-2">
             {loading ? "..." : `₹${(data?.mrr || 0).toLocaleString()}`}
           </h3>
@@ -159,7 +158,7 @@ export default function RevenuePage() {
         </div>
 
         <div className="glass-pane p-6 rounded-2xl">
-          <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Annualized Rate (ARR)</span>
+          <span className="text-[10px] font-bold text-on-surface-variant tracking-wider">Annualized Rate (ARR)</span>
           <h3 className="text-3xl font-extrabold text-white mt-2">
             {loading ? "..." : `₹${(data?.arr || 0).toLocaleString()}`}
           </h3>
@@ -167,7 +166,7 @@ export default function RevenuePage() {
         </div>
 
         <div className="glass-pane p-6 rounded-2xl">
-          <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Avg Order Value (AOV)</span>
+          <span className="text-[10px] font-bold text-on-surface-variant tracking-wider">Avg Order Value (AOV)</span>
           <h3 className="text-3xl font-extrabold text-white mt-2">
             {loading ? "..." : `₹${(data?.aov || 0).toLocaleString()}`}
           </h3>
@@ -177,7 +176,7 @@ export default function RevenuePage() {
         </div>
 
         <div className="glass-pane p-6 rounded-2xl">
-          <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Total Sales Volume</span>
+          <span className="text-[10px] font-bold text-on-surface-variant tracking-wider">Total Sales Volume</span>
           <h3 className="text-3xl font-extrabold text-white mt-2">
             {loading ? "..." : `₹${(data?.total_revenue || 0).toLocaleString()}`}
           </h3>
@@ -245,7 +244,7 @@ export default function RevenuePage() {
                 AUTO-SETTLE
               </span>
             </div>
-            
+
             <div className="space-y-4 mt-6">
               <div className="p-4 rounded-xl bg-white/5 border border-white/5">
                 <div className="flex justify-between items-center text-xs">
@@ -290,7 +289,7 @@ export default function RevenuePage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-white/5 text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">
+                    <tr className="border-b border-white/5 text-[10px] font-bold text-on-surface-variant tracking-wider">
                       <th className="py-2.5 px-3">Order ID</th>
                       <th className="py-2.5 px-3">Customer</th>
                       <th className="py-2.5 px-3">Amount</th>

@@ -3,15 +3,15 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { 
-  Settings, 
-  Store, 
-  Edit3, 
-  Save, 
-  X, 
-  Search, 
-  RefreshCw, 
-  ShieldAlert 
+import {
+  Settings,
+  Store,
+  Edit3,
+  Save,
+  X,
+  Search,
+  RefreshCw,
+  ShieldAlert
 } from "lucide-react";
 import api from "@/lib/services/api.service";
 import Toast from "@/components/Toast";
@@ -50,15 +50,15 @@ export default function AdminOrderSettingsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [editingStore, setEditingStore] = useState<StoreSetting | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  
+
   // Fields for editing
   const [editReturnPolicy, setEditReturnPolicy] = useState(false);
   const [editCancellationPolicy, setEditCancellationPolicy] = useState(false);
 
-  const [toast, setToast] = useState({ 
-    isVisible: false, 
-    message: "", 
-    type: "success" as "success" | "error" | "info" 
+  const [toast, setToast] = useState({
+    isVisible: false,
+    message: "",
+    type: "success" as "success" | "error" | "info"
   });
 
   const showToast = (message: string, type: "success" | "error" | "info" = "success") => {
@@ -99,7 +99,7 @@ export default function AdminOrderSettingsPage() {
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingStore) return;
-    
+
     setIsSaving(true);
     try {
       const res = await api.post("/crm/admin/order-settings/", {
@@ -107,21 +107,21 @@ export default function AdminOrderSettingsPage() {
         return_policy: editReturnPolicy,
         cancellation_policy: editCancellationPolicy,
       });
-      
+
       showToast("Order policies updated successfully!", "success");
-      
+
       // Update local state
-      setStores(prev => 
-        prev.map(s => s.id === editingStore.id 
-          ? { 
-              ...s, 
-              return_policy: !!res.data.return_policy, 
-              cancellation_policy: !!res.data.cancellation_policy 
-            } 
+      setStores(prev =>
+        prev.map(s => s.id === editingStore.id
+          ? {
+            ...s,
+            return_policy: !!res.data.return_policy,
+            cancellation_policy: !!res.data.cancellation_policy
+          }
           : s
         )
       );
-      
+
       setEditingStore(null);
     } catch (err: any) {
       console.error("Error saving policy settings:", err);
@@ -132,7 +132,7 @@ export default function AdminOrderSettingsPage() {
   };
 
   // Filter stores
-  const filteredStores = stores.filter(store => 
+  const filteredStores = stores.filter(store =>
     store.store_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     store.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     store.store_slug?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -151,9 +151,9 @@ export default function AdminOrderSettingsPage() {
   }
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 8 }} 
-      animate={{ opacity: 1, y: 0 }} 
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
       className="space-y-6 text-[#e5e2e1] pb-10"
     >
       {/* Header */}
@@ -169,7 +169,7 @@ export default function AdminOrderSettingsPage() {
             </p>
           </div>
         </div>
-        <button 
+        <button
           onClick={fetchStores}
           className="p-2 rounded hover:bg-white/5 transition-colors border border-white/10"
           title="Refresh List"
@@ -182,8 +182,8 @@ export default function AdminOrderSettingsPage() {
       <div className="flex justify-between items-center bg-[#20201f] border border-white/5 p-3 rounded-lg">
         <div className="flex items-center gap-1.5 bg-[#0e0e0e] border border-[#444748] rounded px-3 py-1.5 w-full max-w-md">
           <Search className="w-3.5 h-3.5 text-zinc-400" />
-          <input 
-            type="text" 
+          <input
+            type="text"
             placeholder="Search store name, username, or URL slug..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -208,7 +208,7 @@ export default function AdminOrderSettingsPage() {
           <div className="overflow-x-auto bg-[#20201f] border border-white/5 rounded-lg shadow-md">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="border-b border-[#444748] text-zinc-400 uppercase tracking-wider text-[10px] font-bold">
+                <tr className="border-b border-[#444748] text-zinc-400 tracking-wider text-[10px] font-bold">
                   <th className="px-4 py-3">Store Details</th>
                   <th className="px-4 py-3">Return Policy</th>
                   <th className="px-4 py-3">Cancellation Policy</th>
@@ -227,8 +227,8 @@ export default function AdminOrderSettingsPage() {
                     <td className="px-4 py-4 max-w-[200px] truncate font-medium">
                       <span className={cn(
                         "px-2 py-0.5 rounded text-[10px] font-bold uppercase",
-                        store.return_policy 
-                          ? "bg-green-500/10 border border-green-500/30 text-green-400" 
+                        store.return_policy
+                          ? "bg-green-500/10 border border-green-500/30 text-green-400"
                           : "bg-red-500/10 border border-red-500/30 text-red-400"
                       )}>
                         {store.return_policy ? "Accepted" : "Not Accepted"}
@@ -237,8 +237,8 @@ export default function AdminOrderSettingsPage() {
                     <td className="px-4 py-4 max-w-[200px] truncate font-medium">
                       <span className={cn(
                         "px-2 py-0.5 rounded text-[10px] font-bold uppercase",
-                        store.cancellation_policy 
-                          ? "bg-green-500/10 border border-green-500/30 text-green-400" 
+                        store.cancellation_policy
+                          ? "bg-green-500/10 border border-green-500/30 text-green-400"
                           : "bg-red-500/10 border border-red-500/30 text-red-400"
                       )}>
                         {store.cancellation_policy ? "Allowed" : "Not Allowed"}
@@ -277,8 +277,8 @@ export default function AdminOrderSettingsPage() {
                     <Store className="w-4 h-4 text-[#b6b2ff]" />
                     <span className="text-sm font-bold text-white">Edit Store Policies: {editingStore.store_name}</span>
                   </div>
-                  <button 
-                    onClick={() => setEditingStore(null)} 
+                  <button
+                    onClick={() => setEditingStore(null)}
                     className="p-1 rounded hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
                   >
                     <X className="w-4 h-4" />

@@ -737,7 +737,7 @@ export function Canvas() {
           >
             <div className="w-12 h-12 mx-auto rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white shrink-0">
               {openTab === 'icebreakers' ? (
-                <Sparkles className="w-6 h-6 text-[#8FE3FF]" />
+                <Sparkles className="w-6 h-6 text-[#c4c0ff]" />
               ) : (
                 <MenuIcon className="w-6 h-6 text-[#C084FC]" />
               )}
@@ -794,7 +794,7 @@ export function Canvas() {
             {isPanelCollapsed ? (
               <Shrink className="w-4 h-4 text-zinc-400" />
             ) : (
-              <Expand className="w-4 h-4 text-[#8FE3FF]" />
+              <Expand className="w-4 h-4 text-[#c4c0ff]" />
             )}
           </button>
         </div>
@@ -868,7 +868,7 @@ export function Canvas() {
             className="px-1.5 sm:px-2.5 py-1 rounded-lg text-xs font-bold text-zinc-300 hover:text-white hover:bg-white/5 active:bg-white/10 cursor-pointer transition-all shrink-0 flex items-center gap-1.5"
             title="Focus & Center Flow on UI"
           >
-            <Focus className="w-3 h-3 sm:w-4 sm:h-4 text-[#8FE3FF]" />
+            <Focus className="w-3 h-3 sm:w-4 sm:h-4 text-[#c4c0ff]" />
           </button>
 
           {/* Reset / Zoom Level Button */}

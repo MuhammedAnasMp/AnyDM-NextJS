@@ -3,12 +3,12 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { 
-  Coins, 
-  Search, 
-  RefreshCw, 
-  ShieldAlert, 
-  Check, 
+import {
+  Coins,
+  Search,
+  RefreshCw,
+  ShieldAlert,
+  Check,
   X,
   CreditCard,
   ExternalLink,
@@ -65,10 +65,10 @@ export default function AdminPaymentSettlementPage() {
   const [paymentProof, setPaymentProof] = useState("");
   const [showPayoutModal, setShowPayoutModal] = useState<Settlement | null>(null);
 
-  const [toast, setToast] = useState({ 
-    isVisible: false, 
-    message: "", 
-    type: "success" as "success" | "error" | "info" 
+  const [toast, setToast] = useState({
+    isVisible: false,
+    message: "",
+    type: "success" as "success" | "error" | "info"
   });
 
   const showToast = (message: string, type: "success" | "error" | "info" = "success") => {
@@ -108,16 +108,16 @@ export default function AdminPaymentSettlementPage() {
       });
 
       showToast("Payout recorded successfully!", "success");
-      
+
       // Update local state
       setSettlements(prev =>
         prev.map(s => s.id === showPayoutModal.id
           ? {
-              ...s,
-              status: "PAID",
-              payment_proof: paymentProof.trim() || "Completed via Admin Portal",
-              paid_at: new Date().toISOString()
-            }
+            ...s,
+            status: "PAID",
+            payment_proof: paymentProof.trim() || "Completed via Admin Portal",
+            paid_at: new Date().toISOString()
+          }
           : s
         )
       );
@@ -134,7 +134,7 @@ export default function AdminPaymentSettlementPage() {
 
   // Filter list
   const filteredSettlements = settlements.filter(s => {
-    const matchesSearch = 
+    const matchesSearch =
       s.order_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.seller_username?.toLowerCase().includes(searchQuery.toLowerCase());
 
@@ -172,9 +172,9 @@ export default function AdminPaymentSettlementPage() {
     .toFixed(2);
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 8 }} 
-      animate={{ opacity: 1, y: 0 }} 
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
       className="space-y-6 text-[#e5e2e1] pb-10 font-sans"
     >
       {/* Header */}
@@ -190,7 +190,7 @@ export default function AdminPaymentSettlementPage() {
             </p>
           </div>
         </div>
-        <button 
+        <button
           onClick={fetchSettlements}
           className="p-2 rounded hover:bg-white/5 transition-colors border border-white/10"
           title="Refresh List"
@@ -252,11 +252,10 @@ export default function AdminPaymentSettlementPage() {
               <button
                 key={filter}
                 onClick={() => setStatusFilter(filter)}
-                className={`px-3 h-7 rounded text-xs font-medium transition-colors ${
-                  statusFilter === filter
+                className={`px-3 h-7 rounded text-xs font-medium transition-colors ${statusFilter === filter
                     ? "bg-[#20201f] text-white border border-[#2a2a2a] shadow-sm"
                     : "text-[#c4c7c8] hover:text-white border border-transparent"
-                }`}
+                  }`}
               >
                 {filter === "PENDING" ? "Pending Payments" : filter === "PAID" ? "Settled Payments" : "All Records"}
               </button>
@@ -334,9 +333,9 @@ export default function AdminPaymentSettlementPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="font-black text-green-400 text-sm">₹{s.seller_amount}</div>
-                      <span className={cn("px-1.5 py-0.5 rounded text-[8px] font-bold uppercase inline-block mt-1",
-                        s.status === "PENDING" 
-                          ? "bg-yellow-500/10 border border-yellow-500/30 text-yellow-400" 
+                      <span className={cn("px-1.5 py-0.5 rounded text-[8px] font-bold inline-block mt-1",
+                        s.status === "PENDING"
+                          ? "bg-yellow-500/10 border border-yellow-500/30 text-yellow-400"
                           : "bg-green-500/10 border border-green-500/30 text-green-400"
                       )}>
                         {s.status === "PENDING" ? "Pending Payout" : "Paid"}
@@ -380,11 +379,11 @@ export default function AdminPaymentSettlementPage() {
                 <Coins className="w-4 h-4 text-[#b6b2ff]" />
                 <span className="text-sm font-bold">Process Settlement Payout</span>
               </div>
-              <button 
+              <button
                 onClick={() => {
                   setShowPayoutModal(null);
                   setPaymentProof("");
-                }} 
+                }}
                 className="p-1 rounded hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
               >
                 <X className="w-4 h-4" />
@@ -423,7 +422,7 @@ export default function AdminPaymentSettlementPage() {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] uppercase font-bold tracking-wider text-zinc-400">Payment Reference / Txn Proof</label>
+                <label className="text-[10px] font-bold tracking-wider text-zinc-400">Payment Reference / Txn Proof</label>
                 <input
                   type="text"
                   required

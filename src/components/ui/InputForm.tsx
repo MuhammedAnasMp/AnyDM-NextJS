@@ -10,7 +10,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, type = 'text', label, helperText, ...props }, ref) => {
     return (
       <div className="flex flex-col gap-1 w-full relative">
-        {label && <label className="text-label-sm text-on-surface-variant uppercase tracking-wider">{label}</label>}
+        {label && <label className="text-label-sm text-on-surface-variant tracking-wider">{label}</label>}
         <input
           type={type}
           className={cn(
@@ -31,7 +31,7 @@ export const Select = React.forwardRef<HTMLSelectElement, React.SelectHTMLAttrib
   ({ className, label, helperText, children, ...props }, ref) => {
     return (
       <div className="flex flex-col gap-1 w-full bg-transparent">
-        {label && <label className="text-label-sm text-on-surface-variant uppercase tracking-wider">{label}</label>}
+        {label && <label className="text-label-sm text-on-surface-variant tracking-wider">{label}</label>}
         <select
           className={cn(
             "flex h-10 w-full rounded-md bg-surface-container-high border border-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:border-white/20 focus:ring-1 focus:ring-white/20 transition-all appearance-none cursor-pointer",

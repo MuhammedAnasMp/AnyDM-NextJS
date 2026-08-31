@@ -10,6 +10,7 @@ import {
   Gift,
   UserCheck,
   Award,
+  Crown,
   Sparkles,
   ShoppingBag,
   Zap,
@@ -175,13 +176,14 @@ export default function AdminUsersPage() {
 
   // Overview stats
   const totalRegistered = users.length;
+  const totalUsersCount = users.length;
   const totalVipCreators = users.filter((u) => u.is_creator_vip).length;
   const totalProSubscribers = users.filter((u) => u.plan === "pro").length;
   const totalReferralConversions = users.reduce((acc, u) => acc + (u.paid_referred_count || 0), 0);
 
   const getSortIcon = (field: string) => {
     if (sortField !== field) return <ArrowUpDown className="w-3 h-3 text-zinc-500 hover:text-white transition-colors" />;
-    return sortOrder === "asc" ? <ArrowUp className="w-3 h-3 text-[#8fe3ff]" /> : <ArrowDown className="w-3 h-3 text-[#8fe3ff]" />;
+    return sortOrder === "asc" ? <ArrowUp className="w-3 h-3 text-[#c4c0ff]" /> : <ArrowDown className="w-3 h-3 text-[#c4c0ff]" />;
   };
 
   if (isLoading) {
@@ -226,7 +228,7 @@ export default function AdminUsersPage() {
           </Link>
           <div>
             <h1 className="text-xl font-bold tracking-tight text-[#e5e2e1] flex items-center gap-2">
-              <Users className="w-5 h-5 text-[#8fe3ff]" />
+              <Users className="w-5 h-5 text-[#c4c0ff]" />
               <span>Registered User Analytics &amp; VIP Management</span>
             </h1>
             <p className="text-xs mt-0.5" style={{ color: t.onSurfaceVariant }}>
@@ -249,30 +251,30 @@ export default function AdminUsersPage() {
         </button>
       </div>
 
-      {/* Analytics Overview Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="rounded-lg p-4 flex flex-col gap-1 border border-white/10" style={{ backgroundColor: t.surfaceContainer }}>
+      {/* Analytics KPI Stat Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        <div className="rounded-lg p-4 flex flex-col gap-1 border border-white/10 bg-white/5">
           <span className="text-[11px] font-medium text-zinc-400 flex items-center gap-1.5">
-            <Users className="w-3.5 h-3.5 text-zinc-400" />
-            Total Registered Users
+            <Users className="w-3.5 h-3.5" />
+            Total Workspace Users
           </span>
-          <span className="text-xl font-bold text-white">{totalRegistered}</span>
+          <span className="text-xl font-bold text-white">{totalUsersCount}</span>
         </div>
 
-        <div className="rounded-lg p-4 flex flex-col gap-1 border border-emerald-500/20 bg-emerald-500/5">
+        <div className="rounded-lg p-4 flex flex-col gap-1 border border-[#2a2a2a] bg-[#1c1b1b]">
           <span className="text-[11px] font-medium text-emerald-400 flex items-center gap-1.5">
-            <Award className="w-3.5 h-3.5" />
+            <Crown className="w-3.5 h-3.5" />
             VIP Creator Accounts
           </span>
           <span className="text-xl font-bold text-emerald-400">{totalVipCreators}</span>
         </div>
 
-        <div className="rounded-lg p-4 flex flex-col gap-1 border border-[#8fe3ff]/20 bg-[#8fe3ff]/5">
-          <span className="text-[11px] font-medium text-[#8fe3ff] flex items-center gap-1.5">
+        <div className="rounded-lg p-4 flex flex-col gap-1 border border-[#c4c0ff]/20 bg-[#c4c0ff]/5">
+          <span className="text-[11px] font-medium text-[#c4c0ff] flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5" />
             Pro Plan Subscribers
           </span>
-          <span className="text-xl font-bold text-[#8fe3ff]">{totalProSubscribers}</span>
+          <span className="text-xl font-bold text-[#c4c0ff]">{totalProSubscribers}</span>
         </div>
 
         <div className="rounded-lg p-4 flex flex-col gap-1 border border-indigo-500/20 bg-indigo-500/5">
@@ -296,7 +298,7 @@ export default function AdminUsersPage() {
               setSearchQuery(e.target.value);
               setCurrentPage(1);
             }}
-            className="w-full bg-[#0e0e0e] border border-[#444748] rounded py-1.5 pl-9 pr-3 text-xs text-[#e5e2e1] focus:outline-none focus:border-[#8fe3ff]"
+            className="w-full bg-[#0e0e0e] border border-[#444748] rounded py-1.5 pl-9 pr-3 text-xs text-[#e5e2e1] focus:outline-none focus:border-[#c4c0ff]"
           />
         </div>
 
@@ -308,11 +310,10 @@ export default function AdminUsersPage() {
                 setActiveFilter(filterKey);
                 setCurrentPage(1);
               }}
-              className={`px-3 py-1 rounded text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer whitespace-nowrap ${
-                activeFilter === filterKey
+              className={`px-3 py-1 rounded text-xs font-semibold tracking-wider transition-colors cursor-pointer whitespace-nowrap ${activeFilter === filterKey
                   ? "bg-white text-black font-bold shadow-sm"
                   : "bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-white"
-              }`}
+                }`}
             >
               {filterKey === "all" ? "All Users" : filterKey === "vip" ? "VIP Creators" : filterKey === "pro" ? "Pro Plan" : "Active Trial"}
             </button>
@@ -324,10 +325,10 @@ export default function AdminUsersPage() {
       <section className="rounded-lg p-5 space-y-4" style={{ backgroundColor: t.surfaceContainer }}>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-white/5 pb-3 gap-2">
           <h3 className="text-sm font-semibold tracking-wide flex items-center gap-2" style={{ color: t.onSurface }}>
-            <Users className="w-4 h-4 text-[#8fe3ff]" />
+            <Users className="w-4 h-4 text-[#c4c0ff]" />
             <span>Accounts Directory &amp; Usage Metrics</span>
           </h3>
-          
+
           <div className="flex items-center gap-3">
             <span className="text-xs px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-zinc-400 font-medium">
               Showing {paginatedUsers.length} of {sortedUsers.length} Users
@@ -340,7 +341,7 @@ export default function AdminUsersPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="border-b border-white/10 text-zinc-400 uppercase tracking-wider text-[10px] font-semibold select-none">
+                  <tr className="border-b border-white/10 text-zinc-400 tracking-wider text-[10px] font-semibold select-none">
                     <th className="pb-2.5 cursor-pointer hover:text-white" onClick={() => handleSort("username")}>
                       <div className="flex items-center gap-1">
                         <span>User Account</span>
@@ -390,7 +391,7 @@ export default function AdminUsersPage() {
                       <td className="py-3 font-medium text-white">
                         <div className="flex flex-col">
                           <div className="flex items-center gap-1.5">
-                            <span className="font-semibold text-white group-hover:text-[#8fe3ff] transition-colors">
+                            <span className="font-semibold text-white group-hover:text-[#c4c0ff] transition-colors">
                               {user.email || user.username}
                             </span>
                             {user.is_creator_vip && (
@@ -524,11 +525,10 @@ export default function AdminUsersPage() {
                       key={pageNum}
                       type="button"
                       onClick={() => setCurrentPage(pageNum)}
-                      className={`w-7 h-7 rounded text-xs font-semibold transition-colors cursor-pointer ${
-                        currentPage === pageNum
+                      className={`w-7 h-7 rounded text-xs font-semibold transition-colors cursor-pointer ${currentPage === pageNum
                           ? "bg-white text-black font-bold shadow-sm"
                           : "bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-white"
-                      }`}
+                        }`}
                     >
                       {pageNum}
                     </button>
@@ -568,7 +568,7 @@ export default function AdminUsersPage() {
               {/* Modal Header */}
               <div className="flex items-center justify-between border-b border-white/10 pb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[#8fe3ff] font-bold text-sm">
+                  <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[#c4c0ff] font-bold text-sm">
                     {selectedUser.username.slice(0, 2).toUpperCase()}
                   </div>
                   <div>
@@ -597,7 +597,7 @@ export default function AdminUsersPage() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="bg-[#101012] p-3 rounded-lg border border-white/5 flex flex-col gap-0.5">
                   <span className="text-[10px] text-zinc-400 font-medium flex items-center gap-1">
-                    <CreditCard className="w-3 h-3 text-[#8fe3ff]" /> Pro Plan Purchases
+                    <CreditCard className="w-3 h-3 text-[#c4c0ff]" /> Pro Plan Purchases
                   </span>
                   <span className="text-base font-bold text-white">{selectedUser.pro_purchase_count} Payments</span>
                 </div>
@@ -626,7 +626,7 @@ export default function AdminUsersPage() {
 
               {/* Connected Instagram Accounts List */}
               <div className="space-y-3 bg-[#101012] p-4 rounded-lg border border-white/5">
-                <h4 className="text-xs font-semibold text-[#8fe3ff] flex items-center gap-1.5 uppercase tracking-wider">
+                <h4 className="text-xs font-semibold text-[#c4c0ff] flex items-center gap-1.5 tracking-wider">
                   <Camera className="w-3.5 h-3.5 text-pink-400" />
                   <span>Connected Instagram Accounts ({selectedUser.ig_accounts?.length || 0})</span>
                 </h4>
@@ -664,7 +664,7 @@ export default function AdminUsersPage() {
 
               {/* Published Products Catalog */}
               <div className="space-y-3 bg-[#101012] p-4 rounded-lg border border-white/5">
-                <h4 className="text-xs font-semibold text-[#8fe3ff] flex items-center gap-1.5 uppercase tracking-wider">
+                <h4 className="text-xs font-semibold text-[#c4c0ff] flex items-center gap-1.5 tracking-wider">
                   <Package className="w-3.5 h-3.5 text-cyan-400" />
                   <span>Published Products &amp; Store Items ({selectedUser.products?.length || 0})</span>
                 </h4>
@@ -673,7 +673,7 @@ export default function AdminUsersPage() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs border-collapse">
                       <thead>
-                        <tr className="border-b border-white/10 text-zinc-500 text-[10px] uppercase font-semibold">
+                        <tr className="border-b border-white/10 text-zinc-500 text-[10px] font-semibold">
                           <th className="pb-2">Title</th>
                           <th className="pb-2">Price</th>
                           <th className="pb-2">Source</th>
@@ -703,7 +703,7 @@ export default function AdminUsersPage() {
 
               {/* Referred Audience List */}
               <div className="space-y-3 bg-[#101012] p-4 rounded-lg border border-white/5">
-                <h4 className="text-xs font-semibold text-[#8fe3ff] flex items-center gap-1.5 uppercase tracking-wider">
+                <h4 className="text-xs font-semibold text-[#c4c0ff] flex items-center gap-1.5 tracking-wider">
                   <Users className="w-3.5 h-3.5 text-indigo-400" />
                   <span>Referred Audience ({selectedUser.referred_users?.length || 0} Joined)</span>
                 </h4>
@@ -740,7 +740,7 @@ export default function AdminUsersPage() {
                       setGrantMonths(3);
                       setShowGrantModal(true);
                     }}
-                    className="px-4 py-2 rounded font-bold text-xs bg-[#a3f7ff] text-black hover:bg-[#a3f7ff]/90 transition-colors cursor-pointer flex items-center gap-1.5 shadow-md"
+                    className="px-4 py-2 rounded font-bold text-xs bg-[#c4c0ff] text-black hover:bg-[#c4c0ff]/90 transition-colors cursor-pointer flex items-center gap-1.5 shadow-md"
                   >
                     <Gift className="w-3.5 h-3.5 text-black" />
                     <span>{selectedUser.is_creator_vip ? "Extend VIP Access" : "Grant VIP Pro Access"}</span>
@@ -784,7 +784,7 @@ export default function AdminUsersPage() {
                   placeholder="creator@youtube.com"
                   value={targetEmail}
                   onChange={(e) => setTargetEmail(e.target.value)}
-                  className="w-full bg-[#101012] border border-[#444748] rounded text-xs py-2 px-3 text-white focus:outline-none focus:border-[#8fe3ff]"
+                  className="w-full bg-[#101012] border border-[#444748] rounded text-xs py-2 px-3 text-white focus:outline-none focus:border-[#c4c0ff]"
                 />
               </div>
 
@@ -793,7 +793,7 @@ export default function AdminUsersPage() {
                 <select
                   value={grantMonths}
                   onChange={(e) => setGrantMonths(parseInt(e.target.value) || 3)}
-                  className="w-full bg-[#101012] border border-[#444748] rounded text-xs py-2 px-3 text-white focus:outline-none focus:border-[#8fe3ff] cursor-pointer"
+                  className="w-full bg-[#101012] border border-[#444748] rounded text-xs py-2 px-3 text-white focus:outline-none focus:border-[#c4c0ff] cursor-pointer"
                 >
                   <option value={1}>1 Month Free Pro</option>
                   <option value={3}>3 Months Free Pro (Recommended)</option>

@@ -209,20 +209,20 @@ export function RightSidebar() {
       className={cn(
         "w-80 flex flex-col z-50 overflow-hidden",
         selectedNodeRect
-          ? "rounded-2xl bg-[#0F0F1A]/95 backdrop-blur-3xl border-[1px] border-[#8FE3FF]/30 shadow-[0_32px_80px_-16px_rgba(0,0,0,0.6),0_0_0_1px_rgba(143,227,255,0.15)] ring-1 ring-[#8FE3FF]/10"
+          ? "rounded-2xl bg-[#0F0F1A]/95 backdrop-blur-3xl border-[1px] border-[#c4c0ff]/30 shadow-[0_32px_80px_-16px_rgba(0,0,0,0.6),0_0_0_1px_rgba(196,192,255,0.15)] ring-1 ring-[#c4c0ff]/10"
           : "h-full rounded-none bg-[#1c1b1b]/95 backdrop-blur-xl border-l border-white/10 shadow-2xl"
       )}
     >
       <div
         className={cn(
           "flex items-center justify-between p-3 border-b border-white/5",
-          selectedNodeRect && "cursor-grab active:cursor-grabbing bg-[#8FE3FF]/5"
+          selectedNodeRect && "cursor-grab active:cursor-grabbing bg-[#c4c0ff]/5"
         )}
         onPointerDown={(e) => selectedNodeRect && dragControls.start(e)}
       >
         <div className="flex items-center gap-2">
-          {selectedNodeRect && <GripHorizontal className="w-4 h-4 text-[#8FE3FF]/70" />}
-          <h3 className="text-xs font-bold uppercase tracking-wider text-[#8FE3FF]">
+          {selectedNodeRect && <GripHorizontal className="w-4 h-4 text-[#c4c0ff]/70" />}
+          <h3 className="text-xs font-bold tracking-wider text-[#c4c0ff]">
             {`${selectedNode?.type} Settings`}
           </h3>
         </div>
@@ -238,9 +238,9 @@ export function RightSidebar() {
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         {isSelectedProfileTrigger && (
           <div className="bg-black/35 border border-white/5 rounded-xl p-4 space-y-4 animate-fadeIn">
-            <div className="flex items-center gap-2 text-[#8FE3FF]">
+            <div className="flex items-center gap-2 text-[#c4c0ff]">
               <Settings className="w-4 h-4 shrink-0" />
-              <span className="text-xs font-bold uppercase tracking-wider">Trigger Settings Locked</span>
+              <span className="text-xs font-bold tracking-wider">Trigger Settings Locked</span>
             </div>
             <p className="text-xs text-zinc-405 leading-relaxed">
               This trigger node represents the active questions/buttons on your Instagram profile Welcome Experience.
@@ -249,7 +249,7 @@ export function RightSidebar() {
               To update active options, layouts, or question text, please visit the Inbox Welcome configuration page.
             </p>
             <div className="pt-2 border-t border-white/5 flex flex-col gap-2">
-              <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Active Options:</span>
+              <span className="text-[10px] font-bold text-zinc-500 tracking-widest">Active Options:</span>
               <div className="flex flex-col gap-1.5">
                 {selectedNode.data?.is_icebreaker_trigger ? (
                   (selectedNode.data?.icebreakers || []).map((ib: any, idx: number) => (
@@ -276,7 +276,7 @@ export function RightSidebar() {
           // <div className="bg-[#4f46e5]/10 border border-[#4f46e5]/20 rounded-xl p-4 space-y-4 animate-fadeIn">
           //   <div className="flex items-center gap-2 text-indigo-400">
           //     <Sparkles className="w-4 h-4 shrink-0 text-indigo-400" />
-          //     <span className="text-xs font-bold uppercase tracking-wider">Dynamic Tracking Flow</span>
+          //     <span className="text-xs font-bold tracking-wider">Dynamic Tracking Flow</span>
           //   </div>
           //   <p className="text-xs text-indigo-200 leading-relaxed font-semibold">
           //     This node represents the live Order Tracking automation flow.
@@ -322,7 +322,7 @@ export function RightSidebar() {
                 <div key={def.name} className="space-y-2 relative">
                   {isDMFormatField ? (
                     <div className="space-y-2 relative">
-                      <label className="text-label-sm text-on-surface-variant uppercase tracking-wider">{def.label}</label>
+                      <label className="text-label-sm text-on-surface-variant tracking-wider">{def.label}</label>
                       <button
                         type="button"
                         onClick={() => setDmFormatDropdownOpen(!dmFormatDropdownOpen)}
@@ -349,7 +349,7 @@ export function RightSidebar() {
                             return (
                               <>
                                 <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-white shrink-0">
-                                  <OptIcon className="w-4 h-4 text-[#8FE3FF]" />
+                                  <OptIcon className="w-4 h-4 text-[#c4c0ff]" />
                                 </div>
                                 <div className="flex flex-col">
                                   <span className="text-xs font-bold text-white leading-normal">{opt.title}</span>
@@ -389,12 +389,12 @@ export function RightSidebar() {
                               >
                                 <div className={cn(
                                   "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
-                                  isSelected ? "bg-[#8FE3FF]/25 text-[#8FE3FF]" : "bg-white/5 text-zinc-400"
+                                  isSelected ? "bg-[#c4c0ff]/25 text-[#c4c0ff]" : "bg-white/5 text-zinc-400"
                                 )}>
                                   <OptIcon className="w-4 h-4" />
                                 </div>
                                 <div className="flex flex-col">
-                                  <span className={cn("text-xs font-bold leading-normal", isSelected ? "text-[#8FE3FF]" : "text-white")}>{opt.title}</span>
+                                  <span className={cn("text-xs font-bold leading-normal", isSelected ? "text-[#c4c0ff]" : "text-white")}>{opt.title}</span>
                                   <span className="text-[10px] text-zinc-400 mt-0.5 leading-normal">{opt.desc}</span>
                                 </div>
                               </button>
@@ -515,7 +515,7 @@ export function RightSidebar() {
             case 'keywords':
               return (
                 <div key={def.name} className="space-y-2">
-                  <label className="text-label-sm text-on-surface-variant uppercase tracking-wider">{def.label}</label>
+                  <label className="text-label-sm text-on-surface-variant tracking-wider">{def.label}</label>
                   <div className="flex flex-wrap gap-2">
                     {(value || []).map((kw: string, idx: number) => (
                       <span key={idx} className="flex items-center gap-1 px-2 py-1 bg-surface-container-highest rounded-md text-xs border border-white/10">
@@ -542,7 +542,7 @@ export function RightSidebar() {
             case 'message_list':
               return (
                 <div key={def.name} className="space-y-2">
-                  <label className="text-label-sm text-on-surface-variant uppercase tracking-wider">{def.label}</label>
+                  <label className="text-label-sm text-on-surface-variant tracking-wider">{def.label}</label>
                   <div className="space-y-2">
                     {(value || ['']).map((msg: string, idx: number) => (
                       <div key={idx} className="flex gap-2">
@@ -576,7 +576,7 @@ export function RightSidebar() {
               const hasError = def.name === 'media_ids' && (selectedNode?.data.target_mode || selectedNode?.data.mode) === 'selected' && (!value || value.length === 0);
               return (
                 <div key={def.name} className="space-y-2">
-                  <label className="text-label-sm text-on-surface-variant uppercase tracking-wider">{def.label}</label>
+                  <label className="text-label-sm text-on-surface-variant tracking-wider">{def.label}</label>
                   <div onClick={() => selectedNode && dispatch(openMediaPicker({
                     nodeId: selectedNode.id,
                     fieldKey: def.name,
@@ -616,7 +616,7 @@ export function RightSidebar() {
               }
               return (
                 <div key={def.name} className="flex flex-col gap-1 w-full">
-                  <label className="text-label-sm text-on-surface-variant uppercase tracking-wider">{def.label}</label>
+                  <label className="text-label-sm text-on-surface-variant tracking-wider">{def.label}</label>
                   <textarea
                     className={cn(
                       "flex min-h-[120px] w-full rounded-md bg-[#1c1b1b] border px-3 py-2 text-xs text-white placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-1 transition-all font-mono resize-y",

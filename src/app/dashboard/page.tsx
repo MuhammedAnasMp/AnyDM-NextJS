@@ -132,7 +132,7 @@ export default function DashboardOverview() {
   ];
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
@@ -153,21 +153,21 @@ export default function DashboardOverview() {
       {/* KPI Bento Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {kpis.map((kpi, index) => (
-          <div 
+          <div
             key={index}
             className="glass-pane p-6 rounded-xl hover:border-white/20 transition-all duration-300 group relative overflow-hidden"
           >
             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
               <span className="material-symbols-outlined text-4xl">{kpi.icon}</span>
             </div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-4">{kpi.name}</p>
+            <p className="text-xs font-semibold tracking-wider text-on-surface-variant mb-4">{kpi.name}</p>
             <div className="flex items-end gap-2">
               <span className="text-3xl font-extrabold text-white">{kpi.value}</span>
               <span className="text-[10px] text-on-surface-variant opacity-60 pb-1">{kpi.change}</span>
             </div>
             <div className="mt-6 h-1 w-full bg-white/5 rounded-full overflow-hidden">
-              <div 
-                className={`h-full ${kpi.isAccented ? "bg-[#c4c0ff] shadow-[0_0_10px_rgba(196,192,255,0.4)]" : "bg-white"}`} 
+              <div
+                className={`h-full ${kpi.isAccented ? "bg-[#c4c0ff] shadow-[0_0_10px_rgba(196,192,255,0.4)]" : "bg-white"}`}
                 style={{ width: `${Math.max(5, kpi.progress)}%` }}
               ></div>
             </div>
@@ -209,7 +209,7 @@ export default function DashboardOverview() {
           {/* 1. Hourly DM Rate */}
           <div className="p-3.5 rounded bg-[#20201f] border border-white/5 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold text-[#8e9192] uppercase tracking-wider">Hourly DM Velocity</span>
+              <span className="text-[11px] font-semibold text-[#8e9192] tracking-wider">Hourly DM Velocity</span>
               <Zap className="w-3.5 h-3.5 text-[#c4c0ff]" />
             </div>
             <div className="flex items-baseline gap-1.5">
@@ -218,9 +218,9 @@ export default function DashboardOverview() {
             </div>
             <div className="space-y-1">
               <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                <div 
+                <div
                   className="h-full transition-all duration-500 rounded-full"
-                  style={{ 
+                  style={{
                     width: `${Math.min(100, (((rateLimits?.hourly_dm_count || 0) / (rateLimits?.hourly_dm_limit || 200)) * 100))}%`,
                     backgroundColor: (rateLimits?.hourly_dm_count || 0) > 160 ? "#ef4444" : (rateLimits?.hourly_dm_count || 0) > 120 ? "#f59e0b" : "#34d399"
                   }}
@@ -236,7 +236,7 @@ export default function DashboardOverview() {
           {/* 2. Rate Limit Utilization */}
           <div className="p-3.5 rounded bg-[#20201f] border border-white/5 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold text-[#8e9192] uppercase tracking-wider">Meta API Usage</span>
+              <span className="text-[11px] font-semibold text-[#8e9192] tracking-wider">Meta API Usage</span>
               <RefreshCw className="w-3.5 h-3.5 text-sky-400" />
             </div>
             <div className="flex items-baseline gap-1.5">
@@ -245,9 +245,9 @@ export default function DashboardOverview() {
             </div>
             <div className="space-y-1">
               <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                <div 
+                <div
                   className="h-full transition-all duration-500 rounded-full"
-                  style={{ 
+                  style={{
                     width: `${Math.min(100, rateLimits?.rate_limit_utilization_pct || 5)}%`,
                     backgroundColor: (rateLimits?.rate_limit_utilization_pct || 0) > 80 ? "#ef4444" : "#38bdf8"
                   }}
@@ -255,7 +255,7 @@ export default function DashboardOverview() {
               </div>
               <div className="flex justify-between text-[10px] text-[#8e9192]">
                 <span className="flex items-center gap-1">
-                  <Clock className="w-3 h-3 text-[#8e9192]" /> 
+                  <Clock className="w-3 h-3 text-[#8e9192]" />
                   Resets in {Math.ceil((rateLimits?.reset_time_seconds || 3600) / 60)}m
                 </span>
                 <span className="text-white font-medium">Optimal</span>
@@ -266,7 +266,7 @@ export default function DashboardOverview() {
           {/* 3. 24-Hour Messaging Window */}
           <div className="p-3.5 rounded bg-[#20201f] border border-white/5 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold text-[#8e9192] uppercase tracking-wider">24h Customer Window</span>
+              <span className="text-[11px] font-semibold text-[#8e9192] tracking-wider">24h Customer Window</span>
               <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
             </div>
             <div className="flex items-baseline gap-1.5">
@@ -281,7 +281,7 @@ export default function DashboardOverview() {
           {/* 4. Publishing Container Quota */}
           <div className="p-3.5 rounded bg-[#20201f] border border-white/5 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold text-[#8e9192] uppercase tracking-wider">Publish Container Quota</span>
+              <span className="text-[11px] font-semibold text-[#8e9192] tracking-wider">Publish Container Quota</span>
               <span className="text-[10px] font-mono text-[#c4c0ff] font-bold">24H</span>
             </div>
             <div className="flex items-baseline gap-1.5">
@@ -290,7 +290,7 @@ export default function DashboardOverview() {
             </div>
             <div className="space-y-1">
               <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                <div 
+                <div
                   className="h-full bg-purple-400 rounded-full transition-all duration-500"
                   style={{ width: `${publishPct}%` }}
                 />
@@ -340,21 +340,20 @@ export default function DashboardOverview() {
               <div className="p-8 text-center text-xs text-on-surface-variant/60">Loading live activity stream...</div>
             ) : activities.length > 0 ? (
               activities.map((act, i) => (
-                <div 
-                  key={i} 
+                <div
+                  key={i}
                   className="group flex items-start gap-4 p-3 rounded-lg hover:bg-white/5 transition-all border border-transparent hover:border-white/5"
                 >
-                  <div 
-                    className={`w-10 h-10 rounded-full glass-pane flex items-center justify-center shrink-0 border-white/20 ${
-                      act.isHighlight ? "text-[#c4c0ff] border-[#c4c0ff]/20" : "text-white"
-                    }`}
+                  <div
+                    className={`w-10 h-10 rounded-full glass-pane flex items-center justify-center shrink-0 border-white/20 ${act.isHighlight ? "text-[#c4c0ff] border-[#c4c0ff]/20" : "text-white"
+                      }`}
                   >
                     <span className="material-symbols-outlined text-lg">{act.icon}</span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start">
                       <p className="text-sm font-semibold text-white">{act.agent}</p>
-                      <span className="text-[10px] text-on-surface-variant opacity-50 uppercase tracking-wider">{act.time}</span>
+                      <span className="text-[10px] text-on-surface-variant opacity-50 tracking-wider">{act.time}</span>
                     </div>
                     <p className="text-xs text-on-surface-variant mt-1 leading-relaxed">{act.desc}</p>
                     {act.tags && (
@@ -386,13 +385,13 @@ export default function DashboardOverview() {
             <div className="space-y-4">
               {funnelSteps.map((step, idx) => (
                 <div key={idx}>
-                  <div className="flex justify-between text-[10px] font-bold mb-1 text-on-surface-variant uppercase tracking-wider">
+                  <div className="flex justify-between text-[10px] font-bold mb-1 text-on-surface-variant tracking-wider">
                     <span>{step.label}</span>
                     <span className="text-white">{step.value}</span>
                   </div>
                   <div className="h-8 bg-white/5 rounded-lg relative overflow-hidden group">
-                    <div 
-                      className="absolute inset-y-0 left-0 transition-all duration-500 bg-white/20 group-hover:bg-white/30" 
+                    <div
+                      className="absolute inset-y-0 left-0 transition-all duration-500 bg-white/20 group-hover:bg-white/30"
                       style={{ width: step.percent.endsWith('%') ? step.percent : '100%' }}
                     ></div>
                     <div className="absolute inset-0 flex items-center justify-between px-3 text-[10px] font-bold text-white/70">
@@ -413,7 +412,7 @@ export default function DashboardOverview() {
           {/* AI Agent Efficiency */}
           <div className="glass-pane p-6 rounded-xl relative overflow-hidden group">
             <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-[#c4c0ff]/10 blur-2xl rounded-full transition-transform group-hover:scale-150 duration-700"></div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#c4c7c8]/80 mb-4">AI Agent Efficiency</h3>
+            <h3 className="text-xs font-bold tracking-wider text-[#c4c7c8]/80 mb-4">AI Agent Efficiency</h3>
             <div className="flex items-center gap-4">
               <div className="relative w-16 h-16 shrink-0">
                 <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">

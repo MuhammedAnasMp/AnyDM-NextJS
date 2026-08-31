@@ -45,7 +45,7 @@ const t = {
   outlineVariant: "#444748",
   primary: "#ffffff",
   onPrimary: "#2f3131",
-  accentCyan: "#8fe3ff",
+  accentCyan: "#c4c0ff",
   lavender: "#c4c0ff",
   success: "#34d399",
   error: "#ffb4ab",

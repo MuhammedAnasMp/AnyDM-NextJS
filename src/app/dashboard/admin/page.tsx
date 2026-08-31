@@ -12,16 +12,10 @@ import {
   RefreshCw,
   Clock,
   Coins,
-  Lock,
   Eye,
   EyeOff,
   AlertTriangle,
-  Gift,
-  UserCheck,
   Award,
-  Users,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 import api from "@/lib/services/api.service";
 import Toast from "@/components/Toast";
@@ -63,47 +57,10 @@ export default function AdminSettingsPage() {
   const [showApiKey, setShowApiKey] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [creatorEmail, setCreatorEmail] = useState("");
-  const [creatorMonths, setCreatorMonths] = useState(3);
-  const [isGrantingVIP, setIsGrantingVIP] = useState(false);
-  const [vipCreators, setVipCreators] = useState<any[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
   const [toast, setToast] = useState({ isVisible: false, message: "", type: "success" as "success" | "error" | "info" });
 
   const showToast = (message: string, type: "success" | "error" | "info" = "success") => {
     setToast({ isVisible: true, message, type });
-  };
-
-  const fetchVipCreators = async () => {
-    try {
-      const res = await api.get("/accounts/admin/vip-creators/");
-      if (res.data && res.data.creators) {
-        setVipCreators(res.data.creators);
-      }
-    } catch (err) {
-      console.error("Error fetching VIP creators:", err);
-    }
-  };
-
-  const handleGrantVIP = async () => {
-    if (!creatorEmail.trim()) return;
-    setIsGrantingVIP(true);
-    try {
-      const res = await api.post("/accounts/admin/grant-creator-vip/", {
-        email: creatorEmail.trim(),
-        months: creatorMonths,
-      });
-      showToast(res.data?.message || `Successfully granted ${creatorMonths} months Creator Pro access to ${creatorEmail.trim()}!`, "success");
-      setCreatorEmail("");
-      fetchVipCreators();
-    } catch (err: any) {
-      showToast(`Granted ${creatorMonths} months Creator Pro VIP access to ${creatorEmail.trim()}`, "success");
-      setCreatorEmail("");
-      fetchVipCreators();
-    } finally {
-      setIsGrantingVIP(false);
-    }
   };
 
   useEffect(() => {
@@ -132,7 +89,6 @@ export default function AdminSettingsPage() {
     };
 
     fetchSettings();
-    fetchVipCreators();
   }, []);
 
   const handleSave = async (e: React.FormEvent) => {
@@ -456,68 +412,8 @@ export default function AdminSettingsPage() {
           </section>
         </div>
 
-        {/* Right Column - Warnings & Creator VIP Grant */}
+        {/* Right Column - Warnings */}
         <div className="lg:col-span-1 flex flex-col gap-6">
-          {/* Grant Creator VIP Access Form */}
-          <section className="rounded-lg p-5 space-y-4" style={{ backgroundColor: t.surfaceContainer }}>
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold tracking-wide flex items-center gap-2" style={{ color: t.accentCyan }}>
-                <Gift className="w-4 h-4 text-emerald-400" />
-                <span>Grant Creator VIP Access</span>
-              </h3>
-              <span className="text-[9px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded">
-                Instant Pro
-              </span>
-            </div>
-            <p className="text-xs leading-relaxed" style={{ color: t.onSurfaceVariant }}>
-              Grant a content creator free Creator Pro access to record promo videos &amp; tutorials.
-            </p>
-
-            <div className="flex flex-col gap-3.5 pt-1">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium" style={{ color: t.onSurfaceVariant }}>
-                  Creator Account Email
-                </label>
-                <input
-                  type="email"
-                  placeholder="creator@youtube.com"
-                  value={creatorEmail}
-                  onChange={(e) => setCreatorEmail(e.target.value)}
-                  className="w-full rounded text-xs py-2 px-3 outline-none"
-                  style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface }}
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium" style={{ color: t.onSurfaceVariant }}>
-                  VIP Access Duration
-                </label>
-                <select
-                  value={creatorMonths}
-                  onChange={(e) => setCreatorMonths(parseInt(e.target.value) || 3)}
-                  className="w-full rounded text-xs py-2 px-3 outline-none cursor-pointer"
-                  style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface }}
-                >
-                  <option value={1}>1 Month Free Pro</option>
-                  <option value={3}>3 Months Free Pro (Recommended)</option>
-                  <option value={6}>6 Months Free Pro</option>
-                  <option value={12}>1 Year Free Pro</option>
-                </select>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleGrantVIP}
-                disabled={isGrantingVIP || !creatorEmail.trim()}
-                className="w-full py-2.5 rounded font-bold text-xs flex items-center justify-center gap-2 transition-all hover:opacity-90 disabled:opacity-50 cursor-pointer active:scale-98 shadow-md"
-                style={{ backgroundColor: t.accentCyan, color: "#111" }}
-              >
-                {isGrantingVIP ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <UserCheck className="w-3.5 h-3.5" />}
-                <span>Grant VIP Creator Access</span>
-              </button>
-            </div>
-          </section>
-
           <div className="bg-[#20201f] border border-red-500/20 rounded-md p-4 flex gap-3">
             <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
             <div className="space-y-1">
@@ -529,150 +425,6 @@ export default function AdminSettingsPage() {
           </div>
         </div>
       </div>
-
-      {/* VIP Creator Accounts List & Invitations Stats */}
-      <section className="rounded-lg p-5 space-y-4" style={{ backgroundColor: t.surfaceContainer }}>
-        <div className="flex items-center justify-between border-b border-white/5 pb-3">
-          <div className="flex items-center gap-2">
-            <Users className="w-4 h-4 text-[#8fe3ff]" />
-            <h3 className="text-sm font-semibold tracking-wide" style={{ color: t.onSurface }}>
-              VIP Creator Accounts &amp; Invitation Conversions
-            </h3>
-          </div>
-          <span className="text-xs px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-zinc-400 font-medium">
-            {vipCreators.length} Creator Accounts Listed
-          </span>
-        </div>
-
-        {vipCreators.length > 0 ? (
-          <div className="flex flex-col justify-between flex-1">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="border-b border-white/10 text-zinc-400 uppercase tracking-wider text-[10px] font-semibold">
-                    <th className="pb-2.5">Creator Email / Account</th>
-                    <th className="pb-2.5">Custom Referral ID</th>
-                    <th className="pb-2.5 text-center">Accounts Created via Invitation</th>
-                    <th className="pb-2.5">Access Status &amp; Expiry</th>
-                    <th className="pb-2.5 text-right">Quick Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {vipCreators
-                    .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-                    .map((creator: any) => (
-                      <tr key={creator.id} className="hover:bg-white/[0.02] transition-colors">
-                        <td className="py-3 font-medium text-white">
-                          <div className="flex flex-col">
-                            <span className="font-semibold text-white">{creator.email || creator.username}</span>
-                            <span className="text-[10px] text-zinc-500">@{creator.username}</span>
-                          </div>
-                        </td>
-                        <td className="py-3">
-                          <span className="px-2 py-0.5 rounded bg-white/5 text-[#8fe3ff] border border-[#8fe3ff]/20 font-mono text-[11px] font-bold">
-                            {creator.referral_code || "None"}
-                          </span>
-                        </td>
-                        <td className="py-3 text-center">
-                          <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold text-xs">
-                            {creator.invite_count} {creator.invite_count === 1 ? "Person" : "Persons"}
-                          </span>
-                        </td>
-                        <td className="py-3 text-zinc-300">
-                          <div className="flex flex-col">
-                            <span className="text-xs font-semibold text-emerald-400">
-                              {creator.plan === "pro" ? "VIP Creator Pro" : "Trial Account"}
-                            </span>
-                            <span className="text-[10px] text-zinc-400">
-                              {creator.premium_expires_at
-                                ? `Expires: ${new Date(creator.premium_expires_at).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })}`
-                                : "No Expiry Set"}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="py-3 text-right">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setCreatorEmail(creator.email || creator.username);
-                              setCreatorMonths(3);
-                            }}
-                            className="px-2.5 py-1 rounded text-[11px] font-semibold bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
-                          >
-                            + Extend VIP
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Pagination Controls */}
-            {Math.ceil(vipCreators.length / itemsPerPage) > 1 && (
-              <div className="flex flex-col sm:flex-row items-center justify-between border-t border-white/10 pt-4 mt-4 gap-2">
-                <span className="text-[11px] text-zinc-400 font-medium">
-                  Showing <span className="text-white font-semibold">{(currentPage - 1) * itemsPerPage + 1}</span> to{" "}
-                  <span className="text-white font-semibold">
-                    {Math.min(currentPage * itemsPerPage, vipCreators.length)}
-                  </span>{" "}
-                  of <span className="text-white font-semibold">{vipCreators.length}</span> creator accounts
-                </span>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                    className="p-1.5 rounded bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
-                    aria-label="Previous page"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-
-                  <div className="flex items-center gap-1">
-                    {Array.from(
-                      { length: Math.ceil(vipCreators.length / itemsPerPage) },
-                      (_, i) => i + 1
-                    ).map((pageNum) => (
-                      <button
-                        key={pageNum}
-                        type="button"
-                        onClick={() => setCurrentPage(pageNum)}
-                        className={`w-7 h-7 rounded text-xs font-semibold transition-colors cursor-pointer ${
-                          currentPage === pageNum
-                            ? "bg-white text-black font-bold shadow-sm"
-                            : "bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-white"
-                        }`}
-                      >
-                        {pageNum}
-                      </button>
-                    ))}
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setCurrentPage((p) =>
-                        Math.min(Math.ceil(vipCreators.length / itemsPerPage), p + 1)
-                      )
-                    }
-                    disabled={currentPage === Math.ceil(vipCreators.length / itemsPerPage)}
-                    className="p-1.5 rounded bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
-                    aria-label="Next page"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="py-8 text-center text-xs text-zinc-500 flex flex-col items-center justify-center gap-1">
-            <Users className="w-5 h-5 text-zinc-600" />
-            <span>No VIP Creator accounts registered yet. Use the form above to grant access.</span>
-          </div>
-        )}
-      </section>
 
       <Toast isVisible={toast.isVisible} message={toast.message} type={toast.type} onClose={() => setToast((prev) => ({ ...prev, isVisible: false }))} />
     </motion.div>

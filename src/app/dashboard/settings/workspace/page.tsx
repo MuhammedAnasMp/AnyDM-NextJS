@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 
 export default function WorkspaceSettingsPage() {
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
@@ -22,18 +22,18 @@ export default function WorkspaceSettingsPage() {
 
       <div className="glass-pane p-6 rounded-xl space-y-4">
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Workspace Name</label>
-          <input 
-            type="text" 
+          <label className="block text-xs font-bold tracking-wider text-on-surface-variant mb-2">Workspace Name</label>
+          <input
+            type="text"
             defaultValue="Alex Rivera Workspace"
             className="bg-white/5 border border-white/10 rounded-lg py-2 px-4 text-xs text-white focus:outline-none w-full max-w-md focus:border-white/30"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">Team Size Limit</label>
-          <input 
-            type="text" 
+          <label className="block text-xs font-bold tracking-wider text-on-surface-variant mb-2">Team Size Limit</label>
+          <input
+            type="text"
             defaultValue="5 members (Pro Plan)"
             disabled
             className="bg-white/5 border border-white/5 rounded-lg py-2 px-4 text-xs text-on-surface-variant/40 w-full max-w-md"

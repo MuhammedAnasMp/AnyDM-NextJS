@@ -334,7 +334,7 @@ export default function CommentReplyContentEditor({ nodeId, onClose }: CommentRe
                       <span>Beautiful new collection launch! Drop your questions below 👇</span>
                     </div>
 
-                    <div className="px-2 sm:px-3 pt-2 text-[7px] sm:text-[9px] text-zinc-500 font-medium uppercase tracking-wider">
+                    <div className="px-2 sm:px-3 pt-2 text-[7px] sm:text-[9px] text-zinc-500 font-medium tracking-wider">
                       Comments
                     </div>
 

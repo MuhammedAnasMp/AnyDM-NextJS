@@ -114,24 +114,24 @@ export function CanvasNode({ id }: { id: string }) {
                 if (node.data.parent_event === 'TRACK_ORDER') {
                     if (node.data.is_track_prompt) {
                         customPill = 'TRACK PROMPT';
-                        customPillColor = 'bg-indigo-600 text-white font-bold leading-none uppercase tracking-widest hidden';
+                        customPillColor = 'bg-indigo-600 text-white font-bold leading-none tracking-widest hidden';
                         customTitle = '💬 Ask for Order ID';
                     } else if (node.data.is_track_input) {
                         customPill = 'CUSTOMER REPLY';
-                        customPillColor = 'bg-indigo-500/90 text-white font-bold leading-none uppercase tracking-widest hidden';
+                        customPillColor = 'bg-indigo-500/90 text-white font-bold leading-none tracking-widest hidden';
                         customTitle = '📥 User Sends Order ID';
                     } else if (node.data.is_track_response) {
                         customPill = 'DYNAMIC REPLY';
-                        customPillColor = 'bg-emerald-600 text-white font-bold leading-none uppercase tracking-widest hidden';
+                        customPillColor = 'bg-emerald-600 text-white font-bold leading-none tracking-widest hidden';
                         customTitle = '📊 Returns Details / Error';
                     } else {
                         customPill = 'TRACK ORDER';
-                        customPillColor = 'bg-indigo-600 text-white font-bold leading-none uppercase tracking-widest hidden';
+                        customPillColor = 'bg-indigo-600 text-white font-bold leading-none tracking-widest hidden';
                         customTitle = '🔍 Order Tracking';
                     }
                 } else {
                     customPill = 'EVENT REPLY';
-                    customPillColor = 'bg-[#8FE3FF] text-[#0a3240] leading-none font-bold';
+                    customPillColor = 'bg-[#c4c0ff] text-[#0a3240] leading-none font-bold';
                     customTitle = `Reply: ${node.data.parent_label || 'Event'}`;
                 }
             }
@@ -207,7 +207,7 @@ export function CanvasNode({ id }: { id: string }) {
                             : "border-white/10"
                     )}>
                         <div className="px-3 py-2 bg-white/5 border-b border-white/10 text-center select-none shrink-0 flex flex-col gap-0.5">
-                            <span className={cn("text-[10px] font-bold uppercase tracking-wider", node.data?.validationError ? "text-rose-400" : "text-zinc-400")}>
+                            <span className={cn("text-[10px] font-bold tracking-wider", node.data?.validationError ? "text-rose-400" : "text-zinc-400")}>
                                 Message Type
                             </span>
                             {node.data?.validationError && (
@@ -284,7 +284,7 @@ export function CanvasNode({ id }: { id: string }) {
             >
                 {/* Wireframe type label before the plus icon */}
                 <span className={cn(
-                    "text-[9px] font-extrabold px-2.5 py-1 rounded-md uppercase tracking-wider border backdrop-blur-md shadow-lg select-none shrink-0",
+                    "text-[9px] font-extrabold px-2.5 py-1 rounded-md tracking-wider border backdrop-blur-md shadow-lg select-none shrink-0",
                     isSendDM
                         ? "bg-[#B5D4F4]/15 border-[#B5D4F4]/30 text-[#89bdf0]"
                         : "bg-[#CECBF6]/15 border-[#CECBF6]/30 text-[#9b94e3]"
@@ -335,7 +335,7 @@ export function CanvasNode({ id }: { id: string }) {
                 {isSendDM && formatMenuOpen && (
                     <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-[#161622]/95 border border-white/10 rounded-xl shadow-2xl overflow-hidden z-[200] flex flex-col w-[150px] animate-fadeIn">
                         <div className="px-3 py-2 bg-white/5 border-b border-white/10 text-center select-none shrink-0">
-                            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                            <span className="text-[10px] font-bold text-zinc-400 tracking-wider">
                                 Reply Type
                             </span>
                         </div>
@@ -433,10 +433,10 @@ export function CanvasNode({ id }: { id: string }) {
                 node.data?.validationError
                     ? "border-rose-500 ring-2 ring-rose-500/60 shadow-rose-500/20"
                     : isEventReply
-                        ? "border-[#8FE3FF]/20 hover:border-[#8FE3FF]/40"
+                        ? "border-[#c4c0ff]/20 hover:border-[#c4c0ff]/40"
                         : "border-white/10 hover:border-white/20",
                 isSelected && !node.data?.validationError
-                    ? (isEventReply ? "ring-2 ring-[#8FE3FF]/20 border-[#8FE3FF]/40" : "ring-2 ring-white/20 border-white/30")
+                    ? (isEventReply ? "ring-2 ring-[#c4c0ff]/20 border-[#c4c0ff]/40" : "ring-2 ring-white/20 border-white/30")
                     : "hover:bg-[#1c1b1b]/70"
             )}
         >
@@ -463,7 +463,7 @@ export function CanvasNode({ id }: { id: string }) {
                         {customPill}
                     </span>
                     {node.data?.parent_event && (
-                        <span className="px-3 py-1.5 rounded-full text-[10px] font-black bg-black  border border-[#8FE3FF]/30 text-white outline outline-[#131313] outline-[4px]  tracking-wider">
+                        <span className="px-3 py-1.5 rounded-full text-[10px] font-black bg-black  border border-[#c4c0ff]/30 text-white outline outline-[#131313] outline-[4px]  tracking-wider">
                             {node.data?.parent_label || 'Trigger'}
                         </span>
                     )}
@@ -489,7 +489,7 @@ export function CanvasNode({ id }: { id: string }) {
                             return (
                                 <div className="flex flex-col gap-3 text-xs w-full">
                                     <div className="bg-black/35 border border-white/5 rounded-xl p-3 flex flex-col gap-2">
-                                        {/* <span className="text-[10px] font-bold text-[#8FE3FF] uppercase tracking-widest block mb-1">💬 Suggested Questions (Icebreakers)</span> */}
+                                        {/* <span className="text-[10px] font-bold text-[#8FE3FF] tracking-widest block mb-1">💬 Suggested Questions (Icebreakers)</span> */}
                                         {node.data?.welcome_prompt && (
                                             <div className="text-[10px] text-zinc-400 italic mb-1.5 font-medium border-b border-white/5 pb-1 text-center">
                                                 {node.data.welcome_prompt}
@@ -515,9 +515,9 @@ export function CanvasNode({ id }: { id: string }) {
                             return (
                                 <div className="flex flex-col gap-3 text-xs w-full">
                                     <div className="bg-black/35 border border-white/5 rounded-xl p-3 flex flex-col gap-2">
-                                        <span className="text-[10px] font-bold text-[#C084FC] uppercase tracking-widest block mb-1">🍔 Persistent Menu Actions</span>
+                                        <span className="text-[10px] font-bold text-[#C084FC] tracking-widest block mb-1">🍔 Persistent Menu Actions</span>
                                         {node.data?.composer_input_disabled && (
-                                            <span className="text-[8.5px] px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400 self-start uppercase font-bold tracking-wider mb-1">
+                                            <span className="text-[8.5px] px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400 self-start font-bold tracking-wider mb-1">
                                                 Composer Input Disabled
                                             </span>
                                         )}
@@ -547,7 +547,7 @@ export function CanvasNode({ id }: { id: string }) {
                             return (
                                 <div className="flex flex-col gap-3 text-xs">
                                     <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col gap-1.5">
-                                        <span className="text-[10px] font-bold text-[#c4c7c8] uppercase tracking-widest">Trigger Event</span>
+                                        <span className="text-[10px] font-bold text-[#c4c7c8] tracking-widest">Trigger Event</span>
                                         <span className="text-sm font-semibold text-white">
                                             User Sends a Direct Message
                                         </span>
@@ -571,7 +571,7 @@ export function CanvasNode({ id }: { id: string }) {
                         return (
                             <div className="flex flex-col gap-3 text-xs">
                                 <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col gap-2">
-                                    <span className="text-[10px] font-bold text-[#c4c7c8] uppercase tracking-widest">Target & Media</span>
+                                    <span className="text-[10px] font-bold text-[#c4c7c8] tracking-widest">Target & Media</span>
                                     <span className="text-sm font-semibold text-white">
                                         {displayTarget}
                                     </span>
@@ -593,7 +593,7 @@ export function CanvasNode({ id }: { id: string }) {
 
                                 {node.data?.detailed && (
                                     <div className="bg-white/5 border border-white/15 rounded-xl p-3 space-y-2.5 animate-fadeIn">
-                                        <span className="text-[10px] font-bold text-[#c4c7c8] uppercase tracking-widest block border-b border-white/5 pb-1">Trigger Config</span>
+                                        <span className="text-[10px] font-bold text-[#c4c7c8] tracking-widest block border-b border-white/5 pb-1">Trigger Config</span>
                                         <div className="grid grid-cols-2 gap-x-2 gap-y-2 text-[10px] text-[#c4c7c8]">
                                             <div className="flex flex-col col-span-2">
                                                 <span className="opacity-60">Source channel:</span>
@@ -618,7 +618,7 @@ export function CanvasNode({ id }: { id: string }) {
                                 className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col gap-2 hover:bg-[#CECBF6]/5 hover:border-[#CECBF6]/40 cursor-pointer transition-all"
                             >
                                 <div className="flex items-center justify-between">
-                                    <span className="text-[10px] uppercase font-bold text-[#c4c7c8] tracking-widest">Match Type</span>
+                                    <span className="text-[10px] font-bold text-[#c4c7c8] tracking-widest">Match Type</span>
                                     <span className="text-[10px] px-2 py-0.5 rounded-[4px] font-bold bg-[#E6F1FB] text-[#185FA5] uppercase">
                                         {node.ruleType?.includes('share') ? 'Auto Share Match' : (node.data?.match_type || 'Contains')}
                                     </span>
@@ -669,7 +669,7 @@ export function CanvasNode({ id }: { id: string }) {
 
                             {node.data?.detailed && (
                                 <div className="bg-white/5 border border-white/15 rounded-xl p-3 space-y-2.5 animate-fadeIn">
-                                    <span className="text-[10px] font-bold text-[#c4c7c8] uppercase tracking-widest block border-b border-white/5 pb-1">Detailed Config</span>
+                                    <span className="text-[10px] font-bold text-[#c4c7c8] tracking-widest block border-b border-white/5 pb-1">Detailed Config</span>
                                     <div className="flex flex-col gap-2 text-[10px] text-[#c4c7c8]">
                                         <div className="flex justify-between">
                                             <span className="opacity-60">Match Type:</span>
@@ -697,7 +697,7 @@ export function CanvasNode({ id }: { id: string }) {
                         <div className="flex flex-col gap-2.5 text-xs font-semibold">
                             {node.data.is_track_prompt && (
                                 <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col gap-1.5 animate-fadeIn">
-                                    {/* <span className="text-[9px] text-zinc-500 uppercase tracking-widest font-extrabold">System DM Prompt</span> */}
+                                    {/* <span className="text-[9px] text-zinc-500 tracking-widest font-extrabold">System DM Prompt</span> */}
                                     <p className="text-zinc-200 font-mono text-[10.5px] bg-black/35 p-2.5 rounded border border-white/5 whitespace-pre-line leading-relaxed">
                                         &quot;Please reply with your Order ID to track your order. 📦&quot;
                                     </p>
@@ -706,7 +706,7 @@ export function CanvasNode({ id }: { id: string }) {
 
                             {node.data.is_track_input && (
                                 <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col gap-2.5 animate-fadeIn">
-                                    {/* <span className="text-[9px] text-zinc-500 uppercase tracking-widest font-extrabold">Expected Action</span> */}
+                                    {/* <span className="text-[9px] text-zinc-500 tracking-widest font-extrabold">Expected Action</span> */}
                                     <div className="text-zinc-305 font-medium text-[10.5px] flex flex-col gap-1.5 bg-black/25 p-2.5 rounded border border-white/5">
                                         <div>• Customer replies with Order ID</div>
                                         <div>• Session captures input dynamically</div>
@@ -716,7 +716,7 @@ export function CanvasNode({ id }: { id: string }) {
 
                             {node.data.is_track_response && (
                                 <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col gap-2.5 animate-fadeIn">
-                                    {/* <span className="text-[9px] text-zinc-500 uppercase tracking-widest font-extrabold font-extrabold block mb-0.5">Database Check Responses</span> */}
+                                    {/* <span className="text-[9px] text-zinc-500 tracking-widest font-extrabold font-extrabold block mb-0.5">Database Check Responses</span> */}
                                     <div className="grid grid-cols-1 gap-2 text-[9px] font-semibold leading-relaxed">
                                         <div className="text-green-200 font-medium text-[10.5px] flex flex-col gap-1.5 bg-black/25 p-2.5 rounded border border-white/5">
                                             Returns live order status
@@ -755,9 +755,9 @@ export function CanvasNode({ id }: { id: string }) {
                                                 detail: { nodeId: node.id }
                                             }));
                                         }}
-                                        className="bg-[#262626]/50 p-2 rounded-lg border border-white/5 hover:border-[#8FE3FF]/45 hover:bg-[#8FE3FF]/5 cursor-pointer transition-all"
+                                        className="bg-[#262626]/50 p-2 rounded-lg border border-white/5 hover:border-[#c4c0ff]/45 hover:bg-[#c4c0ff]/5 cursor-pointer transition-all"
                                     >
-                                        <span className="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest block mb-0.5">
+                                        <span className="text-[9px] font-bold text-on-surface-variant tracking-widest block mb-0.5">
                                             Messages
                                         </span>
                                         {!node.data?.detailed ? (
@@ -785,16 +785,16 @@ export function CanvasNode({ id }: { id: string }) {
                                             detail: { nodeId: node.id }
                                         }));
                                     }}
-                                    className="bg-black/35 hover:bg-[#8FE3FF]/5 border border-white/5 hover:border-[#8FE3FF]/45 rounded-xl p-3 flex flex-col gap-2.5 transition-all text-[11px]"
+                                    className="bg-black/35 hover:bg-[#c4c0ff]/5 border border-white/5 hover:border-[#c4c0ff]/45 rounded-xl p-3 flex flex-col gap-2.5 transition-all text-[11px]"
                                 >
                                     <div className="flex flex-col gap-0.5">
-                                        {/* <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider block">Message Prompt:</span> */}
+                                        {/* <span className="text-[9px] font-bold text-zinc-500 tracking-wider block">Message Prompt:</span> */}
                                         <span className="text-zinc-200 font-semibold">{node.data.quick_reply_text}</span>
                                     </div>
                                     {node.data.quick_replies_titles && (
                                         <div className="flex flex-wrap gap-1.5 pt-1.5 border-t border-white/5">
                                             {node.data.quick_replies_titles.map((t: string) => (
-                                                <span key={t} className="bg-white/5 text-[#8FE3FF] px-2 py-0.5 rounded-full text-[8.5px] border border-white/10 font-bold">{t}</span>
+                                                <span key={t} className="bg-white/5 text-[#c4c0ff] px-2 py-0.5 rounded-full text-[8.5px] border border-white/10 font-bold">{t}</span>
                                             ))}
                                         </div>
                                     )}
@@ -817,7 +817,7 @@ export function CanvasNode({ id }: { id: string }) {
                                                 detail: { nodeId: node.id }
                                             }));
                                         }}
-                                        className="bg-black/35 hover:bg-[#8FE3FF]/5 border border-white/5 hover:border-[#8FE3FF]/45 rounded-xl overflow-hidden flex flex-col transition-all"
+                                        className="bg-black/35 hover:bg-[#c4c0ff]/5 border border-white/5 hover:border-[#c4c0ff]/45 rounded-xl overflow-hidden flex flex-col transition-all"
                                     >
                                         <div className="p-3 text-[11px] text-zinc-200 font-semibold border-b border-white/5 text-left bg-zinc-900/10">
                                             {node.data?.button_template_text || 'What would you like to do?'}
@@ -853,12 +853,12 @@ export function CanvasNode({ id }: { id: string }) {
                                                 detail: { nodeId: node.id }
                                             }));
                                         }}
-                                        className="bg-black/35 hover:bg-[#8FE3FF]/5 border border-white/5 hover:border-[#8FE3FF]/45 rounded-xl overflow-hidden flex flex-col transition-all"
+                                        className="bg-black/35 hover:bg-[#c4c0ff]/5 border border-white/5 hover:border-[#c4c0ff]/45 rounded-xl overflow-hidden flex flex-col transition-all"
                                     >
                                         {firstElem.image_url ? (
                                             <div className="h-24 w-full bg-zinc-950 overflow-hidden relative border-b border-white/5 shrink-0">
                                                 <img src={firstElem.image_url} alt="" className="w-full h-full object-cover" />
-                                                <span className="absolute bottom-1.5 right-2 bg-black/85 px-1.5 py-0.5 rounded text-[8px] font-bold text-white uppercase tracking-wider">
+                                                <span className="absolute bottom-1.5 right-2 bg-black/85 px-1.5 py-0.5 rounded text-[8px] font-bold text-white tracking-wider">
                                                     1 of {elements.length} Cards
                                                 </span>
                                             </div>
@@ -895,11 +895,11 @@ export function CanvasNode({ id }: { id: string }) {
                                                 detail: { nodeId: node.id }
                                             }));
                                         }}
-                                        className="bg-black/35 hover:bg-[#8FE3FF]/5 border border-white/5 hover:border-[#8FE3FF]/45 rounded-xl p-3 flex flex-col gap-2 transition-all cursor-pointer"
+                                        className="bg-black/35 hover:bg-[#c4c0ff]/5 border border-white/5 hover:border-[#c4c0ff]/45 rounded-xl p-3 flex flex-col gap-2 transition-all cursor-pointer"
                                     >
                                         <div className="flex items-center justify-between">
-                                            <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider block">Attachments</span>
-                                            <span className="bg-[#8FE3FF]/15 text-[#8FE3FF] text-[8px] font-bold px-1.5 py-0.5 rounded">
+                                            <span className="text-[9px] font-bold text-zinc-500 tracking-wider block">Attachments</span>
+                                            <span className="bg-[#c4c0ff]/15 text-[#c4c0ff] text-[8px] font-bold px-1.5 py-0.5 rounded">
                                                 {attachList.length} files
                                             </span>
                                         </div>
@@ -933,7 +933,7 @@ export function CanvasNode({ id }: { id: string }) {
                                                             {isImage ? (
                                                                 <img src={url} alt="" className="w-full h-full object-cover" />
                                                             ) : type === 'video' ? (
-                                                                <Film className="w-4 h-4 text-[#8FE3FF]" />
+                                                                <Film className="w-4 h-4 text-[#c4c0ff]" />
                                                             ) : type === 'audio' ? (
                                                                 <Headphones className="w-4 h-4 text-[#CECBF6]" />
                                                             ) : isSticker ? (
@@ -961,7 +961,7 @@ export function CanvasNode({ id }: { id: string }) {
 
                             {node.data?.detailed && (node.data?.rate_limit_limit !== undefined || node.data?.rate_limit_window_seconds !== undefined) && (
                                 <div className="bg-white/5 border border-white/15 rounded-xl p-3 space-y-2.5 animate-fadeIn">
-                                    <span className="text-[10px] font-bold text-[#c4c7c8] uppercase tracking-widest block border-b border-white/5 pb-1">Action Config</span>
+                                    <span className="text-[10px] font-bold text-[#c4c7c8] tracking-widest block border-b border-white/5 pb-1">Action Config</span>
                                     <div className="flex flex-col gap-1.5 text-[10px] text-[#c4c7c8]">
                                         <div className="flex justify-between">
                                             <span className="opacity-60">Rate Limit:</span>
@@ -1021,7 +1021,7 @@ export function CanvasNode({ id }: { id: string }) {
 
                             {node.data?.detailed && (
                                 <div className="bg-white/5 border border-white/15 rounded-xl p-3 space-y-2.5 animate-fadeIn">
-                                    <span className="text-[10px] font-bold text-[#c4c7c8] uppercase tracking-widest block border-b border-white/5 pb-1">Giveaway Config</span>
+                                    <span className="text-[10px] font-bold text-[#c4c7c8] tracking-widest block border-b border-white/5 pb-1">Giveaway Config</span>
                                     <div className="flex flex-col gap-2 text-[10px] text-[#c4c7c8]">
                                         {node.data?.finalize_at && (
                                             <div className="flex justify-between">
@@ -1071,7 +1071,7 @@ export function CanvasNode({ id }: { id: string }) {
 
                             {node.data?.detailed && (
                                 <div className="bg-white/5 border border-white/15 rounded-xl p-3 space-y-2.5 animate-fadeIn">
-                                    <span className="text-[10px] font-bold text-[#c4c7c8] uppercase tracking-widest block border-b border-white/5 pb-1">Detailed Config</span>
+                                    <span className="text-[10px] font-bold text-[#c4c7c8] tracking-widest block border-b border-white/5 pb-1">Detailed Config</span>
                                     <div className="flex flex-col gap-1.5 text-[10px] text-[#c4c7c8]">
                                         <div className="flex justify-between">
                                             <span className="opacity-60">Reward Type:</span>
@@ -1110,19 +1110,19 @@ export function CanvasEdges() {
                     key={edge.id}
                     start={edge.source}
                     end={edge.target}
-                    color={edge.label ? '#8FE3FF' : '#666'}
+                    color={edge.label ? '#c4c0ff' : '#666'}
                     strokeWidth={2 * scale}
                     path="smooth"
                     showHead={true}
                     headSize={4}
-                    headColor={edge.label ? '#8FE3FF' : '#8e9192'}
+                    headColor={edge.label ? '#c4c0ff' : '#8e9192'}
                     headShape="arrow1"
                     curveness={0.5}
                     startAnchor="right"
                     endAnchor="left"
                     labels={edge.label ? {
                         middle: (
-                            <div className="px-2.5 py-1 rounded-lg bg-[#161622] border border-[#8FE3FF]/30 text-[#8FE3FF] text-[10px] font-bold whitespace-nowrap backdrop-blur-sm shadow-2xl">
+                            <div className="px-2.5 py-1 rounded-lg bg-[#161622] border border-[#c4c0ff]/30 text-[#c4c0ff] text-[10px] font-bold whitespace-nowrap backdrop-blur-sm shadow-2xl">
                                 {edge.label}
                             </div>
                         )
@@ -1138,7 +1138,7 @@ export function CanvasEdges() {
                         key={`settings-edge-${selectedNodeId}`}
                         start={selectedNodeId}
                         end="settings-sidebar"
-                        color="#8FE3FF"
+                        color="#c4c0ff"
                         strokeWidth={1.5 * scale}
                         path="straight"
                         dashness={{ strokeLen: 4, nonStrokeLen: 4 }}

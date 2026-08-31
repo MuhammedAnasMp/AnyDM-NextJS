@@ -478,7 +478,7 @@ export default function SimulationWalkthrough({ onRestartRequest, onStepChange }
                           {/* Drag Indicator */}
                           <div className="w-9 h-1 bg-white/20 rounded-full mx-auto my-2.5 shrink-0" />
 
-                          <div className="text-center text-[10.5px] font-bold text-white pb-2.5 border-b border-white/5 uppercase tracking-wider shrink-0">
+                          <div className="text-center text-[10.5px] font-bold text-white pb-2.5 border-b border-white/5 tracking-wider shrink-0">
                             Comments
                           </div>
 
@@ -499,7 +499,7 @@ export default function SimulationWalkthrough({ onRestartRequest, onStepChange }
                             {/* Simulated input comment posted */}
                             {['TRIGGER_POSTED', 'FOLLOWER_GATE_CHECK', 'PUBLIC_REPLY'].includes(currentStep) && (
                               <div className="flex items-start gap-2.5 text-xs animate-fadeIn">
-                                <div className="w-6 h-6 rounded-full bg-indigo-500 overflow-hidden text-[9px] flex items-center justify-center font-bold text-white uppercase shrink-0">
+                                <div className="w-6 h-6 rounded-full bg-indigo-500 overflow-hidden text-[9px] flex items-center justify-center font-bold text-white shrink-0">
                                   ME
                                 </div>
                                 <div className="flex-1">
@@ -520,7 +520,7 @@ export default function SimulationWalkthrough({ onRestartRequest, onStepChange }
                                       <div className="flex-1">
                                         <div className="flex items-center gap-1.5">
                                           <span className="font-bold text-white text-[10px]">{sellerUsername}</span>
-                                          <span className="text-[8px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-extrabold px-1 rounded-sm uppercase tracking-tight scale-90">
+                                          <span className="text-[8px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-extrabold px-1 rounded-sm tracking-tight scale-90">
                                             Author
                                           </span>
                                         </div>
@@ -537,7 +537,7 @@ export default function SimulationWalkthrough({ onRestartRequest, onStepChange }
 
                           {/* Comments tray bottom typing input bar */}
                           <div className="p-2 bg-[#0d0d0d] border-t border-white/5 flex items-center gap-2.5 shrink-0">
-                            <div className="w-6 h-6 rounded-full bg-indigo-500 overflow-hidden text-[9px] flex items-center justify-center font-bold text-white uppercase shrink-0">
+                            <div className="w-6 h-6 rounded-full bg-indigo-500 overflow-hidden text-[9px] flex items-center justify-center font-bold text-white shrink-0">
                               ME
                             </div>
                             <div className="flex-1 bg-white/5 border border-white/10 rounded-full px-3 py-1.5 text-[11px] text-white flex items-center min-h-[30px]">
@@ -592,7 +592,7 @@ export default function SimulationWalkthrough({ onRestartRequest, onStepChange }
                         className="bg-black/80 backdrop-blur-xl border border-white/10 p-5 rounded-2xl text-center max-w-[210px] shadow-2xl"
                       >
                         <Sparkles className="w-8 h-8 text-amber-400 mx-auto mb-2" />
-                        <span className="text-[9px] uppercase font-bold tracking-wider text-amber-400">Exclusive Drop</span>
+                        <span className="text-[9px] font-bold tracking-wider text-amber-400">Exclusive Drop</span>
                         <h4 className="text-xs font-extrabold text-white mt-1 leading-normal">
                           Swipe Up or reply &quot;{keywords[0] || "link"}&quot; for direct discount early access! 🎟️
                         </h4>
@@ -665,7 +665,7 @@ export default function SimulationWalkthrough({ onRestartRequest, onStepChange }
                     </div>
                     <div className="flex-1 flex flex-col min-w-0">
                       <span className="text-xs font-bold leading-none">{sellerUsername}</span>
-                      <span className="text-[8px] text-emerald-400 font-bold uppercase tracking-wider mt-1 flex items-center gap-1">
+                      <span className="text-[8px] text-emerald-400 font-bold tracking-wider mt-1 flex items-center gap-1">
                         <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
                         Active now
                       </span>
@@ -710,7 +710,7 @@ export default function SimulationWalkthrough({ onRestartRequest, onStepChange }
 
                           {/* Text format - standard, no pills */}
                           {dmFormat === 'text' && (
-                            <span className="text-[9px] text-[#8FE3FF]/50 italic pl-1 flex items-center gap-1">
+                            <span className="text-[9px] text-[#c4c0ff]/50 italic pl-1 flex items-center gap-1">
                               <Check className="w-3 h-3 text-emerald-400" />
                               Direct Message sent successfully
                             </span>
@@ -719,7 +719,7 @@ export default function SimulationWalkthrough({ onRestartRequest, onStepChange }
                           {/* Quick Reply format */}
                           {dmFormat === 'quick_reply' && (
                             <div className="flex flex-col gap-1 w-full">
-                              <span className="text-[8px] font-bold uppercase tracking-wider text-white/40 pl-1 mt-1">Suggested options:</span>
+                              <span className="text-[8px] font-bold tracking-wider text-white/40 pl-1 mt-1">Suggested options:</span>
                               <div className="flex gap-1.5 overflow-x-auto pb-1 invisible-scrollbar">
                                 {quickReplies.map((pill: string, idx: number) => (
                                   <motion.div
@@ -811,7 +811,7 @@ export default function SimulationWalkthrough({ onRestartRequest, onStepChange }
                             >
                               <Gift className="w-5.5 h-5.5 text-amber-400 shrink-0" />
                               <div className="flex-1 min-w-0">
-                                <span className="text-[8px] uppercase font-bold tracking-wider text-amber-400 leading-none block">GIVEAWAY ENTERED</span>
+                                <span className="text-[8px] font-bold tracking-wider text-amber-400 leading-none block">GIVEAWAY ENTERED</span>
                                 <span className="text-[9.5px] font-bold text-white truncate block mt-0.5">
                                   {giveawayMethod === 'random' ? 'Random Ticket #981' : 'Engagement Counted'}
                                 </span>
@@ -851,7 +851,7 @@ export default function SimulationWalkthrough({ onRestartRequest, onStepChange }
                 </div>
                 <div className="flex-1 min-w-0 flex flex-col">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-[#8FE3FF] uppercase tracking-wider">AnyDm • Instagram</span>
+                    <span className="text-[10px] font-bold text-[#c4c0ff] tracking-wider">AnyDm • Instagram</span>
                     <span className="text-[8px] text-white/45">now</span>
                   </div>
                   <h4 className="text-[11px] font-bold text-white leading-none mt-0.5">{sellerUsername}</h4>
@@ -881,7 +881,7 @@ export default function SimulationWalkthrough({ onRestartRequest, onStepChange }
 
               {/* Visual click ripple */}
               {['TYPING_TRIGGER', 'FOLLOWER_GATE_CHECK', 'NOTIF_RECEIVE', 'DM_DELIVERED', 'TRIGGER_POSTED'].includes(currentStep) && (
-                <span className="absolute left-0 top-0 w-8 h-8 -translate-x-2 -translate-y-2 bg-[#8FE3FF]/40 rounded-full animate-ping border border-[#8FE3FF]" />
+                <span className="absolute left-0 top-0 w-8 h-8 -translate-x-2 -translate-y-2 bg-[#c4c0ff]/40 rounded-full animate-ping border border-[#c4c0ff]" />
               )}
             </div>
           </motion.div>
@@ -913,7 +913,7 @@ export default function SimulationWalkthrough({ onRestartRequest, onStepChange }
         <button
           type="button"
           onClick={() => setSpeed(speed === 1 ? 2 : 1)}
-          className="text-[9.5px] font-extrabold text-indigo-400 hover:text-indigo-300 transition-colors uppercase select-none px-1 cursor-pointer bg-transparent border-none"
+          className="text-[9.5px] font-extrabold text-indigo-400 hover:text-indigo-300 transition-colors select-none px-1 cursor-pointer bg-transparent border-none"
           title="Toggle playback speed (1x / 2x)"
         >
           {speed}x speed
@@ -950,7 +950,7 @@ export default function SimulationWalkthrough({ onRestartRequest, onStepChange }
             return (
               <div
                 key={idx}
-                className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${isActive ? 'bg-[#8FE3FF] w-3' : 'bg-white/20'
+                className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${isActive ? 'bg-[#c4c0ff] w-3' : 'bg-white/20'
                   }`}
                 title={labelMap[idx]}
               />

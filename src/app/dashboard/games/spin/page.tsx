@@ -12,7 +12,7 @@ export default function SpinToWinPage() {
   ]);
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
@@ -32,8 +32,8 @@ export default function SpinToWinPage() {
           <h3 className="text-sm font-bold text-white mb-4">Wheel Segments</h3>
           {items.map((item, idx) => (
             <div key={idx} className="flex gap-4 items-center">
-              <input 
-                type="text" 
+              <input
+                type="text"
                 value={item.label}
                 onChange={(e) => {
                   const newItems = [...items];
@@ -42,8 +42,8 @@ export default function SpinToWinPage() {
                 }}
                 className="bg-white/5 border border-white/10 rounded-lg py-2 px-4 text-xs text-white focus:outline-none flex-grow focus:border-white/30"
               />
-              <input 
-                type="text" 
+              <input
+                type="text"
                 value={item.prob}
                 onChange={(e) => {
                   const newItems = [...items];
@@ -65,7 +65,7 @@ export default function SpinToWinPage() {
             <div className="absolute inset-0 bg-[conic-gradient(from_0deg,#333_0deg_90deg,#555_90deg_180deg,#777_180deg_270deg,#999_270deg_360deg)] opacity-40"></div>
             <div className="w-4 h-4 rounded-full bg-white z-10"></div>
           </div>
-          <p className="text-[10px] text-on-surface-variant uppercase tracking-wider mt-6 font-bold">In-chat layout preview</p>
+          <p className="text-[10px] text-on-surface-variant tracking-wider mt-6 font-bold">In-chat layout preview</p>
         </div>
       </div>
     </motion.div>

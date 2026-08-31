@@ -178,7 +178,7 @@ function SignupContent() {
 
         <form onSubmit={handleEmailSignup} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-[#c4c7c8]/80 mb-2">Full Name</label>
+            <label className="block text-xs font-bold tracking-wider text-[#c4c7c8]/80 mb-2">Full Name</label>
             <div className="relative group">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-white transition-colors" />
               <input
@@ -192,7 +192,7 @@ function SignupContent() {
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-[#c4c7c8]/80 mb-2">Email Address</label>
+            <label className="block text-xs font-bold tracking-wider text-[#c4c7c8]/80 mb-2">Email Address</label>
             <div className="relative group">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-white transition-colors" />
               <input
@@ -206,7 +206,7 @@ function SignupContent() {
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-[#c4c7c8]/80 mb-2">Password</label>
+            <label className="block text-xs font-bold tracking-wider text-[#c4c7c8]/80 mb-2">Password</label>
             <div className="relative group">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-white transition-colors" />
               <input
@@ -252,7 +252,7 @@ function SignupContent() {
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-white/10"></div>
           </div>
-          <span className="relative bg-[#1a1a19] px-3 text-xs text-[#c4c7c8]/40 uppercase tracking-widest font-bold">or</span>
+          <span className="relative bg-[#1a1a19] px-3 text-xs text-[#c4c7c8]/40 tracking-widest font-bold">or</span>
         </div>
 
         <div className="space-y-3">

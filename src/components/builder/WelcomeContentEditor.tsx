@@ -239,7 +239,7 @@ function PhonePreview({
                                 </div>
                                 <div className="flex items-center gap-0.5 mt-1.5">
                                     <h2 className="text-[10px] font-bold text-white tracking-tight">{username}</h2>
-                                    <span className="text-[8px] text-[#8FE3FF]">✓</span>
+                                    <span className="text-[8px] text-[#c4c0ff]">✓</span>
                                 </div>
                                 <div className="text-[8px] text-[#c4c7c8]/60 mt-0.5 flex gap-1 font-semibold">
                                     <span>{followersCount} followers</span>
@@ -1257,7 +1257,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                                     <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-xl p-3.5">
                                         <div>
                                             <h4 className="text-xs font-semibold text-white">Disable Composer Input Box</h4>
-                                            <p className="text-[9px] text-[#b6b2ff]/60 font-semibold tracking-wider uppercase font-sora mt-1">Force direct shortcuts, locking keyboard input.</p>
+                                            <p className="text-[9px] text-[#b6b2ff]/60 font-semibold tracking-wider font-sora mt-1">Force direct shortcuts, locking keyboard input.</p>
                                         </div>
                                         <button
                                             type="button"
@@ -1391,7 +1391,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                                             <div key={idx} className="flex items-center justify-between bg-[#0e0e0e] border border-[#444748] rounded-md p-3.5">
                                                 <div>
                                                     <h4 className="text-xs font-semibold text-white">Order ID Retry Limit</h4>
-                                                    <p className="text-[9px] text-[#b6b2ff]/60 font-semibold tracking-wider uppercase font-sora mt-1">Attempts before tracking is cancelled.</p>
+                                                    <p className="text-[9px] text-[#b6b2ff]/60 font-semibold tracking-wider font-sora mt-1">Attempts before tracking is cancelled.</p>
                                                 </div>
                                                 <select
                                                     value={tempOrderTrackRetryLimit}

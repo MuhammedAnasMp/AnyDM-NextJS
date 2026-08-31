@@ -431,7 +431,7 @@ export default function SellerOrdersPage() {
               {/* Left Side: Customer & Shipping */}
               <div className="space-y-4">
                 <div className="bg-[#131318] p-4 rounded-xl border border-white/5 space-y-3">
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-500">Customer Info</span>
+                  <span className="text-[10px] font-bold tracking-wider text-zinc-500">Customer Info</span>
                   <div className="space-y-1 text-xs">
                     <div className="font-bold text-sm">{selectedOrder.customer_name}</div>
                     {selectedOrder.customer_email && (
@@ -442,7 +442,7 @@ export default function SellerOrdersPage() {
                 </div>
 
                 <div className="bg-[#131318] p-4 rounded-xl border border-white/5 space-y-3">
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-500">Shipping Details</span>
+                  <span className="text-[10px] font-bold tracking-wider text-zinc-500">Shipping Details</span>
                   <div className="space-y-1 text-xs leading-relaxed">
                     <p className="text-zinc-300 font-semibold">{selectedOrder.shipping_address}</p>
                     {selectedOrder.shipping_pincode && (
@@ -460,7 +460,7 @@ export default function SellerOrdersPage() {
               {/* Right Side: Payment & Status */}
               <div className="space-y-4">
                 <div className="bg-[#131318] p-4 rounded-xl border border-white/5 space-y-3">
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-500">Payment &amp; Totals</span>
+                  <span className="text-[10px] font-bold tracking-wider text-zinc-500">Payment &amp; Totals</span>
                   <div className="space-y-2 text-xs">
                     <div className="flex justify-between">
                       <span className="text-zinc-400">Payment Method</span>
@@ -498,7 +498,7 @@ export default function SellerOrdersPage() {
                 </div>
 
                 <div className="bg-[#131318] p-4 rounded-xl border border-white/5 space-y-3">
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-500">Order Management</span>
+                  <span className="text-[10px] font-bold tracking-wider text-zinc-500">Order Management</span>
                   <div className="space-y-3">
                     <div className="flex justify-between items-center text-xs">
                       <span className="text-zinc-400">Current Status</span>
@@ -543,7 +543,7 @@ export default function SellerOrdersPage() {
 
             {/* Items Summary Table */}
             <div className="bg-[#131318] p-4 rounded-xl border border-white/5 space-y-3">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-500">Items Summary</span>
+              <span className="text-[10px] font-bold tracking-wider text-zinc-500">Items Summary</span>
               <div className="space-y-2.5">
                 {selectedOrder.items.map((item: any, idx: number) => (
                   <div key={idx} className="flex justify-between items-center text-xs pb-2 border-b border-white/5 last:border-0 last:pb-0">

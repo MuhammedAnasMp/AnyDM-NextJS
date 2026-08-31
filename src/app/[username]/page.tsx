@@ -167,7 +167,7 @@ export default function StorefrontPage({ params }: PageProps) {
 
   // Derived data
   const categories = ["All", ...Array.from(new Set(products.map(p => p.category).filter(Boolean))) as string[]];
-  
+
   const filteredProducts = products
     .filter(p => {
       const matchesSearch = searchQuery.trim() === "" ||
@@ -197,7 +197,7 @@ export default function StorefrontPage({ params }: PageProps) {
         <div className="relative">
           <div className="w-12 h-12 rounded-full border-2 border-white/10 border-t-white animate-spin" />
         </div>
-        <p className="text-xs text-zinc-500 tracking-widest uppercase font-medium">Loading store…</p>
+        <p className="text-xs text-zinc-500 tracking-widest font-medium">Loading store…</p>
       </div>
     );
   }
@@ -394,7 +394,7 @@ export default function StorefrontPage({ params }: PageProps) {
             )}
             <button
               onClick={() => document.getElementById("product-grid")?.scrollIntoView({ behavior: "smooth" })}
-              className={cn("mt-6 px-8 py-3 text-xs font-bold uppercase tracking-widest transition-all", styles.buttonClass)}
+              className={cn("mt-6 px-8 py-3 text-xs font-bold tracking-widest transition-all", styles.buttonClass)}
             >
               Shop Now
             </button>
@@ -410,7 +410,7 @@ export default function StorefrontPage({ params }: PageProps) {
           </p>
           <button
             onClick={() => document.getElementById("product-grid")?.scrollIntoView({ behavior: "smooth" })}
-            className={cn("px-8 py-3 text-xs font-bold uppercase tracking-widest transition-all", styles.buttonClass)}
+            className={cn("px-8 py-3 text-xs font-bold tracking-widest transition-all", styles.buttonClass)}
           >
             Explore Collection
           </button>
@@ -529,7 +529,7 @@ export default function StorefrontPage({ params }: PageProps) {
                     {/* Overlays */}
                     {isOutOfStock && (
                       <div className="absolute inset-0 bg-black/55 flex items-center justify-center">
-                        <span className="text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 border border-white/30">
+                        <span className="text-white text-[10px] font-black tracking-widest px-3 py-1 border border-white/30">
                           Out of Stock
                         </span>
                       </div>
@@ -538,7 +538,7 @@ export default function StorefrontPage({ params }: PageProps) {
                     {/* Discount badge */}
                     {discount && !isOutOfStock && (
                       <div
-                        className="absolute top-2 left-2 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest"
+                        className="absolute top-2 left-2 px-2 py-0.5 text-[9px] font-black tracking-widest"
                         style={{ backgroundColor: styles.accentColor, color: styles.isDark ? "#000" : "#fff" }}
                       >
                         -{discount}%
@@ -547,7 +547,7 @@ export default function StorefrontPage({ params }: PageProps) {
 
                     {/* Low stock badge */}
                     {!isOutOfStock && product.stock > 0 && product.stock <= 3 && (
-                      <div className="absolute bottom-2 left-2 bg-red-600 text-white text-[9px] font-black uppercase px-2 py-0.5 tracking-widest">
+                      <div className="absolute bottom-2 left-2 bg-red-600 text-white text-[9px] font-black px-2 py-0.5 tracking-widest">
                         Only {product.stock} left
                       </div>
                     )}
@@ -570,7 +570,7 @@ export default function StorefrontPage({ params }: PageProps) {
                           e.stopPropagation();
                           setQuickViewProduct(product);
                         }}
-                        className="w-full text-[10px] font-bold uppercase tracking-widest py-2 bg-white/90 backdrop-blur-sm text-black hover:bg-white transition-colors"
+                        className="w-full text-[10px] font-bold tracking-widest py-2 bg-white/90 backdrop-blur-sm text-black hover:bg-white transition-colors"
                       >
                         Quick View
                       </button>
@@ -598,12 +598,12 @@ export default function StorefrontPage({ params }: PageProps) {
                       )}
                     </div>
                     {product.is_negotiable && (
-                      <span className={cn("text-[9px] uppercase tracking-widest font-bold w-fit", styles.badgeClass)}>
+                      <span className={cn("text-[9px] tracking-widest font-bold w-fit", styles.badgeClass)}>
                         Negotiable
                       </span>
                     )}
                     <div className={cn("flex items-center justify-end mt-auto pt-2", styles.textMutedClass)}>
-                      <span className="text-[9px] uppercase font-bold tracking-widest flex items-center gap-0.5 group-hover:gap-1.5 transition-all">
+                      <span className="text-[9px] font-bold tracking-widest flex items-center gap-0.5 group-hover:gap-1.5 transition-all">
                         Details <ArrowRight className="w-3 h-3" />
                       </span>
                     </div>
@@ -640,7 +640,7 @@ export default function StorefrontPage({ params }: PageProps) {
 
           {/* Quick Links */}
           <div className="space-y-3">
-            <h4 className={cn("text-xs font-bold uppercase tracking-widest", styles.textColorClass)}>Quick Links</h4>
+            <h4 className={cn("text-xs font-bold tracking-widest", styles.textColorClass)}>Quick Links</h4>
             <div className="space-y-2">
               <button onClick={() => setIsTrackingOpen(true)} className={cn("block text-xs hover:underline", styles.textMutedClass)}>
                 Track My Order
@@ -657,7 +657,7 @@ export default function StorefrontPage({ params }: PageProps) {
           {/* Contact */}
           {(settings.contact_email || settings.contact_phone || settings.shipping_address) && (
             <div className="space-y-3">
-              <h4 className={cn("text-xs font-bold uppercase tracking-widest", styles.textColorClass)}>Contact</h4>
+              <h4 className={cn("text-xs font-bold tracking-widest", styles.textColorClass)}>Contact</h4>
               <div className="space-y-2">
                 {settings.contact_email && (
                   <div className={cn("flex items-center gap-2 text-xs", styles.textMutedClass)}>
@@ -835,7 +835,7 @@ export default function StorefrontPage({ params }: PageProps) {
                               </p>
                             )}
                             {product.stock === 0 && (
-                              <span className="text-[9px] font-bold text-red-400 uppercase tracking-wider mt-0.5 block">Out of stock</span>
+                              <span className="text-[9px] font-bold text-red-400 tracking-wider mt-0.5 block">Out of stock</span>
                             )}
                           </div>
                           <div className="flex items-center gap-2 mt-2">
@@ -968,7 +968,7 @@ export default function StorefrontPage({ params }: PageProps) {
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
           <div className={cn("w-full max-w-lg rounded-2xl border p-6 shadow-2xl max-h-[80vh] overflow-y-auto custom-scrollbar", styles.bodyClass, styles.dividerClass.replace("border-", "border "))}>
             <div className={cn("flex justify-between items-center pb-3 mb-4 border-b", styles.dividerClass)}>
-              <span className={cn("text-sm font-bold uppercase tracking-wider", styles.textColorClass)}>
+              <span className={cn("text-sm font-bold tracking-wider", styles.textColorClass)}>
                 {activePolicyModal === "privacy" ? "Privacy Policy" : "Terms of Service"}
               </span>
               <button
@@ -1012,7 +1012,7 @@ export default function StorefrontPage({ params }: PageProps) {
               className="space-y-3"
             >
               <div>
-                <label className="text-[10px] uppercase font-bold tracking-widest text-zinc-400 block mb-1.5">
+                <label className="text-[10px] font-bold tracking-widest text-zinc-400 block mb-1.5">
                   Order ID
                 </label>
                 <div className="flex gap-2">
@@ -1037,7 +1037,7 @@ export default function StorefrontPage({ params }: PageProps) {
 
             {localOrders.length > 0 && (
               <div className="space-y-2 pt-2 border-t border-white/8">
-                <span className="text-[10px] uppercase font-bold tracking-widest text-zinc-400 block">
+                <span className="text-[10px] font-bold tracking-widest text-zinc-400 block">
                   Recent Orders ({localOrders.length})
                 </span>
                 <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">

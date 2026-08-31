@@ -1145,7 +1145,7 @@ export default function ProductCreatePage() {
 
               <div className="space-y-3.5">
                 <div>
-                  <label className="text-[10px] text-[#c4c7c8] uppercase tracking-wider font-medium block mb-1">Status</label>
+                  <label className="text-[10px] text-[#c4c7c8] tracking-wider font-medium block mb-1">Status</label>
                   <select
                     value={status}
                     onChange={(e) => setStatus(e.target.value as any)}
@@ -1157,7 +1157,7 @@ export default function ProductCreatePage() {
                 </div>
 
                 <div>
-                  <label className="text-[10px] text-[#c4c7c8] uppercase tracking-wider font-medium block mb-1">Category</label>
+                  <label className="text-[10px] text-[#c4c7c8] tracking-wider font-medium block mb-1">Category</label>
                   {!isAddingCategory ? (
                     <div className="flex gap-2">
                       <select
@@ -1202,7 +1202,7 @@ export default function ProductCreatePage() {
                 </div>
 
                 <div>
-                  <label className="text-[10px] text-[#c4c7c8] uppercase tracking-wider font-medium block mb-1">Stock quantity</label>
+                  <label className="text-[10px] text-[#c4c7c8] tracking-wider font-medium block mb-1">Stock quantity</label>
                   <input
                     value={stock}
                     onChange={(e) => setStock(e.target.value)}
@@ -1213,7 +1213,7 @@ export default function ProductCreatePage() {
                 </div>
 
                 <div>
-                  <label className="text-[10px] text-[#c4c7c8] uppercase tracking-wider font-medium block mb-1">Physical location</label>
+                  <label className="text-[10px] text-[#c4c7c8] tracking-wider font-medium block mb-1">Physical location</label>
                   <input
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
@@ -1226,7 +1226,7 @@ export default function ProductCreatePage() {
 
               {/* Active Variants Area */}
               <div className="mt-4 pt-4 border-t border-[#444748]/20 space-y-2">
-                <label className="text-[10px] text-[#c4c7c8] uppercase tracking-wider font-medium block">Active variants</label>
+                <label className="text-[10px] text-[#c4c7c8] tracking-wider font-medium block">Active variants</label>
                 <div className="flex flex-wrap gap-1.5">
                   {variants.map(v => (
                     <span
@@ -1598,7 +1598,7 @@ export default function ProductCreatePage() {
                             </span>
                           </div>
 
-                          <div className="px-2 sm:px-3 pt-2 text-[7px] sm:text-[9px] text-zinc-500 font-medium uppercase tracking-wider">
+                          <div className="px-2 sm:px-3 pt-2 text-[7px] sm:text-[9px] text-zinc-500 font-medium tracking-wider">
                             Comments
                           </div>
 
@@ -1617,8 +1617,8 @@ export default function ProductCreatePage() {
                                     {automationMatchType === "any"
                                       ? "How much for this?"
                                       : activeKeywords[0]
-                                      ? `${activeKeywords[0]} please!`
-                                      : "PRICE"}
+                                        ? `${activeKeywords[0]} please!`
+                                        : "PRICE"}
                                   </span>
                                 </p>
                                 <div className="flex gap-2 sm:gap-3 mt-0.5 sm:mt-1 text-[8px] sm:text-[9px] text-zinc-500 font-medium items-center">
@@ -1656,7 +1656,7 @@ export default function ProductCreatePage() {
                         {/* Add Comment Input Bar */}
                         <div className="border-t border-zinc-800 px-2 sm:px-3 py-1.5 sm:py-2 bg-black shrink-0">
                           <div className="flex items-center gap-1.5 sm:gap-2.5">
-                            <div className="w-5.5 h-5.5 sm:w-7 sm:h-7 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[9px] font-bold text-white uppercase shrink-0">
+                            <div className="w-5.5 h-5.5 sm:w-7 sm:h-7 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[9px] font-bold text-white shrink-0">
                               {activeAccount?.username ? activeAccount.username[0] : "Z"}
                             </div>
                             <span className="flex-1 text-[10px] sm:text-xs text-zinc-500 truncate text-left">
@@ -1770,10 +1770,8 @@ export default function ProductCreatePage() {
                               ) : (
                                 <div className="bg-[#0095f6] text-white px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-2xl rounded-br-xs text-[10px] sm:text-[11px] leading-relaxed shadow-md text-left max-w-full break-words whitespace-pre-wrap">
                                   {automationDmMessage ||
-                                    `Hey! Thanks for your comment! Here is the direct link to purchase ${
-                                      title || "this product"
-                                    } (${currency}${price || "0"}):\n\nhttps://app.zoyee.in/${
-                                      activeAccount?.username || "store"
+                                    `Hey! Thanks for your comment! Here is the direct link to purchase ${title || "this product"
+                                    } (${currency}${price || "0"}):\n\nhttps://app.zoyee.in/${activeAccount?.username || "store"
                                     }/product/${title ? encodeURIComponent(title.toLowerCase().replace(/\s+/g, "-")) : "item"}`}
                                 </div>
                               )}
@@ -1871,7 +1869,7 @@ export default function ProductCreatePage() {
                         onClick={(e) => {
                           try {
                             (e.target as any).showPicker?.();
-                          } catch {}
+                          } catch { }
                         }}
                         className="w-full bg-[#18181b] border border-white/10 rounded px-3.5 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white/30 font-medium transition-all [color-scheme:dark] cursor-pointer"
                       />
@@ -1909,9 +1907,8 @@ export default function ProductCreatePage() {
                   <textarea
                     value={instagramCustomCaption}
                     onChange={(e) => setInstagramCustomCaption(e.target.value)}
-                    placeholder={`${title || "Product Name"}\n\nPrice: ${currency}${price || "0"}\n\n${
-                      description || "Product description"
-                    }\n\nDM to buy!`}
+                    placeholder={`${title || "Product Name"}\n\nPrice: ${currency}${price || "0"}\n\n${description || "Product description"
+                      }\n\nDM to buy!`}
                     rows={3}
                     className="w-full bg-[#18181b] border border-white/10 rounded p-3 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white/30 font-medium transition-all resize-none"
                   />
@@ -2273,11 +2270,9 @@ export default function ProductCreatePage() {
                           onChange={(e) => setAutomationDmMessage(e.target.value)}
                           placeholder={
                             automationDmFormat === "text"
-                              ? `Hey! Thanks for checking out ${
-                                  title || "our product"
-                                }! Here is the link to purchase for ${currency}${price || "0"}:\nhttps://app.zoyee.in/${
-                                  activeAccount?.username || "store"
-                                }/product/...`
+                              ? `Hey! Thanks for checking out ${title || "our product"
+                              }! Here is the link to purchase for ${currency}${price || "0"}:\nhttps://app.zoyee.in/${activeAccount?.username || "store"
+                              }/product/...`
                               : `Hey! Thanks for your comment! Here is the product details you requested 👇`
                           }
                           rows={3}

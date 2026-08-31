@@ -2103,7 +2103,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
 
                   <div className="w-full bg-surface-container-high border border-white/5 hover:border-white/10 rounded-md px-4 py-2 text-xs text-white focus:outline-none cursor-pointer font-medium flex items-center justify-between transition-all text-left">
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="font-sora text-[11px] font-bold text-white .uppercase shrink-0">Detailed Canvas Card</span>
+                      <span className="font-sora text-[11px] font-bold text-white .shrink-0">Detailed Canvas Card</span>
                     </div>
                     <button
                       type="button"
@@ -2179,7 +2179,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
             {format === 'quick_reply' && (
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block">Header Message Prompt</label>
+                  <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider block">Header Message Prompt</label>
                   <input
                     type="text"
                     value={quickReplyText}
@@ -2187,14 +2187,14 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                     placeholder="e.g. What size do you need?"
                     className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded px-4 py-3.5 text-sm text-white focus:outline-none focus:border-white/50 focus:ring-0 font-medium"
                   />
-                  <p className="text-[9px] text-[#CECBF6]/60 font-semibold tracking-wider uppercase font-sora mt-1">Sent first, directly above the pills.</p>
+                  <p className="text-[9px] text-[#CECBF6]/60 font-semibold tracking-wider font-sora mt-1">Sent first, directly above the pills.</p>
                 </div>
 
                 <div className="space-y-4">
                   <div className="flex justify-between items-center pb-2 border-b border-white/10">
                     <div>
                       <h3 className="font-sora text-xs font-semibold text-zinc-400 tracking-wider uppercase">Interactive Pills ({quickRepliesTitles.length}/13)</h3>
-                      <p className="text-[9px] text-[#CECBF6]/60 font-semibold tracking-wider uppercase font-sora mt-1">Tapped in Instagram. Max 13 pills.</p>
+                      <p className="text-[9px] text-[#CECBF6]/60 font-semibold tracking-wider font-sora mt-1">Tapped in Instagram. Max 13 pills.</p>
                     </div>
                     {quickRepliesTitles.length < 13 && (
                       <button
@@ -2235,7 +2235,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
             {format === 'button_template' && (
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block">Header Message Text</label>
+                  <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider block">Header Message Text</label>
                   <input
                     type="text"
                     value={buttonTemplateText}
@@ -2243,7 +2243,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                     placeholder="e.g. Select options from the menu below:"
                     className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded px-4 py-3.5 text-sm text-white focus:outline-none focus:border-white/50 focus:ring-0 font-medium"
                   />
-                  <p className="text-[9px] text-[#CECBF6]/60 font-semibold tracking-wider uppercase font-sora mt-1">Header message for the button card.</p>
+                  <p className="text-[9px] text-[#CECBF6]/60 font-semibold tracking-wider font-sora mt-1">Header message for the button card.</p>
                 </div>
 
                 <div className="space-y-4">
@@ -2305,7 +2305,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                           <div className="flex-1 w-full space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div>
-                                <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block mb-1.5">Button Title</label>
+                                <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider block mb-1.5">Button Title</label>
                                 <input
                                   type="text"
                                   value={btn.title}
@@ -2317,7 +2317,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                               </div>
                               <div>
                                 <CustomSelect
-                                  labelClassName='font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block mb-1.5'
+                                  labelClassName='font-sora text-[10px] font-bold text-zinc-400 tracking-wider block mb-1.5'
                                   label="Button Type"
                                   value={btn.type === 'postback' && btn.payload === 'TRACK_ORDER' ? 'track_order' : btn.type}
                                   onChange={(val) => updateButton(idx, 'type', val)}
@@ -2521,7 +2521,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                             })()}
 
                             {btn.type === 'postback' && btn.payload !== 'TRACK_ORDER' && (
-                              <div className="bg-white/5 border border-[#8FE3FF]/25 text-[#8FE3FF] rounded p-4 text-xs flex flex-col gap-1.5 animate-fadeIn">
+                              <div className="bg-white/5 border border-[#c4c0ff]/25 text-[#c4c0ff] rounded p-4 text-xs flex flex-col gap-1.5 animate-fadeIn">
                                 <p className="text-[12px] leading-relaxed text-zinc-400">
                                   New flow named  <span className="text-white">{btn.title || 'New Button'}</span> is ready. Configure reply for it .
                                 </p>
@@ -2546,7 +2546,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                   <div className="flex justify-between items-center">
                     <div>
                       <h3 className="font-sora text-xs font-semibold text-zinc-400 tracking-wider uppercase">Carousel Slides ({carouselElements.length}/10)</h3>
-                      <p className="text-[9px] text-[#CECBF6]/60 font-semibold tracking-wider uppercase font-sora mt-1">Horizontal slider card deck.</p>
+                      <p className="text-[9px] text-[#CECBF6]/60 font-semibold tracking-wider font-sora mt-1">Horizontal slider card deck.</p>
                     </div>
                     {carouselElements.length < 10 && (
                       <button
@@ -2595,12 +2595,12 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                 {carouselElements[activeCardIndex] && (
                   <div className="bg-white/5 p-3 sm:p-6 rounded-xl sm:rounded-2xl border border-white/10 space-y-3 sm:space-y-4 animate-fadeIn">
                     <div className="flex justify-between items-center border-b border-white/10 pb-2.5">
-                      <span className="font-sora text-xs font-semibold text-white uppercase tracking-wider">Active Card {activeCardIndex + 1} Settings</span>
+                      <span className="font-sora text-xs font-semibold text-white tracking-wider">Active Card {activeCardIndex + 1} Settings</span>
                     </div>
 
                     {/* Default action URL */}
                     <div className="space-y-3">
-                      {/* <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block">Default Click Action Web URL</label> */}
+                      {/* <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider block">Default Click Action Web URL</label> */}
                       {isEcommerceTemplate && (
                         <div className="space-y-2">
                           {/* Show Products Toggle */}
@@ -2635,7 +2635,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                             )}
                           >
                             <ShoppingBag className="w-4 h-4 shrink-0" />
-                            <span className="font-sora text-[10px] font-bold uppercase tracking-wider flex-1">Link catalog product</span>
+                            <span className="font-sora text-[10px] font-bold tracking-wider flex-1">Link catalog product</span>
                             <div className={cn(
                               "w-10 h-5 rounded-full relative transition-all duration-200 shrink-0",
                               showProductPicker[`carousel-product-${activeCardIndex}`] ? "bg-white" : "bg-white/10"
@@ -2814,7 +2814,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                     {/* Image URL & Cloudinary Upload */}
                     <div className="grid grid-cols-1 gap-4 .border-t border-white/10 .pt-4">
                       <div className="space-y-2">
-                        <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider uppercase block">Image Asset</label>
+                        <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider block">Image Asset</label>
                         <input
                           type="file"
                           id={`card-upload-${activeCardIndex}`}
@@ -2829,7 +2829,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                         >
                           {uploadingMap[activeCardIndex] ? (
                             <div className="space-y-2 w-full px-4">
-                              <span className="font-sora text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Uploading to Cloudinary...</span>
+                              <span className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider block">Uploading to Cloudinary...</span>
                               <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
                                 <div className="h-full bg-white transition-all duration-150" style={{ width: `${uploadProgressMap[activeCardIndex] || 0}%` }} />
                               </div>
@@ -2848,7 +2848,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                           ) : (
                             <>
                               <Upload className="w-6 h-6 text-zinc-400 mb-1.5" />
-                              <span className="font-sora text-[10px] font-bold text-white uppercase tracking-wide">Upload Custom Image</span>
+                              <span className="font-sora text-[10px] font-bold text-white tracking-wide">Upload Custom Image</span>
                               <span className="text-[9px] text-zinc-500 mt-1">JPG, PNG to Cloudinary preset</span>
                             </>
                           )}
@@ -2870,7 +2870,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                               className="w-full bg-transparent border-none py-3 text-xs text-white focus:outline-none"
                             />
                           </div>
-                          <p className="text-[9px] text-[#CECBF6]/60 font-semibold tracking-wider uppercase font-sora mt-1">URL opened when tapping the card image.</p>
+                          <p className="text-[9px] text-[#CECBF6]/60 font-semibold tracking-wider font-sora mt-1">URL opened when tapping the card image.</p>
                         </div>
                       </div>
                     )}
@@ -3201,9 +3201,9 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                   })()}
 
                                   {btn.type === 'postback' && btn.payload !== 'TRACK_ORDER' && (
-                                    <div className="bg-white/5 border border-[#8FE3FF]/25 text-[#8FE3FF] rounded p-4 text-xs flex flex-col gap-1.5 animate-fadeIn">
+                                    <div className="bg-white/5 border border-[#c4c0ff]/25 text-[#c4c0ff] rounded p-4 text-xs flex flex-col gap-1.5 animate-fadeIn">
                                       {/* <p className="font-bold flex items-center gap-1.5">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-[#8FE3FF] animate-pulse"></span>
+                                        <span className="w-1.5 h-1.5 rounded-full bg-[#c4c0ff] animate-pulse"></span>
                                         Continue Chat
                                       </p> */}
                                       <p className="text-[11px] leading-relaxed text-zinc-400">
@@ -3379,7 +3379,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                 {/* Uploading Files List */}
                 {uploadingFiles.length > 0 && (
                   <div className="space-y-3 animate-fadeIn">
-                    <h4 className="font-sora text-[10px] font-bold uppercase tracking-wider text-zinc-500">Uploading ({uploadingFiles.length})</h4>
+                    <h4 className="font-sora text-[10px] font-bold tracking-wider text-zinc-500">Uploading ({uploadingFiles.length})</h4>
                     <div className="space-y-2.5">
                       {uploadingFiles.map(file => (
                         <div key={file.id} className="bg-white/5 p-3 rounded-xl border border-white/10 space-y-2">
@@ -3439,7 +3439,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                               {isImage && att.url ? (
                                 <img src={att.url} alt="" className="w-full h-full object-cover" />
                               ) : isVideo ? (
-                                <Film className="w-5 h-5 text-[#8FE3FF]" />
+                                <Film className="w-5 h-5 text-[#c4c0ff]" />
                               ) : isAudio ? (
                                 <Headphones className="w-5 h-5 text-[#CECBF6]" />
                               ) : isSticker ? (
@@ -3454,7 +3454,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                               <span className="text-xs font-bold text-zinc-200 block truncate" title={fileName}>
                                 {fileName}
                               </span>
-                              <span className="text-[9px] font-extrabold uppercase tracking-wider text-zinc-500 block mt-0.5">
+                              <span className="text-[9px] font-extrabold tracking-wider text-zinc-500 block mt-0.5">
                                 {att.type === 'MEDIA_SHARE' ? 'Media Share' : att.type}
                               </span>
                               {att.url && (

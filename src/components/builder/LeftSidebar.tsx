@@ -25,8 +25,8 @@ const TEMPLATE_CATEGORIES = [
     title: 'User Comment',
     emoji: MessageSquare,
     icon: MessageSquare,
-    colorClass: 'text-[#8FE3FF]',
-    glowClass: 'border-[#8FE3FF]/40 bg-[#8FE3FF]/5 shadow-[0_0_15px_rgba(143,227,255,0.15)]',
+    colorClass: 'text-[#c4c0ff]',
+    glowClass: 'border-[#c4c0ff]/40 bg-[#c4c0ff]/5 shadow-[0_0_15px_rgba(196,192,255,0.15)]',
     Components: [
       UserComment.ReplyAndPlainTextDM,
       UserComment.QuickReplyPills,
@@ -308,14 +308,14 @@ export function LeftSidebar() {
                   disabled={isLoadingWelcome !== null}
                   className={cn(
                     "w-9 h-9 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center border border-white/5 bg-transparent text-white/60 hover:text-white hover:bg-white/5 transition-all duration-300 relative group disabled:opacity-60",
-                    isIcebreakerActive && "text-white border-[#8FE3FF]/40 bg-[#8FE3FF]/5 shadow-[0_0_15px_rgba(143,227,255,0.15)] scale-105"
+                    isIcebreakerActive && "text-white border-[#c4c0ff]/40 bg-[#c4c0ff]/5 shadow-[0_0_15px_rgba(196,192,255,0.15)] scale-105"
                   )}
                 >
                   {isLoadingWelcome === 'icebreakers'
-                    ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-[#8FE3FF]" />
-                    : <PillIcon className={cn("w-4 h-4 sm:w-5 sm:h-5 transition-transform duration-300 group-hover:scale-110", isIcebreakerActive && "text-[#8FE3FF]")} />}
+                    ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-[#c4c0ff]" />
+                    : <PillIcon className={cn("w-4 h-4 sm:w-5 sm:h-5 transition-transform duration-300 group-hover:scale-110", isIcebreakerActive && "text-[#c4c0ff]")} />}
                   {isIcebreakerActive && (
-                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-l-full bg-[#8FE3FF]" />
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-l-full bg-[#c4c0ff]" />
                   )}
                 </button>
               </TooltipTrigger>
@@ -437,7 +437,7 @@ export function LeftSidebar() {
                 <div>
                   <h2 className="text-[11px] sm:text-[13px] font-bold text-white tracking-widest flex items-center gap-1.5 sm:gap-2">
                     {activeWelcomeTab === 'icebreakers'
-                      ? <><PillIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#8FE3FF]" /><span className="truncate">Welcome Questions</span></>
+                      ? <><PillIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#c4c0ff]" /><span className="truncate">Welcome Questions</span></>
                       : <><MenuIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#C084FC]" /><span className="truncate">Top Right Menu</span></>}
                   </h2>
                   <p className="text-[9px] sm:text-[11px] text-white/70 mt-0.5 line-clamp-2">

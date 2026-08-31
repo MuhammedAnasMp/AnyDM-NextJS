@@ -3,15 +3,15 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { 
-  ShieldCheck, 
-  User, 
-  CreditCard, 
-  Check, 
-  X, 
-  AlertCircle, 
-  RefreshCw, 
-  Search, 
+import {
+  ShieldCheck,
+  User,
+  CreditCard,
+  Check,
+  X,
+  AlertCircle,
+  RefreshCw,
+  Search,
   FileText,
   Lock
 } from "lucide-react";
@@ -77,12 +77,12 @@ export default function AdminVerifyKYCPage() {
     try {
       const res = await api.post("/crm/admin/kyc/", { kyc_id: kycId, action });
       showToast(`KYC submission successfully ${action === "APPROVE" ? "approved" : "rejected"}!`, "success");
-      
+
       // Update local state
-      setSubmissions(prev => 
+      setSubmissions(prev =>
         prev.map(sub => sub.id === kycId ? { ...sub, status: res.data.status } : sub)
       );
-      
+
       if (selectedKyc && selectedKyc.id === kycId) {
         setSelectedKyc(prev => prev ? { ...prev, status: res.data.status } : null);
       }
@@ -101,12 +101,12 @@ export default function AdminVerifyKYCPage() {
 
   // Filter & Search Logic
   const filteredSubmissions = submissions.filter(sub => {
-    const matchesStatus = 
+    const matchesStatus =
       filterStatus === "ALL" ||
       (filterStatus === "PENDING" && (sub.status === "SUBMITTED" || sub.status === "REVIEW" || sub.status === "PENDING")) ||
       sub.status === filterStatus;
-      
-    const matchesSearch = 
+
+    const matchesSearch =
       sub.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
       sub.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       sub.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -130,9 +130,9 @@ export default function AdminVerifyKYCPage() {
   }
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 8 }} 
-      animate={{ opacity: 1, y: 0 }} 
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
       className="space-y-6 text-[#e5e2e1] pb-10"
     >
       {/* Header */}
@@ -148,7 +148,7 @@ export default function AdminVerifyKYCPage() {
             </p>
           </div>
         </div>
-        <button 
+        <button
           onClick={fetchSubmissions}
           className="p-2 rounded hover:bg-white/5 transition-colors border border-white/10"
           title="Refresh List"
@@ -161,21 +161,21 @@ export default function AdminVerifyKYCPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="rounded-lg p-4 bg-[#20201f] border border-white/5 shadow-md flex items-center justify-between">
           <div>
-            <span className="text-[10px] uppercase font-bold tracking-wider text-yellow-400">Pending Review</span>
+            <span className="text-[10px] font-bold tracking-wider text-yellow-400">Pending Review</span>
             <h3 className="text-xl font-bold mt-1 text-white">{pendingCount}</h3>
           </div>
           <AlertCircle className="w-6 h-6 text-yellow-500/80" />
         </div>
         <div className="rounded-lg p-4 bg-[#20201f] border border-white/5 shadow-md flex items-center justify-between">
           <div>
-            <span className="text-[10px] uppercase font-bold tracking-wider text-green-400">Approved Sellers</span>
+            <span className="text-[10px] font-bold tracking-wider text-green-400">Approved Sellers</span>
             <h3 className="text-xl font-bold mt-1 text-white">{approvedCount}</h3>
           </div>
           <Check className="w-6 h-6 text-green-500/80" />
         </div>
         <div className="rounded-lg p-4 bg-[#20201f] border border-white/5 shadow-md flex items-center justify-between">
           <div>
-            <span className="text-[10px] uppercase font-bold tracking-wider text-red-400">Rejected KYC</span>
+            <span className="text-[10px] font-bold tracking-wider text-red-400">Rejected KYC</span>
             <h3 className="text-xl font-bold mt-1 text-white">{rejectedCount}</h3>
           </div>
           <X className="w-6 h-6 text-red-500/80" />
@@ -190,15 +190,15 @@ export default function AdminVerifyKYCPage() {
           <div className="flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center bg-[#20201f] border border-white/5 p-3 rounded-lg">
             <div className="flex items-center gap-1.5 bg-[#0e0e0e] border border-[#444748] rounded px-3 py-1.5 shrink-0">
               <Search className="w-3.5 h-3.5 text-zinc-400" />
-              <input 
-                type="text" 
+              <input
+                type="text"
                 placeholder="Search username, name..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="bg-transparent border-none outline-none text-xs text-white placeholder-zinc-500 w-44"
               />
             </div>
-            
+
             <div className="flex items-center gap-1 text-[11px] overflow-x-auto self-start sm:self-auto py-1">
               {["ALL", "PENDING", "APPROVED", "REJECTED"].map((status) => (
                 <button
@@ -206,8 +206,8 @@ export default function AdminVerifyKYCPage() {
                   onClick={() => setFilterStatus(status)}
                   className={cn(
                     "px-2.5 py-1 rounded transition-colors font-semibold",
-                    filterStatus === status 
-                      ? "bg-[#b6b2ff] text-black" 
+                    filterStatus === status
+                      ? "bg-[#b6b2ff] text-black"
                       : "text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10"
                   )}
                 >
@@ -233,7 +233,7 @@ export default function AdminVerifyKYCPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
-                    <tr className="border-b border-white/5 bg-white/[0.02] text-zinc-400 font-bold uppercase tracking-wider text-[10px]">
+                    <tr className="border-b border-white/5 bg-white/[0.02] text-zinc-400 font-bold tracking-wider text-[10px]">
                       <th className="py-3 px-4">Seller Account</th>
                       <th className="py-3 px-4">Full Name</th>
                       <th className="py-3 px-4">PAN Number</th>
@@ -243,8 +243,8 @@ export default function AdminVerifyKYCPage() {
                   </thead>
                   <tbody className="divide-y divide-white/5">
                     {filteredSubmissions.map((sub) => (
-                      <tr 
-                        key={sub.id} 
+                      <tr
+                        key={sub.id}
                         onClick={() => setSelectedKyc(sub)}
                         className={cn(
                           "hover:bg-white/[0.01] transition-colors cursor-pointer",
@@ -258,7 +258,7 @@ export default function AdminVerifyKYCPage() {
                           </div>
                         </td>
                         <td className="py-3.5 px-4 text-zinc-300 font-medium">{sub.full_name || "N/A"}</td>
-                        <td className="py-3.5 px-4 font-mono uppercase tracking-wide text-zinc-400">{sub.pan_number || "N/A"}</td>
+                        <td className="py-3.5 px-4 font-mono tracking-wide text-zinc-400">{sub.pan_number || "N/A"}</td>
                         <td className="py-3.5 px-4">
                           <span className={cn(
                             "px-2 py-0.5 rounded-full text-[9px] font-bold uppercase",
@@ -319,7 +319,7 @@ export default function AdminVerifyKYCPage() {
                     <h3 className="text-sm font-bold text-white">Submission Profile</h3>
                     <span className="text-[10px] text-[#b6b2ff] font-semibold">@{selectedKyc.username}</span>
                   </div>
-                  <button 
+                  <button
                     onClick={() => setSelectedKyc(null)}
                     className="p-1 rounded hover:bg-white/5 transition-colors"
                   >
@@ -332,33 +332,33 @@ export default function AdminVerifyKYCPage() {
                 {/* Info List */}
                 <div className="space-y-3.5 text-xs">
                   <div className="flex flex-col gap-0.5">
-                    <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Full Name</span>
+                    <span className="text-[10px] text-zinc-500 font-bold tracking-wider">Full Name</span>
                     <span className="text-zinc-200 font-medium">{selectedKyc.full_name}</span>
                   </div>
                   <div className="flex flex-col gap-0.5">
-                    <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">PAN Card</span>
-                    <span className="font-mono text-zinc-200 uppercase tracking-wide">{selectedKyc.pan_number}</span>
+                    <span className="text-[10px] text-zinc-500 font-bold tracking-wider">PAN Card</span>
+                    <span className="font-mono text-zinc-200 tracking-wide">{selectedKyc.pan_number}</span>
                   </div>
                   <div className="flex flex-col gap-0.5">
-                    <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Aadhaar Card</span>
+                    <span className="text-[10px] text-zinc-500 font-bold tracking-wider">Aadhaar Card</span>
                     <span className="font-mono text-zinc-200">{selectedKyc.aadhaar_number}</span>
                   </div>
-                  
+
                   <hr className="border-white/5 py-0.5" />
-                  
+
                   <div className="flex flex-col gap-0.5">
-                    <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider flex items-center gap-1">
+                    <span className="text-[10px] text-zinc-500 font-bold tracking-wider flex items-center gap-1">
                       <CreditCard className="w-3 h-3 shrink-0" />
                       <span>Bank Name</span>
                     </span>
                     <span className="text-zinc-200 font-medium">{selectedKyc.bank_name}</span>
                   </div>
                   <div className="flex flex-col gap-0.5">
-                    <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">IFSC Code</span>
+                    <span className="text-[10px] text-zinc-500 font-bold tracking-wider">IFSC Code</span>
                     <span className="font-mono text-zinc-200 uppercase">{selectedKyc.bank_ifsc}</span>
                   </div>
                   <div className="flex flex-col gap-0.5">
-                    <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Account Number</span>
+                    <span className="text-[10px] text-zinc-500 font-bold tracking-wider">Account Number</span>
                     <span className="font-mono text-zinc-200">{selectedKyc.bank_account_number ? "•••• •••• " + selectedKyc.bank_account_number.slice(-4) : "N/A"}</span>
                   </div>
                 </div>

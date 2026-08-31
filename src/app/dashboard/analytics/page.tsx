@@ -149,7 +149,7 @@ export default function AnalyticsPage() {
   }, [data]);
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
@@ -180,11 +180,10 @@ export default function AnalyticsPage() {
               <button
                 key={tf.id}
                 onClick={() => setTimeframe(tf.id)}
-                className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
-                  timeframe === tf.id
+                className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${timeframe === tf.id
                     ? "bg-white text-black shadow-md"
                     : "text-on-surface-variant hover:text-white hover:bg-white/5"
-                }`}
+                  }`}
               >
                 {tf.label}
               </button>
@@ -212,7 +211,7 @@ export default function AnalyticsPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="glass-pane p-5 rounded-2xl flex items-center justify-between">
           <div>
-            <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Total Interactions</span>
+            <span className="text-[10px] font-bold text-on-surface-variant tracking-wider">Total Interactions</span>
             <h3 className="text-2xl font-extrabold text-white mt-1">
               {loading ? "..." : (data?.total_interactions !== undefined ? data.total_interactions.toLocaleString() : "1,240")}
             </h3>
@@ -227,7 +226,7 @@ export default function AnalyticsPage() {
 
         <div className="glass-pane p-5 rounded-2xl flex items-center justify-between">
           <div>
-            <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Active Customers</span>
+            <span className="text-[10px] font-bold text-on-surface-variant tracking-wider">Active Customers</span>
             <h3 className="text-2xl font-extrabold text-white mt-1">
               {loading ? "..." : (data?.total_customers !== undefined ? data.total_customers.toLocaleString() : "840")}
             </h3>
@@ -242,7 +241,7 @@ export default function AnalyticsPage() {
 
         <div className="glass-pane p-5 rounded-2xl flex items-center justify-between">
           <div>
-            <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Orders Generated</span>
+            <span className="text-[10px] font-bold text-on-surface-variant tracking-wider">Orders Generated</span>
             <h3 className="text-2xl font-extrabold text-white mt-1">
               {loading ? "..." : (data?.total_orders !== undefined ? data.total_orders.toLocaleString() : "42")}
             </h3>
@@ -274,8 +273,8 @@ export default function AnalyticsPage() {
           {/* Bar Chart Container */}
           <div className="flex-1 flex items-end gap-2 px-4 group mt-6 h-full min-h-[180px]">
             {chartBars.map((bar, i) => (
-              <div 
-                key={i} 
+              <div
+                key={i}
                 className={`w-full bg-white/10 rounded-t-lg transition-all duration-700 hover:bg-white/30 relative ${bar.height}`}
               >
                 {bar.showLabel && (
@@ -293,27 +292,27 @@ export default function AnalyticsPage() {
           <div>
             <h3 className="text-base font-bold text-white">Engagement Score</h3>
             <p className="text-xs text-on-surface-variant/70 mt-0.5">Weighted Performance Score</p>
-            
+
             {/* Radial SVG Widget */}
             <div className="relative w-40 h-40 mx-auto mt-6 flex items-center justify-center">
               <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
                 <circle cx="50" cy="50" fill="none" r="42" stroke="rgba(255,255,255,0.05)" strokeWidth="6"></circle>
-                <circle 
-                  className="text-white chart-glow transition-all duration-1000" 
-                  cx="50" 
-                  cy="50" 
-                  fill="none" 
-                  r="42" 
-                  stroke="currentColor" 
-                  strokeDasharray="264" 
-                  strokeDashoffset={264 - (264 * engagementScore) / 100} 
+                <circle
+                  className="text-white chart-glow transition-all duration-1000"
+                  cx="50"
+                  cy="50"
+                  fill="none"
+                  r="42"
+                  stroke="currentColor"
+                  strokeDasharray="264"
+                  strokeDashoffset={264 - (264 * engagementScore) / 100}
                   strokeWidth="6"
                   strokeLinecap="round"
                 ></circle>
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <span className="text-3xl font-extrabold text-white">{loading ? "..." : engagementScore}</span>
-                <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider mt-0.5">OPTIMAL</span>
+                <span className="text-[10px] text-emerald-400 font-bold tracking-wider mt-0.5">OPTIMAL</span>
               </div>
             </div>
           </div>
@@ -359,15 +358,15 @@ export default function AnalyticsPage() {
             {/* Dynamic End-to-End Metrics Badge */}
             <div className="flex items-center gap-3">
               <div className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 flex items-center gap-2">
-                <span className="text-[10px] uppercase font-bold text-zinc-400">Total Funnel Efficiency</span>
+                <span className="text-[10px] font-bold text-zinc-400">Total Funnel Efficiency</span>
                 <span className="text-xs font-extrabold text-emerald-400 font-mono">
                   {loading
                     ? "..."
                     : data && data.total_interactions > 0
-                    ? `${((data.total_orders / data.total_interactions) * 100).toFixed(1)}%`
-                    : funnelSteps.length >= 4 && funnelSteps[3].percent
-                    ? funnelSteps[3].percent
-                    : "3.4%"}
+                      ? `${((data.total_orders / data.total_interactions) * 100).toFixed(1)}%`
+                      : funnelSteps.length >= 4 && funnelSteps[3].percent
+                        ? funnelSteps[3].percent
+                        : "3.4%"}
                 </span>
               </div>
               <span className="text-[10px] font-mono px-2 py-1 rounded bg-white/5 text-zinc-400 border border-white/5 uppercase">
@@ -397,7 +396,7 @@ export default function AnalyticsPage() {
                       <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-white/10 text-white/80">
                         0{idx + 1}
                       </span>
-                      <span className="text-xs font-bold text-zinc-300 uppercase tracking-wider">{step.label}</span>
+                      <span className="text-xs font-bold text-zinc-300 tracking-wider">{step.label}</span>
                     </div>
                     <div className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center text-zinc-400 group-hover:text-white transition-colors">
                       <StepIcon className="w-3.5 h-3.5" />
@@ -421,15 +420,14 @@ export default function AnalyticsPage() {
                           width: loading
                             ? "0%"
                             : step.percent && step.percent.endsWith("%")
-                            ? step.percent
-                            : "100%",
+                              ? step.percent
+                              : "100%",
                         }}
                         transition={{ duration: 0.8, delay: idx * 0.1 }}
-                        className={`h-full rounded-full ${
-                          isLast
+                        className={`h-full rounded-full ${isLast
                             ? "bg-gradient-to-r from-emerald-500 to-teal-400"
                             : "bg-gradient-to-r from-white/40 to-white"
-                        }`}
+                          }`}
                       />
                     </div>
                   </div>
@@ -440,17 +438,16 @@ export default function AnalyticsPage() {
                       {isLast ? "Direct Conversion" : "Stage Transition"}
                     </span>
                     <span
-                      className={`font-semibold font-mono ${
-                        isLast
+                      className={`font-semibold font-mono ${isLast
                           ? "text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20"
                           : "text-zinc-400"
-                      }`}
+                        }`}
                     >
                       {isLast
                         ? `Final CR: ${step.percent || "100%"}`
                         : step.dropoff?.includes("drop-off") || step.dropoff?.includes("%")
-                        ? step.dropoff
-                        : `Drop-off: ${step.dropoff}`}
+                          ? step.dropoff
+                          : `Drop-off: ${step.dropoff}`}
                     </span>
                   </div>
                 </motion.div>
@@ -461,17 +458,16 @@ export default function AnalyticsPage() {
 
         {/* Automation Health & Top Products */}
         <div className="col-span-12 lg:col-span-6 glass-pane p-6 rounded-2xl">
-          <h4 className="text-xs font-bold text-white uppercase tracking-widest mb-4">Automation Health</h4>
+          <h4 className="text-xs font-bold text-white tracking-widest mb-4">Automation Health</h4>
           <div className="space-y-2">
             {autHealth.map((item, i) => (
-              <div 
+              <div
                 key={i}
                 className="flex items-center justify-between p-3 rounded-xl hover:bg-white/5 transition-all cursor-pointer group"
               >
                 <div className="flex items-center gap-3">
-                  <span className={`material-symbols-outlined text-xl ${
-                    item.ok ? "text-white/40 group-hover:text-white" : "text-red-400/40 group-hover:text-red-400"
-                  } transition-colors`}>
+                  <span className={`material-symbols-outlined text-xl ${item.ok ? "text-white/40 group-hover:text-white" : "text-red-400/40 group-hover:text-red-400"
+                    } transition-colors`}>
                     {item.ok ? "robot_2" : "error_outline"}
                   </span>
                   <div>
@@ -489,12 +485,12 @@ export default function AnalyticsPage() {
 
         <div className="col-span-12 lg:col-span-6 glass-pane p-6 rounded-2xl relative overflow-hidden flex flex-col justify-between">
           <div className="absolute -right-16 -top-16 w-48 h-48 bg-white/5 rounded-full blur-3xl"></div>
-          <h4 className="text-xs font-bold text-white uppercase tracking-widest mb-4 z-10">Top Performing Products</h4>
-          
+          <h4 className="text-xs font-bold text-white tracking-widest mb-4 z-10">Top Performing Products</h4>
+
           <div className="grid grid-cols-2 gap-4 z-10">
             {topProducts.map((prod, i) => (
               <div key={i} className="p-4 glass-pane rounded-xl hover:border-white/20 transition-all duration-300">
-                <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-2">{prod.name}</p>
+                <p className="text-[10px] font-bold text-on-surface-variant tracking-wider mb-2">{prod.name}</p>
                 <div className="flex justify-between items-end">
                   <span className="text-xl font-bold text-white">{prod.sales}</span>
                   <span className={`text-[10px] font-bold ${prod.growth.startsWith("+") ? "text-emerald-400" : "text-red-400"}`}>

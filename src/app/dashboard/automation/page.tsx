@@ -234,7 +234,7 @@ export default function AutomationsDashboard() {
   };
 
   const getRuleTypeBadgeStyles = (type: string) => {
-    if (type.includes("comment")) return "border-[#8FE3FF]/20 text-[#8FE3FF] bg-[#8FE3FF]/5";
+    if (type.includes("comment")) return "border-[#c4c0ff]/20 text-[#c4c0ff] bg-[#c4c0ff]/5";
     if (type.includes("story")) return "border-[#B6B2FF]/20 text-[#B6B2FF] bg-[#B6B2FF]/5";
     return "border-[#E0E0E0]/20 text-[#E0E0E0] bg-[#E0E0E0]/5";
   };
@@ -305,7 +305,7 @@ export default function AutomationsDashboard() {
             return (
               <div key={i} className="bg-[#1c1b1b] border border-[#444748] rounded p-3 flex items-center justify-between shadow-sm">
                 <div className="space-y-0.5">
-                  <span className="text-[9px] font-semibold text-[#c4c7c8]/85 uppercase tracking-wider block">{stat.title}</span>
+                  <span className="text-[9px] font-semibold text-[#c4c7c8]/85 tracking-wider block">{stat.title}</span>
                   <span className="text-lg font-bold text-[#e5e2e1] tracking-tight block">{stat.value}</span>
                 </div>
                 <div className="w-7 h-7 rounded bg-[#20201f] border border-[#444748]/60 flex items-center justify-center shrink-0">
@@ -320,7 +320,7 @@ export default function AutomationsDashboard() {
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <h2 className="text-[10px] font-bold uppercase tracking-wider text-[#c4c7c8]">
+              <h2 className="text-[10px] font-bold tracking-wider text-[#c4c7c8]">
                 Configured Profiles & Rules
               </h2>
               <span className="px-1.5 py-0.2 bg-[#20201f] border border-[#444748] rounded-sm text-[9px] text-[#c4c7c8] font-mono">
@@ -434,7 +434,7 @@ export default function AutomationsDashboard() {
                                 {item.name}
                               </h3>
                               {isSpecialFlow && (
-                                <span className="px-2 py-0.5 text-[9px] font-semibold rounded-full border tracking-wide uppercase bg-sky-950/20 text-sky-300 border-sky-900/30 flex items-center gap-1">
+                                <span className="px-2 py-0.5 text-[9px] font-semibold rounded-full border tracking-wide bg-sky-950/20 text-sky-300 border-sky-900/30 flex items-center gap-1">
                                   <Sparkles className="w-2.5 h-2.5" /> Special Flow
                                 </span>
                               )}
@@ -466,17 +466,17 @@ export default function AutomationsDashboard() {
 
                           {/* Schedule Date Badge */}
                           {isEnded ? (
-                            <span className="px-2 py-0.5 text-[9px] font-bold rounded-full border tracking-wide uppercase bg-rose-950/50 text-rose-400 border-rose-800/60 hidden lg:flex items-center gap-1">
+                            <span className="px-2 py-0.5 text-[9px] font-bold rounded-full border tracking-wide bg-rose-950/50 text-rose-400 border-rose-800/60 hidden lg:flex items-center gap-1">
                               <Calendar className="w-2.5 h-2.5 text-rose-400" />
                               Ended
                             </span>
                           ) : isNotStarted ? (
-                            <span className="px-2 py-0.5 text-[9px] font-semibold rounded-full border tracking-wide uppercase bg-amber-950/30 text-amber-300 border-amber-800/40 hidden lg:flex items-center gap-1">
+                            <span className="px-2 py-0.5 text-[9px] font-semibold rounded-full border tracking-wide bg-amber-950/30 text-amber-300 border-amber-800/40 hidden lg:flex items-center gap-1">
                               <Calendar className="w-2.5 h-2.5 text-amber-400" />
                               Starts {startFormatted}
                             </span>
                           ) : (
-                            <span className="px-2 py-0.5 text-[9px] font-medium rounded-full border tracking-wide uppercase bg-zinc-800/40 text-zinc-400 border-zinc-700/30 hidden lg:flex items-center gap-1">
+                            <span className="px-2 py-0.5 text-[9px] font-medium rounded-full border tracking-wide bg-zinc-800/40 text-zinc-400 border-zinc-700/30 hidden lg:flex items-center gap-1">
                               <Calendar className="w-2.5 h-2.5 text-zinc-500" />
                               Always Active
                             </span>
@@ -592,29 +592,29 @@ export default function AutomationsDashboard() {
                         <div className="flex flex-wrap items-center gap-1.5">
 
                           {isSpecialFlow && (
-                            <span className="px-2 py-0.5 text-[9px] font-semibold rounded-full border tracking-wide uppercase bg-sky-950/20 text-sky-300 border-sky-900/30 flex items-center gap-1">
+                            <span className="px-2 py-0.5 text-[9px] font-semibold rounded-full border tracking-wide bg-sky-950/20 text-sky-300 border-sky-900/30 flex items-center gap-1">
                               <Sparkles className="w-2.5 h-2.5" /> Special Flow
                             </span>
                           )}
 
                           {/* Schedule Date Badge */}
                           {isEnded ? (
-                            <span className="px-2 py-0.5 text-[9px] font-bold rounded-full border tracking-wide uppercase bg-rose-950/50 text-rose-400 border-rose-800/60 flex items-center gap-1 shadow-sm">
+                            <span className="px-2 py-0.5 text-[9px] font-bold rounded-full border tracking-wide bg-rose-950/50 text-rose-400 border-rose-800/60 flex items-center gap-1 shadow-sm">
                               <Calendar className="w-2.5 h-2.5 text-rose-400" />
                               Ended {endFormatted ? `on ${endFormatted}` : '(Expired)'}
                             </span>
                           ) : isNotStarted ? (
-                            <span className="px-2 py-0.5 text-[9px] font-semibold rounded-full border tracking-wide uppercase bg-amber-950/30 text-amber-300 border-amber-800/40 flex items-center gap-1">
+                            <span className="px-2 py-0.5 text-[9px] font-semibold rounded-full border tracking-wide bg-amber-950/30 text-amber-300 border-amber-800/40 flex items-center gap-1">
                               <Calendar className="w-2.5 h-2.5 text-amber-400" />
                               Starts {startFormatted}
                             </span>
                           ) : startFormatted || endFormatted ? (
-                            <span className="px-2 py-0.5 text-[9px] font-semibold rounded-full border tracking-wide uppercase bg-sky-950/30 text-sky-300 border-sky-800/40 flex items-center gap-1">
+                            <span className="px-2 py-0.5 text-[9px] font-semibold rounded-full border tracking-wide bg-sky-950/30 text-sky-300 border-sky-800/40 flex items-center gap-1">
                               <Calendar className="w-2.5 h-2.5 text-sky-400" />
                               {startFormatted ? startFormatted : 'Now'} – {endFormatted ? endFormatted : 'No End'}
                             </span>
                           ) : (
-                            <span className="px-2 py-0.5 text-[9px] font-medium rounded-full border tracking-wide uppercase bg-zinc-800/40 text-zinc-400 border-zinc-700/30 flex items-center gap-1">
+                            <span className="px-2 py-0.5 text-[9px] font-medium rounded-full border tracking-wide bg-zinc-800/40 text-zinc-400 border-zinc-700/30 flex items-center gap-1">
                               <Calendar className="w-2.5 h-2.5 text-zinc-500" />
                               Always Active
                             </span>

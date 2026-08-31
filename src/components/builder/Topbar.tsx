@@ -396,7 +396,7 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
               className="h-10 px-3.5 rounded-full bg-[#1a1a1a] text-white border border-white/10 font-semibold text-xs hover:bg-white/10 transition-all flex items-center gap-2 cursor-pointer shadow-sm active:scale-95"
               title="Configure automation schedule date & time"
             >
-              <Calendar className="w-4 h-4 text-[#8FE3FF]" />
+              <Calendar className="w-4 h-4 text-[#c4c0ff]" />
               <span className="font-medium text-white truncate max-w-[90px] sm:max-w-none">
                 {startFormatted && endFormatted
                   ? `${startFormatted} – ${endFormatted}`
@@ -411,8 +411,8 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
               <div className="absolute right-0 top-12 z-[9999] w-80 bg-[#131313]/95 backdrop-blur-2xl border border-white/15 rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.9)] space-y-4 animate-in fade-in zoom-in-95 duration-150 text-white font-inter">
                 <div className="flex items-center justify-between pb-2.5 border-b border-white/10">
                   <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-[#8FE3FF]" />
-                    <span className="text-xs font-bold uppercase tracking-wider text-white">Automation Schedule</span>
+                    <Calendar className="w-4 h-4 text-[#c4c0ff]" />
+                    <span className="text-xs font-bold tracking-wider text-white">Automation Schedule</span>
                   </div>
                   <button
                     type="button"
@@ -424,7 +424,7 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">QUICK PRESETS</label>
+                  <label className="text-[10px] font-bold text-zinc-400 tracking-wider block">QUICK PRESETS</label>
                   <div className="grid grid-cols-4 gap-1.5">
                     <button
                       type="button"
@@ -450,7 +450,7 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
                     <button
                       type="button"
                       onClick={() => applyPreset(null)}
-                      className="px-2.5 py-2 rounded bg-white/10 hover:bg-white/20 border border-white/20 text-[11px] font-bold text-[#8FE3FF] transition-all text-center cursor-pointer active:scale-95"
+                      className="px-2.5 py-2 rounded bg-white/10 hover:bg-white/20 border border-white/20 text-[11px] font-bold text-[#c4c0ff] transition-all text-center cursor-pointer active:scale-95"
                     >
                       Always
                     </button>
@@ -459,7 +459,7 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
 
                 <div className="space-y-3 pt-1">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Start Date & Time</label>
+                    <label className="text-[10px] font-bold text-zinc-400 tracking-wider block">Start Date & Time</label>
                     <input
                       type="datetime-local"
                       value={toLocalDatetimeStr(triggerNode?.data?.start_at as string)}
@@ -474,7 +474,7 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">End Date & Time</label>
+                    <label className="text-[10px] font-bold text-zinc-400 tracking-wider block">End Date & Time</label>
                     <input
                       type="datetime-local"
                       value={toLocalDatetimeStr(triggerNode?.data?.end_at as string)}
@@ -539,8 +539,8 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
               <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-[9999] w-auto max-w-sm mx-auto bg-[#131313]/98 backdrop-blur-2xl border border-white/15 rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.9)] space-y-4 animate-in fade-in zoom-in-95 duration-150 text-white font-inter">
                 <div className="flex items-center justify-between pb-2.5 border-b border-white/10">
                   <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-[#8FE3FF]" />
-                    <span className="text-xs font-bold uppercase tracking-wider text-white">Schedule & Actions</span>
+                    <Calendar className="w-4 h-4 text-[#c4c0ff]" />
+                    <span className="text-xs font-bold tracking-wider text-white">Schedule & Actions</span>
                   </div>
                   <button
                     type="button"
@@ -552,7 +552,7 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">QUICK PRESETS</label>
+                  <label className="text-[10px] font-bold text-zinc-400 tracking-wider block">QUICK PRESETS</label>
                   <div className="grid grid-cols-2 gap-1.5">
                     <button
                       type="button"
@@ -578,7 +578,7 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
                     <button
                       type="button"
                       onClick={() => applyPreset(null)}
-                      className="px-2.5 py-2 rounded bg-white/10 hover:bg-white/20 border border-white/20 text-[11px] font-bold text-[#8FE3FF] transition-all text-center cursor-pointer active:scale-95"
+                      className="px-2.5 py-2 rounded bg-white/10 hover:bg-white/20 border border-white/20 text-[11px] font-bold text-[#c4c0ff] transition-all text-center cursor-pointer active:scale-95"
                     >
                       Always
                     </button>
@@ -587,7 +587,7 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
 
                 <div className="space-y-3 pt-1">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">Start Date & Time</label>
+                    <label className="text-[10px] font-bold text-zinc-400 tracking-wider block">Start Date & Time</label>
                     <input
                       type="datetime-local"
                       value={toLocalDatetimeStr(triggerNode?.data?.start_at as string)}
@@ -602,7 +602,7 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">End Date & Time</label>
+                    <label className="text-[10px] font-bold text-zinc-400 tracking-wider block">End Date & Time</label>
                     <input
                       type="datetime-local"
                       value={toLocalDatetimeStr(triggerNode?.data?.end_at as string)}

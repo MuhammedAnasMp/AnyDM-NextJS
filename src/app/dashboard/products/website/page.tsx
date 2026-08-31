@@ -61,7 +61,7 @@ const t = {
   outlineVariant: "#444748",
   primary: "#ffffff",
   onPrimary: "#2f3131",
-  accentCyan: "#8fe3ff",
+  accentCyan: "#c4c0ff",
   lavender: "#c4c0ff",
   success: "#34d399",
   error: "#ffb4ab",
@@ -94,7 +94,7 @@ const TEMPLATE_PRESETS: TemplateConfig[] = [
     themes: [
       { id: "dark", name: "Deep charcoal", colors: { primary: "#ffffff", background: "#131313", accent: "#c4c0ff" } },
       { id: "light", name: "Frosted paper", colors: { primary: "#131313", background: "#f5f5f5", accent: "#605ca2" } },
-      { id: "frosted", name: "Ice blue", colors: { primary: "#ffffff", background: "#0a1128", accent: "#8fe3ff" } },
+      { id: "frosted", name: "Ice blue", colors: { primary: "#ffffff", background: "#0a1128", accent: "#c4c0ff" } },
     ],
   },
   {
@@ -303,7 +303,7 @@ export default function WebsiteSettingsPage() {
           setKycStatus(status);
           if (status.toUpperCase() !== "APPROVED") setCodEnabled(true);
         }
-      } catch {}
+      } catch { }
     } catch (e) {
       showToast("Using local storefront configs.", "info");
       setStoreName(activeAccount?.full_name || activeAccount?.username || "");
@@ -880,7 +880,7 @@ export default function WebsiteSettingsPage() {
                           </div>
                           <div className="flex-1 space-y-2.5">
                             <div className="space-y-0.5">
-                              <span className={cn("text-[7px] font-bold uppercase tracking-wider inline-block", previewStyles.badgeClass)}>New arrival</span>
+                              <span className={cn("text-[7px] font-bold tracking-wider inline-block", previewStyles.badgeClass)}>New arrival</span>
                               <h2 className={cn("text-[10px] font-bold leading-tight mt-1", previewStyles.textColorClass)}>Summer Silk Wrap</h2>
                               <p className={cn("text-[10px] font-bold", previewStyles.priceClass)}>₹4,200</p>
                             </div>
@@ -915,7 +915,7 @@ export default function WebsiteSettingsPage() {
 
                         {showRelatedProducts && (
                           <div className={cn("pt-2 border-t space-y-1.5", previewStyles.dividerClass)}>
-                            <h4 className={cn("text-[8px] font-bold uppercase tracking-wider", previewStyles.textColorClass)}>You might also like</h4>
+                            <h4 className={cn("text-[8px] font-bold tracking-wider", previewStyles.textColorClass)}>You might also like</h4>
                             <div className="grid grid-cols-3 gap-1.5">
                               {[1, 2, 3].map(i => (
                                 <div key={i} className={cn("overflow-hidden", previewStyles.cardClass)}>

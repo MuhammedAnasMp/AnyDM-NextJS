@@ -164,10 +164,10 @@ export default function ReferPage() {
             <span>Referral program active</span>
           </div>
           <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-[#e5e2e1] leading-tight">
-            Invite friends, earn points, and get <span className="text-[#8fe3ff]">premium for free</span>.
+            Invite friends, earn points, and get <span className="text-[#c4c0ff]">premium for free</span>.
           </h1>
           <p className="text-sm text-[#c4c7c8]/70 leading-relaxed">
-            Share your custom referral link with fellow creators &amp; audience. Viewers get <span className="text-white font-medium">15 Days Extended Trial</span> when signing up with your link. You earn <span className="text-[#8fe3ff] font-medium">20 points</span> on every referred user's first paid subscription (up to 5 months redemption cap).
+            Share your custom referral link with fellow creators &amp; audience. Viewers get <span className="text-white font-medium">15 Days Extended Trial</span> when signing up with your link. You earn <span className="text-[#c4c0ff] font-medium">20 points</span> on every referred user's first paid subscription (up to 5 months redemption cap).
           </p>
         </div>
 
@@ -176,14 +176,14 @@ export default function ReferPage() {
           <span className="text-[11px] font-semibold text-[#c4c7c8]/60 tracking-wider uppercase">Your points balance</span>
           <div className="flex items-baseline gap-1">
             <span className="text-5xl font-bold text-white tracking-tight">{stats?.points || 0}</span>
-            <span className="text-xs text-[#c4c0ff] font-semibold uppercase tracking-wider">pts</span>
+            <span className="text-xs text-[#c4c0ff] font-semibold tracking-wider">pts</span>
           </div>
 
           {stats?.points >= stats?.points_needed_for_premium && appUser?.plan !== "pro" ? (
             <button
               onClick={handleRedeemPoints}
               disabled={redeemLoading}
-              className="w-full bg-[#8fe3ff] hover:bg-[#8fe3ff]/90 text-[#131313] py-2.5 rounded-md text-xs font-semibold transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-[#8fe3ff]/10 active:scale-[0.98]"
+              className="w-full bg-[#c4c0ff] hover:bg-[#c4c0ff]/90 text-[#131313] py-2.5 rounded-md text-xs font-semibold transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-[#c4c0ff]/10 active:scale-[0.98]"
             >
               {redeemLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={1.75} /> : <Star className="w-3.5 h-3.5 fill-current" strokeWidth={1.75} />}
               <span>Redeem 1 month premium</span>
@@ -232,7 +232,7 @@ export default function ReferPage() {
                     placeholder="e.g. YT200 or CREATOR30"
                     maxLength={20}
                     autoFocus
-                    className="w-full bg-[#0e0e0e] border border-[#8fe3ff]/50 rounded-md py-2 pl-9 pr-16 text-xs font-mono text-white tracking-wider outline-none uppercase"
+                    className="w-full bg-[#0e0e0e] border border-[#c4c0ff]/50 rounded-md py-2 pl-9 pr-16 text-xs font-mono text-white tracking-wider outline-none uppercase"
                   />
                   <div className="absolute right-1.5 flex items-center gap-1">
                     <button
@@ -281,11 +281,10 @@ export default function ReferPage() {
               type="button"
               onClick={handleCopyLink}
               disabled={isEditingCode}
-              className={`font-semibold text-xs px-5 py-2 rounded-md transition-colors flex items-center justify-center gap-1.5 shrink-0 ${
-                isEditingCode
+              className={`font-semibold text-xs px-5 py-2 rounded-md transition-colors flex items-center justify-center gap-1.5 shrink-0 ${isEditingCode
                   ? "bg-white/10 text-zinc-500 border border-white/5 cursor-not-allowed opacity-50"
-                  : "bg-white hover:bg-[#e2e2e2] text-black cursor-pointer"
-              }`}
+                  : "bg-white hover:bg-[#eaeaea] text-black cursor-pointer"
+                }`}
             >
               {copied ? (
                 <Check className="w-4 h-4 text-emerald-600" strokeWidth={1.75} />
@@ -300,7 +299,7 @@ export default function ReferPage() {
         {/* Referred by card */}
         <div className="bg-[#20201f] border border-[#444748] rounded-md p-4">
           <h3 className="text-sm font-semibold text-[#e5e2e1] mb-3 flex items-center gap-2">
-            <Gift className="w-4 h-4 text-[#8fe3ff]" strokeWidth={1.75} />
+            <Gift className="w-4 h-4 text-[#c4c0ff]" strokeWidth={1.75} />
             <span>Referred by</span>
           </h3>
 
@@ -323,7 +322,7 @@ export default function ReferPage() {
                   value={referralCodeInput}
                   onChange={(e) => setReferralCodeInput(e.target.value)}
                   placeholder="Enter REF-XXXXXX"
-                  className="flex-1 bg-[#1c1b1b] border border-[#444748] rounded py-2 px-3 text-xs text-[#e5e2e1] uppercase focus:outline-none focus:border-[#8e9192]"
+                  className="flex-1 bg-[#1c1b1b] border border-[#444748] rounded py-2 px-3 text-xs text-[#e5e2e1] focus:outline-none focus:border-[#8e9192]"
                 />
 
                 <button
@@ -345,7 +344,7 @@ export default function ReferPage() {
         <div className="lg:col-span-2 bg-[#1c1b1b] p-5 rounded-lg border border-[#2a2a2a] flex flex-col gap-5">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-[#e5e2e1] flex items-center gap-2">
-              <Users className="w-4 h-4 text-[#8fe3ff]" strokeWidth={1.75} />
+              <Users className="w-4 h-4 text-[#c4c0ff]" strokeWidth={1.75} />
               <span>People referred by you</span>
             </h3>
             <span className="bg-white/5 border border-white/10 text-[#c4c7c8] text-xs font-medium px-2.5 py-0.5 rounded-full">
@@ -358,7 +357,7 @@ export default function ReferPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="border-b border-[#2a2a2a] text-[#c4c7c8]/50 uppercase tracking-wider text-[11px] font-semibold">
+                    <tr className="border-b border-[#2a2a2a] text-[#c4c7c8]/50 tracking-wider text-[11px] font-semibold">
                       <th className="pb-2.5 font-medium">User</th>
                       <th className="pb-2.5 font-medium">Joined date</th>
                       <th className="pb-2.5 font-medium text-right">Plan status</th>
@@ -426,11 +425,10 @@ export default function ReferPage() {
                           key={pageNum}
                           type="button"
                           onClick={() => setCurrentPage(pageNum)}
-                          className={`w-7 h-7 rounded text-xs font-semibold transition-colors cursor-pointer ${
-                            currentPage === pageNum
+                          className={`w-7 h-7 rounded text-xs font-semibold transition-colors cursor-pointer ${currentPage === pageNum
                               ? "bg-white text-black font-bold shadow-sm"
                               : "bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-white"
-                          }`}
+                            }`}
                         >
                           {pageNum}
                         </button>

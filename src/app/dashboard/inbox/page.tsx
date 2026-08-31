@@ -1205,7 +1205,7 @@ export default function InboxPage() {
                 {businessInfo?.username || activeAccount?.username || "Inbox"}
               </h2>
               {enableAi && (
-                <span className={`text-[8px] font-bold uppercase tracking-widest mt-0.5 block ${globalAIOn ? "text-[#b6b2ff]" : "text-white/30"}`}>
+                <span className={`text-[8px] font-bold tracking-widest mt-0.5 block ${globalAIOn ? "text-[#b6b2ff]" : "text-white/30"}`}>
                   AI {globalAIOn ? "ON" : "OFF"}
                 </span>
               )}
@@ -1250,7 +1250,7 @@ export default function InboxPage() {
           {loading ? (
             <div className="flex flex-col items-center justify-center gap-3 py-20 text-white/25">
               <div className="w-5 h-5 rounded-full border-2 border-white/20 border-t-white/60 animate-spin" />
-              <span className="text-[10px] font-semibold uppercase tracking-widest">Loading chats</span>
+              <span className="text-[10px] font-semibold tracking-widest">Loading chats</span>
             </div>
           ) : filteredConversations.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-2 py-20 text-white/20">
@@ -1383,14 +1383,14 @@ export default function InboxPage() {
               {loadingMore && (
                 <div className="flex items-center justify-center gap-2 py-2 text-white/25">
                   <div className="w-3 h-3 rounded-full border border-white/20 border-t-white animate-spin" />
-                  <span className="text-[10px] uppercase tracking-widest font-semibold">Loading history</span>
+                  <span className="text-[10px] tracking-widest font-semibold">Loading history</span>
                 </div>
               )}
 
               {loadingMessages ? (
                 <div className="flex flex-col items-center justify-center gap-3 h-full text-white/25">
                   <div className="w-6 h-6 rounded-full border-2 border-white/20 border-t-white/60 animate-spin" />
-                  <span className="text-[10px] uppercase tracking-widest font-semibold">Loading messages</span>
+                  <span className="text-[10px] tracking-widest font-semibold">Loading messages</span>
                 </div>
               ) : messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center gap-2 h-full text-white/20">
@@ -1417,7 +1417,7 @@ export default function InboxPage() {
                       {msg.isAi && (
                         <div className="flex items-center gap-1 text-[#b6b2ff] mb-0.5">
                           <span className="material-symbols-outlined text-[11px]" style={{ fontVariationSettings: "'FILL' 1" }}>smart_toy</span>
-                          <span className="text-[8px] font-bold uppercase tracking-widest">AnyDM AI</span>
+                          <span className="text-[8px] font-bold tracking-widest">AnyDM AI</span>
                         </div>
                       )}
                       {(() => {
@@ -1653,11 +1653,11 @@ export default function InboxPage() {
                       {msg.shares?.data?.map((sh: any, sIdx: number) => sh.link && (
                         <div key={sIdx} className="flex items-center gap-3 bg-white/[0.03] border border-white/10 rounded-2xl px-3 py-2.5 mt-1 max-w-[260px] w-full">
                           <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
-                            <span className="material-symbols-outlined text-[#8fe3ff] text-base">play_circle</span>
+                            <span className="material-symbols-outlined text-[#c4c0ff] text-base">play_circle</span>
                           </div>
                           <div className="min-w-0 flex-1">
                             <p className="text-xs font-semibold text-white truncate">Shared a Reel / Post</p>
-                            <a href={sh.link} target="_blank" rel="noopener noreferrer" className="text-[10px] text-[#8fe3ff] hover:underline truncate block">View on Instagram</a>
+                            <a href={sh.link} target="_blank" rel="noopener noreferrer" className="text-[10px] text-[#c4c0ff] hover:underline truncate block">View on Instagram</a>
                           </div>
                         </div>
                       ))}
@@ -1665,7 +1665,7 @@ export default function InboxPage() {
                       {/* Story */}
                       {msg.story && (
                         <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-3 mt-1 max-w-[180px]">
-                          <div className="flex items-center gap-1.5 text-white/30 text-[9px] uppercase font-bold tracking-widest mb-2">
+                          <div className="flex items-center gap-1.5 text-white/30 text-[9px] font-bold tracking-widest mb-2">
                             <span className="material-symbols-outlined text-xs">history_toggle_off</span>
                             <span>Story Mention</span>
                           </div>
@@ -1679,7 +1679,7 @@ export default function InboxPage() {
                           <div className="w-2 h-2 rounded-full border border-white/20 border-t-white/60 animate-spin shrink-0" />
                         )}
                         {msg.status === "error" && (
-                          <span className="text-[8px] text-red-400 font-bold uppercase tracking-wider">Failed</span>
+                          <span className="text-[8px] text-red-400 font-bold tracking-wider">Failed</span>
                         )}
                       </div>
                     </div>
@@ -2127,7 +2127,7 @@ export default function InboxPage() {
                             btns.push({ type: 'web_url', title: 'New Button', url: 'https://' });
                             setButtonTemplateButtons(btns);
                           }}
-                          className="py-2.5 text-center text-[10px] text-[#0095f6] hover:text-[#0095f6]/80 font-bold uppercase transition-all bg-white/[0.01] flex items-center justify-center gap-1"
+                          className="py-2.5 text-center text-[10px] text-[#0095f6] hover:text-[#0095f6]/80 font-bold transition-all bg-white/[0.01] flex items-center justify-center gap-1"
                         >
                           <Plus className="w-3 h-3 text-[#0095f6]" />
                           Add Button
@@ -2273,7 +2273,7 @@ export default function InboxPage() {
                     <span className="material-symbols-outlined text-red-400 text-[16px]">warning</span>
                     <span className="text-[10px] font-medium">24h messaging window closed</span>
                   </div>
-                  <a href={`https://ig.me/m/${selectedConversation.name}`} target="_blank" rel="noopener noreferrer" className="shrink-0 px-2.5 py-0.5 rounded-md bg-[#e1306c] hover:bg-[#c13584] text-white text-[9px] font-bold tracking-wide uppercase transition-all flex items-center gap-1">
+                  <a href={`https://ig.me/m/${selectedConversation.name}`} target="_blank" rel="noopener noreferrer" className="shrink-0 px-2.5 py-0.5 rounded-md bg-[#e1306c] hover:bg-[#c13584] text-white text-[9px] font-bold tracking-wide transition-all flex items-center gap-1">
                     <span className="material-symbols-outlined text-[11px]">open_in_new</span>
                     Instagram
                   </a>
@@ -2384,7 +2384,7 @@ export default function InboxPage() {
 
               {/* Conversation Info */}
               <div className="px-5 py-4 border-b border-white/[0.06] space-y-2.5">
-                <p className="text-[9px] font-bold text-white/25 uppercase tracking-widest mb-3">Conversation Info</p>
+                <p className="text-[9px] font-bold text-white/25 tracking-widest mb-3">Conversation Info</p>
                 {[
                   ["Last Active", selectedConversation.time],
                   ["24h Window", isWithin24hWindow ? "Open" : "Closed"],
@@ -2399,11 +2399,11 @@ export default function InboxPage() {
 
               {/* Enquiries */}
               <div className="flex-1 px-5 py-4">
-                <p className="text-[9px] font-bold text-white/25 uppercase tracking-widest mb-3">Interested Products</p>
+                <p className="text-[9px] font-bold text-white/25 tracking-widest mb-3">Interested Products</p>
                 {loadingEnquiries ? (
                   <div className="flex flex-col items-center justify-center gap-2 py-8 text-white/20">
                     <div className="w-4 h-4 rounded-full border border-white/20 border-t-white animate-spin" />
-                    <span className="text-[9px] uppercase tracking-widest">Loading</span>
+                    <span className="text-[9px] tracking-widest">Loading</span>
                   </div>
                 ) : enquiries.length === 0 ? (
                   <div className="flex flex-col items-center justify-center gap-2 py-8 border border-dashed border-white/[0.06] rounded-xl text-white/20">
@@ -2433,7 +2433,7 @@ export default function InboxPage() {
                               {ep.price && <p className="text-[10px] font-bold text-[#b6b2ff] mt-0.5">{ep.price} {ep.currency || '₹'}</p>}
                               <div className="flex gap-1 mt-1">
                                 <span className={cn("px-1.5 py-0.5 rounded text-[8px] font-bold uppercase", enquiry.status === "OPEN" ? "bg-emerald-500/10 text-emerald-400" : "bg-white/5 text-white/30")}>{enquiry.status}</span>
-                                {ep.confidence_score != null && <span className="px-1.5 py-0.5 rounded bg-[#8fe3ff]/10 text-[#8fe3ff] text-[8px] font-bold">{Math.round(ep.confidence_score * 100)}%</span>}
+                                {ep.confidence_score != null && <span className="px-1.5 py-0.5 rounded bg-[#c4c0ff]/10 text-[#c4c0ff] text-[8px] font-bold">{Math.round(ep.confidence_score * 100)}%</span>}
                               </div>
                             </div>
                             {isSel && <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-[#b6b2ff] text-black text-[8px] font-bold flex items-center justify-center">{selectedProductsForTemplates.findIndex(p => p.id === ep.product_id) + 1}</span>}
@@ -2451,7 +2451,7 @@ export default function InboxPage() {
               </div>
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center text-white/15 text-[11px] font-semibold uppercase tracking-widest text-center px-5">
+            <div className="flex-1 flex items-center justify-center text-white/15 text-[11px] font-semibold tracking-widest text-center px-5">
               Select a conversation
             </div>
           )}
@@ -2550,7 +2550,7 @@ export default function InboxPage() {
                       {selectedProductsForTemplates.length > 0 && (
                         <button
                           onClick={() => setSelectedProductsForTemplates([])}
-                          className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white text-[11px] font-bold tracking-wide transition-all uppercase cursor-pointer"
+                          className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white text-[11px] font-bold tracking-wide transition-all cursor-pointer"
                         >
                           Clear Selection
                         </button>
@@ -2562,7 +2562,7 @@ export default function InboxPage() {
                             setShowGenericTemplateForm(true);
                           }
                         }}
-                        className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#8e8aff] to-[#706bff] hover:from-[#7e7aff] hover:to-[#605bff] text-white text-[11px] font-black tracking-wide transition-all uppercase cursor-pointer shadow-lg active:scale-95"
+                        className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#8e8aff] to-[#706bff] hover:from-[#7e7aff] hover:to-[#605bff] text-white text-[11px] font-black tracking-wide transition-all cursor-pointer shadow-lg active:scale-95"
                       >
                         Done
                       </button>
@@ -2670,7 +2670,7 @@ export default function InboxPage() {
                   {selectedProductsForTemplates.length > 0 && (
                     <button
                       onClick={() => setSelectedProductsForTemplates([])}
-                      className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white text-[11px] font-bold tracking-wide transition-all uppercase cursor-pointer"
+                      className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white text-[11px] font-bold tracking-wide transition-all cursor-pointer"
                     >
                       Clear Selection
                     </button>
@@ -2682,7 +2682,7 @@ export default function InboxPage() {
                         setShowGenericTemplateForm(true);
                       }
                     }}
-                    className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#8e8aff] to-[#706bff] hover:from-[#7e7aff] hover:to-[#605bff] text-white text-[11px] font-black tracking-wide transition-all uppercase cursor-pointer shadow-lg active:scale-95"
+                    className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#8e8aff] to-[#706bff] hover:from-[#7e7aff] hover:to-[#605bff] text-white text-[11px] font-black tracking-wide transition-all cursor-pointer shadow-lg active:scale-95"
                   >
                     Done
                   </button>

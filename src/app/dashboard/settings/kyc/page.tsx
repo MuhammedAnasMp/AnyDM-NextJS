@@ -310,7 +310,7 @@ export default function SellerKYCPage() {
                     <FileText className="w-3.5 h-3.5" />
                   </div>
                   <div>
-                    <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+                    <h3 className="text-xs font-bold text-white tracking-wider">
                       1. Legal Identity &amp; Tax Credentials
                     </h3>
                     <p className="text-[11px] text-zinc-400">Must match government-issued identity cards</p>
@@ -337,11 +337,10 @@ export default function SellerKYCPage() {
                       if (formErrors.full_name) setFormErrors((prev) => ({ ...prev, full_name: "" }));
                     }}
                     placeholder="e.g. Ramesh Kumar Sharma"
-                    className={`w-full bg-[#121212] border rounded-lg px-3.5 py-2.5 text-xs text-white placeholder-zinc-600 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                      formErrors.full_name
+                    className={`w-full bg-[#121212] border rounded-lg px-3.5 py-2.5 text-xs text-white placeholder-zinc-600 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed ${formErrors.full_name
                         ? "border-rose-500 focus:border-rose-400"
                         : "border-white/10 focus:border-white focus:ring-1 focus:ring-white/20"
-                    }`}
+                      }`}
                   />
                   {formErrors.full_name && (
                     <p className="text-[11px] text-rose-400 flex items-center gap-1 font-medium">
@@ -369,11 +368,10 @@ export default function SellerKYCPage() {
                         if (formErrors.pan_number) setFormErrors((prev) => ({ ...prev, pan_number: "" }));
                       }}
                       placeholder="ABCDE1234F"
-                      className={`w-full bg-[#121212] border rounded-lg px-3.5 py-2.5 text-xs text-white placeholder-zinc-600 outline-none uppercase tracking-wide transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                        formErrors.pan_number
+                      className={`w-full bg-[#121212] border rounded-lg px-3.5 py-2.5 text-xs text-white placeholder-zinc-600 outline-none tracking-wide transition-all disabled:opacity-50 disabled:cursor-not-allowed ${formErrors.pan_number
                           ? "border-rose-500 focus:border-rose-400"
                           : "border-white/10 focus:border-white focus:ring-1 focus:ring-white/20"
-                      }`}
+                        }`}
                     />
                     {formErrors.pan_number && (
                       <p className="text-[11px] text-rose-400 flex items-center gap-1 font-medium">
@@ -399,11 +397,10 @@ export default function SellerKYCPage() {
                         if (formErrors.aadhaar_number) setFormErrors((prev) => ({ ...prev, aadhaar_number: "" }));
                       }}
                       placeholder="123456789012"
-                      className={`w-full bg-[#121212] border rounded-lg px-3.5 py-2.5 text-xs text-white placeholder-zinc-600 outline-none tracking-wide transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                        formErrors.aadhaar_number
+                      className={`w-full bg-[#121212] border rounded-lg px-3.5 py-2.5 text-xs text-white placeholder-zinc-600 outline-none tracking-wide transition-all disabled:opacity-50 disabled:cursor-not-allowed ${formErrors.aadhaar_number
                           ? "border-rose-500 focus:border-rose-400"
                           : "border-white/10 focus:border-white focus:ring-1 focus:ring-white/20"
-                      }`}
+                        }`}
                     />
                     {formErrors.aadhaar_number && (
                       <p className="text-[11px] text-rose-400 flex items-center gap-1 font-medium">
@@ -424,7 +421,7 @@ export default function SellerKYCPage() {
                     <Landmark className="w-3.5 h-3.5" />
                   </div>
                   <div>
-                    <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+                    <h3 className="text-xs font-bold text-white tracking-wider">
                       2. Direct Settlement Bank Account
                     </h3>
                     <p className="text-[11px] text-zinc-400">All customer sales settlements are transferred here</p>
@@ -450,11 +447,10 @@ export default function SellerKYCPage() {
                         if (formErrors.bank_name) setFormErrors((prev) => ({ ...prev, bank_name: "" }));
                       }}
                       placeholder="e.g. HDFC Bank, SBI, ICICI"
-                      className={`w-full bg-[#121212] border rounded-lg px-3.5 py-2.5 text-xs text-white placeholder-zinc-600 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                        formErrors.bank_name
+                      className={`w-full bg-[#121212] border rounded-lg px-3.5 py-2.5 text-xs text-white placeholder-zinc-600 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed ${formErrors.bank_name
                           ? "border-rose-500 focus:border-rose-400"
                           : "border-white/10 focus:border-white focus:ring-1 focus:ring-white/20"
-                      }`}
+                        }`}
                     />
                     {formErrors.bank_name && (
                       <p className="text-[11px] text-rose-400 flex items-center gap-1 font-medium">
@@ -480,11 +476,10 @@ export default function SellerKYCPage() {
                         if (formErrors.bank_ifsc) setFormErrors((prev) => ({ ...prev, bank_ifsc: "" }));
                       }}
                       placeholder="HDFC0001234"
-                      className={`w-full bg-[#121212] border rounded-lg px-3.5 py-2.5 text-xs text-white placeholder-zinc-600 outline-none uppercase tracking-wide transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                        formErrors.bank_ifsc
+                      className={`w-full bg-[#121212] border rounded-lg px-3.5 py-2.5 text-xs text-white placeholder-zinc-600 outline-none tracking-wide transition-all disabled:opacity-50 disabled:cursor-not-allowed ${formErrors.bank_ifsc
                           ? "border-rose-500 focus:border-rose-400"
                           : "border-white/10 focus:border-white focus:ring-1 focus:ring-white/20"
-                      }`}
+                        }`}
                     />
                     {formErrors.bank_ifsc && (
                       <p className="text-[11px] text-rose-400 flex items-center gap-1 font-medium">
@@ -525,11 +520,10 @@ export default function SellerKYCPage() {
                             setFormErrors((prev) => ({ ...prev, bank_account_number: "" }));
                         }}
                         placeholder="Enter Account Number"
-                        className={`w-full bg-[#121212] border rounded-lg pl-3.5 pr-9 py-2.5 text-xs text-white placeholder-zinc-600 outline-none tracking-wide transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                          formErrors.bank_account_number
+                        className={`w-full bg-[#121212] border rounded-lg pl-3.5 pr-9 py-2.5 text-xs text-white placeholder-zinc-600 outline-none tracking-wide transition-all disabled:opacity-50 disabled:cursor-not-allowed ${formErrors.bank_account_number
                             ? "border-rose-500 focus:border-rose-400"
                             : "border-white/10 focus:border-white focus:ring-1 focus:ring-white/20"
-                        }`}
+                          }`}
                       />
                       <Lock className="w-3.5 h-3.5 text-zinc-500 absolute right-3 pointer-events-none" />
                     </div>
@@ -558,11 +552,10 @@ export default function SellerKYCPage() {
                           setFormErrors((prev) => ({ ...prev, confirm_account_number: "" }));
                       }}
                       placeholder="Re-enter Account Number"
-                      className={`w-full bg-[#121212] border rounded-lg px-3.5 py-2.5 text-xs text-white placeholder-zinc-600 outline-none tracking-wide transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                        formErrors.confirm_account_number
+                      className={`w-full bg-[#121212] border rounded-lg px-3.5 py-2.5 text-xs text-white placeholder-zinc-600 outline-none tracking-wide transition-all disabled:opacity-50 disabled:cursor-not-allowed ${formErrors.confirm_account_number
                           ? "border-rose-500 focus:border-rose-400"
                           : "border-white/10 focus:border-white focus:ring-1 focus:ring-white/20"
-                      }`}
+                        }`}
                     />
                     {formErrors.confirm_account_number && (
                       <p className="text-[11px] text-rose-400 flex items-center gap-1 font-medium">
@@ -610,7 +603,7 @@ export default function SellerKYCPage() {
           <div className="p-5 rounded-xl bg-[#181818] border border-white/10 space-y-3.5">
             <div className="flex items-center gap-2 text-white">
               <Zap className="w-4 h-4 text-amber-400" />
-              <h4 className="text-xs font-bold uppercase tracking-wider">Settlement Architecture</h4>
+              <h4 className="text-xs font-bold tracking-wider">Settlement Architecture</h4>
             </div>
             <div className="space-y-2.5 text-xs text-zinc-400">
               <div className="flex items-start justify-between gap-2 p-2.5 rounded-lg bg-white/[0.02] border border-white/5">
@@ -632,7 +625,7 @@ export default function SellerKYCPage() {
           <div className="p-5 rounded-xl bg-[#181818] border border-white/10 space-y-3.5">
             <div className="flex items-center gap-2 text-white">
               <Lock className="w-4 h-4 text-emerald-400" />
-              <h4 className="text-xs font-bold uppercase tracking-wider">Bank-Grade Encryption</h4>
+              <h4 className="text-xs font-bold tracking-wider">Bank-Grade Encryption</h4>
             </div>
             <ul className="text-xs space-y-2.5 text-zinc-400 leading-relaxed">
               <li className="flex items-start gap-2">
