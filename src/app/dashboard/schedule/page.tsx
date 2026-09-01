@@ -510,7 +510,7 @@ export default function InstagramSchedulerPage() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
             className={`fixed top-6 right-6 z-50 px-4 py-2.5 rounded-md border text-xs font-semibold shadow-2xl flex items-center gap-2.5 backdrop-blur-xl ${toast.type === "success"
-              ? "bg-[#10b981]/20 border-[#10b981]/40 text-[#34d399]"
+              ? "bg-[#1c1b1b] border-[#c4c0ff]/40 text-[#c4c0ff]"
               : "bg-rose-500/20 border-rose-500/40 text-rose-300"
               }`}
           >
@@ -524,15 +524,13 @@ export default function InstagramSchedulerPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#1c1b1b] p-5 rounded-lg border border-[#2a2a2a] shadow-xl relative overflow-hidden">
         <div className="space-y-1 relative z-10">
           <div className="flex flex-wrap items-center gap-2.5">
-            <div className="w-7 h-7 rounded-md bg-[#20201f] border border-[#2a2a2a] flex items-center justify-center text-[#c4c0ff]">
+            {/* <div className="w-7 h-7 rounded-md bg-[#20201f] border border-[#2a2a2a] flex items-center justify-center text-[#c4c0ff]">
               <InstagramIcon className="w-4 h-4" />
-            </div>
-            <h1 className="text-xl md:text-2xl font-semibold tracking-tight text-[#e5e2e1]">
-              Instagram Scheduler Studio
+            </div> */}
+            <h1 className="text-md md:text-xl font-semibold tracking-tight text-[#e5e2e1]">
+              Instagram Post Scheduler
             </h1>
-            <span className="px-2.5 py-0.5 rounded-md bg-[#20201f] border border-[#2a2a2a] text-[#c4c0ff] text-xs font-semibold">
-              {activeAccount?.username ? `@${activeAccount.username}` : "Connected"}
-            </span>
+
           </div>
           <p className="text-xs text-[#8e9192]">
             Schedule Reels, Stories, Carousels &amp; Photos directly to Instagram.
@@ -553,7 +551,7 @@ export default function InstagramSchedulerPage() {
               resetForm();
               setIsModalOpen(true);
             }}
-            className="px-5 py-2.5 bg-white hover:bg-zinc-200 text-zinc-950 text-xs font-bold rounded-md shadow-md flex items-center gap-1.5 active:scale-[0.98] transition-all cursor-pointer"
+            className="px-5 py-2.5 bg-white hover:bg-zinc-200 text-zinc-950 text-xs font-bold rounded shadow-md flex items-center gap-1.5 active:scale-[0.98] transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
             <span>Create New Post</span>
@@ -575,7 +573,7 @@ export default function InstagramSchedulerPage() {
         <div className="p-4 rounded-lg bg-[#1c1b1b] border border-[#2a2a2a] space-y-1 shadow-xl">
           <div className="flex items-center justify-between text-[#8e9192] text-xs font-semibold">
             <span>Published Live</span>
-            <CheckCircle2 className="w-4 h-4 text-[#34d399]" />
+            <CheckCircle2 className="w-4 h-4 text-[#c4c0ff]" />
           </div>
           <div className="text-2xl font-bold text-[#e5e2e1]">{publishedCount}</div>
           <p className="text-[11px] text-[#8e9192]">Live posts on feed</p>
@@ -762,7 +760,7 @@ export default function InstagramSchedulerPage() {
                       </span>
                     )}
                     {post.status === "PUBLISHED" && (
-                      <span className="px-2 py-0.5 rounded-md bg-[#10b981]/10 border border-[#10b981]/30 text-[#34d399] text-[10px] font-semibold flex items-center gap-1 backdrop-blur-md">
+                      <span className="px-2 py-0.5 rounded-md bg-[#c4c0ff]/10 border border-[#c4c0ff]/30 text-[#c4c0ff] text-[10px] font-semibold flex items-center gap-1 backdrop-blur-md">
                         <CheckCircle2 className="w-3 h-3" /> Published
                       </span>
                     )}
@@ -880,7 +878,7 @@ export default function InstagramSchedulerPage() {
                     </td>
                     <td className="py-2.5 px-4">
                       <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold ${post.status === "PUBLISHED"
-                        ? "bg-[#10b981]/10 text-[#34d399] border border-[#10b981]/30"
+                        ? "bg-[#c4c0ff]/10 text-[#c4c0ff] border border-[#c4c0ff]/30"
                         : post.status === "SCHEDULED"
                           ? "bg-amber-500/10 text-amber-400 border border-amber-500/30"
                           : "bg-rose-500/10 text-rose-400 border border-rose-500/30"
@@ -1016,13 +1014,9 @@ export default function InstagramSchedulerPage() {
               {/* Modal Header */}
               <div className="p-3.5 px-5 border-b border-white/10 flex items-center justify-between shrink-0 bg-[#1c1b1b]">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 p-[1px] flex items-center justify-center shadow-md">
-                    <div className="w-full h-full bg-black rounded-[3px] flex items-center justify-center text-white">
-                      <InstagramIcon className="w-3.5 h-3.5 text-white" />
-                    </div>
-                  </div>
+
                   <div>
-                    <h3 className="text-sm font-bold text-white tracking-tight">Instagram Creator Studio</h3>
+                    <h3 className="text-sm font-bold text-white tracking-tight">Schedular Studio</h3>
                     <p className="text-[10px] text-[#8e9192]">Create, schedule, and publish posts, reels, stories &amp; carousels</p>
                   </div>
                 </div>
@@ -1303,7 +1297,7 @@ export default function InstagramSchedulerPage() {
                             </div>
                             <div className="truncate">
                               <p className="text-xs font-bold text-white truncate">{mediaUrl}</p>
-                              <p className="text-[10px] text-[#34d399] font-medium flex items-center gap-1 mt-0.5">
+                              <p className="text-[10px] text-[#c4c0ff] font-medium flex items-center gap-1 mt-0.5">
                                 <CheckCircle2 className="w-3 h-3" /> Ready for Instagram
                               </p>
                             </div>
@@ -1362,7 +1356,7 @@ export default function InstagramSchedulerPage() {
                         <div className="p-2 rounded bg-[#1c1b1b] border border-white/10 flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2">
                             <img src={coverUrl} alt="Cover" className="w-8 h-10 object-cover rounded border border-white/10" />
-                            <span className="text-xs text-[#34d399] font-medium">Custom Cover Attached</span>
+                            <span className="text-xs text-[#c4c0ff] font-medium">Custom Cover Attached</span>
                           </div>
                           <button
                             type="button"
@@ -1529,7 +1523,7 @@ export default function InstagramSchedulerPage() {
                           {/* Battery Capsule */}
                           <div className="flex items-center">
                             <div className="w-[20px] h-[10px] border border-white/80 rounded-[3px] p-[1px] flex items-center">
-                              <div className="w-[14px] h-full bg-[#34d399] rounded-[1px]" />
+                              <div className="w-[14px] h-full bg-[#c4c0ff] rounded-[1px]" />
                             </div>
                             <div className="w-[1px] h-[4px] bg-white/80 rounded-r-[1px]" />
                           </div>
@@ -1572,7 +1566,7 @@ export default function InstagramSchedulerPage() {
 
                           {/* Top Reels Header Bar */}
                           <div className="relative z-30 pt-12 px-4 flex items-center justify-between text-white drop-shadow-md pointer-events-none">
-                            <div className="flex items-center gap-1.5 font-black text-[20px] tracking-tight">
+                            <div className="flex items-center gap-1.5 font-black text-[20px] ">
                               <span>Reels</span>
                               <svg className="w-4 h-4 fill-current opacity-80 mt-0.5" viewBox="0 0 24 24">
                                 <path d="M7 10l5 5 5-5z" />
@@ -1590,7 +1584,7 @@ export default function InstagramSchedulerPage() {
                                 className="w-7 h-7 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center text-white border border-white/15 active:scale-90 transition-transform cursor-pointer"
                                 title={isMuted ? "Unmute" : "Mute"}
                               >
-                                {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5 text-[#34d399]" />}
+                                {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5 text-[#c4c0ff]" />}
                               </button>
 
                               {/* Camera Glyph */}

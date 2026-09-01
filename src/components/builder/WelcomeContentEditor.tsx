@@ -91,7 +91,7 @@ function PhonePreview({
     return (
         <div className="w-[240px] h-[480px] sm:w-[280px] sm:h-[560px] rounded-[32px] sm:rounded-[44px] border-[6px] sm:border-[8px] border-[#2a2a2a] bg-black shadow-2xl relative flex flex-col overflow-hidden select-none outline outline-1 sm:outline-2 outline-[#393939] shrink-0 my-auto animate-fadeIn">
             {/* Notch / Dynamic Island */}
-            <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-16 sm:w-20 h-4 sm:h-5 bg-black rounded-full z-50 pointer-events-none" />
+            <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-16 sm:w-20 h-4 sm:h-5 bg-black rounded z-50 pointer-events-none" />
 
             {/* Inner Screen Content Wrapper */}
             <div
@@ -147,26 +147,26 @@ function PhonePreview({
                             {/* Chat Row (The single chat) */}
                             <div
                                 onClick={() => setAnimationStep('chat')}
-                                className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/5 active:bg-white/10 transition-colors cursor-pointer relative overflow-hidden group"
+                                className="w-full flex items-center gap-3 p-2.5 rounded hover:bg-white/5 active:bg-white/10 transition-colors cursor-pointer relative overflow-hidden group"
                             >
                                 {/* Pulsing pointer indicator */}
-                                <div className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 bg-sky-500 rounded-full opacity-60 animate-ping pointer-events-none" />
-                                <div className="absolute right-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-sky-500 rounded-full border-2 border-black pointer-events-none shadow" />
-                                <div className="w-10 h-10 rounded-full border border-white/10 overflow-hidden shrink-0 relative">
+                                <div className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 bg-red-500 rounded opacity-60 animate-ping pointer-events-none" />
+                                <div className="absolute right-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-red-500 rounded border-2 border-black pointer-events-none shadow" />
+                                <div className="w-10 h-10 rounded border border-white/10 overflow-hidden shrink-0 relative">
                                     <img src={profilePic} className="w-full h-full object-cover" alt="" />
                                     {/* Green active dot */}
-                                    <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-black" />
+                                    <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded border-2 border-black" />
                                 </div>
                                 <div className="flex-1 min-w-0 text-left">
                                     <div className="flex items-center justify-between">
                                         <span className="text-[11px] font-bold text-white truncate block">
                                             {username}
                                         </span>
-                                        <span className="text-[8px] text-zinc-500">now</span>
+                                        <span className="text-[8px] text-red-500"></span>
                                     </div>
-                                    <p className="text-[9px] text-[#3797F0] font-bold truncate mt-0.5">
+                                    {/* <p className="text-[9px] text-[#3797F0] font-bold truncate mt-0.5">
                                         Suggested: Tap to start chat
-                                    </p>
+                                    </p> */}
                                 </div>
                             </div>
                         </div>
@@ -187,7 +187,7 @@ function PhonePreview({
                                 }
                             }}
                         />
-                        <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-zinc-800 border border-white/10 overflow-hidden shrink-0">
+                        <div className="w-6 h-6 sm:w-8 sm:h-8 rounded bg-zinc-800 border border-white/10 overflow-hidden shrink-0">
                             <img
                                 src={profilePic}
                                 className="w-full h-full object-cover"
@@ -234,8 +234,8 @@ function PhonePreview({
                                     opacity: animationStep === 'chat' ? 1 : 0
                                 }}
                             >
-                                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full p-[1px] bg-gradient-to-tr from-[#353535] to-[#2a2a2a] flex items-center justify-center">
-                                    <img src={profilePic} className="w-full h-full rounded-full object-cover border-2 border-black" alt="" />
+                                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded p-[1px] bg-gradient-to-tr from-[#353535] to-[#2a2a2a] flex items-center justify-center">
+                                    <img src={profilePic} className="w-full h-full rounded object-cover border-2 border-black" alt="" />
                                 </div>
                                 <div className="flex items-center gap-0.5 mt-1.5">
                                     <h2 className="text-[10px] font-bold text-white tracking-tight">{username}</h2>
@@ -267,7 +267,7 @@ function PhonePreview({
                             </div>
 
                             {/* Suggested Questions with stagger fade-in */}
-                            <div className="w-full flex flex-col items-center gap-1.5">
+                            <div className="w-full flex flex-col items-center gap-1.5 border border-red-700 p-1 animate-pulse">
                                 {itemsList.filter((ib: any) => ib.question && ib.question.trim() !== '').map((item: any, idx: number) => (
                                     <div
                                         key={idx}
@@ -288,7 +288,7 @@ function PhonePreview({
                         <div className="flex-1 flex flex-col justify-end bg-black/75 relative overflow-hidden">
                             {/* Back threads blur mock */}
                             <div className="absolute inset-x-0 top-0 bottom-36 p-4 flex flex-col items-center text-center opacity-5 select-none pointer-events-none filter blur-[1px]">
-                                <div className="w-8 h-8 rounded-full bg-zinc-800 mb-2" />
+                                <div className="w-8 h-8 rounded bg-zinc-800 mb-2" />
                                 <span className="text-[9px] font-bold text-white">{username}</span>
                                 <span className="text-[8px] text-zinc-500 mt-0.5">{followersCount} followers</span>
                             </div>
@@ -298,7 +298,7 @@ function PhonePreview({
                                 <div className="flex-1" />
                                 {/* Customer Message */}
                                 <div className="self-start flex items-end gap-2 max-w-[85%]">
-                                    <div className="w-5 h-5 rounded-full bg-zinc-800 shrink-0 overflow-hidden mb-0.5 border border-white/5">
+                                    <div className="w-5 h-5 rounded bg-zinc-800 shrink-0 overflow-hidden mb-0.5 border border-white/5">
                                         <img
                                             src={profile_urls}
                                             className="w-full h-full object-cover"
@@ -322,11 +322,11 @@ function PhonePreview({
                                     animationStep === 'chat' ? "flex" : "hidden"
                                 )}
                             >
-                                <div className="w-6 h-0.5 bg-zinc-700 rounded-full mb-1.5 shrink-0" />
+                                <div className="w-6 h-0.5 bg-zinc-700 rounded mb-1.5 shrink-0" />
                                 <h3 className="text-[9px] font-bold text-white leading-none">More Options</h3>
                                 <p className="text-[7px] text-zinc-500 font-medium mt-0.5">Custom shortcuts suggested by {username}</p>
 
-                                <div className="w-full flex flex-col items-center gap-1.5 my-3">
+                                <div className="w-full flex flex-col items-center gap-1.5 my-3 animate-pulse border border-red-600 p-1">
                                     {itemsList.filter((item: any) => item.title && item.title.trim() !== '').map((item: any, idx: number) => (
                                         <div
                                             key={idx}
@@ -352,14 +352,14 @@ function PhonePreview({
                     )}>
                         <div className="flex items-center gap-2.5">
                             {/* Camera Button (Outside) */}
-                            <div className="w-7 h-7 rounded-full bg-[#3797F0] flex items-center justify-center shrink-0 cursor-pointer hover:opacity-90 transition-opacity">
+                            <div className="w-7 h-7 rounded bg-[#3797F0] flex items-center justify-center shrink-0 cursor-pointer hover:opacity-90 transition-opacity">
                                 <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                                     <circle cx="12" cy="13" r="4" />
                                 </svg>
                             </div>
                             {/* Message input mock pill */}
-                            <div className="flex-1 bg-[#1c1b1b] rounded-full px-3.5 py-1.5 flex items-center justify-between border border-white/5">
+                            <div className="flex-1 bg-[#1c1b1b] rounded px-3.5 py-1.5 flex items-center justify-between border border-white/5">
                                 <span className="text-[11px] text-zinc-500 font-medium">
                                     {composerInputDisabledVal && type === 'persistent_menu' ? "Composer disabled" : "Message..."}
                                 </span>
@@ -1057,7 +1057,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
     // --- Modal Configuration Panel Layout ---
     const renderModalContent = () => {
         return (
-            <div className="w-full max-w-4xl h-[92vh] sm:h-[88vh] max-h-[880px] bg-[#131313]/90 backdrop-blur-3xl border border-white/10 rounded-xl overflow-hidden flex flex-col shadow-[0_32px_64px_rgba(0,0,0,0.6)] animate-in fade-in zoom-in duration-300 text-white relative z-10 font-inter">
+            <div className="w-full max-w-4xl h-[92vh] sm:h-[88vh] max-h-[880px] bg-[#131313]/90 backdrop-blur-3xl border border-white/10 rounded overflow-hidden flex flex-col shadow-[0_32px_64px_rgba(0,0,0,0.6)] animate-in fade-in zoom-in duration-300 text-white relative z-10 font-inter">
                 {/* Modal Subheader for validation errors */}
                 {validationError && (
                     <div className="px-4 sm:px-6 py-2.5 bg-red-500/10 border-b border-red-500/20 flex items-center gap-2 text-red-400 text-xs font-semibold animate-in slide-in-from-top-1 duration-150 shrink-0">
@@ -1067,7 +1067,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                 )}
                 <div className="px-4 sm:px-6 py-3.5 sm:py-5 border-b border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0 bg-transparent">
                     <div className="flex items-center gap-2.5 sm:gap-3.5">
-                        <div className="p-1.5 sm:p-2.5 bg-white/5 rounded-xl border border-white/10">
+                        <div className="p-1.5 sm:p-2.5 bg-white/5 rounded border border-white/10">
                             {modalTab !== 'icebreakers' ? <Menu className="w-5 h-5 text-white" /> : <Pill className="w-5 h-5 text-white" />}
                         </div>
                         <div>
@@ -1100,7 +1100,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                             <Check className="w-4 h-4 stroke-[3]" />
                             {isSaving ? (
                                 <>
-                                    <div className="w-3 h-3 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                                    <div className="w-3 h-3 border-2 border-black border-t-transparent rounded animate-spin" />
                                     Saving...
                                 </>
                             ) : (
@@ -1209,7 +1209,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                                             value={tempWelcomePrompt}
                                             onChange={(e) => setTempWelcomePrompt(e.target.value)}
                                             placeholder="e.g., Tap to send a question suggested by Mailspot"
-                                            className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-white/50 font-semibold"
+                                            className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded px-3.5 py-2 text-xs text-white focus:outline-none focus:border-white/50 font-semibold"
                                         />
                                     </div>
 
@@ -1237,12 +1237,12 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                                                         onChange={(e) => handleUpdateIcebreakerQuestion(idx, e.target.value)}
                                                         placeholder="Ask a question..."
                                                         maxLength={80}
-                                                        className="flex-1 bg-[#1c1b1b]/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-white/50 font-semibold"
+                                                        className="flex-1 bg-[#1c1b1b]/60 border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-white/50 font-semibold"
                                                     />
                                                     <button
                                                         type="button"
                                                         onClick={() => handleRemoveIcebreaker(idx)}
-                                                        className="p-2 rounded-xl text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0 cursor-pointer"
+                                                        className="p-2 rounded text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0 cursor-pointer"
                                                     >
                                                         <Trash2 className="w-3.5 h-3.5" />
                                                     </button>
@@ -1254,7 +1254,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                             ) : (
                                 /* TAB PANEL 2: Menu Options Configuration */
                                 <div className="space-y-5 animate-fadeIn">
-                                    <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-xl p-3.5">
+                                    <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded p-3.5">
                                         <div>
                                             <h4 className="text-xs font-semibold text-white">Disable Composer Input Box</h4>
                                             <p className="text-[9px] text-[#b6b2ff]/60 font-semibold tracking-wider font-sora mt-1">Force direct shortcuts, locking keyboard input.</p>
@@ -1263,12 +1263,12 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                                             type="button"
                                             onClick={() => setTempComposerInputDisabled(!tempComposerInputDisabled)}
                                             className={cn(
-                                                "w-9 h-5 rounded-full relative transition-all duration-200 shrink-0",
+                                                "w-9 h-5 rounded relative transition-all duration-200 shrink-0",
                                                 tempComposerInputDisabled ? "bg-[#b6b2ff]" : "bg-white/10"
                                             )}
                                         >
                                             <div className={cn(
-                                                "absolute top-[2px] w-3.5 h-3.5 rounded-full shadow transition-all duration-200",
+                                                "absolute top-[2px] w-3.5 h-3.5 rounded shadow transition-all duration-200",
                                                 tempComposerInputDisabled ? "left-[18px] bg-[#131313]" : "left-[2px] bg-white"
                                             )} />
                                         </button>
@@ -1291,7 +1291,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
 
                                         <div className="space-y-3">
                                             {tempPersistentMenuItems.map((item, idx) => (
-                                                <div key={idx} className="flex gap-3 bg-white/5 border border-white/10 p-3 sm:p-4 rounded-xl items-start relative animate-fadeIn">
+                                                <div key={idx} className="flex gap-3 bg-white/5 border border-white/10 p-3 sm:p-4 rounded items-start relative animate-fadeIn">
                                                     <span className="text-[10px] font-bold text-zinc-500 w-4 text-center mt-2.5">{idx + 1}</span>
 
                                                     <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1309,7 +1309,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                                                                             : "postback"
                                                                 }
                                                                 onChange={(e) => handleUpdateMenuItemType(idx, e.target.value)}
-                                                                className="w-full rounded-xl bg-[#131313] border border-white/10 px-2.5 py-2 text-xs text-white focus:outline-none focus:border-white/50 cursor-pointer"
+                                                                className="w-full rounded bg-[#131313] border border-white/10 px-2.5 py-2 text-xs text-white focus:outline-none focus:border-white/50 cursor-pointer"
                                                             >
                                                                 <option value="postback">Message Follow-up</option>
                                                                 <option value="web_url">Open Link</option>
@@ -1337,7 +1337,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                                                                 onChange={(e) => handleUpdateMenuItemTitle(idx, e.target.value)}
                                                                 placeholder="e.g., Shop Now"
                                                                 maxLength={20}
-                                                                className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-white/50 font-semibold"
+                                                                className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-white/50 font-semibold"
                                                             />
                                                         </div>
 
@@ -1351,7 +1351,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                                                                     value={item.url || ''}
                                                                     onChange={(e) => handleUpdateMenuItemUrl(idx, e.target.value)}
                                                                     placeholder="https://..."
-                                                                    className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-white/50 font-semibold"
+                                                                    className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-white/50 font-semibold"
                                                                 />
                                                             </div>
                                                         )}
@@ -1370,7 +1370,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                                                     <button
                                                         type="button"
                                                         onClick={() => handleRemoveMenuItem(idx)}
-                                                        className="p-2 rounded-xl text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0 cursor-pointer mt-5"
+                                                        className="p-2 rounded text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0 cursor-pointer mt-5"
                                                     >
                                                         <Trash2 className="w-3.5 h-3.5" />
                                                     </button>
@@ -1396,7 +1396,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                                                 <select
                                                     value={tempOrderTrackRetryLimit}
                                                     onChange={(e) => setTempOrderTrackRetryLimit(Number(e.target.value))}
-                                                    className="bg-[#131313] border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-white/50 font-semibold cursor-pointer"
+                                                    className="bg-[#131313] border border-white/10 rounded px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-white/50 font-semibold cursor-pointer"
                                                 >
                                                     <option value={1}>1 Attempt</option>
                                                     <option value={2}>2 Attempts</option>
@@ -1424,7 +1424,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                             >
                                 {isDeleting ? (
                                     <>
-                                        <div className="w-3 h-3 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
+                                        <div className="w-3 h-3 border-2 border-red-500 border-t-transparent rounded animate-spin" />
                                         Deleting...
                                     </>
                                 ) : (

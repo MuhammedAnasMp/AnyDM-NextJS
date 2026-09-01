@@ -733,7 +733,7 @@ export function Canvas() {
             animate={{ x: cardPosition.x * scale + pan.x, y: cardPosition.y * scale + pan.y, scale }}
             transition={{ duration: 0 }}
             style={{ transformOrigin: '0 0', zIndex: 10 }}
-            className="absolute max-w-sm w-[320px] p-6 rounded-[1.25rem] bg-[#1c1b1b]/90 border border-white/10 shadow-2xl text-center space-y-5 backdrop-blur-md pointer-events-auto cursor-grab active:cursor-grabbing select-none"
+            className="absolute max-w-sm w-[320px] p-6 rounded bg-[#1c1b1b]/90 border border-white/10 shadow-2xl text-center space-y-5 backdrop-blur-md pointer-events-auto cursor-grab active:cursor-grabbing select-none"
           >
             <div className="w-12 h-12 mx-auto rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white shrink-0">
               {openTab === 'icebreakers' ? (
@@ -761,7 +761,7 @@ export function Canvas() {
                 handleInitializeWelcomeExperience();
               }}
               disabled={isInitializing}
-              className="w-full py-2 px-4 bg-sky-500 hover:bg-sky-600 disabled:opacity-50 text-white rounded-xl text-xs font-bold tracking-tight transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-sky-500/20"
+              className="w-full py-2 px-4 bg-sky-500 hover:bg-sky-600 disabled:opacity-50 text-white rounded text-xs font-bold tracking-tight transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-sky-500/20"
             >
               {isInitializing ? (
                 <>

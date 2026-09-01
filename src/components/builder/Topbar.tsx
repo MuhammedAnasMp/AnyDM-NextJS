@@ -309,16 +309,16 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
 
   return (
     <div className={cn("w-full flex flex-col bg-[#131313] border-b border-white/5 z-10 shrink-0", isTopbarHidden && "hidden")}>
-      <div className="h-12 sm:h-16 px-3 sm:px-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="h-11 sm:h-12 px-2 sm:px-2 flex items-center justify-between">
+        <div className="flex items-center gap-2 sm:gap-2.5">
           <button
             onClick={() => {
               router.push('/dashboard/automation');
             }}
-            className="p-1.5 rounded-full hover:bg-white/5 text-white/60 hover:text-white transition-all cursor-pointer mr-1 flex items-center justify-center"
+            className="p-1 rounded hover:bg-white/5 text-white/60 hover:text-white transition-all cursor-pointer mr-0.5 flex items-center justify-center"
             title="Back"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-4 h-4" />
           </button>
           {(() => {
             const isSpecialFlowName = flow.name === "Welcome Message Flow" || flow.name === "Persistent Menu Flow";
@@ -337,7 +337,7 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
                     }
                   }}
                   autoFocus
-                  className="bg-[#1a1a1a] border border-white/20 rounded px-2.5 py-1 text-lg font-bold text-white focus:outline-none focus:border-white/50 font-inter"
+                  className="bg-[#1a1a1a] border border-white/20 rounded px-2 py-0.5 text-xs sm:text-sm font-semibold text-white focus:outline-none focus:border-white/50 font-sans"
                 />
               );
             }
@@ -347,44 +347,44 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
                   if (!isSpecialFlowName) setIsEditingTitle(true);
                 }}
                 className={cn(
-                  "flex items-center gap-2",
+                  "flex items-center gap-1.5",
                   !isSpecialFlowName && "group cursor-pointer hover:opacity-85 transition-opacity"
                 )}
                 title={isSpecialFlowName ? flow.name : "Click to edit automation name"}
               >
-                <h1 className="text-base sm:text-xl font-bold text-white tracking-tight truncate max-w-[100px] sm:max-w-none">{flow.name}</h1>
+                <h1 className="text-xs sm:text-sm font-semibold text-white tracking-tight truncate max-w-[120px] sm:max-w-none">{flow.name}</h1>
                 {!isSpecialFlowName && (
-                  <Pencil className="w-4 h-4 text-zinc-400 group-hover:text-white transition-colors" />
+                  <Pencil className="w-3.5 h-3.5 text-zinc-400 group-hover:text-white transition-colors" />
                 )}
               </div>
             );
           })()}
-          <span className="hidden sm:block text-xs font-medium text-on-surface-variant italic">Edited just now</span>
+          <span className="hidden sm:block text-[11px] text-[#8e9192] italic">Edited just now</span>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-0.5 bg-[#1a1a1a] border border-white/5 rounded-full p-1 mr-1 shadow-inner">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-0.5 bg-[#1a1a1a] border border-white/5 rounded-full p-0.5 mr-0.5 shadow-inner">
             <button
               onClick={() => dispatch(undo())}
               disabled={!canUndo}
-              className={`p-1.5 rounded-full transition-all ${canUndo
+              className={`p-1 rounded-full transition-all ${canUndo
                 ? 'text-white hover:bg-white/10 hover:scale-105 active:scale-95'
                 : 'text-white/25 cursor-not-allowed opacity-40'
                 }`}
               title="Undo (Ctrl+Z)"
             >
-              <Undo className="w-4 h-4" />
+              <Undo className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => dispatch(redo())}
               disabled={!canRedo}
-              className={`p-1.5 rounded-full transition-all ${canRedo
+              className={`p-1 rounded-full transition-all ${canRedo
                 ? 'text-white hover:bg-white/10 hover:scale-105 active:scale-95'
                 : 'text-white/25 cursor-not-allowed opacity-40'
                 }`}
               title="Redo (Ctrl+Y)"
             >
-              <Redo className="w-4 h-4" />
+              <Redo className="w-3.5 h-3.5" />
             </button>
           </div>
 
@@ -393,18 +393,18 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
             <button
               type="button"
               onClick={() => setShowSchedulePopover(!showSchedulePopover)}
-              className="h-10 px-3.5 rounded-full bg-[#1a1a1a] text-white border border-white/10 font-semibold text-xs hover:bg-white/10 transition-all flex items-center gap-2 cursor-pointer shadow-sm active:scale-95"
+              className="h-8 px-2.5 rounded-full bg-[#1a1a1a] text-white border border-white/10 font-semibold text-xs hover:bg-white/10 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
               title="Configure automation schedule date & time"
             >
-              <Calendar className="w-4 h-4 text-[#c4c0ff]" />
-              <span className="font-medium text-white truncate max-w-[90px] sm:max-w-none">
+              <Calendar className="w-3.5 h-3.5 text-[#c4c0ff]" />
+              <span className="font-medium text-xs text-white truncate max-w-[90px] sm:max-w-none">
                 {startFormatted && endFormatted
                   ? `${startFormatted} – ${endFormatted}`
                   : startFormatted
                     ? `From ${startFormatted}`
                     : 'Always Active'}
               </span>
-              <ChevronDown className={cn("w-3.5 h-3.5 text-zinc-400 transition-transform duration-200", showSchedulePopover && "rotate-180")} />
+              <ChevronDown className={cn("w-3 h-3 text-zinc-400 transition-transform duration-200", showSchedulePopover && "rotate-180")} />
             </button>
 
             {showSchedulePopover && (
@@ -668,16 +668,16 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
           <button
             onClick={() => handleSave('draft')}
             disabled={isSaving}
-            className="hidden sm:inline-block text-sm font-medium text-on-surface-variant hover:text-white cursor-pointer transition-colors bg-transparent border-0 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="hidden sm:inline-block text-xs font-semibold text-[#8e9192] hover:text-white cursor-pointer transition-colors bg-transparent border-0 disabled:opacity-50 disabled:cursor-not-allowed px-1"
           >
             Save Draft
           </button>
           <button
             onClick={() => handleSave('active')}
             disabled={isSaving}
-            className="hidden sm:flex h-10 px-6 rounded-full bg-white text-black font-semibold text-sm hover:bg-white/90 transition-colors items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            className="hidden sm:flex h-8 px-4 rounded-full bg-white text-black font-semibold text-xs hover:bg-white/90 transition-colors items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
-            {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+            {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             {isExistingFlow ? 'Update' : 'Set Live'}
           </button>
         </div>

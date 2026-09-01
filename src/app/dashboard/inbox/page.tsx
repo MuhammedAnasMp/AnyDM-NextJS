@@ -8,7 +8,31 @@ import api from "@/lib/services/api.service";
 import { authService } from "@/lib/services/auth.service";
 import { cn } from "@/lib/utils";
 import { useSearchParams, useRouter } from "next/navigation";
-import { CheckCircle, Lock, Bot, X, Pencil, Plus, AlertCircle } from "lucide-react";
+import {
+  CheckCircle,
+  Lock,
+  Bot,
+  X,
+  Pencil,
+  Plus,
+  AlertCircle,
+  Play,
+  Pause,
+  RefreshCw,
+  Search,
+  MessageSquare,
+  ArrowLeft,
+  PanelRight,
+  Sparkles,
+  Smile,
+  ShoppingBag,
+  Send,
+  Trash2,
+  ExternalLink,
+  AlertTriangle,
+  Clock,
+  UserX
+} from "lucide-react";
 import { span } from "framer-motion/client";
 import Toast from "@/components/Toast";
 const PlayableVideoAttachment = ({ url }: { url: string }) => {
@@ -51,16 +75,18 @@ const PlayableVideoAttachment = ({ url }: { url: string }) => {
             className="absolute inset-0 flex items-center justify-center bg-black/25 hover:bg-black/35 transition-all cursor-pointer"
           >
             <div className="w-10 h-10 rounded-full bg-black/60 border border-white/10 flex items-center justify-center text-white shadow-lg hover:scale-105 transition-transform">
-              <span className="material-symbols-outlined text-2xl">play_arrow</span>
+              <Play className="w-5 h-5 fill-white text-white ml-0.5" />
             </div>
           </div>
         )}
         {isPlaying && (
           <div
             onClick={handlePlayClick}
-            className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 border border-white/10 flex items-center justify-center text-white cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+            className="absolute inset-0 flex items-center justify-center bg-black/10 hover:bg-black/30 transition-all cursor-pointer group-hover:opacity-100 opacity-0"
           >
-            <span className="material-symbols-outlined text-sm">pause</span>
+            <div className="w-9 h-9 rounded-full bg-black/60 border border-white/10 flex items-center justify-center text-white shadow-lg">
+              <Pause className="w-4 h-4 fill-white text-white" />
+            </div>
           </div>
         )}
       </a>
@@ -1217,7 +1243,7 @@ export default function InboxPage() {
               disabled={loading}
               className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 border border-white/[0.07] flex items-center justify-center text-white/50 hover:text-white transition-all active:scale-95 disabled:opacity-40"
             >
-              <span className={`material-symbols-outlined text-[15px] ${loading ? "animate-spin" : ""}`}>refresh</span>
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
             </button>
 
           </div>
@@ -1225,8 +1251,8 @@ export default function InboxPage() {
 
         {/* Search */}
         <div className="px-3.5 pb-2.5 shrink-0">
-          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.07] focus-within:border-white/20 focus-within:bg-white/[0.06] transition-all">
-            <span className="material-symbols-outlined text-[14px] text-white/30">search</span>
+          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded bg-white/[0.04] border border-white/[0.07] focus-within:border-white/20 focus-within:bg-white/[0.06] transition-all">
+            <Search className="w-3.5 h-3.5 text-[#8e9192]" />
             <input
               type="text"
               placeholder="Search conversations..."
@@ -1236,7 +1262,7 @@ export default function InboxPage() {
             />
             {searchQuery && (
               <button onClick={() => setSearchQuery("")} className="text-white/30 hover:text-white transition-colors">
-                <span className="material-symbols-outlined text-[12px]">close</span>
+                <X className="w-3 h-3" />
               </button>
             )}
           </div>
@@ -1279,7 +1305,7 @@ export default function InboxPage() {
                     <img src={item.avatar} alt={item.name} className="w-9 h-9 rounded-full object-cover border border-white/10" />
                     <span className={cn(
                       "absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#111]",
-                      item.is_within_24h_window !== false ? "bg-emerald-500" : "bg-red-500"
+                      item.is_within_24h_window !== false ? "bg-[#c4c0ff]" : "bg-red-500"
                     )} />
                   </div>
                   {/* Info */}
@@ -1318,12 +1344,12 @@ export default function InboxPage() {
             {/* Chat Header */}
             <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.06] bg-[#11]/80 backdrop-blur-md shrink-0">
               <div className="flex items-center gap-2.5">
-                <button onClick={() => setShowChatOnMobile(false)} className="lg:hidden w-7 h-7 rounded-lg bg-white/5 border border-white/[0.07] flex items-center justify-center text-white/60 hover:text-white transition-all">
-                  <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+                <button onClick={() => setShowChatOnMobile(false)} className="lg:hidden w-7 h-7 rounded bg-white/5 border border-white/[0.07] flex items-center justify-center text-white/60 hover:text-white transition-all">
+                  <ArrowLeft className="w-4 h-4" />
                 </button>
                 <div className="relative">
                   <img src={selectedConversation.avatar} alt={selectedConversation.name} className="w-8 h-8 rounded-full object-cover border border-white/10" />
-                  <span className={cn("absolute -bottom-0.5 -right-0.5 w-2 w-2 rounded-full border-2 border-[#111]", isWithin24hWindow ? "bg-emerald-500" : "bg-red-500")} />
+                  <span className={cn("absolute -bottom-0.5 -right-0.5 w-2 w-2 rounded-full border-2 border-[#111]", isWithin24hWindow ? "bg-[#c4c0ff]" : "bg-red-500")} />
                 </div>
                 <div>
                   <h3 className="text-xs font-semibold text-white leading-tight">{selectedConversation.name}</h3>
@@ -1333,8 +1359,7 @@ export default function InboxPage() {
 
               <div className="flex items-center gap-2">
                 {enableAi && globalAIOn && (
-                  <label className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-[#b6b2ff]/10 border border-[#b6b2ff]/20 cursor-pointer select-none">
-                    {/* <span className="material-symbols-outlined text-[14px] text-[#b6b2ff]">psychology</span> */}
+                  <label className="flex items-center gap-2 px-2.5 py-1 rounded bg-[#b6b2ff]/10 border border-[#b6b2ff]/20 cursor-pointer select-none">
                     <span className="text-[9px] font-bold text-[#b6b2ff] tracking-wider">AI reply for {selectedConversation.name} </span>
                     <input
                       type="checkbox"
@@ -1358,18 +1383,18 @@ export default function InboxPage() {
                 <button
                   onClick={() => fetchMessages(selectedConversation.id)}
                   disabled={loadingMessages}
-                  className="w-7 h-7 rounded-lg bg-white/5 border border-white/[0.07] flex items-center justify-center text-white/50 hover:text-white transition-all active:scale-95 disabled:opacity-40"
+                  className="w-7 h-7 rounded bg-white/5 border border-white/[0.07] flex items-center justify-center text-white/50 hover:text-white transition-all active:scale-95 disabled:opacity-40"
                 >
-                  <span className={`material-symbols-outlined text-[15px] ${loadingMessages ? "animate-spin" : ""}`}>refresh</span>
+                  <RefreshCw className={`w-3.5 h-3.5 ${loadingMessages ? "animate-spin" : ""}`} />
                 </button>
                 <button
                   onClick={() => setShowRightPanel(!showRightPanel)}
                   className={cn(
-                    "w-7 h-7 rounded-lg border flex items-center justify-center transition-all",
+                    "w-7 h-7 rounded border flex items-center justify-center transition-all",
                     showRightPanel ? "bg-[#b6b2ff]/10 border-[#b6b2ff]/20 text-[#b6b2ff]" : "bg-white/5 border-white/[0.07] text-white/50 hover:text-white"
                   )}
                 >
-                  <span className="material-symbols-outlined text-[15px]">dock_to_right</span>
+                  <PanelRight className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
@@ -1394,7 +1419,7 @@ export default function InboxPage() {
                 </div>
               ) : messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center gap-2 h-full text-white/20">
-                  <span className="material-symbols-outlined text-5xl">chat_bubble_outline</span>
+                  <MessageSquare className="w-10 h-10 text-[#8e9192]" />
                   <span className="text-xs font-medium">No messages yet</span>
                 </div>
               ) : (
@@ -2268,20 +2293,20 @@ export default function InboxPage() {
             {/* Input Bar */}
             <div className="px-3.5 py-2.5 border-t border-white/[0.06] bg-[#0d0d0d] shrink-0">
               {!isWithin24hWindow ? (
-                <div className="flex items-center justify-between gap-2.5 px-2.5 py-2 rounded-lg bg-red-500/5 border border-red-500/20 text-red-300/80">
+                <div className="flex items-center justify-between gap-2.5 px-2.5 py-2 rounded bg-rose-500/5 border border-rose-500/20 text-rose-300/80">
                   <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-red-400 text-[16px]">warning</span>
+                    <AlertTriangle className="w-4 h-4 text-rose-400" />
                     <span className="text-[10px] font-medium">24h messaging window closed</span>
                   </div>
-                  <a href={`https://ig.me/m/${selectedConversation.name}`} target="_blank" rel="noopener noreferrer" className="shrink-0 px-2.5 py-0.5 rounded-md bg-[#e1306c] hover:bg-[#c13584] text-white text-[9px] font-bold tracking-wide transition-all flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[11px]">open_in_new</span>
+                  <a href={`https://ig.me/m/${selectedConversation.name}`} target="_blank" rel="noopener noreferrer" className="shrink-0 px-2.5 py-0.5 rounded bg-[#e1306c] hover:bg-[#c13584] text-white text-[9px] font-bold tracking-wide transition-all flex items-center gap-1">
+                    <ExternalLink className="w-3 h-3" />
                     Instagram
                   </a>
                 </div>
               ) : (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-xl border transition-all bg-white/[0.04] border-white/[0.08] focus-within:border-white/20">
+                <div className="flex items-center gap-2 px-3 py-2 rounded border transition-all bg-white/[0.04] border-white/[0.08] focus-within:border-white/20">
                   <button className="text-white/40 hover:text-white transition-colors shrink-0">
-                    <span className="material-symbols-outlined text-[18px]">sentiment_satisfied</span>
+                    <Smile className="w-4 h-4" />
                   </button>
                   <input
                     className="flex-1 bg-transparent text-xs text-white placeholder-white/25 outline-none"
@@ -2294,7 +2319,7 @@ export default function InboxPage() {
 
                     {!(showGenericTemplateForm || showButtonTemplateForm) && (
                       <button onClick={() => { setShowProductCatalogPopup(!showProductCatalogPopup); setShowButtonTemplateForm(false); setShowGenericTemplateForm(false); }} className={cn("transition-all hover:scale-110", showProductCatalogPopup ? "text-[#b6b2ff]" : "text-white/40 hover:text-white")}>
-                        <span className="material-symbols-outlined text-[18px]">shopping_bag</span>
+                        <ShoppingBag className="w-4 h-4" />
                       </button>
                     )}
                     <button
@@ -2328,14 +2353,12 @@ export default function InboxPage() {
                           : "bg-white text-black hover:bg-white/90"
                       )}
                       title={
-                        showGenericTemplateForm
-                          ? "Send Product Slider"
-                          : showButtonTemplateForm
-                            ? "Send Action Buttons"
-                            : "Send Message"
+                        (showGenericTemplateForm || showButtonTemplateForm)
+                          ? "Send Template Payload"
+                          : "Send Direct Message"
                       }
                     >
-                      <span className="material-symbols-outlined text-[15px]" style={{ fontVariationSettings: "'FILL' 1" }}>send</span>
+                      <Send className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
@@ -2344,8 +2367,8 @@ export default function InboxPage() {
           </>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center gap-3 text-white/20 select-none">
-            <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mb-2">
-              <span className="material-symbols-outlined text-3xl">forum</span>
+            <div className="w-14 h-14 rounded bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mb-2">
+              <MessageSquare className="w-7 h-7 text-[#8e9192]" />
             </div>
             <h3 className="text-sm font-semibold text-white/40">Select a conversation</h3>
             <p className="text-xs text-white/20">Choose a contact from the sidebar to start chatting</p>
@@ -2432,7 +2455,7 @@ export default function InboxPage() {
                               <p className="text-[11px] font-semibold text-white truncate">{ep.title}</p>
                               {ep.price && <p className="text-[10px] font-bold text-[#b6b2ff] mt-0.5">{ep.price} {ep.currency || '₹'}</p>}
                               <div className="flex gap-1 mt-1">
-                                <span className={cn("px-1.5 py-0.5 rounded text-[8px] font-bold ", enquiry.status === "OPEN" ? "bg-emerald-500/10 text-emerald-400" : "bg-white/5 text-white/30")}>{enquiry.status}</span>
+                                <span className={cn("px-1.5 py-0.5 rounded text-[8px] font-bold ", enquiry.status === "OPEN" ? "bg-[#c4c0ff]/10 text-[#c4c0ff]" : "bg-white/5 text-white/30")}>{enquiry.status}</span>
                                 {ep.confidence_score != null && <span className="px-1.5 py-0.5 rounded bg-[#c4c0ff]/10 text-[#c4c0ff] text-[8px] font-bold">{Math.round(ep.confidence_score * 100)}%</span>}
                               </div>
                             </div>

@@ -1,17 +1,29 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import React, { useState, useEffect, useMemo } from "react";
 import api from "@/lib/services/api.service";
-import { RefreshCw, TrendingUp, BarChart2, ShieldCheck, Zap, Activity, ShoppingBag, MessageSquare } from "lucide-react";
+import {
+  RefreshCw,
+  TrendingUp,
+  BarChart2,
+  Zap,
+  Activity,
+  ShoppingBag,
+  MessageSquare,
+  ShieldCheck,
+  UserCheck,
+  ChevronLeft,
+  ChevronRight
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+
+/* ──────────────────────────── Types ──────────────────────────── */
 
 interface FunnelStep {
   label: string;
   value: string;
   percent: string;
   dropoff: string;
-  border: string;
-  delay: number;
 }
 
 interface AutomationItem {
@@ -49,25 +61,22 @@ interface AnalyticsData {
   total_orders: number;
 }
 
+/* ═══════════════════════ Main Component ═══════════════════════ */
+
 export default function AnalyticsPage() {
-  const [timeframe, setTimeframe] = useState<string>("30d");
+  const [timeframe, setTimeframe] = useState("30d");
   const [data, setData] = useState<AnalyticsData | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const fetchAnalytics = async (tf: string, isManualRefresh = false) => {
-    if (isManualRefresh) setRefreshing(true);
+  const fetchAnalytics = async (tf: string, manual = false) => {
+    if (manual) setRefreshing(true);
     else setLoading(true);
-
     try {
-      const res = await api.get("/crm/analytics/", {
-        params: { timeframe: tf }
-      });
-      if (res.data) {
-        setData(res.data);
-      }
+      const res = await api.get("/crm/analytics/", { params: { timeframe: tf } });
+      if (res.data) setData(res.data);
     } catch (err) {
-      console.error("Error fetching analytics data:", err);
+      console.error("Error fetching analytics:", err);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -78,431 +87,263 @@ export default function AnalyticsPage() {
     fetchAnalytics(timeframe);
   }, [timeframe]);
 
-  const chartBars = data?.chart_bars || [];
-  const funnelSteps = data?.funnel_steps || [];
-  const autHealth = data?.automation_health || [];
-  const topProducts = data?.top_products || [];
-  const openRate = data?.open_rate !== undefined ? `${data.open_rate}%` : "0%";
-  const engagementScore = data?.engagement_score || 0;
-
-  const dynamicFunnelSteps = React.useMemo(() => {
-    if (data?.funnel_steps && data.funnel_steps.length > 0) {
-      return data.funnel_steps;
-    }
-
-    const totalInteractions = data?.total_interactions || 0;
-    const totalCustomers = data?.total_customers || 0;
-    const totalDMs = totalInteractions > 0 ? Math.max(1, Math.round(totalInteractions * 0.42)) : 0;
-    const totalOrders = data?.total_orders || 0;
-
-    const reachToEngage =
-      totalInteractions > 0
-        ? Math.max(0, (1 - totalCustomers / totalInteractions) * 100).toFixed(1)
-        : "0.0";
-    const engageToDm =
-      totalCustomers > 0
-        ? Math.max(0, (1 - totalDMs / totalCustomers) * 100).toFixed(1)
-        : "0.0";
-    const dmToOrder =
-      totalDMs > 0 ? ((totalOrders / totalDMs) * 100).toFixed(1) : "0.0";
-
+  /* ── Derived funnel ── */
+  const funnelSteps = useMemo(() => {
+    if (data?.funnel_steps && data.funnel_steps.length > 0) return data.funnel_steps;
+    const ti = data?.total_interactions || 0;
+    const tc = data?.total_customers || 0;
+    const td = ti > 0 ? Math.max(1, Math.round(ti * 0.42)) : 0;
+    const to = data?.total_orders || 0;
+    const d1 = ti > 0 ? ((1 - tc / ti) * 100).toFixed(1) : "0.0";
+    const d2 = tc > 0 ? ((1 - td / tc) * 100).toFixed(1) : "0.0";
+    const cr = td > 0 ? ((to / td) * 100).toFixed(1) : "0.0";
     return [
-      {
-        label: "Impression / Reach",
-        value: totalInteractions.toLocaleString(),
-        percent: "100%",
-        dropoff: `${reachToEngage}% drop-off`,
-        border: "border-white/40",
-        delay: 0,
-      },
-      {
-        label: "Audience Engagement",
-        value: totalCustomers.toLocaleString(),
-        percent:
-          totalInteractions > 0
-            ? `${((totalCustomers / totalInteractions) * 100).toFixed(1)}%`
-            : "0%",
-        dropoff: `${engageToDm}% drop-off`,
-        border: "border-white/60",
-        delay: 0.1,
-      },
-      {
-        label: "Inbound DMs Started",
-        value: totalDMs.toLocaleString(),
-        percent:
-          totalCustomers > 0
-            ? `${((totalDMs / totalCustomers) * 100).toFixed(1)}%`
-            : "0%",
-        dropoff: `${(100 - parseFloat(dmToOrder)).toFixed(1)}% drop-off`,
-        border: "border-white/80",
-        delay: 0.2,
-      },
-      {
-        label: "Completed Orders",
-        value: totalOrders.toLocaleString(),
-        percent: `${dmToOrder}%`,
-        dropoff: "Final CR",
-        border: "border-emerald-500",
-        delay: 0.3,
-      },
+      { label: "Impression / Reach", value: ti.toLocaleString(), percent: "100%", dropoff: `${d1}% drop-off` },
+      { label: "Audience Engagement", value: tc.toLocaleString(), percent: ti > 0 ? `${((tc / ti) * 100).toFixed(1)}%` : "0%", dropoff: `${d2}% drop-off` },
+      { label: "Inbound DMs Started", value: td.toLocaleString(), percent: tc > 0 ? `${((td / tc) * 100).toFixed(1)}%` : "0%", dropoff: `${(100 - parseFloat(cr)).toFixed(1)}% drop-off` },
+      { label: "Completed Orders", value: to.toLocaleString(), percent: `${cr}%`, dropoff: "Final CR" }
     ];
   }, [data]);
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      className="space-y-6"
-    >
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-            <BarChart2 className="w-6 h-6 text-primary" />
-            Analytics Engine
-          </h1>
-          <p className="text-sm text-on-surface-variant opacity-70 mt-1">
-            Comprehensive real-time tracking for funnel performance, engagement velocity, and conversion metrics.
-          </p>
-        </div>
+  const [autHealthPage, setAutHealthPage] = useState(1);
+  const [topProductsPage, setTopProductsPage] = useState(1);
+  const itemsPerPage = 4;
 
-        <div className="flex items-center gap-3">
-          {/* Timeframe selector */}
-          <div className="glass-pane p-1 rounded-xl flex gap-1 text-xs">
-            {[
-              { id: "7d", label: "7D" },
-              { id: "30d", label: "30D" },
-              { id: "90d", label: "90D" },
-              { id: "1y", label: "1Y" },
-              { id: "all", label: "ALL" }
-            ].map((tf) => (
+  const chartBars = data?.chart_bars || [];
+  const autHealth = data?.automation_health || [];
+  const topProducts = data?.top_products || [];
+
+  const totalAutHealthPages = Math.max(1, Math.ceil(autHealth.length / itemsPerPage));
+  const paginatedAutHealth = autHealth.slice((autHealthPage - 1) * itemsPerPage, autHealthPage * itemsPerPage);
+
+  const totalTopProductsPages = Math.max(1, Math.ceil(topProducts.length / itemsPerPage));
+  const paginatedTopProducts = topProducts.slice((topProductsPage - 1) * itemsPerPage, topProductsPage * itemsPerPage);
+
+  const maxBarVal = chartBars.length > 0 ? Math.max(...chartBars.map(b => b.val || 0), 1) : 1;
+
+  return (
+    <div className="relative space-y-4 overflow-hidden text-[#e5e2e1] pb-16 w-full font-sans">
+      {/* Top Ambient Glow */}
+      <div className="pointer-events-none absolute left-1/2 top-[-50px] h-[300px] w-[550px] -translate-x-1/2 rounded-[50%] bg-gradient-to-r from-[#c4c0ff]/0 via-[#c4c0ff]/12 to-[#c4c0ff]/0 blur-3xl" />
+
+      {/* ── Header ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#1c1b1b] p-4 rounded border border-[#2a2a2a] shadow-sm">
+        <div className="space-y-0.5">
+          <div className="flex items-center gap-2">
+            <h1 className="text-lg font-semibold tracking-tight text-[#e5e2e1]">Analytics</h1>
+            {/* <span className="px-2 py-0.5 rounded bg-[#20201f] border border-[#2a2a2a] text-[#c4c0ff] text-[11px] font-semibold"> */}
+            {timeframe.toUpperCase()}
+            {/* </span> */}
+          </div>
+
+        </div>
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          {/* Timeframe Selector */}
+          <div className="bg-[#101115] border border-[#2a2a2a] rounded p-0.5 flex gap-0.5 text-[11px]">
+            {["7d", "30d", "90d", "1y", "all"].map((tf) => (
               <button
-                key={tf.id}
-                onClick={() => setTimeframe(tf.id)}
-                className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${timeframe === tf.id
-                  ? "bg-white text-black shadow-md"
-                  : "text-on-surface-variant hover:text-white hover:bg-white/5"
-                  }`}
+                key={tf}
+                onClick={() => setTimeframe(tf)}
+                className={cn(
+                  "px-2.5 py-1 rounded font-semibold transition-colors cursor-pointer",
+                  timeframe === tf ? "bg-[#20201f] text-white border border-[#2a2a2a]" : "text-[#8e9192] hover:text-white"
+                )}
               >
-                {tf.label}
+                {tf.toUpperCase()}
               </button>
             ))}
           </div>
-
           <button
             onClick={() => fetchAnalytics(timeframe, true)}
             disabled={refreshing}
-            className="glass-pane px-3 py-2 rounded-xl flex items-center gap-2 text-xs font-semibold hover:bg-white/10 transition-colors"
-            title="Refresh analytics data"
+            className="p-2 rounded bg-[#20201f] border border-[#2a2a2a] text-[#8e9192] hover:text-white transition-colors cursor-pointer"
+            title="Refresh"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin text-primary" : "text-white"}`} />
-            <span className="hidden sm:inline">Refresh</span>
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin text-[#c4c0ff]" : ""}`} />
           </button>
-
-          <div className="glass-pane px-4 py-2 rounded-xl flex items-center gap-2 text-xs font-semibold">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]"></span>
-            <span>Live Sync</span>
-          </div>
         </div>
       </div>
 
-      {/* Summary KPI Bar */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="glass-pane p-5 rounded-2xl flex items-center justify-between">
-          <div>
-            <span className="text-[10px] font-bold text-on-surface-variant tracking-wider">Total Interactions</span>
-            <h3 className="text-2xl font-extrabold text-white mt-1">
-              {loading ? "..." : (data?.total_interactions !== undefined ? data.total_interactions.toLocaleString() : "1,240")}
-            </h3>
-            <p className="text-xs text-emerald-400 mt-1 flex items-center gap-1 font-medium">
-              <TrendingUp className="w-3 h-3" /> Measured across active channels
-            </p>
+      {/* ── 3 Summary KPI Cards ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {[
+          { label: "Total Interactions", val: loading ? "..." : (data?.total_interactions ?? 0).toLocaleString(), icon: MessageSquare, sub: `Message open rate: ${data?.open_rate ?? 0}%`, iconColor: "text-[#c4c0ff]" },
+          { label: "Active Customers", val: loading ? "..." : (data?.total_customers ?? 0).toLocaleString(), icon: Activity, sub: `Engagement score: ${data?.engagement_score ?? 0}`, iconColor: "text-[#c4c0ff]" },
+          { label: "Orders Generated", val: loading ? "..." : (data?.total_orders ?? 0).toLocaleString(), icon: ShoppingBag, sub: `Average reply speed: ${data?.response_speed ?? "0m"}`, iconColor: "text-[#c4c0ff]" }
+        ].map((k, i) => (
+          <div key={i} className="p-3.5 rounded bg-[#1c1b1b] border border-[#2a2a2a] shadow-sm space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-[#8e9192]">{k.label}</span>
+              <k.icon className={`w-3.5 h-3.5 ${k.iconColor}`} />
+            </div>
+            <p className="text-xl font-semibold text-[#e5e2e1]">{k.val}</p>
+            <p className="text-[11px] text-[#8e9192]">{k.sub}</p>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/10 text-white">
-            <MessageSquare className="w-5 h-5" />
-          </div>
-        </div>
-
-        <div className="glass-pane p-5 rounded-2xl flex items-center justify-between">
-          <div>
-            <span className="text-[10px] font-bold text-on-surface-variant tracking-wider">Active Customers</span>
-            <h3 className="text-2xl font-extrabold text-white mt-1">
-              {loading ? "..." : (data?.total_customers !== undefined ? data.total_customers.toLocaleString() : "840")}
-            </h3>
-            <p className="text-xs text-emerald-400 mt-1 flex items-center gap-1 font-medium">
-              <Activity className="w-3 h-3" /> Unique profile reach
-            </p>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/10 text-white">
-            <Zap className="w-5 h-5" />
-          </div>
-        </div>
-
-        <div className="glass-pane p-5 rounded-2xl flex items-center justify-between">
-          <div>
-            <span className="text-[10px] font-bold text-on-surface-variant tracking-wider">Orders Generated</span>
-            <h3 className="text-2xl font-extrabold text-white mt-1">
-              {loading ? "..." : (data?.total_orders !== undefined ? data.total_orders.toLocaleString() : "42")}
-            </h3>
-            <p className="text-xs text-emerald-400 mt-1 flex items-center gap-1 font-medium">
-              <ShieldCheck className="w-3 h-3" /> Automated DM conversion
-            </p>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/10 text-white">
-            <ShoppingBag className="w-5 h-5" />
-          </div>
-        </div>
+        ))}
       </div>
 
-      {/* Analytics Grid */}
-      <div className="grid grid-cols-12 gap-6">
-        {/* Main Chart: DM Open Rates (2/3) */}
-        <div className="col-span-12 lg:col-span-8 glass-pane p-6 rounded-2xl relative overflow-hidden h-[400px] flex flex-col justify-between">
-          <div className="flex justify-between items-start">
-            <div>
-              <h3 className="text-base font-bold text-white">DM Open & Response Velocity</h3>
-              <p className="text-xs text-on-surface-variant/70 mt-0.5">Real-time engagement velocity distribution</p>
-            </div>
-            <div className="text-right">
-              <span className="text-2xl font-bold text-white">{loading ? "..." : openRate}</span>
-              <p className="text-[10px] text-emerald-400 mt-0.5 font-medium">{data?.open_rate_change || "+2.4%"} benchmark</p>
-            </div>
+      {/* ── 2-Column: Funnel + Traffic Chart ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Conversion Funnel */}
+        <div className="p-4 rounded bg-[#1c1b1b] border border-[#2a2a2a] shadow-sm space-y-3">
+          <div className="flex items-center justify-between pb-2 border-b border-[#2a2a2a]">
+            <h3 className="text-xs font-semibold text-[#e5e2e1]">Conversion Funnel</h3>
+            <span className="text-[10px] text-[#c4c0ff] font-semibold">{timeframe.toUpperCase()}</span>
           </div>
-
-          {/* Bar Chart Container */}
-          <div className="flex-1 flex items-end gap-2 px-4 group mt-6 h-full min-h-[180px]">
-            {chartBars.map((bar, i) => (
-              <div
-                key={i}
-                className={`w-full bg-white/10 rounded-t-lg transition-all duration-700 hover:bg-white/30 relative ${bar.height}`}
-              >
-                {bar.showLabel && (
-                  <div className="absolute -top-10 left-1/2 -translate-x-1/2 glass-pane px-2 py-1 rounded text-[9px] opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap text-white font-bold">
-                    Peak Activity
-                  </div>
-                )}
+          <div className="space-y-2.5">
+            {funnelSteps.map((step, idx) => (
+              <div key={idx} className="space-y-1">
+                <div className="flex justify-between text-[11px] text-[#8e9192]">
+                  <span className="font-semibold">{step.label}</span>
+                  <span className="text-[#e5e2e1] font-semibold">{step.value}</span>
+                </div>
+                <div className="h-6 bg-[#101115] rounded border border-[#2a2a2a] relative overflow-hidden flex items-center justify-between px-2.5 text-[10px] font-semibold">
+                  <div
+                    className="absolute inset-y-0 left-0 bg-[#c4c0ff]/12 transition-all duration-500"
+                    style={{ width: step.percent.endsWith("%") ? step.percent : "100%" }}
+                  />
+                  <span className="relative z-10 text-[#e5e2e1]">{step.percent}</span>
+                  <span className="relative z-10 text-[#8e9192]">{step.dropoff}</span>
+                </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Engagement Score Radial Chart (1/3) */}
-        <div className="col-span-12 lg:col-span-4 glass-pane p-6 rounded-2xl flex flex-col justify-between">
-          <div>
-            <h3 className="text-base font-bold text-white">Engagement Score</h3>
-            <p className="text-xs text-on-surface-variant/70 mt-0.5">Weighted Performance Score</p>
-
-            {/* Radial SVG Widget */}
-            <div className="relative w-40 h-40 mx-auto mt-6 flex items-center justify-center">
-              <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                <circle cx="50" cy="50" fill="none" r="42" stroke="rgba(255,255,255,0.05)" strokeWidth="6"></circle>
-                <circle
-                  className="text-white chart-glow transition-all duration-1000"
-                  cx="50"
-                  cy="50"
-                  fill="none"
-                  r="42"
-                  stroke="currentColor"
-                  strokeDasharray="264"
-                  strokeDashoffset={264 - (264 * engagementScore) / 100}
-                  strokeWidth="6"
-                  strokeLinecap="round"
-                ></circle>
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-3xl font-extrabold text-white">{loading ? "..." : engagementScore}</span>
-                <span className="text-[10px] text-emerald-400 font-bold tracking-wider mt-0.5">OPTIMAL</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-3 mt-6">
-            <div className="space-y-1">
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-on-surface-variant">Response Speed</span>
-                <span className="text-white font-bold">{data?.response_speed || "1.2m"}</span>
-              </div>
-              <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
-                <div className="h-full bg-white/40 w-[90%]"></div>
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-on-surface-variant">User Sentiment</span>
-                <span className="text-white font-bold">{data?.sentiment || "Positive"}</span>
-              </div>
-              <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
-                <div className="h-full bg-white/40 w-[75%]"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Conversion Funnel Section */}
-        <div className="col-span-12 glass-pane p-6 rounded-2xl border border-white/10 space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
+        {/* Traffic Bar Chart */}
+        <div className="p-4 rounded bg-[#1c1b1b] border border-[#2a2a2a] shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between pb-2 border-b border-[#2a2a2a]">
             <div>
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-md bg-white/10 flex items-center justify-center text-white">
-                  <TrendingUp className="w-3.5 h-3.5" />
-                </div>
-                <h3 className="text-base font-bold text-white tracking-tight">Direct Conversion Funnel</h3>
-              </div>
-              <p className="text-xs text-on-surface-variant/70 mt-0.5">
-                Full-funnel pipeline tracking from Social Reach → Customer DMs → Completed Orders
-              </p>
-            </div>
-
-            {/* Dynamic End-to-End Metrics Badge */}
-            <div className="flex items-center gap-3">
-              <div className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 flex items-center gap-2">
-                <span className="text-[10px] font-bold text-zinc-400">Total Funnel Efficiency</span>
-                <span className="text-xs font-extrabold text-emerald-400 font-mono">
-                  {loading
-                    ? "..."
-                    : data && data.total_interactions > 0
-                      ? `${((data.total_orders / data.total_interactions) * 100).toFixed(1)}%`
-                      : funnelSteps.length >= 4 && funnelSteps[3].percent
-                        ? funnelSteps[3].percent
-                        : "3.4%"}
-                </span>
-              </div>
-              <span className="text-[10px] font-mono px-2 py-1 rounded bg-white/5 text-zinc-400 border border-white/5 ">
-                {timeframe} Window
-              </span>
+              <h3 className="text-xs font-semibold text-[#e5e2e1]">Interaction Speed &amp; Activity</h3>
+              <p className="text-[11px] text-[#8e9192]">3-hour volume distribution</p>
             </div>
           </div>
-
-          {/* Dynamic 4-Stage Funnel Flow Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 relative">
-            {dynamicFunnelSteps.map((step, idx) => {
-              const stepIcons = [MessageSquare, Zap, Activity, ShoppingBag];
-              const StepIcon = stepIcons[idx] || Activity;
-              const isLast = idx === dynamicFunnelSteps.length - 1;
-
+          <div className="h-40 w-full flex items-end gap-1.5 pt-4">
+            {(chartBars.length > 0 ? chartBars : Array(9).fill(null).map(() => ({ val: 0 }))).map((bar: any, i: number) => {
+              const barVal = bar.val || 0;
+              const h = maxBarVal > 0 ? Math.max(5, Math.round((barVal / maxBarVal) * 100)) : 5;
               return (
-                <motion.div
-                  key={idx}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.35, delay: idx * 0.08 }}
-                  className="p-4 rounded-xl bg-white/[0.02] border border-white/10 hover:border-white/20 transition-all flex flex-col justify-between space-y-4 group relative"
-                >
-                  {/* Step Header */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-white/10 text-white/80">
-                        0{idx + 1}
-                      </span>
-                      <span className="text-xs font-bold text-zinc-300 tracking-wider">{step.label}</span>
-                    </div>
-                    <div className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center text-zinc-400 group-hover:text-white transition-colors">
-                      <StepIcon className="w-3.5 h-3.5" />
-                    </div>
-                  </div>
-
-                  {/* Step Value */}
-                  <div className="space-y-1">
-                    <div className="flex items-baseline justify-between">
-                      <span className="text-2xl font-black tracking-tight text-white font-sans">
-                        {loading ? "..." : step.value}
-                      </span>
-                      <span className="text-xs font-mono font-bold text-zinc-400">{step.percent}</span>
-                    </div>
-
-                    {/* Progress Fill Bar */}
-                    <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden mt-1">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{
-                          width: loading
-                            ? "0%"
-                            : step.percent && step.percent.endsWith("%")
-                              ? step.percent
-                              : "100%",
-                        }}
-                        transition={{ duration: 0.8, delay: idx * 0.1 }}
-                        className={`h-full rounded-full ${isLast
-                          ? "bg-gradient-to-r from-emerald-500 to-teal-400"
-                          : "bg-gradient-to-r from-white/40 to-white"
-                          }`}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Step Drop-off / Conversion Footer */}
-                  <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[10px]">
-                    <span className="text-zinc-500 font-medium">
-                      {isLast ? "Direct Conversion" : "Stage Transition"}
-                    </span>
-                    <span
-                      className={`font-semibold font-mono ${isLast
-                        ? "text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20"
-                        : "text-zinc-400"
-                        }`}
-                    >
-                      {isLast
-                        ? `Final CR: ${step.percent || "100%"}`
-                        : step.dropoff?.includes("drop-off") || step.dropoff?.includes("%")
-                          ? step.dropoff
-                          : `Drop-off: ${step.dropoff}`}
-                    </span>
-                  </div>
-                </motion.div>
+                <div key={i} className="flex-1 flex flex-col items-center gap-1 h-full justify-end group relative">
+                  {bar.showLabel && barVal > 0 && (
+                    <span className="text-[9px] font-semibold text-[#c4c0ff]">{barVal}</span>
+                  )}
+                  <div
+                    className="w-full bg-[#20201f] group-hover:bg-[#c4c0ff]/50 border border-[#2a2a2a] rounded-t transition-all duration-300"
+                    style={{ height: `${h}%` }}
+                  />
+                </div>
               );
             })}
           </div>
-        </div>
-
-        {/* Automation Health & Top Products */}
-        <div className="col-span-12 lg:col-span-6 glass-pane p-6 rounded-2xl">
-          <h4 className="text-xs font-bold text-white tracking-widest mb-4">Automation Health</h4>
-          <div className="space-y-2">
-            {autHealth.map((item, i) => (
-              <div
-                key={i}
-                className="flex items-center justify-between p-3 rounded-xl hover:bg-white/5 transition-all cursor-pointer group"
-              >
-                <div className="flex items-center gap-3">
-                  <span className={`material-symbols-outlined text-xl ${item.ok ? "text-white/40 group-hover:text-white" : "text-red-400/40 group-hover:text-red-400"
-                    } transition-colors`}>
-                    {item.ok ? "robot_2" : "error_outline"}
-                  </span>
-                  <div>
-                    <p className="text-xs font-bold text-white">{item.name}</p>
-                    <p className="text-[10px] text-on-surface-variant/60 mt-0.5">{item.status} • {item.stat}</p>
-                  </div>
-                </div>
-                <span className={`material-symbols-outlined text-lg ${item.ok ? "text-emerald-400" : "text-red-400"}`}>
-                  {item.ok ? "check_circle" : "pause_circle"}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="col-span-12 lg:col-span-6 glass-pane p-6 rounded-2xl relative overflow-hidden flex flex-col justify-between">
-          <div className="absolute -right-16 -top-16 w-48 h-48 bg-white/5 rounded-full blur-3xl"></div>
-          <h4 className="text-xs font-bold text-white tracking-widest mb-4 z-10">Top Performing Products</h4>
-
-          <div className="grid grid-cols-2 gap-4 z-10">
-            {topProducts.map((prod, i) => (
-              <div key={i} className="p-4 glass-pane rounded-xl hover:border-white/20 transition-all duration-300">
-                <p className="text-[10px] font-bold text-on-surface-variant tracking-wider mb-2">{prod.name}</p>
-                <div className="flex justify-between items-end">
-                  <span className="text-xl font-bold text-white">{prod.sales}</span>
-                  <span className={`text-[10px] font-bold ${prod.growth.startsWith("+") ? "text-emerald-400" : "text-red-400"}`}>
-                    {prod.growth}
-                  </span>
-                </div>
-              </div>
-            ))}
+          <div className="flex justify-between text-[9px] text-[#8e9192] pt-2 border-t border-[#2a2a2a] mt-2">
+            {Array.from({ length: 9 }, (_, i) => <span key={i}>{`${(9 - i) * 3}h ago`}</span>).reverse()}
           </div>
         </div>
       </div>
-    </motion.div>
+
+      {/* ── Bottom Row: Automation Health + Top Products ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Automation Rule Health */}
+        <div className="p-4 rounded bg-[#1c1b1b] border border-[#2a2a2a] shadow-sm flex flex-col justify-between space-y-3">
+          <div className="space-y-3">
+            <h3 className="text-xs font-semibold text-[#e5e2e1]">Automation Rule Status</h3>
+            <div className="space-y-2">
+              {autHealth.length > 0 ? (
+                paginatedAutHealth.map((rule, idx) => (
+                  <div key={idx} className="p-2.5 rounded bg-[#101115] border border-[#2a2a2a] flex items-center justify-between text-xs">
+                    <div className="space-y-0.5 min-w-0">
+                      <p className="font-semibold text-[#e5e2e1] truncate">{rule.name}</p>
+                      <p className="text-[10px] text-[#8e9192]">{rule.stat}</p>
+                    </div>
+                    <span className={cn(
+                      "px-2 py-0.5 rounded .border text-[10px] font-semibold shrink-0",
+                      rule.ok ? ".bg-[#c4c0ff]/10 text-[#c4c0ff] border-[#c4c0ff]/30" : "bg-[#20201f] text-[#8e9192] border-[#2a2a2a]"
+                    )}>
+                      {rule.status}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <div className="p-2.5 rounded bg-[#101115] border border-[#2a2a2a] text-xs text-[#8e9192]">
+                  No automation rules configured
+                </div>
+              )}
+            </div>
+          </div>
+          {autHealth.length > 0 && (
+            <div className="flex items-center justify-between pt-2 border-t border-[#2a2a2a] text-xs">
+              <span className="text-[11px] text-[#8e9192]">
+                Page {autHealthPage} of {totalAutHealthPages}
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setAutHealthPage((p) => Math.max(1, p - 1))}
+                  disabled={autHealthPage === 1}
+                  className="p-1 rounded bg-[#20201f] border border-[#2a2a2a] text-[#8e9192] disabled:opacity-40 disabled:cursor-not-allowed hover:text-white transition-colors cursor-pointer"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => setAutHealthPage((p) => Math.min(totalAutHealthPages, p + 1))}
+                  disabled={autHealthPage >= totalAutHealthPages}
+                  className="p-1 rounded bg-[#20201f] border border-[#2a2a2a] text-[#8e9192] disabled:opacity-40 disabled:cursor-not-allowed hover:text-white transition-colors cursor-pointer"
+                >
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Top Product Conversions */}
+        <div className="p-4 rounded bg-[#1c1b1b] border border-[#2a2a2a] shadow-sm flex flex-col justify-between space-y-3">
+          <div className="space-y-3">
+            <h3 className="text-xs font-semibold text-[#e5e2e1]">Top Product DM Conversions</h3>
+            <div className="space-y-2">
+              {topProducts.length > 0 ? (
+                paginatedTopProducts.map((prod, idx) => (
+                  <div key={idx} className="p-2.5 rounded bg-[#101115] border border-[#2a2a2a] flex items-center justify-between text-xs">
+                    <div className="space-y-0.5 min-w-0">
+                      <p className="font-semibold text-[#e5e2e1] truncate">{prod.name}</p>
+                      <p className="text-[10px] text-[#8e9192]">{prod.sales}</p>
+                    </div>
+                    <span className="px-2 py-0.5 rounded .bg-[#20201f] .border border-[#2a2a2a] text-[#c4c0ff] text-[10px] font-semibold shrink-0">
+                      {prod.growth}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <div className="p-2.5 rounded bg-[#101115] border border-[#2a2a2a] text-xs text-[#8e9192]">
+                  No product sales recorded
+                </div>
+              )}
+            </div>
+          </div>
+          {topProducts.length > 0 && (
+            <div className="flex items-center justify-between pt-2 border-t border-[#2a2a2a] text-xs">
+              <span className="text-[11px] text-[#8e9192]">
+                Page {topProductsPage} of {totalTopProductsPages}
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setTopProductsPage((p) => Math.max(1, p - 1))}
+                  disabled={topProductsPage === 1}
+                  className="p-1 rounded bg-[#20201f] border border-[#2a2a2a] text-[#8e9192] disabled:opacity-40 disabled:cursor-not-allowed hover:text-white transition-colors cursor-pointer"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => setTopProductsPage((p) => Math.min(totalTopProductsPages, p + 1))}
+                  disabled={topProductsPage >= totalTopProductsPages}
+                  className="p-1 rounded bg-[#20201f] border border-[#2a2a2a] text-[#8e9192] disabled:opacity-40 disabled:cursor-not-allowed hover:text-white transition-colors cursor-pointer"
+                >
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
-

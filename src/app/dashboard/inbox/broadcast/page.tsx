@@ -14,28 +14,33 @@ export default function BroadcastPage() {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="space-y-6"
+      className="space-y-6 relative text-white font-sans"
     >
+      {/* Background Soft Purple/Lavender Ambient Glow */}
+      <div
+        className="-z-10 pointer-events-none absolute left-1/2 top-[-50px] h-[300px] w-[600px] -translate-x-1/2 rounded-[50%] bg-gradient-to-r from-[#c4c0ff]/0 via-[#c4c0ff]/15 to-[#c4c0ff]/0 blur-3xl"
+      />
+
       <div className="flex justify-between items-end mb-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">Broadcast DM</h1>
-          <p className="text-sm text-on-surface-variant opacity-70 mt-1">
+          <h1 className="text-xl font-bold tracking-tight text-white">Broadcast DM</h1>
+          <p className="text-xs text-[#8e9192] mt-1">
             Send bulk direct messages to segmented groups with personalized parameters.
           </p>
         </div>
-        <button className="bg-white text-black text-xs font-bold px-4 py-2 rounded-lg hover:bg-[#eaeaea] transition-colors">
+        <button className="bg-white text-zinc-950 text-xs font-semibold px-4 py-2 rounded hover:bg-zinc-200 transition-colors">
           Create Broadcast
         </button>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         {broadcasts.map((b, idx) => (
-          <div key={idx} className="glass-pane p-6 rounded-xl flex items-center justify-between">
+          <div key={idx} className="bg-[#1c1b1b] border border-[#2a2a2a] p-4 rounded flex items-center justify-between">
             <div>
-              <h3 className="text-sm font-bold text-white mb-1">{b.title}</h3>
-              <p className="text-xs text-on-surface-variant/80">Audience: {b.audience} • Date: {b.schedule}</p>
+              <h3 className="text-xs font-semibold text-white mb-1">{b.title}</h3>
+              <p className="text-[11px] text-[#8e9192]">Audience: {b.audience} • Date: {b.schedule}</p>
             </div>
-            <span className={`px-2 py-1 rounded text-[9px] font-bold ${b.status === "Scheduled" ? "bg-white/10 text-on-surface-variant border border-white/5" : "bg-green-500/10 text-green-400 border border-green-500/20"
+            <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${b.status === "Scheduled" ? "bg-[#20201f] text-[#e5e2e1] border border-[#2a2a2a]" : "bg-[#c4c0ff]/10 text-[#c4c0ff] border border-[#c4c0ff]/20"
               }`}>
               {b.status}
             </span>

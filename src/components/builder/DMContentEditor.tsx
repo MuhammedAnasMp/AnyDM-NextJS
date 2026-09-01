@@ -2140,9 +2140,9 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                     </button>
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-">
                     {textMessages.map((msg, idx) => (
-                      <div key={idx} className="flex gap-2 bg-[#0e0e0e] border border-[#444748] p-3 rounded-md items-center animate-fadeIn">
+                      <div key={idx} className="flex gap-2 .bg-[#0e0e0e] .border .border-[#444748] p-3 rounded-md items-center animate-fadeIn">
                         <span className="text-xs font-bold text-zinc-550 w-5 text-center">{idx + 1}</span>
                         <input
                           type="text"
@@ -2300,7 +2300,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                     {buttonTemplateButtons.map((btn, idx) => {
                       if (idx !== normalizedActiveButtonTemplateButtonIndex) return null;
                       return (
-                        <div key={idx} className="bg-white/5 p-3 sm:p-5 rounded-xl sm:rounded-2xl border border-white/10 flex flex-col gap-3 sm:gap-4 relative animate-fadeIn">
+                        <div key={idx} className="bg-white/5 p-3 sm:p-5 rounded sm:rounded-2xl border border-white/10 flex flex-col gap-3 sm:gap-4 relative animate-fadeIn">
 
                           <div className="flex-1 w-full space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

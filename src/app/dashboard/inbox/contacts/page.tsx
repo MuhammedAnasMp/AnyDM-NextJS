@@ -6,6 +6,18 @@ import { useRouter } from "next/navigation";
 import api from "@/lib/services/api.service";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
+import {
+  RefreshCw,
+  Users,
+  UserX,
+  Search,
+  MessageSquare,
+  ChevronLeft,
+  ChevronRight,
+  Megaphone,
+  X,
+  CheckCircle2
+} from "lucide-react";
 
 interface Contact {
   id: number;
@@ -200,8 +212,8 @@ export default function ContactsPage() {
       const mins = Math.floor((contact.seconds_remaining_23h % 3600) / 60);
       return {
         text: `${hours}h ${mins}m left`,
-        badgeClass: "bg-[#10b981]/10 text-[#34d399] border-[#10b981]/20",
-        indicatorClass: "bg-[#34d399] animate-pulse",
+        badgeClass: "bg-[#c4c0ff]/10 text-[#c4c0ff] border-[#c4c0ff]/20",
+        indicatorClass: "bg-[#c4c0ff]",
       };
     } else if (contact.is_within_24h_window) {
       const mins = Math.floor(contact.seconds_remaining_24h / 60);
@@ -357,8 +369,13 @@ export default function ContactsPage() {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="space-y-4 relative text-white"
+      className="space-y-4 relative text-white font-sans"
     >
+      {/* Background Soft Purple/Lavender Ambient Glow */}
+      <div
+        className="-z-10 pointer-events-none absolute left-1/2 top-[-50px] h-[300px] w-[600px] -translate-x-1/2 rounded-[50%] bg-gradient-to-r from-[#c4c0ff]/0 via-[#c4c0ff]/15 to-[#c4c0ff]/0 blur-3xl"
+      />
+
       {/* Header */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3">
         <div>
@@ -375,7 +392,7 @@ export default function ContactsPage() {
             disabled={isFetching}
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-semibold text-white/80 hover:text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
           >
-            <span className={`material-symbols-outlined text-[13px] ${isFetching ? 'animate-spin' : ''}`}>refresh</span>
+            <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin' : ''}`} />
             Refresh
           </button>
         </div>
@@ -388,10 +405,10 @@ export default function ContactsPage() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="bg-gradient-to-r from-[#B6B2FF]/10 to-[#c4c0ff]/10 border border-[#B6B2FF]/30 p-3 rounded-lg flex flex-col md:flex-row justify-between items-center gap-3 shadow-lg backdrop-blur-md relative overflow-hidden"
+            className="bg-gradient-to-r from-[#c4c0ff]/10 to-[#c4c0ff]/10 border border-[#c4c0ff]/30 p-3 rounded flex flex-col md:flex-row justify-between items-center gap-3 shadow-lg backdrop-blur-md relative overflow-hidden"
           >
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-[#B6B2FF] text-lg">group</span>
+              <Users className="w-4 h-4 text-[#c4c0ff]" />
               <span className="text-[11px] text-white">
                 <strong className="text-[#B6B2FF] font-bold">{selectedContacts.size}</strong> contacts selected.
                 (Broadcasts will filter and send only to users within their active 24h window).
@@ -419,16 +436,16 @@ export default function ContactsPage() {
       <div className="p-3 rounded bg-[#1c1b1b] border border-white/10 flex flex-col lg:flex-row lg:items-center justify-between gap-3 text-xs shadow-xs">
         <div className="flex flex-wrap items-center gap-3">
           {/* Account Indicator */}
-          <div className="flex items-center gap-2 px-2 py-1 rounded bg-[#20201f] border border-white/5">
+          {/* <div className="flex items-center gap-2 px-2 py-1 rounded bg-[#20201f] border border-white/5">
             <span className="w-2 h-2 rounded-full bg-[#c4c0ff] animate-pulse" />
             <span className="text-[11px] font-bold text-white">
               {rateLimitData?.username ? `@${rateLimitData.username}` : activeAccount?.username ? `@${activeAccount.username}` : "Account Connected"}
             </span>
-          </div>
+          </div> */}
 
           {/* Hourly DM Velocity Indicator */}
           <div className="flex items-center gap-2">
-            <span className="text-[11px] text-[#8e9192] font-semibold tracking-wider">DM Hourly Velocity:</span>
+            {/* <span className="text-[11px] text-[#8e9192] font-semibold tracking-wider">DM Hourly Velocity:</span> */}
             <div className="flex items-center gap-1.5 font-bold">
               <span className="text-white font-mono">{rateLimitData?.hourly_dm_count || 0}</span>
               <span className="text-[#8e9192]">/ {rateLimitData?.hourly_dm_limit || 200} safe DMs/hr</span>
@@ -441,12 +458,12 @@ export default function ContactsPage() {
               className="h-full rounded-full transition-all duration-500"
               style={{
                 width: `${Math.min(100, (((rateLimitData?.hourly_dm_count || 0) / (rateLimitData?.hourly_dm_limit || 200)) * 100))}%`,
-                backgroundColor: (rateLimitData?.hourly_dm_count || 0) > 160 ? "#ef4444" : (rateLimitData?.hourly_dm_count || 0) > 120 ? "#f59e0b" : "#34d399"
+                backgroundColor: (rateLimitData?.hourly_dm_count || 0) > 160 ? "#ef4444" : (rateLimitData?.hourly_dm_count || 0) > 120 ? "#f59e0b" : "#c4c0ff"
               }}
             />
           </div>
 
-          <span className="text-[11px] text-[#34d399] font-medium">
+          <span className="text-[11px] text-[#c4c0ff] font-medium">
             {rateLimitData?.hourly_dm_remaining ?? 200} safe sends left
           </span>
         </div>
@@ -454,15 +471,12 @@ export default function ContactsPage() {
         {/* Protection Badges */}
         <div className="flex items-center gap-2 shrink-0">
           <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-white/[0.03] border border-white/5 text-[10px] text-[#c4c7c8]">
-            <span>Meta API Usage:</span>
+            <span>Usage:</span>
             <strong className="text-white font-mono">{rateLimitData?.rate_limit_utilization_pct || 0}%</strong>
             <span className="text-[#8e9192]">({Math.ceil((rateLimitData?.reset_time_seconds || 3600) / 60)}m reset)</span>
           </div>
 
-          <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-[#10b981]/10 border border-[#10b981]/20 text-[#34d399] text-[10px] font-bold">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#34d399] animate-pulse" />
-            <span>Anti-Block Safe</span>
-          </div>
+
         </div>
       </div>
 
@@ -475,8 +489,8 @@ export default function ContactsPage() {
 
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           {/* Search bar */}
-          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-white/[0.03] border border-white/10 focus-within:border-white/20 transition-all w-full md:max-w-xs">
-            <span className="material-symbols-outlined text-sm text-white/40">search</span>
+          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded bg-white/[0.03] border border-white/10 focus-within:border-white/20 transition-all w-full md:max-w-xs">
+            <Search className="w-3.5 h-3.5 text-[#8e9192]" />
             <input
               type="text"
               placeholder="Search username or name..."
@@ -603,7 +617,7 @@ export default function ContactsPage() {
                 <tr>
                   <td colSpan={6} className="text-center py-24 text-white/40">
                     <div className="flex flex-col items-center justify-center gap-2">
-                      <span className="material-symbols-outlined text-4xl text-white/20">group_off</span>
+                      <UserX className="w-8 h-8 text-[#8e9192]" />
                       <span className="text-sm font-medium">No contacts found matching criteria.</span>
                     </div>
                   </td>
@@ -647,7 +661,7 @@ export default function ContactsPage() {
                             <div className="text-white/40 text-[10px] flex items-center gap-1.5 flex-wrap mt-0.5">
                               <span>@{contact.username}</span>
                               {contact.gained_via_automation && (
-                                <span className="px-1.5 py-0.2 text-[9px] font-semibold rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                <span className="px-1.5 py-0.2 text-[9px] font-semibold rounded bg-[#c4c0ff]/10 text-[#c4c0ff] border border-[#c4c0ff]/20">
                                   Followed via {contact.gained_via_automation}
                                 </span>
                               )}
@@ -721,7 +735,7 @@ export default function ContactsPage() {
                             : "bg-white/5 border border-white/10 text-white/30 cursor-not-allowed"
                             }`}
                         >
-                          <span className="material-symbols-outlined text-sm">chat</span>
+                          <MessageSquare className="w-3.5 h-3.5" />
                           Message
                         </button>
                       </td>
@@ -770,7 +784,7 @@ export default function ContactsPage() {
                     : "border-white/10 text-white hover:bg-white/5 cursor-pointer active:scale-95"
                     }`}
                 >
-                  <span className="material-symbols-outlined text-base">chevron_left</span>
+                  <ChevronLeft className="w-4 h-4" />
                 </button>
 
                 <div className="text-xs text-white/70 font-semibold px-2">
@@ -785,7 +799,7 @@ export default function ContactsPage() {
                     : "border-white/10 text-white hover:bg-white/5 cursor-pointer active:scale-95"
                     }`}
                 >
-                  <span className="material-symbols-outlined text-base">chevron_right</span>
+                  <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
             </div>
@@ -812,16 +826,16 @@ export default function ContactsPage() {
               className="relative w-full max-w-xl bg-[#0d0d0d] border border-white/10 rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh]"
             >
               {/* Modal Header */}
-              <div className="p-5 border-b border-white/5 flex items-center justify-between shrink-0 bg-white/[0.01]">
+              <div className="p-4 border-b border-white/10 flex items-center justify-between shrink-0 bg-[#1c1b1b]">
                 <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[#B6B2FF]">campaign</span>
+                  <Megaphone className="w-4 h-4 text-[#c4c0ff]" />
                   <h3 className="font-semibold text-sm tracking-wide">Compose Bulk Broadcast</h3>
                 </div>
                 <button
                   onClick={handleCloseBroadcastModal}
-                  className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center text-white/50 hover:text-white transition-colors cursor-pointer"
+                  className="w-6 h-6 rounded bg-[#20201f] border border-[#2a2a2a] flex items-center justify-center text-[#8e9192] hover:text-white transition-colors cursor-pointer"
                 >
-                  <span className="material-symbols-outlined text-base">close</span>
+                  <X className="w-3.5 h-3.5" />
                 </button>
               </div>
 
@@ -829,10 +843,10 @@ export default function ContactsPage() {
               <div className="p-5 overflow-y-auto space-y-4 flex-1 custom-scrollbar">
                 {!broadcastResults ? (
                   <>
-                    <div className="p-3 bg-white/5 rounded-xl border border-white/5 space-y-1.5 text-[11px] text-white/70">
+                    <div className="p-3 bg-white/5 rounded border border-white/5 space-y-1.5 text-[11px] text-white/70">
                       <div className="flex items-center justify-between text-white font-medium">
                         <span>Selected Recipients: <strong>{selectedContacts.size}</strong> contacts</span>
-                        <span className="text-[#34d399] font-mono text-[10px] bg-[#10b981]/10 px-2 py-0.5 rounded border border-[#10b981]/20">
+                        <span className="text-[#c4c0ff] font-mono text-[10px] bg-[#c4c0ff]/10 px-2 py-0.5 rounded border border-[#c4c0ff]/20">
                           ⚡ {rateLimitData?.hourly_dm_remaining ?? 200} Hourly DM quota left
                         </span>
                       </div>
@@ -850,7 +864,7 @@ export default function ContactsPage() {
                       >
                         Text Message
                         {broadcastTab === "text" && (
-                          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#B6B2FF]" />
+                          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#c4c0ff]" />
                         )}
                       </button>
                       <button
@@ -860,7 +874,7 @@ export default function ContactsPage() {
                       >
                         Product Showcase
                         {broadcastTab === "products" && (
-                          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#B6B2FF]" />
+                          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#c4c0ff]" />
                         )}
                       </button>
                     </div>
@@ -876,7 +890,7 @@ export default function ContactsPage() {
                           value={broadcastMessageText}
                           onChange={(e) => setBroadcastMessageText(e.target.value)}
                           placeholder="Type your message to send in bulk..."
-                          className="w-full bg-white/[0.03] border border-white/10 rounded-xl p-3.5 text-xs text-white placeholder-white/30 focus:border-white/20 outline-none resize-none"
+                          className="w-full bg-white/[0.03] border border-white/10 rounded p-3 text-xs text-white placeholder-white/30 focus:border-white/20 outline-none resize-none"
                         />
                       </div>
                     ) : (
@@ -886,15 +900,15 @@ export default function ContactsPage() {
                             Select Products (Max 10)
                           </label>
                           {selectedBroadcastProducts.length > 0 && (
-                            <span className="text-[9px] bg-[#B6B2FF]/20 text-[#B6B2FF] px-2.5 py-0.5 rounded-full font-bold ">
+                            <span className="text-[9px] bg-[#c4c0ff]/20 text-[#c4c0ff] px-2 py-0.5 rounded font-bold">
                               {selectedBroadcastProducts.length} Selected
                             </span>
                           )}
                         </div>
 
                         {/* Product Search */}
-                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/10 focus-within:border-white/20 transition-all">
-                          <span className="material-symbols-outlined text-xs text-white/40">search</span>
+                        <div className="flex items-center gap-2 px-3 py-1.5 rounded bg-white/[0.03] border border-white/10 focus-within:border-white/20 transition-all">
+                          <Search className="w-3.5 h-3.5 text-[#8e9192]" />
                           <input
                             type="text"
                             placeholder="Search products..."
@@ -917,26 +931,26 @@ export default function ContactsPage() {
                                 <div
                                   key={prod.id}
                                   onClick={() => handleToggleProduct(prod)}
-                                  className={`relative flex items-center gap-3 p-2 rounded-xl border cursor-pointer transition-all ${isSelected
-                                    ? "bg-[#B6B2FF]/10 border-[#B6B2FF]/40 shadow-lg"
+                                  className={`relative flex items-center gap-3 p-2 rounded border cursor-pointer transition-all ${isSelected
+                                    ? "bg-[#c4c0ff]/10 border-[#c4c0ff]/40 shadow-lg"
                                     : "bg-white/[0.02] border-white/5 hover:border-white/10 hover:bg-white/[0.04]"
                                     }`}
                                 >
                                   <img
                                     src={prod.media_url || prod.main_media_url || `https://ui-avatars.com/api/?name=${prod.title}&background=random&color=fff`}
                                     alt={prod.title}
-                                    className="w-10 h-10 rounded-lg object-cover bg-white/5 border border-white/10"
+                                    className="w-10 h-10 rounded object-cover bg-white/5 border border-white/10"
                                   />
                                   <div className="min-w-0 flex-1">
                                     <h5 className="font-semibold text-white truncate text-[11px] leading-tight">
                                       {prod.title}
                                     </h5>
-                                    <p className="text-[10px] font-bold text-[#B6B2FF] mt-0.5">
+                                    <p className="text-[10px] font-bold text-[#c4c0ff] mt-0.5">
                                       ₹{prod.price || "Free"}
                                     </p>
                                   </div>
                                   {isSelected && (
-                                    <span className="material-symbols-outlined text-[#B6B2FF] text-base pr-1">check_circle</span>
+                                    <CheckCircle2 className="w-4 h-4 text-[#c4c0ff] shrink-0" />
                                   )}
                                 </div>
                               );
@@ -950,7 +964,7 @@ export default function ContactsPage() {
                   /* Broadcast Results Summary Screen */
                   <div className="space-y-4">
                     <div className="flex flex-col items-center justify-center py-4 text-center">
-                      <span className="material-symbols-outlined text-4xl text-[#B6B2FF] animate-pulse">campaign</span>
+                      <Megaphone className="w-8 h-8 text-[#c4c0ff] animate-pulse" />
                       <h4 className="font-bold text-base mt-2">Broadcast Complete!</h4>
                       <p className="text-xs text-white/50 mt-1">Summary of sent statuses</p>
                     </div>
@@ -961,11 +975,11 @@ export default function ContactsPage() {
                         <div className="text-xl font-bold text-white">{broadcastResults.total_count}</div>
                         <div className="text-[9px] text-white/40 font-semibold mt-0.5">Total</div>
                       </div>
-                      <div className="bg-[#10b981]/10 border border-[#10b981]/20 p-3 rounded-xl text-center">
-                        <div className="text-xl font-bold text-[#34d399]">{broadcastResults.success_count}</div>
-                        <div className="text-[9px] text-[#34d399]/60 font-semibold mt-0.5">Sent</div>
+                      <div className="bg-[#c4c0ff]/10 border border-[#c4c0ff]/20 p-3 rounded text-center">
+                        <div className="text-xl font-bold text-[#c4c0ff]">{broadcastResults.success_count}</div>
+                        <div className="text-[9px] text-[#c4c0ff]/70 font-semibold mt-0.5">Sent</div>
                       </div>
-                      <div className="bg-[#ef4444]/10 border border-[#ef4444]/20 p-3 rounded-xl text-center">
+                      <div className="bg-[#ef4444]/10 border border-[#ef4444]/20 p-3 rounded text-center">
                         <div className="text-xl font-bold text-[#f87171]">{broadcastResults.failed_count}</div>
                         <div className="text-[9px] text-[#f87171]/60 font-semibold mt-0.5">Failed</div>
                       </div>
@@ -976,7 +990,7 @@ export default function ContactsPage() {
                       <label className="text-[9px] tracking-wider text-white/40 font-bold block">
                         Detailed Broadcast Logs
                       </label>
-                      <div className="max-h-44 overflow-y-auto custom-scrollbar border border-white/5 rounded-xl divide-y divide-white/5 bg-white/[0.01]">
+                      <div className="max-h-44 overflow-y-auto custom-scrollbar border border-white/5 rounded divide-y divide-white/5 bg-white/[0.01]">
                         {broadcastResults.results.map((res: any, idx: number) => {
                           const contact = contacts.find(c => c.instagram_scoped_id === res.recipient_id);
                           const name = contact ? contact.full_name || contact.username : `@${res.recipient_id}`;
@@ -986,7 +1000,7 @@ export default function ContactsPage() {
                             <div key={idx} className="p-3 flex items-center justify-between text-xs">
                               <span className="font-semibold text-white/80">{name}</span>
                               {isSuccess ? (
-                                <span className="text-[9px] font-bold text-[#34d399] bg-[#10b981]/10 border border-[#10b981]/20 px-2 py-0.5 rounded tracking-wider">
+                                <span className="text-[9px] font-bold text-[#c4c0ff] bg-[#c4c0ff]/10 border border-[#c4c0ff]/20 px-2 py-0.5 rounded tracking-wider">
                                   Sent
                                 </span>
                               ) : (

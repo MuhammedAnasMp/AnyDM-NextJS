@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { useState } from 'react';
-import { MessageSquare, Mail, History, ShoppingBag, Trophy, Sparkles, Menu as MenuIcon, Loader2, X, PillIcon, ChevronLeft, HdIcon, FocusIcon, MinusIcon, PlusIcon } from 'lucide-react';
+import { MessageSquare, Mail, History, ShoppingBag, Trophy, Sparkles, Menu as MenuIcon, Loader2, X, PillIcon, ChevronLeft, ChevronRight, HdIcon, FocusIcon, MinusIcon, PlusIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import DMContentEditor from '@/components/builder/WelcomeContentEditor';
 import { useSelector } from 'react-redux';
@@ -148,6 +148,7 @@ export function LeftSidebar() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [isLoadingWelcome, setIsLoadingWelcome] = useState<'icebreakers' | 'persistent_menu' | null>(null);
   const [welcomeTab, setWelcomeTab] = useState<'icebreakers' | 'persistent_menu' | null>(urlWelcome);
+  const [lastWelcomeTab, setLastWelcomeTab] = useState<'icebreakers' | 'persistent_menu'>('icebreakers');
 
   const nodes = useSelector((state: RootState) => state.flow.nodes);
   const flow = useSelector((state: RootState) => state.flow);
@@ -232,6 +233,11 @@ export function LeftSidebar() {
   };
 
   const handleWelcomeIconClick = async (tab: 'icebreakers' | 'persistent_menu') => {
+    setLastWelcomeTab(tab);
+    if (activeWelcomeTab === tab) {
+      setWelcomeTab(null);
+      return;
+    }
     setIsLoadingWelcome(tab);
     setActiveCategory(null);
     setWelcomeTab(tab);
@@ -264,7 +270,7 @@ export function LeftSidebar() {
       <div className={cn("flex h-full shrink-0 z-20", isScheduleOpen && "hidden sm:flex")}>
         {/* 4-Icon Vertical Rail representing the categories (Hidden when editing existing flow) */}
         {!isEditMode && (
-          <div className="w-12 sm:w-16 h-full bg-[#161616] border-r border-[#2d2d2d] flex flex-col items-center py-3 gap-3 sm:gap-5 shadow-2xl relative select-none">
+          <div className="w-10 sm:w-12 h-full bg-[#161616] border-r border-[#2d2d2d] flex flex-col items-center py-2.5 gap-2 sm:gap-3 shadow-2xl relative select-none">
             {TEMPLATE_CATEGORIES.filter(c => !c.hidden).map(category => {
               const isActive = activeCategory === category.id;
               const isSelected = activeCategory === null && !isIcebreakerActive && !isMenuActive && selectedCategory === category.id;
@@ -278,19 +284,19 @@ export function LeftSidebar() {
                     <button
                       onClick={() => toggleCategory(category.id)}
                       className={cn(
-                        "w-9 h-9 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center border border-white/5 bg-transparent text-white/60 hover:text-white hover:bg-white/5 transition-all duration-300 relative group",
+                        "w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center border border-white/5 bg-transparent text-white/60 hover:text-white hover:bg-white/5 transition-all duration-300 relative group",
                         isActiveOrSelected && cn("text-white border-white/10 scale-105", category.glowClass)
                       )}
                     >
-                      <Icon className={cn("w-4 h-4 sm:w-5 sm:h-5 transition-transform duration-300 group-hover:scale-110", isActiveOrSelected && category.colorClass)} />
+                      <Icon className={cn("w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform duration-300 group-hover:scale-110", isActiveOrSelected && category.colorClass)} />
                       {isActive && (
-                        <div className={cn("absolute right-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-l-full bg-current", category.colorClass)} />
+                        <div className={cn("absolute right-0 top-1/2 -translate-y-1/2 w-[2.5px] h-4 rounded-l-full bg-current", category.colorClass)} />
                       )}
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="right" className="ml-2 bg-[#0F1011] border border-white/10 text-white font-semibold">
                     <div className='flex justify-center items-center gap-2'>
-                      <Icon className={cn("w-5 h-5 transition-transform duration-300 group-hover:scale-110")} />
+                      <Icon className={cn("w-4 h-4 transition-transform duration-300 group-hover:scale-110")} />
                       {category.title}</div>
                   </TooltipContent>
                 </Tooltip>
@@ -298,7 +304,7 @@ export function LeftSidebar() {
             })}
 
             {/* Separator */}
-            <div className="w-8 h-px bg-white/10 my-1" />
+            <div className="w-6 h-px bg-white/10 my-0.5" />
 
             {/* Icebreakers Button */}
             <Tooltip delayDuration={150}>
@@ -307,20 +313,20 @@ export function LeftSidebar() {
                   onClick={() => handleWelcomeIconClick('icebreakers')}
                   disabled={isLoadingWelcome !== null}
                   className={cn(
-                    "w-9 h-9 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center border border-white/5 bg-transparent text-white/60 hover:text-white hover:bg-white/5 transition-all duration-300 relative group disabled:opacity-60",
+                    "w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center border border-white/5 bg-transparent text-white/60 hover:text-white hover:bg-white/5 transition-all duration-300 relative group disabled:opacity-60",
                     isIcebreakerActive && "text-white border-[#c4c0ff]/40 bg-[#c4c0ff]/5 shadow-[0_0_15px_rgba(196,192,255,0.15)] scale-105"
                   )}
                 >
                   {isLoadingWelcome === 'icebreakers'
-                    ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-[#c4c0ff]" />
-                    : <PillIcon className={cn("w-4 h-4 sm:w-5 sm:h-5 transition-transform duration-300 group-hover:scale-110", isIcebreakerActive && "text-[#c4c0ff]")} />}
+                    ? <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin text-[#c4c0ff]" />
+                    : <PillIcon className={cn("w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform duration-300 group-hover:scale-110", isIcebreakerActive && "text-[#c4c0ff]")} />}
                   {isIcebreakerActive && (
-                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-l-full bg-[#c4c0ff]" />
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[2.5px] h-4 rounded-l-full bg-[#c4c0ff]" />
                   )}
                 </button>
               </TooltipTrigger>
               <TooltipContent side="right" className="ml-2 bg-[#0F1011] border border-white/10 text-white font-semibold flex gap-1 justify-center items-center">
-                <PillIcon size={15} />
+                <PillIcon size={14} />
                 <span>
                   Welcome Questions</span>
               </TooltipContent>
@@ -333,15 +339,15 @@ export function LeftSidebar() {
                   onClick={() => handleWelcomeIconClick('persistent_menu')}
                   disabled={isLoadingWelcome !== null}
                   className={cn(
-                    "w-9 h-9 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center border border-white/5 bg-transparent text-white/60 hover:text-white hover:bg-white/5 transition-all duration-300 relative group disabled:opacity-60",
+                    "w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center border border-white/5 bg-transparent text-white/60 hover:text-white hover:bg-white/5 transition-all duration-300 relative group disabled:opacity-60",
                     isMenuActive && "text-white border-[#C084FC]/40 bg-[#C084FC]/5 shadow-[0_0_15px_rgba(192,132,252,0.15)] scale-105"
                   )}
                 >
                   {isLoadingWelcome === 'persistent_menu'
-                    ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-[#C084FC]" />
-                    : <MenuIcon className={cn("w-4 h-4 sm:w-5 sm:h-5 transition-transform duration-300 group-hover:scale-110", isMenuActive && "text-[#C084FC]")} />}
+                    ? <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin text-[#C084FC]" />
+                    : <MenuIcon className={cn("w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform duration-300 group-hover:scale-110", isMenuActive && "text-[#C084FC]")} />}
                   {isMenuActive && (
-                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-l-full bg-[#C084FC]" />
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[2.5px] h-4 rounded-l-full bg-[#C084FC]" />
                   )}
                 </button>
               </TooltipTrigger>
@@ -373,9 +379,20 @@ export function LeftSidebar() {
                 title="Focus"
               >
                 <FocusIcon size={15} />
-                {/* <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-[#8FE3FF]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> */}
               </button>
             </div>
+
+            {/* Floating Expand Toggle Button on Rail when Drawer is Collapsed */}
+            {!activeCategoryData && activeWelcomeTab === null && (
+              <button
+                type="button"
+                onClick={() => handleWelcomeIconClick(lastWelcomeTab)}
+                className="absolute top-1/2 -right-4 -translate-y-1/2 w-8 h-8 rounded-full bg-[#1c1b1b] border border-[#20201f] hover:bg-[#2c2c2c] hover:border-zinc-500 text-zinc-400 hover:text-white flex items-center justify-center shadow-md cursor-pointer z-50 transition-all duration-200"
+                title="Expand Panel"
+              >
+                <ChevronRight className="w-5 h-5 text-[#c4c0ff]" />
+              </button>
+            )}
           </div>
         )}
 
@@ -389,22 +406,13 @@ export function LeftSidebar() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               transition={{ type: 'spring', bounce: 0, duration: 0.3 }}
-              className="h-full bg-[#131313] border-r border-[#2d2d2d] flex flex-col shadow-2xl overflow-hidden relative w-[220px] sm:w-[320px]"
+              className="h-full bg-[#131313] border-r border-[#2d2d2d] flex flex-col shadow-2xl relative w-[220px] sm:w-[320px]"
             >
               <div className="p-4 border-b border-[#2d2d2d] flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
-                  {/* <span className="text-lg">{activeCategoryData.emoji}</span> */}
                   <activeCategoryData.emoji className={cn("w-5 h-5 transition-transform duration-300 group-hover:scale-110")} />
                   <h2 className="text-sm font-bold text-white tracking-tight">{activeCategoryData.title}</h2>
                 </div>
-                {!isEditMode && (
-                  <button
-                    onClick={() => setActiveCategory(null)}
-                    className="p-2 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition-colors cursor-pointer"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                )}
               </div>
 
               <div
@@ -420,6 +428,16 @@ export function LeftSidebar() {
                   <Component key={i} />
                 ))}
               </div>
+
+              {/* Floating Toggle Button on Right Edge of Category Panel */}
+              <button
+                type="button"
+                onClick={() => setActiveCategory(null)}
+                className="absolute top-1/2 -right-4 -translate-y-1/2 w-8 h-8 rounded-full bg-[#1c1b1b] border border-[#20201f] hover:bg-[#2c2c2c] hover:border-zinc-500 text-zinc-400 hover:text-white flex items-center justify-center shadow-md cursor-pointer z-50 transition-all duration-200"
+                title="Hide Panel"
+              >
+                <ChevronLeft className="w-5 h-5 text-[#c4c0ff]" />
+              </button>
             </motion.div>
           )}
 
@@ -431,7 +449,7 @@ export function LeftSidebar() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               transition={{ type: 'spring', bounce: 0, duration: 0.3 }}
-              className="h-full bg-[#131313] border-r border-[#393939] flex flex-col shadow-2xl overflow-hidden relative w-[254px] sm:w-[360px]"
+              className="h-full bg-[#131313] border-r border-[#393939] flex flex-col shadow-2xl relative w-[254px] sm:w-[360px]"
             >
               <div className="px-2 py-2 sm:px-5 sm:pt-5 sm:pb-4 border-b border-[#2d2d2d] flex items-center justify-between shrink-0">
                 <div>
@@ -444,20 +462,21 @@ export function LeftSidebar() {
                     {activeWelcomeTab === 'icebreakers' ? 'Suggested questions for new customers' : 'Always visible in top right side'}
                   </p>
                 </div>
-
-                {!isEditMode && (
-                  <button
-                    onClick={() => setWelcomeTab(null)}
-                    className="p-1 sm:p-2 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition-colors shrink-0"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                )}
               </div>
 
-              <div className="flex-1 overflow-y-auto px-0 py-1 sm:p-4 scrollbar-thin">
+              <div className="flex-1 overflow-y-auto px-0 py-1 sm:p-4 scrollbar-thin overflow-x-hidden">
                 <DMContentEditor defaultTab={activeWelcomeTab} />
               </div>
+
+              {/* Floating Toggle Button on Right Edge of Mock UI Panel */}
+              <button
+                type="button"
+                onClick={() => setWelcomeTab(null)}
+                className="absolute top-1/2 -right-4 -translate-y-1/2 w-8 h-8 rounded-full bg-[#1c1b1b] border border-[#20201f] hover:bg-[#2c2c2c] hover:border-zinc-500 text-zinc-400 hover:text-white flex items-center justify-center shadow-md cursor-pointer z-50 transition-all duration-200"
+                title="Hide Panel"
+              >
+                <ChevronLeft className="w-5 h-5 text-[#c4c0ff]" />
+              </button>
             </motion.div>
           )}
         </AnimatePresence>
