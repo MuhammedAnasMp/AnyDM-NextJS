@@ -213,7 +213,7 @@ export default function CatalogPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#20201f] pb-5">
         <div>
-          <h1 className="text-xl font-semibold text-white tracking-tight">Product catalog</h1>
+          <h1 className="text-xl font-semibold text-white tracking-tight">All Products</h1>
           <p className="text-xs text-[#c4c7c8] mt-0.5">Manage, track, and optimize your synchronized ecommerce inventory.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 justify-end">

@@ -139,7 +139,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
       { name: "Revenue Growth", href: "/dashboard/revenue" },
     ],
     Products: [
-      { name: "Catalog", href: "/dashboard/products/catalog" },
+      { name: "Products", href: "/dashboard/products/catalog" },
       { name: "Orders", href: "/dashboard/products/orders" },
       { name: "Website", href: "/dashboard/products/website" },
     ],
@@ -354,7 +354,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
       </header>
 
       {/* Tier 2: Sub-Navigation Bar */}
-      {!pathname.startsWith("/dashboard/automations") && items.length > 0 && (
+      {!pathname.startsWith("/dashboard/automations") && !pathname.includes("/products/catalog/create") && items.length > 0 && (
         <nav className="bg-[#181817]/40 backdrop-blur-xl border-t border-white/5 px-4 lg:px-lg h-9 flex items-center overflow-x-auto scrollbar-hide">
           <div className="flex items-center gap-3 md:gap-3 text-xs font-semibold h-full whitespace-nowrap">
             {items.map((item) => {

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "@/lib/services/api.service";
 import { useSelector } from "react-redux";
@@ -22,6 +23,7 @@ import {
   RefreshCw,
   Send,
   Eye,
+  Pencil,
   X,
   Smile,
   Hash,
@@ -41,7 +43,8 @@ import {
   SlidersHorizontal,
   ArrowUpRight,
   Plane,
-  Share
+  Share,
+  Smartphone
 } from "lucide-react";
 import InstagramIcon from "@/components/ui/InstagramIcon";
 import { cn } from "@/lib/utils";
@@ -85,6 +88,11 @@ export default function InstagramSchedulerPage() {
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(12);
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Reset to page 1 on filter or search changes
   useEffect(() => {
@@ -993,61 +1001,67 @@ export default function InstagramSchedulerPage() {
         )}
       </div>
 
-      {/* Centered Modal Popup Overlay */}
-      <AnimatePresence>
-        {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsModalOpen(false)}
-              className="absolute inset-0 bg-black/85 backdrop-blur-md"
-            />
+      {/* Centered Modal Popup Overlay (Portaled to document.body so it covers the sidebar) */}
+      {mounted &&
+        createPortal(
+          <AnimatePresence>
+            {isModalOpen && (
+              <div className="fixed inset-0 z-[99999] flex items-center justify-center p-2 sm:p-4 md:p-6">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setIsModalOpen(false)}
+                  className="absolute inset-0 bg-black/90 backdrop-blur-xl"
+                />
 
             <motion.div
               initial={{ opacity: 0, scale: 0.97, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.97, y: 10 }}
-              className="relative w-full max-w-5xl lg:max-w-6xl xl:max-w-7xl max-h-[92vh] bg-[#141414] border border-white/15 rounded-xl overflow-hidden shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9)] flex flex-col"
+              className="relative w-full max-w-5xl lg:max-w-6xl xl:max-w-7xl h-[92vh] sm:h-[88vh] lg:h-[90vh] bg-[#141414] border border-white/15 rounded-xl overflow-hidden shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9)] flex flex-col"
             >
               {/* Modal Header */}
-              <div className="p-3.5 px-5 border-b border-white/10 flex items-center justify-between shrink-0 bg-[#1c1b1b]">
-                <div className="flex items-center gap-2.5">
-
-                  <div>
-                    <h3 className="text-sm font-bold text-white tracking-tight">Schedular Studio</h3>
-                    <p className="text-[10px] text-[#8e9192]">Create, schedule, and publish posts, reels, stories &amp; carousels</p>
+              <div className="p-2.5 sm:p-3.5 px-3 sm:px-5 border-b border-white/10 flex items-center justify-between shrink-0 bg-[#1c1b1b] gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="truncate">
+                    <h3 className="text-xs sm:text-sm font-bold text-white tracking-tight truncate">Schedular Studio</h3>
+                    <p className="hidden md:block text-[10px] text-[#8e9192] truncate">Schedule &amp; publish Instagram posts, reels, stories &amp; carousels</p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  {/* Mobile Tab Switcher */}
-                  <div className="flex lg:hidden items-center gap-1 bg-[#20201f] p-0.5 rounded border border-white/10 text-xs">
+                <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+                  {/* Mobile Icon Tab Switcher */}
+                  <div className="flex lg:hidden items-center gap-0.5 bg-[#20201f] p-0.5 rounded border border-white/10 text-xs">
                     <button
                       type="button"
                       onClick={() => setModalTab("form")}
-                      className={`px-3 py-1 rounded text-xs font-bold transition-all ${modalTab === "form" ? "bg-white text-black shadow-sm" : "text-[#8e9192]"
+                      title="Editor"
+                      className={`p-1.5 px-2 rounded text-xs font-bold transition-all flex items-center gap-1.5 ${modalTab === "form" ? "bg-white text-black shadow-sm" : "text-[#8e9192]"
                         }`}
                     >
-                      Editor
+                      <Pencil className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Editor</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setModalTab("preview")}
-                      className={`px-3 py-1 rounded text-xs font-bold transition-all ${modalTab === "preview" ? "bg-white text-black shadow-sm" : "text-[#8e9192]"
+                      title="Live Preview"
+                      className={`p-1.5 px-2 rounded text-xs font-bold transition-all flex items-center gap-1.5 ${modalTab === "preview" ? "bg-white text-black shadow-sm" : "text-[#8e9192]"
                         }`}
                     >
-                      Live Preview
+                      <Smartphone className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Preview</span>
                     </button>
                   </div>
 
                   <button
                     onClick={() => setIsModalOpen(false)}
-                    className="px-3 py-1.5 rounded bg-white/5 hover:bg-rose-500/10 border border-white/10 hover:border-rose-500/30 text-[#8e9192] hover:text-rose-400 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5"
+                    className="px-2 sm:px-3 py-1.5 rounded bg-white/5 hover:bg-rose-500/10 border border-white/10 hover:border-rose-500/30 text-[#8e9192] hover:text-rose-400 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1 shrink-0"
+                    title="Cancel"
                   >
                     <X className="w-3.5 h-3.5" />
-                    <span>Cancel</span>
+                    <span className="">Cancel</span>
                   </button>
 
                   {/* Post / Schedule button — always visible in header */}
@@ -1055,7 +1069,7 @@ export default function InstagramSchedulerPage() {
                     type="submit"
                     form="creator-studio-form"
                     disabled={submitting || uploadingMedia}
-                    className="px-4 py-1.5 rounded bg-gradient-to-r from-white to-[#eaeaea] hover:from-white hover:to-white text-black text-xs font-bold shadow flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                    className="px-3 sm:px-4 py-1.5 rounded bg-gradient-to-r from-white to-[#eaeaea] hover:from-white hover:to-white text-black text-xs font-bold shadow flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer disabled:opacity-50 shrink-0"
                   >
                     {submitting ? (
                       <>
@@ -1065,7 +1079,8 @@ export default function InstagramSchedulerPage() {
                     ) : scheduleMode === "now" ? (
                       <>
                         <Send className="w-3.5 h-3.5" />
-                        <span>Post Now</span>
+                        <span className="hidden sm:inline">Post Now</span>
+                        <span className="sm:hidden">Post</span>
                       </>
                     ) : (
                       <>
@@ -1083,25 +1098,25 @@ export default function InstagramSchedulerPage() {
                 <form
                   id="creator-studio-form"
                   onSubmit={handleCreatePost}
-                  className={`lg:col-span-7 xl:col-span-7 lg:order-last p-4 sm:p-6 space-y-5 border-l border-white/10 overflow-y-auto custom-scrollbar ${modalTab === "form" ? "block" : "hidden lg:block"
+                  className={`lg:col-span-7 xl:col-span-7 lg:order-last p-3 sm:p-6 space-y-4 sm:space-y-5 border-l-0 lg:border-l border-white/10 overflow-y-auto custom-scrollbar ${modalTab === "form" ? "block" : "hidden lg:block"
                     }`}
                 >
                   {/* 1. Publishing Schedule (Small tab strip with width grid) */}
                   <div className="space-y-1.5 border-b border-[#2a2a2a] pb-4">
                     <label className="text-[11px] font-semibold text-[#8e9192]">
-                      Publishing Schedule
+                      Schedule
                     </label>
-                    <div className="grid grid-cols-2 gap-1 bg-[#101115] p-1 rounded-md border border-[#2a2a2a] w-full sm:w-fit min-w-[280px]">
+                    <div className="grid grid-cols-2 gap-1 bg-[#101115] p-1 rounded-md border border-[#2a2a2a] w-full sm:w-fit">
                       <button
                         type="button"
                         onClick={() => setScheduleMode("now")}
-                        className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${scheduleMode === "now"
+                        className={`px-2 sm:px-3 py-1.5 rounded-md text-[11px] sm:text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1 sm:gap-1.5 ${scheduleMode === "now"
                           ? "bg-white text-zinc-950 shadow-sm font-bold"
                           : "text-[#8e9192] hover:text-white"
                           }`}
                       >
                         <Send className="w-3.5 h-3.5" />
-                        <span>Publish Instantly</span>
+                        <span>Publish Now</span>
                       </button>
 
                       <button
@@ -1112,13 +1127,13 @@ export default function InstagramSchedulerPage() {
                             applyPresetTime(1);
                           }
                         }}
-                        className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${scheduleMode === "later"
+                        className={`px-2 sm:px-3 py-1.5 rounded-md text-[11px] sm:text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1 sm:gap-1.5 ${scheduleMode === "later"
                           ? "bg-white text-zinc-950 shadow-sm font-bold"
                           : "text-[#8e9192] hover:text-white"
                           }`}
                       >
                         <CalendarClock className="w-3.5 h-3.5" />
-                        <span>Schedule for Later</span>
+                        <span>Schedule Later</span>
                       </button>
                     </div>
 
@@ -1139,13 +1154,13 @@ export default function InstagramSchedulerPage() {
                                 (e.target as any).showPicker?.();
                               } catch { }
                             }}
-                            className={`w-full bg-[#1c1b1b] border rounded-lg pl-9 pr-3 py-2.5 text-xs text-white outline-none transition-all [color-scheme:dark] cursor-pointer font-medium ${errors.datetime ? "border-rose-500 focus:border-rose-400" : "border-white/10 focus:border-[#c4c0ff]"
+                            className={`w-full bg-[#1c1b1b] border rounded-lg pl-9 pr-3 py-2 text-xs text-white outline-none transition-all [color-scheme:dark] cursor-pointer font-medium ${errors.datetime ? "border-rose-500 focus:border-rose-400" : "border-white/10 focus:border-[#c4c0ff]"
                               }`}
                           />
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                          <span className="text-[10px] text-[#8e9192] font-semibold mr-0.5">Quick Presets:</span>
+                        <div className="flex flex-wrap items-center gap-1 pt-0.5">
+                          <span className="text-[10px] text-[#8e9192] font-semibold mr-0.5">Presets:</span>
                           {[
                             { label: "+1 Hour", hours: 1 },
                             { label: "+3 Hours", hours: 3 },
@@ -1157,7 +1172,7 @@ export default function InstagramSchedulerPage() {
                               key={preset.label}
                               type="button"
                               onClick={() => applyPresetTime(preset.hours)}
-                              className="px-2.5 py-1 rounded bg-white/5 hover:bg-white/10 hover:text-white border border-white/5 text-[10px] font-semibold text-[#c4c7c8] transition-colors cursor-pointer"
+                              className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded bg-white/5 hover:bg-white/10 hover:text-white border border-white/5 text-[9.5px] sm:text-[10px] font-semibold text-[#c4c7c8] transition-colors cursor-pointer"
                             >
                               {preset.label}
                             </button>
@@ -1173,15 +1188,15 @@ export default function InstagramSchedulerPage() {
                     )}
                   </div>
 
-                  {/* Content Format (Small tab strip with full responsive width grid) */}
+                  {/* Content Format (Single line 4-column strip on all mobile & desktop screens) */}
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-semibold text-[#8e9192]">Content Format</label>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 bg-[#101115] p-1 rounded-md border border-[#2a2a2a] w-full">
+                    <label className="text-[11px] font-semibold text-[#8e9192]">Type</label>
+                    <div className="grid grid-cols-4 gap-1 bg-[#101115] p-1 rounded-md border border-[#2a2a2a] w-full">
                       {[
-                        { type: "REELS", label: "Reel", icon: Film },
-                        { type: "IMAGE", label: "Photo Post", icon: ImageIcon },
-                        { type: "CAROUSEL", label: "Carousel", icon: Layers },
-                        { type: "STORIES", label: "Story", icon: Play },
+                        { type: "REELS", label: "Reel", shortLabel: "Reel", icon: Film },
+                        { type: "IMAGE", label: "Photo Post", shortLabel: "Photo", icon: ImageIcon },
+                        { type: "CAROUSEL", label: "Carousel", shortLabel: "Carousel", icon: Layers },
+                        { type: "STORIES", label: "Story", shortLabel: "Story", icon: Play },
                       ].map((fmt) => {
                         const Icon = fmt.icon;
                         const isSelected = postType === fmt.type;
@@ -1190,13 +1205,14 @@ export default function InstagramSchedulerPage() {
                             key={fmt.type}
                             type="button"
                             onClick={() => setPostType(fmt.type as any)}
-                            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${isSelected
+                            className={`px-1 sm:px-3 py-1.5 rounded-md text-[10px] sm:text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-0.5 sm:gap-1.5 ${isSelected
                               ? "bg-white text-zinc-950 shadow-sm font-bold"
                               : "text-[#8e9192] hover:text-white"
                               }`}
                           >
-                            <Icon className={`w-3.5 h-3.5 ${isSelected ? "text-zinc-950" : "text-[#c4c0ff]"}`} />
-                            <span>{fmt.label}</span>
+                            <Icon className={`w-3.5 h-3.5 shrink-0 ${isSelected ? "text-zinc-950" : "text-[#c4c0ff]"}`} />
+                            <span className="truncate hidden sm:inline">{fmt.label}</span>
+                            <span className="truncate sm:hidden">{fmt.shortLabel}</span>
                           </button>
                         );
                       })}
@@ -1207,8 +1223,8 @@ export default function InstagramSchedulerPage() {
                   {postType === "CAROUSEL" ? (
                     <div className="space-y-2.5">
                       <div className="flex items-center justify-between text-[11px] font-bold text-[#8e9192] tracking-wider">
-                        <span>Carousel Slides ({carouselUrls.length}/10)</span>
-                        <span className="text-[10px] text-[#c4c0ff] font-semibold">Min 2, Max 10 items</span>
+                        <span>Carousel ({carouselUrls.length}/10)</span>
+                        <span className="text-[10px] text-[#c4c0ff] font-semibold">Max 10 items</span>
                       </div>
 
                       {/* Slides Grid Preview */}
@@ -1251,12 +1267,12 @@ export default function InstagramSchedulerPage() {
 
                       {/* Carousel Upload Dropzone */}
                       {carouselUrls.length < 10 && (
-                        <label className="border border-dashed border-white/15 hover:border-[#c4c0ff]/60 rounded-lg p-4 flex flex-col items-center justify-center gap-1.5 bg-[#1c1b1b]/40 hover:bg-[#1c1b1b] cursor-pointer transition-all">
-                          <div className="w-8 h-8 rounded bg-[#c4c0ff]/10 flex items-center justify-center text-[#c4c0ff]">
-                            <Upload className="w-4 h-4" />
+                        <label className="border border-dashed border-white/15 hover:border-[#c4c0ff]/60 rounded-lg p-4 flex flex-col items-center justify-center gap-1 bg-[#1c1b1b]/40 hover:bg-[#1c1b1b] cursor-pointer transition-all">
+                          <div className="w-7 h-7 rounded bg-[#c4c0ff]/10 flex items-center justify-center text-[#c4c0ff]">
+                            <Upload className="w-3.5 h-3.5" />
                           </div>
                           <span className="text-xs font-bold text-white">
-                            {uploadingMedia ? `Uploading Slides (${mediaUploadProgress}%)...` : "Add Photos & Videos to Carousel"}
+                            {uploadingMedia ? `Uploading (${mediaUploadProgress}%)...` : "Upload Slides"}
                           </span>
 
                           <input
@@ -1282,7 +1298,7 @@ export default function InstagramSchedulerPage() {
                   ) : (
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between text-[11px] font-bold text-[#8e9192] tracking-wider">
-                        <span>Media File</span>
+                        <span>Media</span>
                       </div>
 
                       {mediaUrl ? (
@@ -1298,7 +1314,7 @@ export default function InstagramSchedulerPage() {
                             <div className="truncate">
                               <p className="text-xs font-bold text-white truncate">{mediaUrl}</p>
                               <p className="text-[10px] text-[#c4c0ff] font-medium flex items-center gap-1 mt-0.5">
-                                <CheckCircle2 className="w-3 h-3" /> Ready for Instagram
+                                <CheckCircle2 className="w-3 h-3" /> Ready
                               </p>
                             </div>
                           </div>
@@ -1312,16 +1328,16 @@ export default function InstagramSchedulerPage() {
                           </button>
                         </div>
                       ) : (
-                        <label className={`border border-dashed rounded-lg p-5 flex flex-col items-center justify-center gap-1.5 bg-[#1c1b1b]/40 hover:bg-[#1c1b1b] cursor-pointer transition-all ${errors.media ? "border-rose-500/60 hover:border-rose-400" : "border-white/15 hover:border-[#c4c0ff]/60"
+                        <label className={`border border-dashed rounded-lg p-4 sm:p-5 flex flex-col items-center justify-center gap-1 bg-[#1c1b1b]/40 hover:bg-[#1c1b1b] cursor-pointer transition-all ${errors.media ? "border-rose-500/60 hover:border-rose-400" : "border-white/15 hover:border-[#c4c0ff]/60"
                           }`}>
-                          <div className="w-8 h-8 rounded bg-[#c4c0ff]/10 flex items-center justify-center text-[#c4c0ff]">
-                            <Upload className="w-4 h-4" />
+                          <div className="w-7 h-7 rounded bg-[#c4c0ff]/10 flex items-center justify-center text-[#c4c0ff]">
+                            <Upload className="w-3.5 h-3.5" />
                           </div>
                           <span className="text-xs font-bold text-white">
-                            {uploadingMedia ? `Uploading Media (${mediaUploadProgress}%)...` : "Drop Video or Photo Here"}
+                            {uploadingMedia ? `Uploading (${mediaUploadProgress}%)...` : "Upload Photo or Video"}
                           </span>
                           <span className="text-[10px] text-[#8e9192]">
-                            MP4, MOV (Reels) or JPG, PNG (Photos) up to 50MB
+                            MP4, MOV, JPG, PNG
                           </span>
                           <input
                             type="file"
@@ -1348,15 +1364,14 @@ export default function InstagramSchedulerPage() {
                   {(postType === "REELS" || postType === "VIDEO") && (
                     <div className="space-y-1.5">
                       <label className="text-[11px] font-bold text-[#8e9192] tracking-wider flex items-center justify-between">
-                        <span>Custom Cover Photo (Optional)</span>
-                        <span className="text-[10px] text-[#8e9192]">Reels Grid Thumbnail</span>
+                        <span>Thumbnail  (Optional)</span>
                       </label>
 
                       {coverUrl ? (
                         <div className="p-2 rounded bg-[#1c1b1b] border border-white/10 flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2">
                             <img src={coverUrl} alt="Cover" className="w-8 h-10 object-cover rounded border border-white/10" />
-                            <span className="text-xs text-[#c4c0ff] font-medium">Custom Cover Attached</span>
+                            <span className="text-xs text-[#c4c0ff] font-medium">Cover Attached</span>
                           </div>
                           <button
                             type="button"
@@ -1369,10 +1384,10 @@ export default function InstagramSchedulerPage() {
                       ) : (
                         <label className="p-2.5 rounded bg-[#1c1b1b] border border-white/10 hover:border-white/20 flex items-center justify-between cursor-pointer transition-all">
                           <span className="text-xs text-[#8e9192]">
-                            {uploadingCover ? `Uploading Cover (${coverUploadProgress}%)...` : "Select a high-res cover photo (JPG/PNG)"}
+                            {uploadingCover ? `Uploading (${coverUploadProgress}%)...` : "Choose"}
                           </span>
                           <span className="text-xs text-[#c4c0ff] font-bold flex items-center gap-1">
-                            <Upload className="w-3.5 h-3.5" /> Upload Cover
+                            <Upload className="w-3.5 h-3.5" /> Upload
                           </span>
                           <input
                             type="file"
@@ -1393,7 +1408,7 @@ export default function InstagramSchedulerPage() {
                   {postType !== "STORIES" && (
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between text-[11px] font-bold text-[#8e9192] tracking-wider">
-                        <span>Caption &amp; Hashtags</span>
+                        <span>Caption</span>
                         <span className={caption.length > 2000 ? "text-rose-400" : "text-[#8e9192]"}>
                           {caption.length} / 2200
                         </span>
@@ -1401,20 +1416,19 @@ export default function InstagramSchedulerPage() {
                       <textarea
                         value={caption}
                         onChange={(e) => setCaption(e.target.value)}
-                        placeholder="Write your Instagram caption, call-to-actions, and trending hashtags..."
+                        placeholder="Write a caption..."
                         rows={4}
                         className="w-full bg-[#1c1b1b] border border-white/10 rounded p-2.5 text-xs text-white placeholder-[#8e9192]/50 outline-none focus:border-[#c4c0ff] transition-all resize-none"
                       />
 
                       {/* Hashtag & Caption Quick Inserter Pills */}
                       <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                        <span className="text-[10px] text-[#8e9192] font-semibold mr-0.5">Quick Tag Pills:</span>
+                        <span className="text-[10px] text-[#8e9192] font-semibold mr-0.5">Add Tags:</span>
                         {[
                           "#ecommerce",
                           "#viral",
                           "#trending",
-                          "#shopnow",
-                          "#reelsinstagram",
+                          "#anydm",
                           "#giveaway",
                           "#linkinbio",
                           "#newarrival"
@@ -1436,8 +1450,8 @@ export default function InstagramSchedulerPage() {
                   {postType === "REELS" && (
                     <div className="p-3 rounded bg-[#1c1b1b] border border-white/10 flex items-center justify-between">
                       <div className="space-y-0.5">
-                        <p className="text-xs font-bold text-white">Also Share to Main Profile Grid</p>
-                        <p className="text-[10px] text-[#8e9192]">Reel will appear in both Reels tab and your profile feed</p>
+                        <p className="text-xs font-bold text-white">Share to Profile Grid</p>
+                        <p className="text-[10px] text-[#8e9192]">Show reel in main profile feed</p>
                       </div>
                       <button
                         type="button"
@@ -1461,463 +1475,456 @@ export default function InstagramSchedulerPage() {
                   {/* Studio Ambient Glow */}
                   <div className="absolute w-80 h-80 bg-gradient-to-tr from-purple-600/15 via-[#c4c0ff]/15 to-pink-500/15 blur-3xl rounded-full pointer-events-none" />
 
-                  {/* Header Tag with Format Indicator */}
+                  {/* Header Tag with F                  {/* ── Responsive iPhone 16 Pro Wrapper ── */}
+                  <div className="transform scale-[0.72] sm:scale-90 md:scale-95 lg:scale-100 origin-center sm:origin-top lg:origin-center -my-20 sm:-my-6 lg:my-0 flex justify-center shrink-0">
+                    {/* ── iPhone 16 Pro Titanium Chassis ── */}
+                    <div className="relative w-[310px] h-[630px] rounded-[50px] p-[10px] shadow-[0_30px_70px_-15px_rgba(0,0,0,1),0_0_0_1px_rgba(255,255,255,0.22),0_0_0_4px_#222222,0_0_20px_rgba(0,0,0,0.8)] bg-gradient-to-b from-[#3a3a3a] via-[#1c1c1e] to-[#2a2a2a] flex flex-col shrink-0 overflow-visible">
 
+                      {/* Titanium Antenna Bands */}
+                      <div className="absolute top-[80px] -left-[1px] w-[2px] h-[4px] bg-[#555] rounded-full" />
+                      <div className="absolute top-[80px] -right-[1px] w-[2px] h-[4px] bg-[#555] rounded-full" />
+                      <div className="absolute bottom-[80px] -left-[1px] w-[2px] h-[4px] bg-[#555] rounded-full" />
+                      <div className="absolute bottom-[80px] -right-[1px] w-[2px] h-[4px] bg-[#555] rounded-full" />
 
-                  {/* ── iPhone 16 Pro Titanium Chassis ── */}
-                  <div className="relative w-[310px] h-[630px] rounded-[50px] p-[10px] shadow-[0_30px_70px_-15px_rgba(0,0,0,1),0_0_0_1px_rgba(255,255,255,0.22),0_0_0_4px_#222222,0_0_20px_rgba(0,0,0,0.8)] bg-gradient-to-b from-[#3a3a3a] via-[#1c1c1e] to-[#2a2a2a] flex flex-col shrink-0 overflow-visible">
+                      {/* Left Hardware Buttons */}
+                      {/* Action Button */}
+                      <div className="absolute -left-[5px] top-[96px] w-[4px] h-[24px] bg-[#404040] border-l border-white/20 rounded-l-[3px] shadow-sm" />
+                      {/* Volume Up */}
+                      <div className="absolute -left-[5px] top-[138px] w-[4px] h-[48px] bg-[#404040] border-l border-white/20 rounded-l-[3px] shadow-sm" />
+                      {/* Volume Down */}
+                      <div className="absolute -left-[5px] top-[198px] w-[4px] h-[48px] bg-[#404040] border-l border-white/20 rounded-l-[3px] shadow-sm" />
 
-                    {/* Titanium Antenna Bands */}
-                    <div className="absolute top-[80px] -left-[1px] w-[2px] h-[4px] bg-[#555] rounded-full" />
-                    <div className="absolute top-[80px] -right-[1px] w-[2px] h-[4px] bg-[#555] rounded-full" />
-                    <div className="absolute bottom-[80px] -left-[1px] w-[2px] h-[4px] bg-[#555] rounded-full" />
-                    <div className="absolute bottom-[80px] -right-[1px] w-[2px] h-[4px] bg-[#555] rounded-full" />
+                      {/* Right Hardware Buttons */}
+                      {/* Power / Siri Button */}
+                      <div className="absolute -right-[5px] top-[152px] w-[4px] h-[72px] bg-[#404040] border-r border-white/20 rounded-r-[3px] shadow-sm" />
+                      {/* iPhone 16 Pro Camera Control Button */}
+                      <div className="absolute -right-[4px] top-[375px] w-[3px] h-[40px] bg-[#2a2a2a] border border-white/20 rounded-r-[2px] shadow-inner" />
 
-                    {/* Left Hardware Buttons */}
-                    {/* Action Button */}
-                    <div className="absolute -left-[5px] top-[96px] w-[4px] h-[24px] bg-[#404040] border-l border-white/20 rounded-l-[3px] shadow-sm" />
-                    {/* Volume Up */}
-                    <div className="absolute -left-[5px] top-[138px] w-[4px] h-[48px] bg-[#404040] border-l border-white/20 rounded-l-[3px] shadow-sm" />
-                    {/* Volume Down */}
-                    <div className="absolute -left-[5px] top-[198px] w-[4px] h-[48px] bg-[#404040] border-l border-white/20 rounded-l-[3px] shadow-sm" />
+                      {/* ── OLED Display Bezel (Super Retina XDR) ── */}
+                      <div className="relative w-full h-full bg-black rounded-[42px] overflow-hidden flex flex-col justify-between text-white border border-white/10 shadow-inner">
 
-                    {/* Right Hardware Buttons */}
-                    {/* Power / Siri Button */}
-                    <div className="absolute -right-[5px] top-[152px] w-[4px] h-[72px] bg-[#404040] border-r border-white/20 rounded-r-[3px] shadow-sm" />
-                    {/* iPhone 16 Pro Camera Control Button */}
-                    <div className="absolute -right-[4px] top-[375px] w-[3px] h-[40px] bg-[#2a2a2a] border border-white/20 rounded-r-[2px] shadow-inner" />
+                        {/* Top Earpiece Speaker Slit */}
+                        <div className="absolute top-1.5 left-1/2 -translate-x-1/2 z-40 w-12 h-[3px] bg-[#1a1a1a] rounded-full" />
 
-                    {/* ── OLED Display Bezel (Super Retina XDR) ── */}
-                    <div className="relative w-full h-full bg-black rounded-[42px] overflow-hidden flex flex-col justify-between text-white border border-white/10 shadow-inner">
+                        {/* ── iOS 18 Top Status Bar & Dynamic Island ── */}
+                        <div className="absolute top-0 left-0 right-0 z-40 pt-3 px-6 flex items-center justify-between pointer-events-none">
+                          {/* iOS Clock */}
+                          <span className="text-[13px] font-semibold tracking-tight text-white font-sans">9:41</span>
 
-                      {/* Top Earpiece Speaker Slit */}
-                      <div className="absolute top-1.5 left-1/2 -translate-x-1/2 z-40 w-12 h-[3px] bg-[#1a1a1a] rounded-full" />
-
-                      {/* ── iOS 18 Top Status Bar & Dynamic Island ── */}
-                      <div className="absolute top-0 left-0 right-0 z-40 pt-3 px-6 flex items-center justify-between pointer-events-none">
-                        {/* iOS Clock */}
-                        <span className="text-[13px] font-semibold tracking-tight text-white font-sans">9:41</span>
-
-                        {/* Dynamic Island */}
-                        <div className="w-[105px] h-[26px] bg-black rounded-full border border-white/10 flex items-center justify-between px-2.5 shadow-md">
-                          {/* FaceID Sensor */}
-                          <div className="w-2.5 h-2.5 rounded-full bg-[#111] border border-[#262626] flex items-center justify-center">
-                            <div className="w-1 h-1 rounded-full bg-[#050518]" />
-                          </div>
-                          {/* Front Camera Lens with Antireflective Sheen */}
-                          <div className="w-2.5 h-2.5 rounded-full bg-[#070b18] border border-[#1e293b] flex items-center justify-center shadow-inner">
-                            <div className="w-1 h-1 rounded-full bg-[#1e1b4b]" />
-                          </div>
-                        </div>
-
-                        {/* Status Icons */}
-                        <div className="flex items-center gap-1.5 text-white">
-                          {/* Cellular Signal Bars */}
-                          <div className="flex items-end gap-[1.5px] h-2.5">
-                            <div className="w-[2px] h-[3px] bg-white rounded-[0.5px]" />
-                            <div className="w-[2px] h-[5px] bg-white rounded-[0.5px]" />
-                            <div className="w-[2px] h-[7px] bg-white rounded-[0.5px]" />
-                            <div className="w-[2px] h-[9px] bg-white rounded-[0.5px]" />
-                          </div>
-                          <span className="text-[10px] font-bold tracking-tight">5G</span>
-                          {/* Battery Capsule */}
-                          <div className="flex items-center">
-                            <div className="w-[20px] h-[10px] border border-white/80 rounded-[3px] p-[1px] flex items-center">
-                              <div className="w-[14px] h-full bg-[#c4c0ff] rounded-[1px]" />
+                          {/* Dynamic Island */}
+                          <div className="w-[105px] h-[26px] bg-black rounded-full border border-white/10 flex items-center justify-between px-2.5 shadow-md">
+                            {/* FaceID Sensor */}
+                            <div className="w-2.5 h-2.5 rounded-full bg-[#111] border border-[#262626] flex items-center justify-center">
+                              <div className="w-1 h-1 rounded-full bg-[#050518]" />
                             </div>
-                            <div className="w-[1px] h-[4px] bg-white/80 rounded-r-[1px]" />
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* ── FORMAT 1: INSTAGRAM REELS (Photorealistic 9:16 Fullscreen) ── */}
-                      {postType === "REELS" && (
-                        <div className="relative w-full h-full bg-black flex flex-col justify-between overflow-hidden">
-                          {/* Video Canvas */}
-                          <div
-                            className="absolute inset-0 bg-[#0f0f0f] cursor-pointer"
-                            onClick={() => setIsMuted(!isMuted)}
-                          >
-                            {mediaUrl ? (
-                              <video
-                                src={mediaUrl}
-                                poster={coverUrl || undefined}
-                                className="w-full h-full object-cover"
-                                muted={isMuted}
-                                autoPlay
-                                loop
-                                playsInline
-                              />
-                            ) : (
-                              <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-gradient-to-b from-[#1a1024] via-[#101010] to-[#0a0a0a]">
-                                {/* <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-[#feda75] via-[#d62976] to-[#4f5bd5] p-[2px] shadow-2xl mb-3"> */}
-                                {/* <div className="w-full h-full bg-[#121212] rounded-[22px] flex items-center justify-center"> */}
-                                <Film className="w-8 h-8 text-[#c4c0ff] animate-pulse mb-2" />
-                                {/* </div> */}
-                                {/* </div> */}
-                                <span className="text-xs font-black text-white tracking-tight">Reel Preview</span>
-
-                              </div>
-                            )}
-
-                            {/* Top & Bottom Vignette Gradients for Legibility */}
-                            <div className="absolute inset-0 bg-gradient-to-b from-black/75 via-transparent to-black/95 pointer-events-none" />
-                          </div>
-
-                          {/* Top Reels Header Bar */}
-                          <div className="relative z-30 pt-12 px-4 flex items-center justify-between text-white drop-shadow-md pointer-events-none">
-                            <div className="flex items-center gap-1.5 font-black text-[20px] ">
-                              <span>Reels</span>
-                              <svg className="w-4 h-4 fill-current opacity-80 mt-0.5" viewBox="0 0 24 24">
-                                <path d="M7 10l5 5 5-5z" />
-                              </svg>
-                            </div>
-
-                            <div className="flex items-center gap-2.5 pointer-events-auto">
-                              {/* Audio Sound Equalizer Button */}
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setIsMuted(!isMuted);
-                                }}
-                                className="w-7 h-7 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center text-white border border-white/15 active:scale-90 transition-transform cursor-pointer"
-                                title={isMuted ? "Unmute" : "Mute"}
-                              >
-                                {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5 text-[#c4c0ff]" />}
-                              </button>
-
-                              {/* Camera Glyph */}
-                              <div className="w-7 h-7 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center border border-white/15">
-                                <svg className="w-4 h-4 fill-none stroke-white stroke-[2.2]" viewBox="0 0 24 24">
-                                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                                  <circle cx="12" cy="13" r="4" />
-                                </svg>
-                              </div>
+                            {/* Front Camera Lens with Antireflective Sheen */}
+                            <div className="w-2.5 h-2.5 rounded-full bg-[#070b18] border border-[#1e293b] flex items-center justify-center shadow-inner">
+                              <div className="w-1 h-1 rounded-full bg-[#1e1b4b]" />
                             </div>
                           </div>
 
-                          {/* Right Action Rail (Instagram Reels Exact Glyphs & Spacing) */}
-                          <div className="absolute right-3.5 bottom-6 z-30 flex flex-col items-center gap-3.5 text-white drop-shadow-lg pointer-events-auto">
-                            {/* Like Heart */}
-                            <div className="flex flex-col items-center gap-0.5 cursor-pointer active:scale-90 transition-transform">
-                              <div className="w-9 h-9 rounded-full bg-black/30 backdrop-blur-xs flex items-center justify-center">
-                                <Heart></Heart>
-                              </div>
-                              <span className="text-[10px] font-bold text-white tracking-tight">142K</span>
+                          {/* Status Icons */}
+                          <div className="flex items-center gap-1.5 text-white">
+                            {/* Cellular Signal Bars */}
+                            <div className="flex items-end gap-[1.5px] h-2.5">
+                              <div className="w-[2px] h-[3px] bg-white rounded-[0.5px]" />
+                              <div className="w-[2px] h-[5px] bg-white rounded-[0.5px]" />
+                              <div className="w-[2px] h-[7px] bg-white rounded-[0.5px]" />
+                              <div className="w-[2px] h-[9px] bg-white rounded-[0.5px]" />
                             </div>
-
-                            {/* Comment Bubble */}
-                            <div className="flex flex-col items-center gap-0.5 cursor-pointer active:scale-90 transition-transform">
-                              <div className="w-9 h-9 rounded-full bg-black/30 backdrop-blur-xs flex items-center justify-center">
-                                <MessageCircle></MessageCircle>
+                            <span className="text-[10px] font-bold tracking-tight">5G</span>
+                            {/* Battery Capsule */}
+                            <div className="flex items-center">
+                              <div className="w-[20px] h-[10px] border border-white/80 rounded-[3px] p-[1px] flex items-center">
+                                <div className="w-[14px] h-full bg-[#c4c0ff] rounded-[1px]" />
                               </div>
-                              <span className="text-[10px] font-bold text-white tracking-tight">1,280</span>
-                            </div>
-
-                            {/* Share Paper Airplane */}
-                            <div className="flex flex-col items-center gap-0.5 cursor-pointer active:scale-90 transition-transform">
-                              <div className="w-9 h-9 rounded-full bg-black/30 backdrop-blur-xs flex items-center justify-center">
-                                <Send></Send>
-                              </div>
-                              <span className="text-[10px] font-bold text-white tracking-tight">38.4K</span>
-                            </div>
-
-                            {/* 3 Horizontal Dots */}
-                            <div className="cursor-pointer py-0.5 active:scale-90 transition-transform">
-                              <svg className="w-5 h-5 fill-white" viewBox="0 0 24 24">
-                                <circle cx="12" cy="5" r="2" />
-                                <circle cx="12" cy="12" r="2" />
-                                <circle cx="12" cy="19" r="2" />
-                              </svg>
-                            </div>
-
-                            {/* Spinning Audio Album Vinyl Disc with Grooves */}
-                            <div className="relative mt-0.5">
-                              <div className="w-7 h-7 rounded-full bg-[#111] border-2 border-black p-[1.5px] shadow-2xl animate-spin [animation-duration:3.5s] flex items-center justify-center">
-                                {/* Vinyl Grooves */}
-                                <div className="w-full h-full rounded-full border border-white/20 p-[1.5px] flex items-center justify-center">
-                                  {/* Center Colorful Album Art */}
-                                  <div className="w-full h-full rounded-full bg-gradient-to-tr from-amber-400 via-rose-500 to-purple-600 flex items-center justify-center">
-                                    <div className="w-1 h-1 rounded-full bg-white" />
-                                  </div>
-                                </div>
-                              </div>
-                              {/* Drifting Music Note */}
-                              <div className="absolute -top-2 -left-1 text-[9px] text-white/90 animate-bounce">
-                                ♫
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Bottom Left Creator & Social Commerce Overlay (Anchored Directly Above Bottom Nav) */}
-                          <div className="absolute left-3.5 bottom-6 z-30 p-0 text-white space-y-1.5 max-w-[215px] drop-shadow-md pointer-events-auto">
-                            {/* Creator Row */}
-                            <div className="flex items-center gap-2">
-                              {/* Story Ring Avatar */}
-                              <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#feda75] via-[#d62976] to-[#4f5bd5] p-[1.5px] shadow-lg shrink-0">
-                                <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-[10px] font-black text-white">
-                                  {activeAccount?.username ? activeAccount.username[0] : "Z"}
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-1 truncate">
-                                <span className="text-xs font-black tracking-tight text-white truncate">
-                                  {activeAccount?.username || "your_brand"}
-                                </span>
-                                {/* Verified Checkmark Badge */}
-                                <svg className="w-3.5 h-3.5 text-[#3897f0] fill-current shrink-0" viewBox="0 0 24 24">
-                                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-                                </svg>
-                              </div>
-
-                              {/* Follow Button */}
-                              <button
-                                type="button"
-                                className="px-2 py-0.5 rounded-md bg-white/20 hover:bg-white/30 border border-white/40 text-[9.5px] font-bold text-white backdrop-blur-md transition-all active:scale-95 cursor-pointer shrink-0"
-                              >
-                                Following
-                              </button>
-                            </div>
-
-
-
-                            {/* Live Caption & Hashtags */}
-                            <div className="text-[11px] text-white leading-tight drop-shadow-md">
-                              <p className="line-clamp-2">
-                                <strong className="mr-1.5 font-black text-white">
-                                  {activeAccount?.username || "your_brand"}
-                                </strong>
-                                <span className="text-white/95">
-                                  {caption || "Caption here"}
-                                </span>
-                              </p>
-                            </div>
-
-                            {/* Audio Track Tag with Graphic Wave */}
-                            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-black/40 backdrop-blur-xs text-[9.5px] text-white/90 font-medium border border-white/10 max-w-full">
-                              <span className="text-[10px]">🎵</span>
-                              <span className="truncate">Original audio • @{activeAccount?.username || "creator"}</span>
+                              <div className="w-[1px] h-[4px] bg-white/80 rounded-r-[1px]" />
                             </div>
                           </div>
                         </div>
-                      )}
 
-                      {/* ── FORMAT 2: INSTAGRAM FEED POST (Photo / Video) ── */}
-                      {(postType === "IMAGE" || postType === "VIDEO" || postType === "CAROUSEL") && (
-                        <div className="relative w-full h-full bg-black flex flex-col justify-between overflow-hidden">
-                          {/* Instagram Script Top Bar */}
-                          <div className="pt-12 px-4 pb-2.5 flex items-center justify-between border-b border-white/5 bg-black">
-                            <span className="font-serif italic text-xl font-black tracking-tight text-white">Instagram</span>
-                            <div className="flex items-center gap-4 text-white">
-                              {/* Notification Heart */}
-                              <svg className="w-6 h-6 fill-none stroke-white stroke-2" viewBox="0 0 24 24">
-                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                              </svg>
-                              {/* DM Messenger with Badge */}
-                              <div className="relative">
-                                <svg className="w-6 h-6 fill-none stroke-white stroke-2" viewBox="0 0 24 24">
-                                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-                                </svg>
-                                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full text-[8px] flex items-center justify-center font-bold">1</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Feed Post Content */}
-                          <div className="flex-1 flex flex-col justify-start overflow-hidden">
-                            {/* User Header */}
-                            <div className="px-3 py-2 flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888] p-[1.5px]">
-                                  <div className="w-full h-full bg-black rounded-full flex items-center justify-center text-[10px] font-bold text-white">
-                                    {activeAccount?.username ? activeAccount.username[0].toUpperCase() : "Z"}
-                                  </div>
-                                </div>
-                                <div className="flex flex-col">
-                                  <span className="text-[11px] font-extrabold text-white leading-none">
-                                    {activeAccount?.username || "brand_official"}
-                                  </span>
-                                  <span className="text-[9px] text-[#8e9192] leading-none mt-0.5">Original post</span>
-                                </div>
-                              </div>
-                              <svg className="w-5 h-5 fill-white/80" viewBox="0 0 24 24">
-                                <circle cx="12" cy="5" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="12" cy="19" r="2" />
-                              </svg>
-                            </div>
-
-                            {/* Media 1:1 Box */}
-                            <div className="relative w-full aspect-square bg-[#151515] flex items-center justify-center overflow-hidden group/slide">
-                              {postType === "CAROUSEL" ? (
-                                carouselUrls.length > 0 ? (
-                                  <>
-                                    {carouselUrls[carouselIndex]?.toLowerCase().endsWith(".mp4") || carouselUrls[carouselIndex]?.toLowerCase().endsWith(".mov") || carouselUrls[carouselIndex]?.includes("/video/upload/") ? (
-                                      <video src={carouselUrls[carouselIndex]} className="w-full h-full object-cover" muted autoPlay loop playsInline />
-                                    ) : (
-                                      <img src={carouselUrls[carouselIndex]} alt={`Slide ${carouselIndex + 1}`} className="w-full h-full object-cover" />
-                                    )}
-
-                                    {/* Slide Counter Badge */}
-                                    <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/70 backdrop-blur-md text-[9px] font-bold text-white shadow-sm border border-white/10">
-                                      {carouselIndex + 1}/{carouselUrls.length}
-                                    </div>
-
-                                    {/* Interactive Navigation Chevrons */}
-                                    {carouselUrls.length > 1 && (
-                                      <>
-                                        {carouselIndex > 0 && (
-                                          <button
-                                            type="button"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setCarouselIndex(prev => Math.max(0, prev - 1));
-                                            }}
-                                            className="absolute left-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center backdrop-blur-xs transition-transform active:scale-90 cursor-pointer shadow z-20"
-                                          >
-                                            <ChevronLeft className="w-3.5 h-3.5" />
-                                          </button>
-                                        )}
-                                        {carouselIndex < carouselUrls.length - 1 && (
-                                          <button
-                                            type="button"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setCarouselIndex(prev => Math.min(carouselUrls.length - 1, prev + 1));
-                                            }}
-                                            className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center backdrop-blur-xs transition-transform active:scale-90 cursor-pointer shadow z-20"
-                                          >
-                                            <ChevronRight className="w-3.5 h-3.5" />
-                                          </button>
-                                        )}
-
-                                        {/* Pagination Dots */}
-                                        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/50 backdrop-blur-xs z-20">
-                                          {carouselUrls.map((_, i) => (
-                                            <div
-                                              key={i}
-                                              className={`rounded-full transition-all duration-200 ${i === carouselIndex ? "w-1.5 h-1.5 bg-[#0095f6]" : "w-1 h-1 bg-white/50"
-                                                }`}
-                                            />
-                                          ))}
-                                        </div>
-                                      </>
-                                    )}
-                                  </>
-                                ) : (
-                                  <div className="text-center p-4 text-white/40">
-                                    <Layers className="w-9 h-9 mx-auto mb-1 opacity-50 text-[#c4c0ff]" />
-                                    <span className="text-[10px] font-bold block text-white">Carousel Album</span>
-                                  </div>
-                                )
-                              ) : mediaUrl ? (
-                                postType === "VIDEO" || mediaUrl.includes(".mp4") ? (
-                                  <video src={mediaUrl} poster={coverUrl || undefined} className="w-full h-full object-cover" muted autoPlay loop playsInline />
-                                ) : (
-                                  <img src={coverUrl || mediaUrl} alt="Feed post" className="w-full h-full object-cover" />
-                                )
+                        {/* ── FORMAT 1: INSTAGRAM REELS (Photorealistic 9:16 Fullscreen) ── */}
+                        {postType === "REELS" && (
+                          <div className="relative w-full h-full bg-black flex flex-col justify-between overflow-hidden">
+                            {/* Video Canvas */}
+                            <div
+                              className="absolute inset-0 bg-[#0f0f0f] cursor-pointer"
+                              onClick={() => setIsMuted(!isMuted)}
+                            >
+                              {mediaUrl ? (
+                                <video
+                                  src={mediaUrl}
+                                  poster={coverUrl || undefined}
+                                  className="w-full h-full object-cover"
+                                  muted={isMuted}
+                                  autoPlay
+                                  loop
+                                  playsInline
+                                />
                               ) : (
-                                <div className="text-center p-4 text-white/30">
-                                  <ImageIcon className="w-9 h-9 mx-auto mb-1 opacity-40 text-[#c4c0ff]" />
-                                  <span className="text-[10px] font-bold block text-white">Photo</span>
+                                <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-gradient-to-b from-[#1a1024] via-[#101010] to-[#0a0a0a]">
+                                  <Film className="w-8 h-8 text-[#c4c0ff] animate-pulse mb-2" />
+                                  <span className="text-xs font-black text-white tracking-tight">Reel Preview</span>
                                 </div>
                               )}
+
+                              {/* Top & Bottom Vignette Gradients for Legibility */}
+                              <div className="absolute inset-0 bg-gradient-to-b from-black/75 via-transparent to-black/95 pointer-events-none" />
                             </div>
 
-                            {/* Engagement Action Bar */}
-                            <div className="px-3 pt-2.5 pb-1 flex items-center justify-between text-white">
-                              <div className="flex items-center gap-4">
-                                <Heart />
-                                <MessageCircle />
-                                <Send />
+                            {/* Top Reels Header Bar */}
+                            <div className="relative z-30 pt-12 px-4 flex items-center justify-between text-white drop-shadow-md pointer-events-none">
+                              <div className="flex items-center gap-1.5 font-black text-[20px] ">
+                                <span>Reels</span>
+                                <svg className="w-4 h-4 fill-current opacity-80 mt-0.5" viewBox="0 0 24 24">
+                                  <path d="M7 10l5 5 5-5z" />
+                                </svg>
                               </div>
-                              <svg className="w-6 h-6 fill-none stroke-white stroke-[2] cursor-pointer" viewBox="0 0 24 24">
-                                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-                              </svg>
-                            </div>
 
-                            {/* Likes Count & Caption */}
-                            <div className="px-3 space-y-0.5 text-[11px]">
-                              <p className="font-extrabold text-white leading-none">1,428 likes</p>
-                              <p className="text-white/90 leading-tight line-clamp-2 pt-0.5">
-                                <strong className="mr-1 text-white font-extrabold">{activeAccount?.username || "your_brand"}</strong>
-                                {caption || "Your post description ..."}
-                              </p>
-                              <p className="text-[10px] text-[#8e9192] pt-0.5">View all 48 comments</p>
-                              <p className="text-[8px] text-[#8e9192] tracking-wider">2 HOURS AGO</p>
-                            </div>
-                          </div>
+                              <div className="flex items-center gap-2.5 pointer-events-auto">
+                                {/* Audio Sound Equalizer Button */}
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIsMuted(!isMuted);
+                                  }}
+                                  className="w-7 h-7 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center text-white border border-white/15 active:scale-90 transition-transform cursor-pointer"
+                                  title={isMuted ? "Unmute" : "Mute"}
+                                >
+                                  {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5 text-[#c4c0ff]" />}
+                                </button>
 
-                          {/* Instagram Bottom Nav */}
-                          <div className="h-11 bg-black border-t border-white/10 px-5 flex items-center justify-between text-white/70">
-                            <svg className="w-5 h-5 fill-current text-white" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" /></svg>
-                            <svg className="w-5 h-5 fill-none stroke-current stroke-[2.2]" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
-                            <svg className="w-5 h-5 fill-none stroke-current stroke-2" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="4" /><path d="M12 8v8m-4-4h8" /></svg>
-                            <Film className="w-5 h-5" />
-                            <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-amber-500 to-purple-600 p-[1px]">
-                              <div className="w-full h-full bg-black rounded-full" />
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* ── FORMAT 3: INSTAGRAM 24H STORY ── */}
-                      {postType === "STORIES" && (
-                        <div className="relative w-full h-full bg-black flex flex-col justify-between overflow-hidden">
-                          {/* Story Background */}
-                          <div className="absolute inset-0 bg-[#121212]">
-                            {mediaUrl ? (
-                              mediaUrl.includes(".mp4") ? (
-                                <video src={mediaUrl} className="w-full h-full object-cover" muted autoPlay loop playsInline />
-                              ) : (
-                                <img src={mediaUrl} alt="Story" className="w-full h-full object-cover" />
-                              )
-                            ) : (
-                              <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center text-white/40">
-                                <Play className="w-12 h-12 mb-3 text-pink-400 opacity-50 animate-pulse" />
-                                <span className="text-xs font-bold text-white/90">Story 24h Preview</span>
+                                {/* Camera Glyph */}
+                                <div className="w-7 h-7 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center border border-white/15">
+                                  <svg className="w-4 h-4 fill-none stroke-white stroke-[2.2]" viewBox="0 0 24 24">
+                                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                                    <circle cx="12" cy="13" r="4" />
+                                  </svg>
+                                </div>
                               </div>
-                            )}
-                            <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80 pointer-events-none" />
-                          </div>
-
-                          {/* Segmented Progress Timer & User Header */}
-                          <div className="relative z-30 pt-12 px-3 space-y-2.5">
-                            {/* Segmented Timer Bar */}
-                            <div className="h-[2px] w-full bg-white/30 rounded-full overflow-hidden flex gap-1">
-                              <div className="h-full bg-white flex-1 rounded-full animate-[pulse_2s_infinite]" />
-                              <div className="h-full bg-white/30 flex-1 rounded-full" />
-                              <div className="h-full bg-white/30 flex-1 rounded-full" />
                             </div>
 
-                            {/* User Bar */}
-                            <div className="flex items-center justify-between text-white">
-                              <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888] p-[1.5px]">
-                                  <div className="w-full h-full bg-black rounded-full flex items-center justify-center text-[10px] font-black">
-                                    {activeAccount?.username ? activeAccount.username[0].toUpperCase() : "Z"}
+                            {/* Right Action Rail (Instagram Reels Exact Glyphs & Spacing) */}
+                            <div className="absolute right-3.5 bottom-6 z-30 flex flex-col items-center gap-3.5 text-white drop-shadow-lg pointer-events-auto">
+                              {/* Like Heart */}
+                              <div className="flex flex-col items-center gap-0.5 cursor-pointer active:scale-90 transition-transform">
+                                <div className="w-9 h-9 rounded-full bg-black/30 backdrop-blur-xs flex items-center justify-center">
+                                  <Heart></Heart>
+                                </div>
+                                <span className="text-[10px] font-bold text-white tracking-tight">142K</span>
+                              </div>
+
+                              {/* Comment Bubble */}
+                              <div className="flex flex-col items-center gap-0.5 cursor-pointer active:scale-90 transition-transform">
+                                <div className="w-9 h-9 rounded-full bg-black/30 backdrop-blur-xs flex items-center justify-center">
+                                  <MessageCircle></MessageCircle>
+                                </div>
+                                <span className="text-[10px] font-bold text-white tracking-tight">1,280</span>
+                              </div>
+
+                              {/* Share Paper Airplane */}
+                              <div className="flex flex-col items-center gap-0.5 cursor-pointer active:scale-90 transition-transform">
+                                <div className="w-9 h-9 rounded-full bg-black/30 backdrop-blur-xs flex items-center justify-center">
+                                  <Send></Send>
+                                </div>
+                                <span className="text-[10px] font-bold text-white tracking-tight">38.4K</span>
+                              </div>
+
+                              {/* 3 Horizontal Dots */}
+                              <div className="cursor-pointer py-0.5 active:scale-90 transition-transform">
+                                <svg className="w-5 h-5 fill-white" viewBox="0 0 24 24">
+                                  <circle cx="12" cy="5" r="2" />
+                                  <circle cx="12" cy="12" r="2" />
+                                  <circle cx="12" cy="19" r="2" />
+                                </svg>
+                              </div>
+
+                              {/* Spinning Audio Album Vinyl Disc with Grooves */}
+                              <div className="relative mt-0.5">
+                                <div className="w-7 h-7 rounded-full bg-[#111] border-2 border-black p-[1.5px] shadow-2xl animate-spin [animation-duration:3.5s] flex items-center justify-center">
+                                  {/* Vinyl Grooves */}
+                                  <div className="w-full h-full rounded-full border border-white/20 p-[1.5px] flex items-center justify-center">
+                                    {/* Center Colorful Album Art */}
+                                    <div className="w-full h-full rounded-full bg-gradient-to-tr from-amber-400 via-rose-500 to-purple-600 flex items-center justify-center">
+                                      <div className="w-1 h-1 rounded-full bg-white" />
+                                    </div>
                                   </div>
                                 </div>
-                                <span className="text-xs font-extrabold">{activeAccount?.username || "your_brand"}</span>
-                                <span className="text-[10px] text-white/60">3h</span>
+                                {/* Drifting Music Note */}
+                                <div className="absolute -top-2 -left-1 text-[9px] text-white/90 animate-bounce">
+                                  ♫
+                                </div>
                               </div>
-                              <X className="w-5 h-5 text-white cursor-pointer" />
                             </div>
-                          </div>
 
-                          {/* Story Bottom Interactive Bar */}
-                          <div className="relative z-30 p-3 pb-6 flex items-center gap-3">
-                            <div className="flex-1 h-10 rounded-full border border-white/40 bg-black/40 backdrop-blur-md px-4 flex items-center text-xs text-white/70">
-                              Send message...
+                            {/* Bottom Left Creator & Social Commerce Overlay (Anchored Directly Above Bottom Nav) */}
+                            <div className="absolute left-3.5 bottom-6 z-30 p-0 text-white space-y-1.5 max-w-[215px] drop-shadow-md pointer-events-auto">
+                              {/* Creator Row */}
+                              <div className="flex items-center gap-2">
+                                {/* Story Ring Avatar */}
+                                <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#feda75] via-[#d62976] to-[#4f5bd5] p-[1.5px] shadow-lg shrink-0">
+                                  <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-[10px] font-black text-white">
+                                    {activeAccount?.username ? activeAccount.username[0] : "Z"}
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-1 truncate">
+                                  <span className="text-xs font-black tracking-tight text-white truncate">
+                                    {activeAccount?.username || "your_brand"}
+                                  </span>
+                                  {/* Verified Checkmark Badge */}
+                                  <svg className="w-3.5 h-3.5 text-[#3897f0] fill-current shrink-0" viewBox="0 0 24 24">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                                  </svg>
+                                </div>
+
+                                {/* Follow Button */}
+                                <button
+                                  type="button"
+                                  className="px-2 py-0.5 rounded-md bg-white/20 hover:bg-white/30 border border-white/40 text-[9.5px] font-bold text-white backdrop-blur-md transition-all active:scale-95 cursor-pointer shrink-0"
+                                >
+                                  Following
+                                </button>
+                              </div>
+
+                              {/* Live Caption & Hashtags */}
+                              <div className="text-[11px] text-white leading-tight drop-shadow-md">
+                                <p className="line-clamp-2">
+                                  <strong className="mr-1.5 font-black text-white">
+                                    {activeAccount?.username || "your_brand"}
+                                  </strong>
+                                  <span className="text-white/95">
+                                    {caption || "Caption here"}
+                                  </span>
+                                </p>
+                              </div>
+
+                              {/* Audio Track Tag with Graphic Wave */}
+                              <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-black/40 backdrop-blur-xs text-[9.5px] text-white/90 font-medium border border-white/10 max-w-full">
+                                <span className="text-[10px]">🎵</span>
+                                <span className="truncate">Original audio • @{activeAccount?.username || "creator"}</span>
+                              </div>
                             </div>
-                            <Heart />
-                            <Send />
                           </div>
+                        )}
+
+                        {/* ── FORMAT 2: INSTAGRAM FEED POST (Photo / Video) ── */}
+                        {(postType === "IMAGE" || postType === "VIDEO" || postType === "CAROUSEL") && (
+                          <div className="relative w-full h-full bg-black flex flex-col justify-between overflow-hidden">
+                            {/* Instagram Script Top Bar */}
+                            <div className="pt-12 px-4 pb-2.5 flex items-center justify-between border-b border-white/5 bg-black">
+                              <span className="font-serif italic text-xl font-black tracking-tight text-white">Instagram</span>
+                              <div className="flex items-center gap-4 text-white">
+                                {/* Notification Heart */}
+                                <svg className="w-6 h-6 fill-none stroke-white stroke-2" viewBox="0 0 24 24">
+                                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                                </svg>
+                                {/* DM Messenger with Badge */}
+                                <div className="relative">
+                                  <svg className="w-6 h-6 fill-none stroke-white stroke-2" viewBox="0 0 24 24">
+                                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                                  </svg>
+                                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full text-[8px] flex items-center justify-center font-bold">1</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Feed Post Content */}
+                            <div className="flex-1 flex flex-col justify-start overflow-hidden">
+                              {/* User Header */}
+                              <div className="px-3 py-2 flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888] p-[1.5px]">
+                                    <div className="w-full h-full bg-black rounded-full flex items-center justify-center text-[10px] font-bold text-white">
+                                      {activeAccount?.username ? activeAccount.username[0].toUpperCase() : "Z"}
+                                    </div>
+                                  </div>
+                                  <div className="flex flex-col">
+                                    <span className="text-[11px] font-extrabold text-white leading-none">
+                                      {activeAccount?.username || "brand_official"}
+                                    </span>
+                                    <span className="text-[9px] text-[#8e9192] leading-none mt-0.5">Original post</span>
+                                  </div>
+                                </div>
+                                <svg className="w-5 h-5 fill-white/80" viewBox="0 0 24 24">
+                                  <circle cx="12" cy="5" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="12" cy="19" r="2" />
+                                </svg>
+                              </div>
+
+                              {/* Media 1:1 Box */}
+                              <div className="relative w-full aspect-square bg-[#151515] flex items-center justify-center overflow-hidden group/slide">
+                                {postType === "CAROUSEL" ? (
+                                  carouselUrls.length > 0 ? (
+                                    <>
+                                      {carouselUrls[carouselIndex]?.toLowerCase().endsWith(".mp4") || carouselUrls[carouselIndex]?.toLowerCase().endsWith(".mov") || carouselUrls[carouselIndex]?.includes("/video/upload/") ? (
+                                        <video src={carouselUrls[carouselIndex]} className="w-full h-full object-cover" muted autoPlay loop playsInline />
+                                      ) : (
+                                        <img src={carouselUrls[carouselIndex]} alt={`Slide ${carouselIndex + 1}`} className="w-full h-full object-cover" />
+                                      )}
+
+                                      {/* Slide Counter Badge */}
+                                      <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/70 backdrop-blur-md text-[9px] font-bold text-white shadow-sm border border-white/10">
+                                        {carouselIndex + 1}/{carouselUrls.length}
+                                      </div>
+
+                                      {/* Interactive Navigation Chevrons */}
+                                      {carouselUrls.length > 1 && (
+                                        <>
+                                          {carouselIndex > 0 && (
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setCarouselIndex(prev => Math.max(0, prev - 1));
+                                              }}
+                                              className="absolute left-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center backdrop-blur-xs transition-transform active:scale-90 cursor-pointer shadow z-20"
+                                            >
+                                              <ChevronLeft className="w-3.5 h-3.5" />
+                                            </button>
+                                          )}
+                                          {carouselIndex < carouselUrls.length - 1 && (
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setCarouselIndex(prev => Math.min(carouselUrls.length - 1, prev + 1));
+                                              }}
+                                              className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center backdrop-blur-xs transition-transform active:scale-90 cursor-pointer shadow z-20"
+                                            >
+                                              <ChevronRight className="w-3.5 h-3.5" />
+                                            </button>
+                                          )}
+
+                                          {/* Pagination Dots */}
+                                          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/50 backdrop-blur-xs z-20">
+                                            {carouselUrls.map((_, i) => (
+                                              <div
+                                                key={i}
+                                                className={`rounded-full transition-all duration-200 ${i === carouselIndex ? "w-1.5 h-1.5 bg-[#0095f6]" : "w-1 h-1 bg-white/50"
+                                                  }`}
+                                              />
+                                            ))}
+                                          </div>
+                                        </>
+                                      )}
+                                    </>
+                                  ) : (
+                                    <div className="text-center p-4 text-white/40">
+                                      <Layers className="w-9 h-9 mx-auto mb-1 opacity-50 text-[#c4c0ff]" />
+                                      <span className="text-[10px] font-bold block text-white">Carousel Album</span>
+                                    </div>
+                                  )
+                                ) : mediaUrl ? (
+                                  postType === "VIDEO" || mediaUrl.includes(".mp4") ? (
+                                    <video src={mediaUrl} poster={coverUrl || undefined} className="w-full h-full object-cover" muted autoPlay loop playsInline />
+                                  ) : (
+                                    <img src={coverUrl || mediaUrl} alt="Feed post" className="w-full h-full object-cover" />
+                                  )
+                                ) : (
+                                  <div className="text-center p-4 text-white/30">
+                                    <ImageIcon className="w-9 h-9 mx-auto mb-1 opacity-40 text-[#c4c0ff]" />
+                                    <span className="text-[10px] font-bold block text-white">Photo</span>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Engagement Action Bar */}
+                              <div className="px-3 pt-2.5 pb-1 flex items-center justify-between text-white">
+                                <div className="flex items-center gap-4">
+                                  <Heart />
+                                  <MessageCircle />
+                                  <Send />
+                                </div>
+                                <svg className="w-6 h-6 fill-none stroke-white stroke-[2] cursor-pointer" viewBox="0 0 24 24">
+                                  <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                                </svg>
+                              </div>
+
+                              {/* Likes Count & Caption */}
+                              <div className="px-3 space-y-0.5 text-[11px]">
+                                <p className="font-extrabold text-white leading-none">1,428 likes</p>
+                                <p className="text-white/90 leading-tight line-clamp-2 pt-0.5">
+                                  <strong className="mr-1 text-white font-extrabold">{activeAccount?.username || "your_brand"}</strong>
+                                  {caption || "Your post description ..."}
+                                </p>
+                                <p className="text-[10px] text-[#8e9192] pt-0.5">View all 48 comments</p>
+                                <p className="text-[8px] text-[#8e9192] tracking-wider">2 HOURS AGO</p>
+                              </div>
+                            </div>
+
+                            {/* Instagram Bottom Nav */}
+                            <div className="h-11 bg-black border-t border-white/10 px-5 flex items-center justify-between text-white/70">
+                              <svg className="w-5 h-5 fill-current text-white" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" /></svg>
+                              <svg className="w-5 h-5 fill-none stroke-current stroke-[2.2]" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+                              <svg className="w-5 h-5 fill-none stroke-current stroke-2" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="4" /><path d="M12 8v8m-4-4h8" /></svg>
+                              <Film className="w-5 h-5" />
+                              <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-amber-500 to-purple-600 p-[1px]">
+                                <div className="w-full h-full bg-black rounded-full" />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* ── FORMAT 3: INSTAGRAM 24H STORY ── */}
+                        {postType === "STORIES" && (
+                          <div className="relative w-full h-full bg-black flex flex-col justify-between overflow-hidden">
+                            {/* Story Background */}
+                            <div className="absolute inset-0 bg-[#121212]">
+                              {mediaUrl ? (
+                                mediaUrl.includes(".mp4") ? (
+                                  <video src={mediaUrl} className="w-full h-full object-cover" muted autoPlay loop playsInline />
+                                ) : (
+                                  <img src={mediaUrl} alt="Story" className="w-full h-full object-cover" />
+                                )
+                              ) : (
+                                <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center text-white/40">
+                                  <Play className="w-12 h-12 mb-3 text-pink-400 opacity-50 animate-pulse" />
+                                  <span className="text-xs font-bold text-white/90">Story 24h Preview</span>
+                                </div>
+                              )}
+                              <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80 pointer-events-none" />
+                            </div>
+
+                            {/* Segmented Progress Timer & User Header */}
+                            <div className="relative z-30 pt-12 px-3 space-y-2.5">
+                              {/* Segmented Timer Bar */}
+                              <div className="h-[2px] w-full bg-white/30 rounded-full overflow-hidden flex gap-1">
+                                <div className="h-full bg-white flex-1 rounded-full animate-[pulse_2s_infinite]" />
+                                <div className="h-full bg-white/30 flex-1 rounded-full" />
+                                <div className="h-full bg-white/30 flex-1 rounded-full" />
+                              </div>
+
+                              {/* User Bar */}
+                              <div className="flex items-center justify-between text-white">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888] p-[1.5px]">
+                                    <div className="w-full h-full bg-black rounded-full flex items-center justify-center text-[10px] font-black">
+                                      {activeAccount?.username ? activeAccount.username[0].toUpperCase() : "Z"}
+                                    </div>
+                                  </div>
+                                  <span className="text-xs font-extrabold">{activeAccount?.username || "your_brand"}</span>
+                                  <span className="text-[10px] text-[#8e9192]">3h</span>
+                                </div>
+                                <X className="w-5 h-5 text-white cursor-pointer" />
+                              </div>
+                            </div>
+
+                            {/* Story Bottom Interactive Bar */}
+                            <div className="relative z-30 p-3 pb-6 flex items-center gap-3">
+                              <div className="flex-1 h-10 rounded-full border border-white/40 bg-black/40 backdrop-blur-md px-4 flex items-center text-xs text-white/70">
+                                Send message...
+                              </div>
+                              <Heart />
+                              <Send />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* ── iOS 18 Home Indicator Bar ── */}
+                        <div className="absolute bottom-1.5 left-0 right-0 z-50 flex justify-center pointer-events-none">
+                          <div className="w-32 h-[4px] bg-white/80 rounded-full shadow-xs" />
                         </div>
-                      )}
-
-                      {/* ── iOS 18 Home Indicator Bar ── */}
-                      <div className="absolute bottom-1.5 left-0 right-0 z-50 flex justify-center pointer-events-none">
-                        <div className="w-32 h-[4px] bg-white/80 rounded-full shadow-xs" />
                       </div>
                     </div>
                   </div>
@@ -1926,7 +1933,9 @@ export default function InstagramSchedulerPage() {
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body
+    )}
     </div>
   );
 }
