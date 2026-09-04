@@ -376,7 +376,7 @@ export default function InboxPage() {
     if (!token || !activeAccount?.id) return;
 
     let wsUrl = "";
-    const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+    const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || "http://172.16.4.167:8001";
     let host = rawApiUrl;
     let isSecure = false;
 

@@ -6,7 +6,7 @@ import { RootState } from '@/store';
 import { updateNodeData, selectNode, updateFlowName, openMediaPicker } from '@/store/slices/flowSlice';
 import { AUTOMATION_MANIFESTS, TEMPLATE_OVERRIDES } from '@/lib/manifest';
 import { Input, Select, Switch } from '@/components/ui/InputForm';
-import { X, ExternalLink, GripHorizontal, Sparkles, ChevronDown, ChevronRight, LayoutGrid, MessageSquare, Zap, Paperclip, Settings } from 'lucide-react';
+import { X, ExternalLink, GripHorizontal, Sparkles, ChevronDown, ChevronRight, LayoutGrid, MessageSquare, Zap, Paperclip, Settings, User, UserCheck } from 'lucide-react';
 import { motion, useDragControls, useAnimation } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import api from '@/lib/services/api.service';

@@ -17,6 +17,43 @@ const initialState: FlowState = {
     mediaPicker: null,
 };
 
+export const EXECUTION_COLUMNS = {
+    1: { name: 'TRIGGER', step: 1, baseX: 80, minX: 40, maxX: 360 },
+    2: { name: 'FILTER', step: 2, baseX: 420, minX: 380, maxX: 700 },
+    3: { name: 'ACTION', step: 3, baseX: 760, minX: 720, maxX: 1040 },
+    4: { name: 'DM / COMMENT', step: 4, baseX: 1100, minX: 1060, maxX: 1380 },
+    5: { name: 'NEXT', step: 5, baseX: 1440, minX: 1400, maxX: 1900 },
+} as const;
+
+export function getNodeExecutionStep(node: FlowNode): number {
+    if (node.type === 'trigger' || node.data?.is_icebreaker_trigger || node.data?.is_menu_trigger) {
+        return 1;
+    }
+    if (node.data?.is_cf_fork) {
+        // Follower Gate Split Junction Pin: treated as an execution order stage / column
+        return 4;
+    }
+    if (node.type === 'condition') {
+        return 2;
+    }
+    if (node.type === 'giveaway_config' || node.data?.is_cf_gate) {
+        return 3;
+    }
+    if (node.type === 'action') {
+        if (node.data?.parent_event || node.data?.dm_format === 'loop_back' || node.data?.is_cf_following || node.data?.is_cf_not_following) {
+            return 5;
+        }
+        if (node.data?.action_type === 'reply_comment') {
+            return 3;
+        }
+        return 4;
+    }
+    if (node.type === 'reward') {
+        return 5;
+    }
+    return 3;
+}
+
 const MAX_HISTORY = 50;
 
 const saveToPast = (state: FlowState) => {
@@ -33,13 +70,18 @@ const saveToPast = (state: FlowState) => {
     state.lastEdit = null;
 };
 
-const deleteNodeRecursively = (state: FlowState, nodeId: string) => {
-    // Find all outgoing edges from this node
-    const outgoingEdges = state.edges.filter(e => e.source === nodeId);
+const deleteNodeRecursively = (state: FlowState, nodeId: string, visited: Set<string> = new Set()) => {
+    if (visited.has(nodeId)) return;
+    visited.add(nodeId);
+
+    // Find all outgoing non-loop downstream edges from this node
+    const outgoingEdges = state.edges.filter(
+        e => e.source === nodeId && !e.id.includes('loop') && !e.label?.includes('Loop')
+    );
 
     // Recursively delete all downstream target nodes
     outgoingEdges.forEach(edge => {
-        deleteNodeRecursively(state, edge.target);
+        deleteNodeRecursively(state, edge.target, visited);
     });
 
     // Remove all edges connected to this node (incoming and outgoing)
@@ -92,10 +134,20 @@ const syncLinkedNodes = (state: FlowState, nodeId: string) => {
 
             const seenPayloads = new Set<string>();
             buttons.forEach((btn) => {
-                if (btn.type !== 'web_url' && btn.type !== 'product' && btn.payload) {
+                if (btn.payload === 'CHECK_FOLLOW') {
+                    if (!seenPayloads.has('CHECK_FOLLOW')) {
+                        seenPayloads.add('CHECK_FOLLOW');
+                        activeEvents.push({ payload: 'CHECK_FOLLOW', label: btn.title || '👉 Follow Us', extra: btn } as any);
+                    }
+                } else if (btn.is_profile_button || (btn.type === 'web_url' && btn.url && btn.url.includes('instagram.com') && (btn.title?.includes('Profile') || btn.title?.includes('👤')))) {
+                    if (!seenPayloads.has('SHOW_PROFILE')) {
+                        seenPayloads.add('SHOW_PROFILE');
+                        activeEvents.push({ payload: 'SHOW_PROFILE', label: btn.title || '👤 Visit Profile', extra: btn } as any);
+                    }
+                } else if (btn.type !== 'web_url' && btn.type !== 'product' && btn.payload) {
                     if (!seenPayloads.has(btn.payload)) {
                         seenPayloads.add(btn.payload);
-                        activeEvents.push({ payload: btn.payload, label: btn.title || btn.payload });
+                        activeEvents.push({ payload: btn.payload, label: btn.title || btn.payload, extra: btn } as any);
                     }
                 }
             });
@@ -111,11 +163,21 @@ const syncLinkedNodes = (state: FlowState, nodeId: string) => {
             const seenPayloads = new Set<string>();
             elements.forEach((elem) => {
                 (elem.buttons || []).forEach((btn: any) => {
-                    if (btn.type !== 'web_url' && btn.type !== 'product' && btn.payload) {
+                    if (btn.payload === 'CHECK_FOLLOW') {
+                        if (!seenPayloads.has('CHECK_FOLLOW')) {
+                            seenPayloads.add('CHECK_FOLLOW');
+                            activeEvents.push({ payload: 'CHECK_FOLLOW', label: btn.title || '👉 Follow Us', extra: btn } as any);
+                        }
+                    } else if (btn.is_profile_button || (btn.type === 'web_url' && btn.url && btn.url.includes('instagram.com') && (btn.title?.includes('Profile') || btn.title?.includes('👤')))) {
+                        if (!seenPayloads.has('SHOW_PROFILE')) {
+                            seenPayloads.add('SHOW_PROFILE');
+                            activeEvents.push({ payload: 'SHOW_PROFILE', label: btn.title || '👤 Visit Profile', extra: btn } as any);
+                        }
+                    } else if (btn.type !== 'web_url' && btn.type !== 'product' && btn.payload) {
                         const payload = btn.payload;
                         if (!seenPayloads.has(payload)) {
                             seenPayloads.add(payload);
-                            activeEvents.push({ payload, label: btn.title || payload });
+                            activeEvents.push({ payload, label: btn.title || payload, extra: btn } as any);
                         }
                     }
                 });
@@ -125,8 +187,10 @@ const syncLinkedNodes = (state: FlowState, nodeId: string) => {
         return;
     }
 
-    // Get current connected reply nodes for this node (via labeled edges)
-    const connectedEdges = state.edges.filter(e => e.source === nodeId && e.label);
+    // Get current connected reply nodes for this node (via labeled non-loop edges)
+    const connectedEdges = state.edges.filter(
+        e => e.source === nodeId && e.label && !e.id.includes('loop') && !e.label?.includes('Loop')
+    );
 
     // 1. Remove orphaned nodes (downstream nodes whose parent event is no longer in activeEvents)
     connectedEdges.forEach(edge => {
@@ -145,11 +209,26 @@ const syncLinkedNodes = (state: FlowState, nodeId: string) => {
                 state.nodes = state.nodes.filter(n => n.id !== promptId && n.id !== inputId && n.id !== responseId);
                 state.edges = state.edges.filter(e => e.source !== promptId && e.target !== promptId && e.source !== inputId && e.target !== inputId && e.source !== responseId && e.target !== responseId);
             }
+            if (parentEvent === 'CHECK_FOLLOW') {
+                const forkId = `${nodeId}-cf-fork`;
+                const gateId = `${nodeId}-cf-gate`;
+                const followingId = `${nodeId}-cf-following`;
+                const notFollowingId = `${nodeId}-cf-not-following`;
+                state.nodes = state.nodes.filter(n => n.id !== forkId && n.id !== gateId && n.id !== followingId && n.id !== notFollowingId);
+                state.edges = state.edges.filter(e => e.source !== forkId && e.target !== forkId && e.source !== gateId && e.target !== gateId && e.source !== followingId && e.target !== followingId && e.source !== notFollowingId && e.target !== notFollowingId);
+            }
+            if (parentEvent === 'SHOW_PROFILE') {
+                const profileId = `${nodeId}-profile-card`;
+                state.nodes = state.nodes.filter(n => n.id !== profileId);
+                state.edges = state.edges.filter(e => e.source !== profileId && e.target !== profileId);
+            }
         }
     });
 
     // Update connected edges list after deletion
-    const remainingEdges = state.edges.filter(e => e.source === nodeId && e.label);
+    const remainingEdges = state.edges.filter(
+        e => e.source === nodeId && e.label && !e.id.includes('loop') && !e.label?.includes('Loop')
+    );
 
     // 2. Add missing nodes for new activeEvents
     activeEvents.forEach((ae, idx) => {
@@ -169,7 +248,7 @@ const syncLinkedNodes = (state: FlowState, nodeId: string) => {
                         id: promptId,
                         type: 'action',
                         position: {
-                            x: node.position.x + 450,
+                            x: node.position.x + 340,
                             y: node.position.y + 350 + idx * 220,
                         },
                         data: {
@@ -188,7 +267,7 @@ const syncLinkedNodes = (state: FlowState, nodeId: string) => {
                         id: inputId,
                         type: 'action',
                         position: {
-                            x: node.position.x + 800,
+                            x: node.position.x + 680,
                             y: node.position.y + 350 + idx * 220,
                         },
                         data: {
@@ -207,7 +286,7 @@ const syncLinkedNodes = (state: FlowState, nodeId: string) => {
                         id: responseId,
                         type: 'action',
                         position: {
-                            x: node.position.x + 1150,
+                            x: node.position.x + 1020,
                             y: node.position.y + 350 + idx * 220,
                         },
                         data: {
@@ -247,13 +326,154 @@ const syncLinkedNodes = (state: FlowState, nodeId: string) => {
                         label: "Send Response",
                     });
                 }
+            } else if (ae.payload === 'CHECK_FOLLOW') {
+                const forkId = `${nodeId}-cf-fork`;
+                const followingId = `${nodeId}-cf-following`;
+                const notFollowingId = `${nodeId}-cf-not-following`;
+
+                // 1. Y-Split Junction Pin (shows Button Name on the first half wire)
+                if (!state.nodes.some(n => n.id === forkId)) {
+                    state.nodes.push({
+                        id: forkId,
+                        type: 'action',
+                        position: {
+                            x: node.position.x + 340,
+                            y: node.position.y + 110 + idx * 260,
+                        },
+                        data: {
+                            action_type: 'send_dm',
+                            parent_event: 'CHECK_FOLLOW',
+                            parent_label: ae.label || '👉 Follow Us',
+                            button_name: ae.label || '👉 Follow Us',
+                            is_cf_fork: true,
+                            is_placeholder: false,
+                        },
+                    });
+                } else {
+                    const fNode = state.nodes.find(n => n.id === forkId);
+                    if (fNode) {
+                        fNode.data.button_name = ae.label || fNode.data.button_name;
+                        fNode.data.parent_label = ae.label || fNode.data.parent_label;
+                    }
+                }
+
+                // 2. Branch 1: If Following Node (Message Type list menu)
+                if (!state.nodes.some(n => n.id === followingId)) {
+                    state.nodes.push({
+                        id: followingId,
+                        type: 'action',
+                        position: {
+                            x: node.position.x + 400,
+                            y: node.position.y - 120 + idx * 260,
+                        },
+                        data: {
+                            action_type: 'send_dm',
+                            parent_event: 'CHECK_FOLLOW',
+                            cf_branch: 'following',
+                            parent_label: '✅ If Following',
+                            is_cf_following: true,
+                            is_placeholder: true,
+                        },
+                    });
+                }
+
+                // 3. Branch 2: If Not Following Node (Message Type list menu)
+                if (!state.nodes.some(n => n.id === notFollowingId)) {
+                    state.nodes.push({
+                        id: notFollowingId,
+                        type: 'action',
+                        position: {
+                            x: node.position.x + 400,
+                            y: node.position.y + 160 + idx * 260,
+                        },
+                        data: {
+                            action_type: 'send_dm',
+                            parent_event: 'CHECK_FOLLOW',
+                            cf_branch: 'not_following',
+                            parent_label: '❌ If Not Following',
+                            is_cf_not_following: true,
+                            is_placeholder: true,
+                        },
+                    });
+                }
+
+                // Edge 1 (Stem): Parent DM -> Y-Split Junction
+                const parentToForkEdge = state.edges.find(e => e.source === nodeId && e.target === forkId);
+                if (!parentToForkEdge) {
+                    state.edges.push({
+                        id: `edge-${nodeId}-fork-${Date.now()}`,
+                        source: nodeId,
+                        target: forkId,
+                        label: ae.label || "Check Follow",
+                    });
+                } else if (parentToForkEdge.label !== ae.label) {
+                    parentToForkEdge.label = ae.label;
+                }
+
+                // Edge 2 (Top Branch): Y-Split Junction -> If Following Card
+                if (!state.edges.some(e => e.source === forkId && e.target === followingId)) {
+                    state.edges.push({
+                        id: `edge-${forkId}-following-${Date.now()}`,
+                        source: forkId,
+                        target: followingId,
+                        label: "If Following",
+                    });
+                }
+
+                // Edge 3 (Bottom Branch): Y-Split Junction -> If Not Following Card
+                if (!state.edges.some(e => e.source === forkId && e.target === notFollowingId)) {
+                    state.edges.push({
+                        id: `edge-${forkId}-not-following-${Date.now()}`,
+                        source: forkId,
+                        target: notFollowingId,
+                        label: "If Not Following",
+                    });
+                }
+            } else if (ae.payload === 'SHOW_PROFILE') {
+                const profileId = `${nodeId}-profile-card`;
+
+                if (!state.nodes.some(n => n.id === profileId)) {
+                    state.nodes.push({
+                        id: profileId,
+                        type: 'action',
+                        position: {
+                            x: node.position.x + 340,
+                            y: node.position.y + idx * 220,
+                        },
+                        data: {
+                            action_type: 'send_dm',
+                            dm_format: 'show_profile',
+                            profile_url: (ae as any).extra?.url || 'https://instagram.com',
+                            profile_button_text: (ae as any).extra?.title || '👤 Visit Profile',
+                            parent_event: 'SHOW_PROFILE',
+                            parent_label: '👤 Profile View',
+                            is_profile_card: true,
+                            is_placeholder: false,
+                        },
+                    });
+                } else {
+                    const pNode = state.nodes.find(n => n.id === profileId);
+                    if (pNode) {
+                        pNode.data.profile_url = (ae as any).extra?.url || pNode.data.profile_url;
+                        pNode.data.profile_button_text = (ae as any).extra?.title || pNode.data.profile_button_text;
+                    }
+                }
+
+                if (!state.edges.some(e => e.source === nodeId && e.target === profileId)) {
+                    state.edges.push({
+                        id: `edge-${nodeId}-profile-${Date.now()}`,
+                        source: nodeId,
+                        target: profileId,
+                        label: "Show Profile",
+                    });
+                }
             } else {
                 const newNodeId = `node-reply-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`;
                 const newNode: FlowNode = {
                     id: newNodeId,
                     type: 'action',
                     position: {
-                        x: node.position.x + 450,
+                        x: node.position.x + 340,
                         y: node.position.y + idx * 220,
                     },
                     data: {
@@ -320,7 +540,52 @@ export const flowSlice = createSlice({
         updateNodePosition: (state, action: PayloadAction<{ id: string; position: { x: number; y: number } }>) => {
             saveToPast(state);
             const node = state.nodes.find(n => n.id === action.payload.id);
-            if (node) node.position = action.payload.position;
+            if (node) {
+                let { x, y } = action.payload.position;
+
+                const step = getNodeExecutionStep(node);
+                const colConfig = EXECUTION_COLUMNS[step as keyof typeof EXECUTION_COLUMNS] || EXECUTION_COLUMNS[3];
+
+                let minAllowedX: number = colConfig.minX;
+                let maxAllowedX: number = colConfig.maxX;
+
+                const nodeWidth = (node.data?.is_placeholder && !node.data?.messages?.length) ? 155 : (node.data?.is_cf_fork ? 40 : 320);
+
+                // Execution Order Rule: A node cannot move backward past its predecessor / parent card (non-loop)
+                const incomingExecEdges = state.edges.filter(
+                    e => e.target === node.id && !e.id.includes('loop') && !e.label?.includes('Loop')
+                );
+                if (incomingExecEdges.length > 0) {
+                    const parentNodes = state.nodes.filter(n => incomingExecEdges.some(e => e.source === n.id));
+                    if (parentNodes.length > 0) {
+                        const maxParentEdge = Math.max(...parentNodes.map(p => {
+                            const pWidth = p.data?.is_cf_fork ? 40 : ((p.data?.is_placeholder && !p.data?.messages?.length) ? 155 : 320);
+                            return p.position.x + pWidth;
+                        }));
+                        minAllowedX = Math.max(minAllowedX, maxParentEdge + 20);
+                    }
+                }
+
+                // Downstream Execution Rule: Cannot move forward past its successor / child card (non-loop)
+                const outgoingExecEdges = state.edges.filter(
+                    e => e.source === node.id && !e.id.includes('loop') && !e.label?.includes('Loop')
+                );
+                if (outgoingExecEdges.length > 0) {
+                    const childNodes = state.nodes.filter(n => outgoingExecEdges.some(e => e.target === n.id));
+                    if (childNodes.length > 0) {
+                        const minChildX = Math.min(...childNodes.map(c => c.position.x));
+                        maxAllowedX = Math.min(maxAllowedX, minChildX - nodeWidth - 20);
+                    }
+                }
+
+                if (maxAllowedX >= minAllowedX) {
+                    x = Math.max(minAllowedX, Math.min(maxAllowedX, x));
+                } else {
+                    x = Math.max(minAllowedX, x);
+                }
+
+                node.position = { x, y };
+            }
         },
         updateNodeData: (state, action: PayloadAction<{ id: string; key: string; value: unknown }>) => {
             const { id, key, value } = action.payload;
@@ -344,7 +609,9 @@ export const flowSlice = createSlice({
             const node = state.nodes.find(n => n.id === id);
             if (node) {
                 // 1. Find all labeled edges from this node (these point to linked reply nodes)
-                const linkedEdges = state.edges.filter(e => e.source === id && e.label);
+                const linkedEdges = state.edges.filter(
+                    e => e.source === id && e.label && !e.id.includes('loop') && !e.label?.includes('Loop')
+                );
                 const linkedNodeIds = linkedEdges.map(e => e.target);
 
                 // 2. Cascade-remove linked reply nodes and all their downstream edges and nodes
@@ -385,7 +652,9 @@ export const flowSlice = createSlice({
             const node = state.nodes.find(n => n.id === id);
             if (node) {
                 // Remove all linked reply nodes and their downstream flows recursively
-                const linkedEdges = state.edges.filter(e => e.source === id && e.label);
+                const linkedEdges = state.edges.filter(
+                    e => e.source === id && e.label && !e.id.includes('loop') && !e.label?.includes('Loop')
+                );
                 const linkedNodeIds = linkedEdges.map(e => e.target);
                 if (linkedNodeIds.length > 0) {
                     linkedNodeIds.forEach(targetId => {
@@ -400,7 +669,45 @@ export const flowSlice = createSlice({
                     rate_limit_window_seconds: node.data.rate_limit_window_seconds,
                     is_placeholder: true,
                 };
+                // Clean up any loop edges originating from this node
+                state.edges = state.edges.filter(e => !(e.source === id && e.id.includes('loop')));
                 syncLinkedNodes(state, id);
+            }
+        },
+
+        setLoopBackTarget: (state, action: PayloadAction<{ sourceId: string; targetId: string }>) => {
+            saveToPast(state);
+            const { sourceId, targetId } = action.payload;
+            const node = state.nodes.find(n => n.id === sourceId);
+            const targetNode = state.nodes.find(n => n.id === targetId);
+
+            if (targetId && node && targetNode) {
+                const sourceStep = getNodeExecutionStep(node);
+                const targetStep = getNodeExecutionStep(targetNode);
+                if (targetStep >= sourceStep) {
+                    return; // Reject loop connection to same or later execution order step
+                }
+            }
+
+            if (node) {
+                node.data = {
+                    ...node.data,
+                    dm_format: 'loop_back',
+                    loop_target_id: targetId,
+                    is_placeholder: false,
+                    validationError: null,
+                };
+            }
+            // Remove existing loop edge from this source
+            state.edges = state.edges.filter(e => !(e.source === sourceId && e.id.includes('loop')));
+            // Add new loop edge
+            if (targetId) {
+                state.edges.push({
+                    id: `edge-loop-${sourceId}-${targetId}-${Date.now()}`,
+                    source: sourceId,
+                    target: targetId,
+                    label: '🔄 Loop Back',
+                });
             }
         },
 
@@ -478,26 +785,26 @@ export const flowSlice = createSlice({
             };
 
             const tId = `node-t-${Date.now()}`;
-            state.nodes.push({ id: tId, type: 'trigger', position: { x: 100, y: 150 }, data: targetData, ruleType, templateId: tid });
+            state.nodes.push({ id: tId, type: 'trigger', position: { x: 80, y: 150 }, data: targetData, ruleType, templateId: tid });
 
             let parentNodeId = tId;
 
             if (!isShareRule) {
                 const cId = `node-c-${Date.now()}`;
-                state.nodes.push({ id: cId, type: 'condition', position: { x: 550, y: 150 }, data: caseData.condition, ruleType, templateId: tid });
+                state.nodes.push({ id: cId, type: 'condition', position: { x: 420, y: 150 }, data: caseData.condition, ruleType, templateId: tid });
                 state.edges.push({ id: `edge-${Date.now()}-1`, source: tId, target: cId });
                 parentNodeId = cId;
             }
 
             if (caseData.giveaway) {
                 const gId = `node-g-${Date.now()}`;
-                state.nodes.push({ id: gId, type: 'giveaway_config', position: { x: 1000, y: 50 }, data: caseData.giveaway, ruleType, templateId: tid });
+                state.nodes.push({ id: gId, type: 'giveaway_config', position: { x: 760, y: 50 }, data: caseData.giveaway, ruleType, templateId: tid });
                 state.edges.push({ id: `edge-${Date.now()}-2`, source: parentNodeId, target: gId });
 
                 if (caseData.giveaway.rewards) {
                     caseData.giveaway.rewards.forEach((rew, idx) => {
                         const rId = `node-r-${Date.now()}-${idx}`;
-                        state.nodes.push({ id: rId, type: 'reward', position: { x: 1450, y: 50 + (idx * 160) }, data: rew, ruleType, templateId: tid });
+                        state.nodes.push({ id: rId, type: 'reward', position: { x: 1100, y: 50 + (idx * 160) }, data: rew, ruleType, templateId: tid });
                         state.edges.push({ id: `edge-${Date.now()}-reward-${idx}`, source: gId, target: rId });
                     });
                 }
@@ -511,7 +818,7 @@ export const flowSlice = createSlice({
                         (actAny.messages && actAny.messages.length > 0) ||
                         (actAny.dm_format && actAny.dm_format !== 'text') ||
                         (actAny.action_type && actAny.action_type !== 'send_dm');
-                    const posX = isShareRule ? 550 : (caseData.giveaway ? 1000 : 1000);
+                    const posX = isShareRule ? 420 : (caseData.giveaway ? 760 : 760);
                     // Offset vertically for multiple actions
                     state.nodes.push({ id: aId, type: 'action', position: { x: posX, y: caseData.giveaway ? 300 + (i * 200) : 150 + (i * 200) }, data: { ...act, is_placeholder: !hasConfiguredData }, ruleType, templateId: tid });
                     state.edges.push({ id: `edge-${Date.now()}-act-${i}`, source: parentNodeId, target: aId });
@@ -527,7 +834,7 @@ export const flowSlice = createSlice({
             offsetY?: number;
         }>) => {
             saveToPast(state);
-            const { sourceNodeId, parentEventPayload, parentEventLabel, offsetX = 450, offsetY = 0 } = action.payload;
+            const { sourceNodeId, parentEventPayload, parentEventLabel, offsetX = 340, offsetY = 0 } = action.payload;
             const sourceNode = state.nodes.find(n => n.id === sourceNodeId);
             if (!sourceNode) return;
 
@@ -622,6 +929,7 @@ export const {
     addLinkedDMNode,
     setDMFormat,
     resetToPlaceholder,
+    setLoopBackTarget,
     undo,
     redo
 } = flowSlice.actions;

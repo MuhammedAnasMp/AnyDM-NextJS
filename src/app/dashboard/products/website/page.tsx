@@ -33,6 +33,7 @@ import {
   Search,
   Menu,
   ChevronDown,
+  Pencil,
 } from "lucide-react";
 
 const InstagramIcon = ({ className }: { className?: string }) => (
@@ -247,8 +248,13 @@ export default function WebsiteSettingsPage() {
   const [toastVisible, setToastVisible] = useState(false);
   const [toastType, setToastType] = useState<"success" | "error" | "info">("success");
 
+  const [customDomain, setCustomDomain] = useState("");
   const logoInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
+  const slugInputRef = useRef<HTMLInputElement>(null);
+  const customDomainInputRef = useRef<HTMLInputElement>(null);
+  const [isEditingSlug, setIsEditingSlug] = useState(false);
+  const [isEditingCustomDomain, setIsEditingCustomDomain] = useState(false);
   const [bannerUploading, setBannerUploading] = useState(false);
   const [bannerUploadProgress, setBannerUploadProgress] = useState(0);
 
@@ -259,7 +265,7 @@ export default function WebsiteSettingsPage() {
   };
 
   useEffect(() => {
-    if (activeAccount) loadWebsiteSettings();
+    loadWebsiteSettings();
   }, [activeAccount]);
 
   const loadWebsiteSettings = async () => {
@@ -271,6 +277,7 @@ export default function WebsiteSettingsPage() {
         setStoreName(d.store_name || "");
         setStoreLogo(d.store_logo || "");
         setStoreSlug(d.store_slug || "");
+        setCustomDomain(d.custom_domain || "");
         setStoreBanner(d.store_banner || "");
         setStoreDescription(d.store_description || "");
         setContactEmail(d.contact_email || "");
@@ -308,6 +315,8 @@ export default function WebsiteSettingsPage() {
       showToast("Using local storefront configs.", "info");
       setStoreName(activeAccount?.full_name || activeAccount?.username || "");
       setStoreLogo(activeAccount?.profile_picture_url || "");
+      setStoreSlug("");
+      setCustomDomain("");
     } finally {
       setInitialLoading(false);
     }
@@ -319,6 +328,7 @@ export default function WebsiteSettingsPage() {
       store_name: storeName,
       store_logo: storeLogo,
       store_slug: storeSlug,
+      custom_domain: customDomain,
       store_banner: storeBanner,
       store_description: storeDescription,
       contact_email: contactEmail,
@@ -341,6 +351,7 @@ export default function WebsiteSettingsPage() {
     try {
       await api.put("/accounts/website-settings/", payload);
       showToast("Store settings saved.", "success");
+      await loadWebsiteSettings();
     } catch (err: any) {
       showToast(err.response?.data?.error || "Couldn't save settings. Try again.", "error");
     } finally {
@@ -405,11 +416,15 @@ export default function WebsiteSettingsPage() {
   };
 
   const selectedTemplate = TEMPLATE_PRESETS.find((t) => t.id === templateId) || TEMPLATE_PRESETS[0];
-  const storefrontUrl = typeof window !== "undefined"
-    ? `${window.location.origin}/${activeAccount?.username}`
-    : `/${activeAccount?.username}`;
-  const previewStyles: TemplateStyle = getTemplateStyles(templateId, themeId);
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "zoyee.in";
+  const activeSlugOrUsername = storeSlug || activeAccount?.username || "your-subdomain";
+  const baseRootDomain = rootDomain.replace(/^app\./, "");
+  const subdomainUrl = `https://${activeSlugOrUsername}.${baseRootDomain}`;
+  const storefrontUrl = customDomain
+    ? `https://${customDomain.replace(/^https?:\/\//, "").replace(/\/$/, "")}`
+    : subdomainUrl;
 
+  const previewStyles: TemplateStyle = getTemplateStyles(templateId, themeId);
   const previewStoreName = storeName || activeAccount?.full_name || "My Store";
 
   return (
@@ -467,6 +482,120 @@ export default function WebsiteSettingsPage() {
                     style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface }}
                     placeholder="Enter store name"
                   />
+                </Field>
+
+                {/* Subdomain Field */}
+                <Field label="Store Subdomain">
+                  <div
+                    className="flex items-center rounded overflow-hidden relative transition-colors"
+                    style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${isEditingSlug ? t.accentCyan : t.outlineVariant}` }}
+                  >
+                    <span className="px-3 py-2 text-xs font-mono select-none shrink-0" style={{ color: t.outline, backgroundColor: t.surfaceContainerHigh, borderRight: `1px solid ${t.outlineVariant}` }}>
+                      https://
+                    </span>
+                    <div className="relative w-full flex items-center">
+                      <input
+                        ref={slugInputRef}
+                        type="text"
+                        disabled={!isEditingSlug}
+                        value={storeSlug}
+                        onChange={(e) => {
+                          const val = e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, "");
+                          setStoreSlug(val);
+                        }}
+                        className={cn(
+                          "w-full text-sm pl-3 pr-10 py-2 bg-transparent focus:outline-none font-mono transition-opacity",
+                          !isEditingSlug && "cursor-not-allowed opacity-70"
+                        )}
+                        style={{ color: t.onSurface }}
+                        placeholder="my_muscles_factory"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsEditingSlug((prev) => {
+                            const next = !prev;
+                            if (next) setTimeout(() => slugInputRef.current?.focus(), 50);
+                            return next;
+                          });
+                        }}
+                        title={isEditingSlug ? "Lock editing" : "Edit subdomain"}
+                        className="absolute right-2.5 p-1 rounded hover:bg-white/10 transition-colors flex items-center justify-center cursor-pointer"
+                      >
+                        {isEditingSlug ? (
+                          <Check className="w-4 h-4 text-emerald-400" strokeWidth={2} />
+                        ) : (
+                          <Pencil className="w-4 h-4" style={{ color: t.outline }} strokeWidth={1.75} />
+                        )}
+                      </button>
+                    </div>
+                    <span className="px-3 py-2 text-xs font-mono select-none shrink-0" style={{ color: t.outline, backgroundColor: t.surfaceContainerHigh, borderLeft: `1px solid ${t.outlineVariant}` }}>
+                      .{baseRootDomain}
+                    </span>
+                  </div>
+                  <p className="text-xs mt-1.5" style={{ color: t.onSurfaceVariant }}>
+                    Default platform subdomain:{" "}
+                    <a
+                      href={subdomainUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-mono text-xs font-semibold underline underline-offset-2"
+                      style={{ color: t.accentCyan }}
+                    >
+                      {subdomainUrl}
+                    </a>
+                  </p>
+                </Field>
+
+                {/* Custom Domain Field */}
+                <Field label="Custom Domain (Own Domain)">
+                  <div
+                    className="flex items-center rounded overflow-hidden relative transition-colors"
+                    style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${isEditingCustomDomain ? t.accentCyan : t.outlineVariant}` }}
+                  >
+                    <span className="px-3 py-2 text-xs font-mono select-none shrink-0" style={{ color: t.outline, backgroundColor: t.surfaceContainerHigh, borderRight: `1px solid ${t.outlineVariant}` }}>
+                      https://
+                    </span>
+                    <div className="relative w-full flex items-center">
+                      <input
+                        ref={customDomainInputRef}
+                        type="text"
+                        disabled={!isEditingCustomDomain}
+                        value={customDomain}
+                        onChange={(e) => {
+                          const val = e.target.value.toLowerCase().replace(/^https?:\/\//, "").replace(/[^a-z0-9.-]/g, "");
+                          setCustomDomain(val);
+                        }}
+                        className={cn(
+                          "w-full text-sm pl-3 pr-10 py-2 bg-transparent focus:outline-none font-mono transition-opacity",
+                          !isEditingCustomDomain && "cursor-not-allowed opacity-70"
+                        )}
+                        style={{ color: t.onSurface }}
+                        placeholder="my_muscles_factory.in"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsEditingCustomDomain((prev) => {
+                            const next = !prev;
+                            if (next) setTimeout(() => customDomainInputRef.current?.focus(), 50);
+                            return next;
+                          });
+                        }}
+                        title={isEditingCustomDomain ? "Lock editing" : "Edit custom domain"}
+                        className="absolute right-2.5 p-1 rounded hover:bg-white/10 transition-colors flex items-center justify-center cursor-pointer"
+                      >
+                        {isEditingCustomDomain ? (
+                          <Check className="w-4 h-4 text-emerald-400" strokeWidth={2} />
+                        ) : (
+                          <Pencil className="w-4 h-4" style={{ color: t.outline }} strokeWidth={1.75} />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-xs mt-1.5" style={{ color: t.onSurfaceVariant }}>
+                    Connect your own domain (e.g. <span className="font-mono text-xs font-semibold text-white">my_muscles_factory.in</span>). Point a CNAME record to <span className="font-mono text-xs text-white">cname.{baseRootDomain}</span> in your DNS provider.
+                  </p>
                 </Field>
 
                 <Field label="Store logo">

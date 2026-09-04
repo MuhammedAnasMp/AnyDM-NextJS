@@ -152,6 +152,24 @@ export function serializeFlowToDatabase(flow: FlowState): any {
             text: an.data.button_template_text || 'What would you like to do?',
             buttons
           };
+
+          const cfFollowingNode = flow.nodes.find(n => n.id === `${an.id}-cf-following`);
+          const cfNotFollowingNode = flow.nodes.find(n => n.id === `${an.id}-cf-not-following`);
+          if (cfFollowingNode || cfNotFollowingNode) {
+            actionItem.check_follow_payload = {
+              following_format: cfFollowingNode?.data?.dm_format || 'text',
+              following_text: cfFollowingNode?.data?.messages?.[0] || cfFollowingNode?.data?.button_template_text || cfFollowingNode?.data?.following_text || 'Thanks for following us!',
+              following_button_text: cfFollowingNode?.data?.profile_button_text || '',
+              following_buttons_json: cfFollowingNode?.data?.button_template_buttons_json || '',
+              following_profile_url: cfFollowingNode?.data?.profile_url || '',
+
+              not_following_format: cfNotFollowingNode?.data?.dm_format || 'button_template',
+              not_following_text: cfNotFollowingNode?.data?.messages?.[0] || cfNotFollowingNode?.data?.button_template_text || cfNotFollowingNode?.data?.not_following_text || 'Please follow our Instagram account!',
+              not_following_button_text: cfNotFollowingNode?.data?.profile_button_text || '👉 Follow Us',
+              not_following_buttons_json: cfNotFollowingNode?.data?.button_template_buttons_json || '',
+              not_following_profile_url: cfNotFollowingNode?.data?.profile_url || '',
+            };
+          }
         } else if (format === 'generic_template') {
           let elements = [];
           if (typeof an.data.generic_template_elements_json === 'string') {
@@ -166,8 +184,44 @@ export function serializeFlowToDatabase(flow: FlowState): any {
             elements = an.data.generic_template_payload.elements;
           }
           actionItem.generic_template_payload = { elements };
+
+          const cfFollowingNode = flow.nodes.find(n => n.id === `${an.id}-cf-following`);
+          const cfNotFollowingNode = flow.nodes.find(n => n.id === `${an.id}-cf-not-following`);
+          if (cfFollowingNode || cfNotFollowingNode) {
+            actionItem.check_follow_payload = {
+              following_format: cfFollowingNode?.data?.dm_format || 'text',
+              following_text: cfFollowingNode?.data?.messages?.[0] || cfFollowingNode?.data?.button_template_text || cfFollowingNode?.data?.following_text || 'Thanks for following us!',
+              following_button_text: cfFollowingNode?.data?.profile_button_text || '',
+              following_buttons_json: cfFollowingNode?.data?.button_template_buttons_json || '',
+              following_profile_url: cfFollowingNode?.data?.profile_url || '',
+
+              not_following_format: cfNotFollowingNode?.data?.dm_format || 'button_template',
+              not_following_text: cfNotFollowingNode?.data?.messages?.[0] || cfNotFollowingNode?.data?.button_template_text || cfNotFollowingNode?.data?.not_following_text || 'Please follow our Instagram account!',
+              not_following_button_text: cfNotFollowingNode?.data?.profile_button_text || '👉 Follow Us',
+              not_following_buttons_json: cfNotFollowingNode?.data?.button_template_buttons_json || '',
+              not_following_profile_url: cfNotFollowingNode?.data?.profile_url || '',
+            };
+          }
         } else if (format === 'attachment') {
           actionItem.attachments = an.data.attachments || [];
+        } else if (format === 'show_profile') {
+          actionItem.profile_url = an.data.profile_url || '';
+          actionItem.profile_message_text = an.data.profile_message_text || '';
+          actionItem.profile_button_text = an.data.profile_button_text || '';
+        } else if (format === 'check_follow') {
+          actionItem.following_format = an.data.following_format || 'text';
+          actionItem.following_text = an.data.following_text || '';
+          actionItem.following_button_text = an.data.following_button_text || '';
+          actionItem.following_buttons_json = an.data.following_buttons_json || '';
+          actionItem.following_profile_url = an.data.following_profile_url || '';
+
+          actionItem.not_following_format = an.data.not_following_format || 'button_template';
+          actionItem.not_following_text = an.data.not_following_text || '';
+          actionItem.not_following_button_text = an.data.not_following_button_text || '';
+          actionItem.not_following_buttons_json = an.data.not_following_buttons_json || '';
+          actionItem.not_following_profile_url = an.data.not_following_profile_url || '';
+        } else if (format === 'loop_back') {
+          actionItem.loop_target_id = an.data.loop_target_id || '';
         }
 
         if (an.data.url_allowlist) {

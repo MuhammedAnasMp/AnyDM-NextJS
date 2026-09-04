@@ -6,7 +6,7 @@ import { RootState } from '@/store';
 import { addNode, selectNode, setFlow } from '@/store/slices/flowSlice';
 import { CanvasNode, CanvasEdges } from './CanvasNode';
 import { NodeType, FlowState } from '@/lib/types';
-import { Xwrapper, useXarrow } from 'react-xarrows';
+import Xarrow, { Xwrapper, useXarrow } from 'react-xarrows';
 import { CanvasContext } from './CanvasContext';
 import { Minus, Plus, Sparkles, Menu as MenuIcon, Loader2, Focus, Smartphone, Shrink, Expand } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -22,25 +22,25 @@ const screenshotFlow: FlowState = {
     {
       id: 'n_trigger',
       type: 'trigger',
-      position: { x: 100, y: 150 },
+      position: { x: 80, y: 150 },
       data: {}
     },
     {
       id: 'n_filter',
       type: 'condition',
-      position: { x: 450, y: 150 },
+      position: { x: 420, y: 150 },
       data: {}
     },
     {
       id: 'n_action1',
       type: 'action',
-      position: { x: 900, y: 80 },
+      position: { x: 760, y: 80 },
       data: { isPrimary: false, action_label: "ACTION 1", is_placeholder: true, action_type: 'reply_comment' }
     },
     {
       id: 'n_action2',
       type: 'action',
-      position: { x: 900, y: 280 },
+      position: { x: 760, y: 280 },
       data: { isPrimary: true, action_label: "PRIMARY ACTION", is_placeholder: true, action_type: 'send_dm' }
     }
   ],
@@ -106,6 +106,33 @@ export function Canvas() {
   const [isInitializing, setIsInitializing] = React.useState(false);
   const [cardPosition, setCardPosition] = React.useState({ x: 300, y: 150 });
   const isDraggingCard = React.useRef(false);
+  const [loopDragState, setLoopDragState] = React.useState<{ sourceId: string; mousePos: { x: number; y: number } } | null>(null);
+
+  React.useEffect(() => {
+    const handleStart = (e: any) => {
+      setLoopDragState({ sourceId: e.detail.sourceId, mousePos: e.detail.mousePos || { x: window.innerWidth / 2, y: window.innerHeight / 2 } });
+    };
+    const handleEnd = () => {
+      setLoopDragState(null);
+    };
+    const handlePointerMove = (e: MouseEvent | PointerEvent) => {
+      setLoopDragState(prev => {
+        if (!prev) return null;
+        return { ...prev, mousePos: { x: e.clientX, y: e.clientY } };
+      });
+    };
+
+    window.addEventListener('loop-drag-start', handleStart);
+    window.addEventListener('loop-drag-end', handleEnd);
+    window.addEventListener('pointermove', handlePointerMove, { passive: true });
+    window.addEventListener('mousemove', handlePointerMove, { passive: true });
+    return () => {
+      window.removeEventListener('loop-drag-start', handleStart);
+      window.removeEventListener('loop-drag-end', handleEnd);
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('mousemove', handlePointerMove);
+    };
+  }, []);
 
   // Clear flow in Redux if openTab changes to initialize overlay
   React.useEffect(() => {
@@ -159,7 +186,7 @@ export function Canvas() {
         const triggerNode = {
           id: triggerId,
           type: 'trigger' as const,
-          position: { x: 100, y: 200 },
+          position: { x: 80, y: 150 },
           data: triggerData
         };
 
@@ -167,7 +194,7 @@ export function Canvas() {
         const actionNode = {
           id: actionId,
           type: 'action' as const,
-          position: { x: 600, y: 150 },
+          position: { x: 420, y: 150 },
           ruleType: 'dm_automation',
           data: {
             action_type: 'send_dm',
@@ -223,7 +250,7 @@ export function Canvas() {
         const triggerNode = {
           id: triggerId,
           type: 'trigger' as const,
-          position: { x: 100, y: 200 },
+          position: { x: 80, y: 150 },
           data: triggerData
         };
 
@@ -231,7 +258,7 @@ export function Canvas() {
         const actionNode = {
           id: actionId,
           type: 'action' as const,
-          position: { x: 600, y: 150 },
+          position: { x: 420, y: 150 },
           ruleType: 'dm_automation',
           data: {
             action_type: 'send_dm',
@@ -706,13 +733,57 @@ export function Canvas() {
         />
         <CanvasErrorBoundary>
           <Xwrapper>
-            <XarrowUpdater trigger={`${pan.x}-${pan.y}-${scale}`} />
+            <XarrowUpdater trigger={`${pan.x}-${pan.y}-${scale}-${loopDragState?.mousePos.x || 0}-${loopDragState?.mousePos.y || 0}`} />
             {flow.nodes.map(node => (
               <CanvasNode key={node.id} id={node.id} />
             ))}
             <CanvasEdges />
+            {loopDragState && (
+              <Xarrow
+                key={`live-loop-wire-${loopDragState.sourceId}-${loopDragState.mousePos.x}-${loopDragState.mousePos.y}`}
+                start={loopDragState.sourceId}
+                end="loop-cursor-pin"
+                color="#c4c0ff"
+                strokeWidth={2.5 * scale}
+                path="smooth"
+                showHead={true}
+                headSize={4}
+                headColor="#c4c0ff"
+                headShape="arrow1"
+                curveness={0.8}
+                startAnchor="bottom"
+                endAnchor="middle"
+                dashness={{ strokeLen: 5, nonStrokeLen: 5 }}
+                labels={{
+                  middle: (
+                    <div className="px-2.5 py-0.5 rounded-full bg-[#1e1b4b]/95 border border-[#c4c0ff]/40 text-[#c4c0ff] text-[9px] font-extrabold whitespace-nowrap backdrop-blur-md shadow-2xl animate-pulse select-none pointer-events-none">
+                      🔄 Back Loop
+                    </div>
+                  )
+                }}
+              />
+            )}
           </Xwrapper>
         </CanvasErrorBoundary>
+
+        {/* Live Cursor Pin for Free-Falling Loop Wire */}
+        {loopDragState && (
+          <div
+            id="loop-cursor-pin"
+            style={{
+              position: 'fixed',
+              left: loopDragState.mousePos.x,
+              top: loopDragState.mousePos.y,
+              pointerEvents: 'none',
+              zIndex: 99999,
+              transform: 'translate(-50%, -50%)',
+            }}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold bg-[#1e1b4b] border-2 border-[#c4c0ff] text-[#c4c0ff] shadow-2xl backdrop-blur-md animate-pulse whitespace-nowrap select-none"
+          >
+            <span className="w-2 h-2 rounded-full bg-[#c4c0ff] animate-ping shrink-0" />
+            <span>🔄 Loop Back</span>
+          </div>
+        )}
 
         {/* Welcome Flow Initializer Overlay - Draggable & Zoomable */}
         {openTab && flow.nodes.length === 0 && (

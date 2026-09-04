@@ -164,7 +164,7 @@ export default function InstagramSchedulerPage() {
 
     let host = "";
     let isSecure = false;
-    const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+    const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || "http://172.16.4.167:8001";
 
     if (rawApiUrl.startsWith("https://")) {
       host = rawApiUrl.substring(8);

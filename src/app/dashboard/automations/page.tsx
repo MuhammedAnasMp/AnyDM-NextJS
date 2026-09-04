@@ -139,7 +139,7 @@ export default function BuilderPage() {
                 const triggerData: any = isIcebreakers
                   ? { is_icebreaker_trigger: true, welcome_prompt: welcomePromptVal, icebreakers: iceBreakersList }
                   : { is_menu_trigger: true, composer_input_disabled: composerDisabled, persistent_menu_items: persistentMenuList };
-                nodesList = [{ id: triggerId, type: 'trigger', position: { x: 100, y: 200 }, data: triggerData, ruleType: 'dm_automation' }];
+                nodesList = [{ id: triggerId, type: 'trigger', position: { x: 80, y: 150 }, data: triggerData, ruleType: 'dm_automation' }];
 
                 const activeEvents = isIcebreakers
                   ? iceBreakersList.filter((ib: any) => ib.question && ib.payload).map((ib: any) => ({ payload: ib.payload, label: ib.question }))
@@ -150,7 +150,7 @@ export default function BuilderPage() {
                   nodesList.push({
                     id: actionId,
                     type: 'action',
-                    position: { x: 600, y: 50 + idx * 250 },
+                    position: { x: 420, y: 50 + idx * 250 },
                     ruleType: 'dm_automation',
                     data: {
                       action_type: 'send_dm',
@@ -194,7 +194,7 @@ export default function BuilderPage() {
               nodesList.push({
                 id: tId,
                 type: 'trigger',
-                position: { x: 100, y: 150 },
+                position: { x: 80, y: 150 },
                 ruleType,
                 data: {
                   target_mode: targetMode,
@@ -211,7 +211,7 @@ export default function BuilderPage() {
                 nodesList.push({
                   id: cId,
                   type: 'condition',
-                  position: { x: 550, y: 150 },
+                  position: { x: 420, y: 150 },
                   ruleType,
                   data: {
                     match_type: 'contains',
@@ -234,7 +234,7 @@ export default function BuilderPage() {
                 nodesList.push({
                   id: aId,
                   type: 'action',
-                  position: { x: 1000, y: 150 },
+                  position: { x: 760, y: 150 },
                   ruleType,
                   data: {
                     action_type: 'send_dm',
@@ -256,7 +256,7 @@ export default function BuilderPage() {
                   nodesList.push({
                     id: aId,
                     type: 'action',
-                    position: { x: 1000, y: 80 + (idx * 200) },
+                    position: { x: 760, y: 80 + (idx * 200) },
                     ruleType,
                     data: {
                       action_type: act.action_type || 'send_dm',
@@ -347,7 +347,7 @@ export default function BuilderPage() {
             nodesList.push({
               id: triggerId,
               type: 'trigger',
-              position: { x: 100, y: 150 },
+              position: { x: 80, y: 150 },
               ruleType: 'dm_automation',
               data: {
                 is_icebreaker_trigger: true,
@@ -363,7 +363,7 @@ export default function BuilderPage() {
                 nodesList.push({
                   id: actionId,
                   type: 'action',
-                  position: { x: 600, y: 50 + idx * 250 },
+                  position: { x: 420, y: 50 + idx * 250 },
                   ruleType: 'dm_automation',
                   data: {
                     action_type: 'send_dm',
@@ -385,7 +385,7 @@ export default function BuilderPage() {
             nodesList.push({
               id: triggerId,
               type: 'trigger',
-              position: { x: 100, y: 150 },
+              position: { x: 80, y: 150 },
               ruleType: 'dm_automation',
               data: {
                 is_menu_trigger: true,
@@ -406,7 +406,7 @@ export default function BuilderPage() {
                   nodesList.push({
                     id: promptId,
                     type: 'action',
-                    position: { x: 550, y: 450 + actionIdx * 250 },
+                    position: { x: 420, y: 450 + actionIdx * 250 },
                     ruleType: 'dm_automation',
                     data: {
                       action_type: 'send_dm',
@@ -421,7 +421,7 @@ export default function BuilderPage() {
                   nodesList.push({
                     id: inputId,
                     type: 'action',
-                    position: { x: 900, y: 450 + actionIdx * 250 },
+                    position: { x: 760, y: 450 + actionIdx * 250 },
                     ruleType: 'dm_automation',
                     data: {
                       action_type: 'send_dm',
@@ -436,7 +436,7 @@ export default function BuilderPage() {
                   nodesList.push({
                     id: responseId,
                     type: 'action',
-                    position: { x: 1250, y: 450 + actionIdx * 250 },
+                    position: { x: 1100, y: 450 + actionIdx * 250 },
                     ruleType: 'dm_automation',
                     data: {
                       action_type: 'send_dm',
@@ -473,7 +473,7 @@ export default function BuilderPage() {
                   nodesList.push({
                     id: actionId,
                     type: 'action',
-                    position: { x: 600, y: 50 + actionIdx * 250 },
+                    position: { x: 420, y: 50 + actionIdx * 250 },
                     ruleType: 'dm_automation',
                     data: {
                       action_type: 'send_dm',

@@ -3,13 +3,14 @@
 import * as React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store';
-import { updateNodePosition, selectNode, updateNodeData, removeNode, resetToPlaceholder } from '@/store/slices/flowSlice';
+import { updateNodePosition, selectNode, updateNodeData, removeNode, resetToPlaceholder, setLoopBackTarget, EXECUTION_COLUMNS, getNodeExecutionStep } from '@/store/slices/flowSlice';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { MessageSquare, Filter, Send, AtSign, Plus, Trophy, Gift, Sparkles, Clock, ChevronDown, Paperclip, X, Film, Headphones, Share2, Heart, Image as ImageIcon, ArrowRightFromLineIcon, FilterIcon, AlertCircle } from 'lucide-react';
+import { MessageSquare, Filter, Send, AtSign, Plus, Trophy, Gift, Sparkles, Clock, ChevronDown, Paperclip, X, Film, Headphones, Share2, Heart, Image as ImageIcon, ArrowRightFromLineIcon, FilterIcon, AlertCircle, User, UserCheck, ExternalLink, ShieldCheck, RotateCcw, Ban, SplitIcon } from 'lucide-react';
 import Xarrow, { useXarrow } from 'react-xarrows';
 import { useCanvas } from './CanvasContext';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/Tooltip';
+import { InstagramProfileCard } from './InstagramProfileCard';
 
 const NODE_THEMES: Record<string, any> = {
     trigger: {
@@ -53,8 +54,40 @@ export function CanvasNode({ id }: { id: string }) {
     const updateXarrow = useXarrow();
     const { pan, scale } = useCanvas();
     const isDragging = React.useRef(false);
+    const lastDragEndTimestamp = React.useRef(0);
+    const dragTotalDistance = React.useRef(0);
+
+    const wasRecentlyDragged = () => {
+        if (isDragging.current) return true;
+        if (Date.now() - lastDragEndTimestamp.current < 250) return true;
+        if (dragTotalDistance.current > 5) return true;
+        return false;
+    };
     const [formatMenuOpen, setFormatMenuOpen] = React.useState(false);
+    const [activeLoopDragSourceId, setActiveLoopDragSourceId] = React.useState<string | null>(null);
     const formatMenuRef = React.useRef<HTMLDivElement>(null);
+
+    React.useEffect(() => {
+        const handleStart = (e: any) => setActiveLoopDragSourceId(e.detail?.sourceId || null);
+        const handleEnd = () => setActiveLoopDragSourceId(null);
+        window.addEventListener('loop-drag-start', handleStart);
+        window.addEventListener('loop-drag-end', handleEnd);
+        return () => {
+            window.removeEventListener('loop-drag-start', handleStart);
+            window.removeEventListener('loop-drag-end', handleEnd);
+        };
+    }, []);
+
+    React.useEffect(() => {
+        if (!activeLoopDragSourceId) return;
+        const handleWindowPointerUp = () => {
+            setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('loop-drag-end'));
+            }, 120);
+        };
+        window.addEventListener('pointerup', handleWindowPointerUp);
+        return () => window.removeEventListener('pointerup', handleWindowPointerUp);
+    }, [activeLoopDragSourceId]);
 
     React.useEffect(() => {
         // Notify Xarrow to connect correctly when the node mounts
@@ -91,6 +124,72 @@ export function CanvasNode({ id }: { id: string }) {
         actionCount = siblingActionNodes.length;
     }
 
+    // Execution order positioning constraints: cannot move backward past previous card (1 -> 2 -> 3 -> 4 -> 5)
+    const nodeStep = getNodeExecutionStep(node);
+    const colConfig = EXECUTION_COLUMNS[nodeStep as keyof typeof EXECUTION_COLUMNS] || EXECUTION_COLUMNS[3];
+
+    const incomingExecEdges = edges.filter(e => e.target === node.id && !e.id.includes('loop') && !e.label?.includes('Loop'));
+    const parentExecNodes = nodes.filter(n => incomingExecEdges.some(e => e.source === n.id));
+    const parentThreshold = parentExecNodes.length > 0 ? Math.max(...parentExecNodes.map(p => {
+        const pWidth = p.data?.is_cf_fork ? 40 : ((p.data?.is_placeholder && !p.data?.messages?.length) ? 155 : 320);
+        return p.position.x + pWidth;
+    })) + 20 : 0;
+    const minAllowedX = Math.max(colConfig.minX, parentThreshold);
+
+    const outgoingExecEdges = edges.filter(e => e.source === node.id && !e.id.includes('loop') && !e.label?.includes('Loop'));
+    const childExecNodes = nodes.filter(n => outgoingExecEdges.some(e => e.target === n.id));
+    const nodeWidth = (node.data?.is_placeholder && !node.data?.messages?.length) ? 155 : (node.data?.is_cf_fork ? 40 : 320);
+    const childThreshold = childExecNodes.length > 0 ? Math.min(...childExecNodes.map(c => c.position.x)) - nodeWidth - 20 : Infinity;
+    const maxAllowedX = Math.min(colConfig.maxX, childThreshold);
+
+    const clampNodePosition = (targetX: number, targetY: number) => {
+        const effectiveMax = maxAllowedX >= minAllowedX ? maxAllowedX : Infinity;
+        const clampedX = Math.max(minAllowedX, Math.min(effectiveMax, targetX));
+        return { x: clampedX, y: targetY };
+    };
+
+    const activeLoopEdge = edges.find(e => e.source === node.id && (e.id.includes('loop') || e.label?.includes('Loop')));
+    const loopTargetNode = activeLoopEdge ? nodes.find(n => n.id === activeLoopEdge.target) : null;
+
+    // Determine if this card is a valid loop connection target (strictly previous cards, excluding same execution order step, triggers, filters, profile, comment reply, and sibling branches)
+    const isValidLoopTargetCard = React.useMemo(() => {
+        if (!activeLoopDragSourceId || activeLoopDragSourceId === node.id) return false;
+        const sourceNode = nodes.find(n => n.id === activeLoopDragSourceId);
+        if (!sourceNode) return false;
+
+        // 1. Must be in a strictly earlier execution step (cannot connect to same or later execution order step)
+        const sourceStep = getNodeExecutionStep(sourceNode);
+        const targetStep = getNodeExecutionStep(node);
+        if (targetStep >= sourceStep) return false;
+
+        // 2. Must be a previous card (horizontally before the source node)
+        if (node.position.x >= sourceNode.position.x - 50) return false;
+
+        // 3. Branch restriction: If Following cannot connect to If Not Following & vice versa
+        const isSourceBranch = sourceNode.data?.is_cf_following || sourceNode.data?.is_cf_not_following;
+        const isTargetBranch = node.data?.is_cf_following || node.data?.is_cf_not_following;
+        if (isSourceBranch && isTargetBranch) return false;
+
+        // 4. Can't connect to starting trigger
+        if (node.type === 'trigger' || node.data?.is_icebreaker_trigger || node.data?.is_menu_trigger) return false;
+
+        // 5. Can't connect to keyword match (filter / condition)
+        if (node.type === 'condition') return false;
+
+        // 6. Can't connect to reply comment
+        if (node.data?.action_type === 'reply_comment') return false;
+
+        // 7. Can't connect to profile card
+        if (node.data?.dm_format === 'show_profile' || node.data?.is_profile_card) return false;
+
+        // 8. Can't connect to Y-fork junction pin
+        if (node.data?.is_cf_fork) return false;
+
+        // 9. Valid on action cards (including previous button template, carousel, text, quick reply, etc.)
+        if (node.type === 'action') return true;
+        return false;
+    }, [activeLoopDragSourceId, node, nodes]);
+
     // Custom overrides for action nodes as seen in the mockup
     let customPill = theme.pill;
     let customPillColor = theme.pillColor;
@@ -111,7 +210,28 @@ export function CanvasNode({ id }: { id: string }) {
 
             // Special theming for Trigger Event Reply nodes
             if (node.data?.parent_event) {
-                if (node.data.parent_event === 'TRACK_ORDER') {
+                if (node.data.dm_format === 'loop_back') {
+                    customPill = 'LOOP BACK';
+                    customPillColor = 'bg-[#CECBF6] text-[#26215b] font-black leading-none';
+                    customTitle = '🔄 Loop to Previous DM';
+                    CustomIcon = RotateCcw;
+                } else if (node.data.is_cf_following) {
+                    customPill = 'FOLLOWING';
+                    customPillColor = 'bg-emerald-400 text-black font-extrabold leading-none';
+                    customTitle = '✅ If User Is Following';
+                } else if (node.data.is_cf_not_following) {
+                    customPill = 'NOT FOLLOWING';
+                    customPillColor = 'bg-rose-400 text-black font-extrabold leading-none';
+                    customTitle = '❌ If User Not Following';
+                } else if (node.data.is_cf_gate || node.data.dm_format === 'check_follow') {
+                    customPill = 'CHECK FOLLOW';
+                    customPillColor = 'bg-[#CECBF6] text-[#26215b] font-black leading-none';
+                    customTitle = `Check Follow: ${node.data?.button_name || node.data?.parent_label || '👉 Follow Us'}`;
+                } else if (node.data.is_profile_card || node.data.dm_format === 'show_profile') {
+                    customPill = 'INSTAGRAM';
+                    customPillColor = 'bg-cyan-400 text-black font-extrabold leading-none';
+                    customTitle = '👤 Show Profile View';
+                } else if (node.data.parent_event === 'TRACK_ORDER') {
                     if (node.data.is_track_prompt) {
                         customPill = 'TRACK PROMPT';
                         customPillColor = 'bg-indigo-600 text-white font-bold leading-none tracking-widest hidden';
@@ -158,56 +278,91 @@ export function CanvasNode({ id }: { id: string }) {
     }
 
     const d = node.data || {};
+    const isBranchNode = Boolean(node.data?.is_cf_following || node.data?.is_cf_not_following);
     const hasConfiguredData =
-        (d.messages && d.messages.length > 0) ||
+        !node.data?.is_placeholder &&
+        ((d.messages && d.messages.length > 0) ||
         (d.dm_format && d.dm_format !== 'text') ||
         (d.quick_replies_titles && d.quick_replies_titles.length > 0) ||
         (d.button_template_buttons_json && String(d.button_template_buttons_json).trim() !== '') ||
         (d.generic_template_elements_json && String(d.generic_template_elements_json).trim() !== '') ||
-        (d.action_type && d.action_type !== 'send_dm' && d.action_type !== 'reply_comment');
+        (d.action_type && d.action_type !== 'send_dm' && d.action_type !== 'reply_comment'));
 
-    if (node.type === 'action' && node.data?.is_placeholder && !hasConfiguredData && node.data?.parent_event !== 'TRACK_ORDER') {
+    if (node.type === 'action' && (node.data?.is_placeholder || (isBranchNode && node.data?.is_placeholder !== false)) && !hasConfiguredData && node.data?.parent_event !== 'TRACK_ORDER') {
         const isSendDM = node.data.action_type === 'send_dm' || !node.data.action_type;
 
-        // ONLY ONE output wireframe for Send DM -> show direct format dropdown menu
-        if (isSendDM && actionCount <= 1) {
-            // If it is Send DM, render the dropdown list directly as the node.
+        // Render direct format dropdown menu for single Send DM or Follower Gate branches
+        if (isSendDM && (actionCount <= 1 || isBranchNode)) {
+            // If it is Send DM / Follower Gate branch, render the dropdown list directly as the node.
             return (
                 <motion.div
                     id={node.id}
-                    drag
+                    drag={!activeLoopDragSourceId}
                     dragMomentum={false}
                     onUpdate={() => updateXarrow()}
-                    onDrag={() => updateXarrow()}
+                    onDrag={(e, info) => {
+                        dragTotalDistance.current += Math.hypot(info.delta.x, info.delta.y);
+                        updateXarrow();
+                    }}
                     onDragStart={() => {
                         isDragging.current = true;
+                        dragTotalDistance.current = 0;
                         dispatch(selectNode(null));
                     }}
                     onDragEnd={(e, info) => {
+                        const rawX = node.position.x + info.offset.x / scale;
+                        const rawY = node.position.y + info.offset.y / scale;
+                        const clamped = clampNodePosition(rawX, rawY);
                         dispatch(updateNodePosition({
                             id: node.id,
-                            position: {
-                                x: node.position.x + info.offset.x / scale,
-                                y: node.position.y + info.offset.y / scale
-                            }
+                            position: clamped
                         }));
                         updateXarrow();
-                        setTimeout(() => { isDragging.current = false; }, 50);
+                        lastDragEndTimestamp.current = Date.now();
+                        setTimeout(() => {
+                            isDragging.current = false;
+                            dragTotalDistance.current = 0;
+                        }, 250);
+                    }}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        // Container click does not open popup; only single clicking an item from the 5-list opens its popup
                     }}
                     initial={{ x: node.position.x * scale + pan.x, y: node.position.y * scale + pan.y, scale }}
                     animate={{ x: node.position.x * scale + pan.x, y: node.position.y * scale + pan.y, scale }}
                     transition={{ duration: 0 }}
                     style={{ transformOrigin: '0 0', zIndex: isSelected ? 20 : 1 }}
-                    className="absolute z-20 pointer-events-auto flex flex-col"
+                    className="absolute z-20 pointer-events-auto flex flex-col cursor-grab active:cursor-grabbing"
                 >
                     <div className={cn(
-                        "bg-[#161622]/95 border rounded-xl shadow-2xl overflow-hidden z-[200] flex flex-col w-[150px] animate-fadeIn transition-all",
+                        "bg-[#161622]/95 border rounded-xl shadow-2xl overflow-hidden z-[200] flex flex-col w-[155px] animate-fadeIn transition-all select-none",
                         node.data?.validationError
                             ? "border-rose-500 ring-2 ring-rose-500/60 shadow-rose-500/20 animate-shake"
-                            : "border-white/10"
+                            : node.data?.is_cf_following
+                                ? "border-emerald-500/40 ring-1 ring-emerald-500/30"
+                                : node.data?.is_cf_not_following
+                                    ? "border-rose-500/40 ring-1 ring-rose-500/30"
+                                    : "border-white/10"
                     )}>
-                        <div className="px-3 py-2 bg-white/5 border-b border-white/10 text-center select-none shrink-0 flex flex-col gap-0.5">
-                            <span className={cn("text-[10px] font-bold tracking-wider", node.data?.validationError ? "text-rose-400" : "text-zinc-400")}>
+                        <div className={cn(
+                            "px-3 py-2 border-b text-center select-none shrink-0 flex flex-col gap-0.5",
+                            node.data?.is_cf_following
+                                ? "bg-emerald-950/40 border-emerald-500/30"
+                                : node.data?.is_cf_not_following
+                                    ? "bg-rose-950/40 border-rose-500/30"
+                                    : "bg-white/5 border-white/10"
+                        )}>
+                            {node.data?.is_cf_following && (
+                                <span className="text-[10px] font-extrabold text-emerald-400 tracking-wide flex items-center justify-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" /> If Following
+                                </span>
+                            )}
+                            {node.data?.is_cf_not_following && (
+                                <span className="text-[10px] font-extrabold text-rose-400 tracking-wide flex items-center justify-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-rose-400 inline-block" /> If Not Following
+                                </span>
+                            )}
+                            <span className={cn("text-[9px] font-bold tracking-wider uppercase", node.data?.validationError ? "text-rose-400" : "text-zinc-400")}>
                                 Message Type
                             </span>
                             {node.data?.validationError && (
@@ -229,6 +384,8 @@ export function CanvasNode({ id }: { id: string }) {
                                     type="button"
                                     onClick={(e) => {
                                         e.stopPropagation();
+                                        if (wasRecentlyDragged()) return;
+                                        dispatch(selectNode({ id: node.id, rect: null }));
                                         dispatch(updateNodeData({ id: node.id, key: 'dm_format', value: opt.value }));
                                         dispatch(updateNodeData({ id: node.id, key: 'is_placeholder', value: false }));
                                         dispatch(updateNodeData({ id: node.id, key: 'validationError', value: null }));
@@ -242,11 +399,65 @@ export function CanvasNode({ id }: { id: string }) {
                                             }));
                                         }, 50);
                                     }}
-                                    className="w-full px-3 py-2.5 text-center text-xs hover:bg-white/5 transition-colors cursor-pointer text-zinc-200 font-semibold"
+                                    className="w-full px-3 py-2 text-center text-xs hover:bg-white/10 transition-colors cursor-pointer text-zinc-200 font-semibold active:bg-white/20"
                                 >
                                     {opt.label}
                                 </button>
                             ))}
+                        </div>
+                    </div>
+
+                    {/* Downward Loop-Back Connector Handle (~1cm stem + arrow) */}
+                    <div className="flex flex-col items-center mt-2 select-none pointer-events-auto">
+                        <div className="w-[1.5px] h-4 bg-gradient-to-b from-[#c4c0ff]/60 to-[#c4c0ff]" />
+                        <div className="relative">
+                            <button
+                                type="button"
+                                onPointerDown={(e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                    window.dispatchEvent(new CustomEvent('loop-drag-start', { detail: { sourceId: node.id, mousePos: { x: e.clientX, y: e.clientY } } }));
+                                }}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                    if (activeLoopDragSourceId === node.id) {
+                                        window.dispatchEvent(new CustomEvent('loop-drag-end'));
+                                    } else {
+                                        window.dispatchEvent(new CustomEvent('loop-drag-start', { detail: { sourceId: node.id, mousePos: { x: e.clientX, y: e.clientY } } }));
+                                    }
+                                }}
+                                title={loopTargetNode ? `Loop active: connected to ${loopTargetNode.data?.parent_label || loopTargetNode.id}` : "Click and drag to stretch wire to previous card"}
+                                className={cn(
+                                    "flex items-center gap-1.5 px-3 py-1 rounded-full text-[9.5px] font-bold border backdrop-blur-md shadow-2xl transition-all cursor-crosshair active:scale-95",
+                                    activeLoopDragSourceId === node.id
+                                        ? "bg-purple-600 border-white text-white ring-2 ring-[#c4c0ff] scale-105"
+                                        : loopTargetNode
+                                            ? "bg-[#1e1b4b] border-[#c4c0ff] text-[#c4c0ff] hover:bg-[#2e2b6b]"
+                                            : "bg-[#161622] border-white/20 text-zinc-300 hover:border-[#c4c0ff] hover:text-[#c4c0ff]"
+                                )}
+                            >
+                                <RotateCcw className={cn("w-3 h-3 shrink-0", activeLoopDragSourceId === node.id ? "animate-spin" : "")} />
+                                <span className="whitespace-nowrap">
+                                    {activeLoopDragSourceId === node.id
+                                        ? "Stretching Wire... Drop on Input"
+                                        : loopTargetNode
+                                            ? `Loop: ${loopTargetNode.data?.parent_label || loopTargetNode.data?.action_label || 'Connected Card'}`
+                                            : 'Back Loop'}
+                                </span>
+                                {loopTargetNode && activeLoopDragSourceId !== node.id && (
+                                    <span
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            dispatch(setLoopBackTarget({ sourceId: node.id, targetId: '' }));
+                                            setTimeout(() => window.dispatchEvent(new CustomEvent('update-xarrow')), 50);
+                                        }}
+                                        className="ml-1 hover:text-rose-400 p-0.5 cursor-pointer"
+                                    >
+                                        <X className="w-3 h-3" />
+                                    </span>
+                                )}
+                            </button>
                         </div>
                     </div>
                 </motion.div>
@@ -259,21 +470,32 @@ export function CanvasNode({ id }: { id: string }) {
                 drag
                 dragMomentum={false}
                 onUpdate={() => updateXarrow()}
-                onDrag={() => updateXarrow()}
+                onDrag={(e, info) => {
+                    dragTotalDistance.current += Math.hypot(info.delta.x, info.delta.y);
+                    updateXarrow();
+                }}
                 onDragStart={() => {
                     isDragging.current = true;
+                    dragTotalDistance.current = 0;
                     dispatch(selectNode(null));
                 }}
                 onDragEnd={(e, info) => {
+                    const rawX = node.position.x + info.offset.x / scale;
+                    const rawY = node.position.y + info.offset.y / scale;
+                    const clamped = clampNodePosition(rawX, rawY);
                     dispatch(updateNodePosition({
                         id: node.id,
-                        position: {
-                            x: node.position.x + info.offset.x / scale,
-                            y: node.position.y + info.offset.y / scale
-                        }
+                        position: clamped
                     }));
                     updateXarrow();
-                    setTimeout(() => { isDragging.current = false; }, 50);
+                    lastDragEndTimestamp.current = Date.now();
+                    setTimeout(() => {
+                        isDragging.current = false;
+                        dragTotalDistance.current = 0;
+                    }, 250);
+                }}
+                onClick={(e) => {
+                    e.stopPropagation();
                 }}
                 initial={{ x: node.position.x * scale + pan.x, y: node.position.y * scale + pan.y, scale }}
                 animate={{ x: node.position.x * scale + pan.x, y: node.position.y * scale + pan.y, scale }}
@@ -301,10 +523,10 @@ export function CanvasNode({ id }: { id: string }) {
                                     node.data?.validationError
                                         ? "border-rose-500 ring-2 ring-rose-500/50 shadow-rose-500/20 animate-shake bg-rose-500/10"
                                         : "border-[#393939] hover:border-white hover:bg-white/10"
-                                )}
+                                    )}
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    if (isDragging.current) return;
+                                    if (wasRecentlyDragged()) return;
                                     if (isSendDM) {
                                         setFormatMenuOpen(!formatMenuOpen);
                                     } else {
@@ -352,6 +574,8 @@ export function CanvasNode({ id }: { id: string }) {
                                     type="button"
                                     onClick={(e) => {
                                         e.stopPropagation();
+                                        if (wasRecentlyDragged()) return;
+                                        dispatch(selectNode({ id: node.id, rect: null }));
                                         dispatch(updateNodeData({ id: node.id, key: 'dm_format', value: opt.value }));
                                         dispatch(updateNodeData({ id: node.id, key: 'is_placeholder', value: false }));
                                         setFormatMenuOpen(false);
@@ -359,15 +583,13 @@ export function CanvasNode({ id }: { id: string }) {
                                             window.dispatchEvent(new CustomEvent('update-xarrow'));
                                         }, 50);
 
-                                        if (opt.value !== 'text') {
-                                            setTimeout(() => {
-                                                window.dispatchEvent(new CustomEvent('open-dm-format-editor', {
-                                                    detail: { nodeId: node.id }
-                                                }));
-                                            }, 50);
-                                        }
+                                        setTimeout(() => {
+                                            window.dispatchEvent(new CustomEvent('open-dm-format-editor', {
+                                                detail: { nodeId: node.id }
+                                            }));
+                                        }, 50);
                                     }}
-                                    className="w-full px-3 py-2.5 text-center text-xs hover:bg-white/5 transition-colors cursor-pointer text-zinc-200 font-semibold"
+                                    className="w-full px-3 py-2.5 text-center text-xs hover:bg-white/5 transition-colors cursor-pointer text-zinc-200 font-semibold active:bg-white/20"
                                 >
                                     {opt.label}
                                 </button>
@@ -375,6 +597,125 @@ export function CanvasNode({ id }: { id: string }) {
                         </div>
                     </div>
                 )}
+            </motion.div>
+        );
+    }
+
+    if (node.data?.is_cf_fork) {
+        return (
+            <motion.div
+                id={node.id}
+                drag
+                dragMomentum={false}
+                onUpdate={() => updateXarrow()}
+                onDrag={(e, info) => {
+                    dragTotalDistance.current += Math.hypot(info.delta.x, info.delta.y);
+                    updateXarrow();
+                }}
+                onDragStart={() => {
+                    isDragging.current = true;
+                    dragTotalDistance.current = 0;
+                }}
+                onDragEnd={(e, info) => {
+                    const rawX = node.position.x + info.offset.x / scale;
+                    const rawY = node.position.y + info.offset.y / scale;
+                    const clamped = clampNodePosition(rawX, rawY);
+                    dispatch(updateNodePosition({
+                        id: node.id,
+                        position: clamped
+                    }));
+                    updateXarrow();
+                    lastDragEndTimestamp.current = Date.now();
+                    setTimeout(() => {
+                        isDragging.current = false;
+                        dragTotalDistance.current = 0;
+                    }, 250);
+                }}
+                onClick={(e) => {
+                    e.stopPropagation();
+                }}
+                initial={{ x: node.position.x * scale + pan.x, y: node.position.y * scale + pan.y, scale: 1 }}
+                animate={{ x: node.position.x * scale + pan.x, y: node.position.y * scale + pan.y, scale: 1 }}
+                transition={{ duration: 0 }}
+                style={{ transformOrigin: '0 0', zIndex: 5 }}
+                className="absolute flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-[#c4c0ff]/30 bg-[#161622] text-[#c4c0ff] text-[10px] font-bold whitespace-nowrap backdrop-blur-sm shadow-2xl cursor-grab active:cursor-grabbing pointer-events-auto hover:border-[#c4c0ff] transition-colors"
+            >
+                <SplitIcon className="w-3.5 h-3.5 text-[#c4c0ff] shrink-0" />
+                {/* <span className="leading-tight">{node.data?.button_name || '👉 Follow Us'}</span> */}
+            </motion.div>
+        );
+    }
+
+    const isProfileCardNode = Boolean(
+        !node.data?.is_cf_following &&
+        !node.data?.is_cf_not_following &&
+        !node.data?.is_cf_fork &&
+        (
+            node.data?.is_profile_card ||
+            node.data?.dm_format === 'show_profile' ||
+            node.data?.dm_format === 'check_follow' ||
+            node.data?.is_cf_gate
+        )
+    );
+
+    if (isProfileCardNode) {
+        return (
+            <motion.div
+                id={node.id}
+                drag
+                dragMomentum={false}
+                onUpdate={() => updateXarrow()}
+                onDrag={(e, info) => {
+                    dragTotalDistance.current += Math.hypot(info.delta.x, info.delta.y);
+                    updateXarrow();
+                }}
+                onDragStart={() => {
+                    isDragging.current = true;
+                    dragTotalDistance.current = 0;
+                    dispatch(selectNode(null));
+                }}
+                onDragEnd={(e, info) => {
+                    const rawX = node.position.x + info.offset.x / scale;
+                    const rawY = node.position.y + info.offset.y / scale;
+                    const clamped = clampNodePosition(rawX, rawY);
+                    dispatch(updateNodePosition({
+                        id: node.id,
+                        position: clamped
+                    }));
+                    updateXarrow();
+                    lastDragEndTimestamp.current = Date.now();
+                    setTimeout(() => {
+                        isDragging.current = false;
+                        dragTotalDistance.current = 0;
+                    }, 250);
+                }}
+                initial={{ x: node.position.x * scale + pan.x, y: node.position.y * scale + pan.y, scale }}
+                animate={{ x: node.position.x * scale + pan.x, y: node.position.y * scale + pan.y, scale }}
+                transition={{ duration: 0 }}
+                style={{ transformOrigin: '0 0', zIndex: isSelected ? 10 : 1 }}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    if (wasRecentlyDragged()) return;
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    dispatch(selectNode({
+                        id: node.id,
+                        rect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height }
+                    }));
+                    setTimeout(() => {
+                        window.dispatchEvent(new CustomEvent('open-dm-format-editor', {
+                            detail: { nodeId: node.id }
+                        }));
+                    }, 50);
+                }}
+                className="absolute w-[320px] cursor-pointer pointer-events-auto select-none"
+            >
+                <InstagramProfileCard
+                    size="canvas"
+                    className={cn(
+                        node.data?.validationError ? "ring-2 ring-rose-500 shadow-rose-500/30 animate-shake" : "",
+                        isSelected && !node.data?.validationError ? "ring-2 ring-[#c4c0ff]/60 border-[#c4c0ff]/60" : ""
+                    )}
+                />
             </motion.div>
         );
     }
@@ -387,21 +728,29 @@ export function CanvasNode({ id }: { id: string }) {
             drag
             dragMomentum={false}
             onUpdate={() => updateXarrow()}
-            onDrag={() => updateXarrow()}
+            onDrag={(e, info) => {
+                dragTotalDistance.current += Math.hypot(info.delta.x, info.delta.y);
+                updateXarrow();
+            }}
             onDragStart={() => {
                 isDragging.current = true;
+                dragTotalDistance.current = 0;
                 dispatch(selectNode(null));
             }}
             onDragEnd={(e, info) => {
+                const rawX = node.position.x + info.offset.x / scale;
+                const rawY = node.position.y + info.offset.y / scale;
+                const clamped = clampNodePosition(rawX, rawY);
                 dispatch(updateNodePosition({
                     id: node.id,
-                    position: {
-                        x: node.position.x + info.offset.x / scale,
-                        y: node.position.y + info.offset.y / scale
-                    }
+                    position: clamped
                 }));
                 updateXarrow();
-                setTimeout(() => { isDragging.current = false; }, 50);
+                lastDragEndTimestamp.current = Date.now();
+                setTimeout(() => {
+                    isDragging.current = false;
+                    dragTotalDistance.current = 0;
+                }, 250);
             }}
             initial={{ x: node.position.x * scale + pan.x, y: node.position.y * scale + pan.y, scale }}
             animate={{ x: node.position.x * scale + pan.x, y: node.position.y * scale + pan.y, scale }}
@@ -409,7 +758,7 @@ export function CanvasNode({ id }: { id: string }) {
             style={{ transformOrigin: '0 0', zIndex: isSelected ? 10 : 1 }}
             onClick={(e) => {
                 e.stopPropagation();
-                if (isDragging.current) return;
+                if (wasRecentlyDragged()) return;
                 const rect = e.currentTarget.getBoundingClientRect();
                 dispatch(selectNode({
                     id: node.id,
@@ -441,22 +790,28 @@ export function CanvasNode({ id }: { id: string }) {
             )}
         >
             <div className={cn("w-full flex flex-col h-full", node.data?.validationError ? "animate-shake" : "")}>
-                {node.type === 'action' && node.data?.parent_event !== 'TRACK_ORDER' && (
-                    <button
-                        type="button"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            dispatch(resetToPlaceholder(node.id));
-                            setTimeout(() => {
-                                window.dispatchEvent(new CustomEvent('update-xarrow'));
-                            }, 50);
-                        }}
-                        className="absolute top-3 right-4 p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-500/10 cursor-pointer transition-all z-30"
-                        title="Remove Wireframe"
-                    >
-                        <X className="w-4 h-4" />
-                    </button>
-                )}
+                {node.type === 'action' &&
+                    node.data?.parent_event !== 'TRACK_ORDER' &&
+                    !node.data?.is_profile_card &&
+                    !node.data?.is_cf_gate &&
+                    !node.data?.is_cf_fork &&
+                    node.data?.dm_format !== 'check_follow' &&
+                    node.data?.dm_format !== 'show_profile' && (
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                dispatch(resetToPlaceholder(node.id));
+                                setTimeout(() => {
+                                    window.dispatchEvent(new CustomEvent('update-xarrow'));
+                                }, 50);
+                            }}
+                            className="absolute top-3 right-4 p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-500/10 cursor-pointer transition-all z-30"
+                            title="Remove Wireframe"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    )}
                 {/* Overlapping Pill */}
                 <div className="absolute -top-3 left-4 flex gap-2">
                     <span className={cn("px-3 py-1.5 rounded-full text-[10px] justify-center items-center flex tracking-widest leading-none outline outline-[#131313] outline-[4px]", customPillColor)}>
@@ -611,6 +966,7 @@ export function CanvasNode({ id }: { id: string }) {
                             <div
                                 onClick={(e) => {
                                     e.stopPropagation();
+                                    if (wasRecentlyDragged()) return;
                                     window.dispatchEvent(new CustomEvent('open-dm-format-editor', {
                                         detail: { nodeId: node.id }
                                     }));
@@ -648,6 +1004,7 @@ export function CanvasNode({ id }: { id: string }) {
                             <div
                                 onClick={(e) => {
                                     e.stopPropagation();
+                                    if (wasRecentlyDragged()) return;
                                     window.dispatchEvent(new CustomEvent('open-dm-format-editor', {
                                         detail: { nodeId: node.id }
                                     }));
@@ -751,6 +1108,7 @@ export function CanvasNode({ id }: { id: string }) {
                                     <div
                                         onClick={(e) => {
                                             e.stopPropagation();
+                                            if (wasRecentlyDragged()) return;
                                             window.dispatchEvent(new CustomEvent('open-dm-format-editor', {
                                                 detail: { nodeId: node.id }
                                             }));
@@ -781,6 +1139,7 @@ export function CanvasNode({ id }: { id: string }) {
                                 <div
                                     onClick={(e) => {
                                         e.stopPropagation();
+                                        if (wasRecentlyDragged()) return;
                                         window.dispatchEvent(new CustomEvent('open-dm-format-editor', {
                                             detail: { nodeId: node.id }
                                         }));
@@ -813,6 +1172,7 @@ export function CanvasNode({ id }: { id: string }) {
                                     <div
                                         onClick={(e) => {
                                             e.stopPropagation();
+                                            if (wasRecentlyDragged()) return;
                                             window.dispatchEvent(new CustomEvent('open-dm-format-editor', {
                                                 detail: { nodeId: node.id }
                                             }));
@@ -849,6 +1209,7 @@ export function CanvasNode({ id }: { id: string }) {
                                     <div
                                         onClick={(e) => {
                                             e.stopPropagation();
+                                            if (wasRecentlyDragged()) return;
                                             window.dispatchEvent(new CustomEvent('open-dm-format-editor', {
                                                 detail: { nodeId: node.id }
                                             }));
@@ -891,6 +1252,7 @@ export function CanvasNode({ id }: { id: string }) {
                                     <div
                                         onClick={(e) => {
                                             e.stopPropagation();
+                                            if (wasRecentlyDragged()) return;
                                             window.dispatchEvent(new CustomEvent('open-dm-format-editor', {
                                                 detail: { nodeId: node.id }
                                             }));
@@ -958,6 +1320,28 @@ export function CanvasNode({ id }: { id: string }) {
                                     </div>
                                 );
                             })()}
+
+                            {!node.data?.is_cf_following &&
+                                !node.data?.is_cf_not_following &&
+                                !node.data?.is_cf_fork &&
+                                (node.data?.dm_format === 'check_follow' ||
+                                    node.data?.dm_format === 'show_profile' ||
+                                    node.data?.is_profile_card ||
+                                    node.data?.is_cf_gate) && (
+                                    <div className="space-y-2">
+                                        <InstagramProfileCard
+                                            size="canvas"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (wasRecentlyDragged()) return;
+                                                window.dispatchEvent(new CustomEvent('open-dm-format-editor', { detail: { nodeId: node.id } }));
+                                            }}
+                                        />
+                                        <p className="text-[9px] text-zinc-400 text-center italic">
+                                            Dynamically linked to your active Instagram profile
+                                        </p>
+                                    </div>
+                                )}
 
                             {node.data?.detailed && (node.data?.rate_limit_limit !== undefined || node.data?.rate_limit_window_seconds !== undefined) && (
                                 <div className="bg-white/5 border border-white/15 rounded-xl p-3 space-y-2.5 animate-fadeIn">
@@ -1091,8 +1475,153 @@ export function CanvasNode({ id }: { id: string }) {
                         </div>
                     )}
                 </div>
+
+                {/* Bottom Loop Target Drop Zone on Valid Action Cards */}
+                {isValidLoopTargetCard && (
+                    <div
+                        onPointerUp={(e) => {
+                            e.stopPropagation();
+                            if (activeLoopDragSourceId && activeLoopDragSourceId !== node.id) {
+                                dispatch(setLoopBackTarget({ sourceId: activeLoopDragSourceId, targetId: node.id }));
+                                window.dispatchEvent(new CustomEvent('loop-drag-end'));
+                                setTimeout(() => window.dispatchEvent(new CustomEvent('update-xarrow')), 50);
+                            }
+                        }}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (activeLoopDragSourceId && activeLoopDragSourceId !== node.id) {
+                                dispatch(setLoopBackTarget({ sourceId: activeLoopDragSourceId, targetId: node.id }));
+                                window.dispatchEvent(new CustomEvent('loop-drag-end'));
+                                setTimeout(() => window.dispatchEvent(new CustomEvent('update-xarrow')), 50);
+                            }
+                        }}
+                        className="w-full py-2.5 px-3 border-t-2 border-dashed border-[#c4c0ff] bg-purple-950/80 hover:bg-purple-800 rounded-b-[1.25rem] flex items-center justify-center gap-2 text-[10px] font-extrabold text-[#c4c0ff] hover:text-white transition-all cursor-pointer select-none animate-pulse shadow-xl shadow-purple-500/20"
+                    >
+                        <RotateCcw className="w-3.5 h-3.5 shrink-0" />
+                        <span>Connect Loop Input (Bottom)</span>
+                    </div>
+                )}
             </div>
         </motion.div>
+    );
+}
+
+function LoopBadgeItem({
+    edge,
+    minX,
+    maxX,
+    minY,
+    midX,
+    midY,
+    posX,
+    posY,
+    scale,
+    pan,
+    onOffsetChange,
+    updateXarrow
+}: {
+    edge: any;
+    minX: number;
+    maxX: number;
+    minY: number;
+    midX: number;
+    midY: number;
+    posX: number;
+    posY: number;
+    scale: number;
+    pan: { x: number; y: number };
+    onOffsetChange: (offset: { x: number; y: number }) => void;
+    updateXarrow: () => void;
+}) {
+    const isDragging = React.useRef(false);
+    const startPoint = React.useRef({ x: 0, y: 0 });
+    const currentPos = React.useRef({ x: posX, y: posY });
+    const badgeElRef = React.useRef<HTMLDivElement>(null);
+
+    React.useEffect(() => {
+        currentPos.current = { x: posX, y: posY };
+        if (badgeElRef.current && !isDragging.current) {
+            badgeElRef.current.style.transform = `translate3d(${posX * scale + pan.x}px, ${posY * scale + pan.y}px, 0px) scale(${scale})`;
+        }
+    }, [posX, posY, scale, pan.x, pan.y]);
+
+    return (
+        <div
+            id={`loop-badge-${edge.id}`}
+            ref={badgeElRef}
+            onPointerDown={(e) => {
+                e.stopPropagation();
+                isDragging.current = true;
+                startPoint.current = { x: e.clientX, y: e.clientY };
+                try {
+                    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+                } catch { }
+            }}
+            onPointerMove={(e) => {
+                if (!isDragging.current || !badgeElRef.current) return;
+                const dx = (e.clientX - startPoint.current.x) / scale;
+                const dy = (e.clientY - startPoint.current.y) / scale;
+
+                const rawX = posX + dx;
+                const rawY = posY + dy;
+
+                const isBlocked = rawX < minX || rawX > maxX || rawY < minY;
+                const clampedX = Math.max(minX, Math.min(maxX, rawX));
+                const clampedY = Math.max(minY, rawY);
+
+                currentPos.current = { x: clampedX, y: clampedY };
+                badgeElRef.current.style.transform = `translate3d(${clampedX * scale + pan.x}px, ${clampedY * scale + pan.y}px, 0px) scale(${scale})`;
+
+                if (isBlocked) {
+                    badgeElRef.current.classList.add('!bg-rose-950/95', '!border-rose-500', '!text-rose-300', '!ring-2', '!ring-rose-500/80', '!shadow-[0_0_15px_rgba(244,63,94,0.5)]', '!cursor-not-allowed');
+                } else {
+                    badgeElRef.current.classList.remove('!bg-rose-950/95', '!border-rose-500', '!text-rose-300', '!ring-2', '!ring-rose-500/80', '!shadow-[0_0_15px_rgba(244,63,94,0.5)]', '!cursor-not-allowed');
+                }
+                updateXarrow();
+            }}
+            onPointerUp={(e) => {
+                if (!isDragging.current) return;
+                isDragging.current = false;
+                try {
+                    (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+                } catch { }
+                if (badgeElRef.current) {
+                    badgeElRef.current.classList.remove('!bg-rose-950/95', '!border-rose-500', '!text-rose-300', '!ring-2', '!ring-rose-500/80', '!shadow-[0_0_15px_rgba(244,63,94,0.5)]', '!cursor-not-allowed');
+                }
+                onOffsetChange({
+                    x: currentPos.current.x - midX,
+                    y: currentPos.current.y - midY,
+                });
+                updateXarrow();
+            }}
+            style={{
+                position: 'absolute',
+                transformOrigin: '0 0',
+                transform: `translate3d(${posX * scale + pan.x}px, ${posY * scale + pan.y}px, 0px) scale(${scale})`,
+                zIndex: 30,
+                touchAction: 'none'
+            }}
+            className="px-2.5 py-1 rounded-full text-[9.5px] font-bold whitespace-nowrap backdrop-blur-md shadow-2xl border select-none pointer-events-auto flex items-center justify-between gap-2 cursor-grab active:cursor-grabbing bg-[#1e1b4b] border-[#c4c0ff] text-[#c4c0ff] hover:bg-[#2e2b6b] transition-colors"
+        >
+            {/* LEFT OUTPUT HANDLE */}
+            <div
+                id={`loop-badge-out-${edge.id}`}
+                className="w-2.5 h-2.5 rounded-full bg-[#c4c0ff] border border-white shadow-[0_0_8px_#c4c0ff] shrink-0 pointer-events-auto"
+                title="Output (to previous card)"
+            />
+
+            <div className="flex items-center gap-1.5">
+                <RotateCcw className="w-3 h-3 shrink-0" />
+                <span>{edge.label || 'Loop Back'}</span>
+            </div>
+
+            {/* RIGHT INPUT HANDLE */}
+            <div
+                id={`loop-badge-in-${edge.id}`}
+                className="w-2.5 h-2.5 rounded-full bg-[#c4c0ff] border border-white shadow-[0_0_8px_#c4c0ff] shrink-0 pointer-events-auto"
+                title="Input (from current card)"
+            />
+        </div>
     );
 }
 
@@ -1101,34 +1630,167 @@ export function CanvasEdges() {
     const edges = useSelector((state: RootState) => state.flow.edges);
     const nodes = useSelector((state: RootState) => state.flow.nodes);
     const selectedNodeId = useSelector((state: RootState) => state.flow.selectedNodeId);
-    const { scale } = useCanvas();
+    const { pan, scale } = useCanvas();
+    const updateXarrow = useXarrow();
+    const [badgeOffsets, setBadgeOffsets] = React.useState<Record<string, { x: number; y: number }>>({});
 
     return (
         <>
-            {edges.map(edge => (
-                <Xarrow
-                    key={edge.id}
-                    start={edge.source}
-                    end={edge.target}
-                    color={edge.label ? '#c4c0ff' : '#666'}
-                    strokeWidth={2 * scale}
-                    path="smooth"
-                    showHead={true}
-                    headSize={4}
-                    headColor={edge.label ? '#c4c0ff' : '#8e9192'}
-                    headShape="arrow1"
-                    curveness={0.5}
-                    startAnchor="right"
-                    endAnchor="left"
-                    labels={edge.label ? {
-                        middle: (
-                            <div className="px-2.5 py-1 rounded-lg bg-[#161622] border border-[#c4c0ff]/30 text-[#c4c0ff] text-[10px] font-bold whitespace-nowrap backdrop-blur-sm shadow-2xl">
-                                {edge.label}
-                            </div>
-                        )
-                    } : undefined}
-                />
-            ))}
+            {edges.map(edge => {
+                const isFollowingEdge = edge.label === 'If Following';
+                const isNotFollowingEdge = edge.label === 'If Not Following';
+                const isLoopEdge = edge.id.includes('loop') || edge.label?.includes('Loop');
+
+                const edgeColor = isFollowingEdge
+                    ? '#10b981'
+                    : isNotFollowingEdge
+                        ? '#f43f5e'
+                        : isLoopEdge
+                            ? '#c4c0ff'
+                            : edge.label
+                                ? '#c4c0ff'
+                                : '#666';
+
+                const headColor = isFollowingEdge
+                    ? '#10b981'
+                    : isNotFollowingEdge
+                        ? '#f43f5e'
+                        : isLoopEdge
+                            ? '#c4c0ff'
+                            : edge.label
+                                ? '#c4c0ff'
+                                : '#8e9192';
+
+                if (isLoopEdge) {
+                    const sNode = nodes.find(n => n.id === edge.source);
+                    const tNode = nodes.find(n => n.id === edge.target);
+
+                    // Dimensions & Origin References
+                    const cardWidth = 320;
+                    const cardHeight = 280;
+
+                    const leftNodeX = Math.min(tNode?.position.x || 0, sNode?.position.x || 0);
+                    const rightNodeX = Math.max(tNode?.position.x || 0, sNode?.position.x || 0);
+
+                    // Min & Max bounds: strictly between the cards with safe margins
+                    const minX = leftNodeX + 20;
+                    const maxX = rightNodeX + cardWidth - 20;
+
+                    // Centered horizontally along Y-axis between target (0,3) and source (2,3)
+                    const midX = (leftNodeX + rightNodeX + cardWidth) / 2 - 55;
+
+                    // Lower position at (0, -5) below horizontal X-axis
+                    const bottomCardsY = Math.max(tNode?.position.y || 0, sNode?.position.y || 0) + cardHeight;
+                    const minY = bottomCardsY + 30;
+                    const midY = bottomCardsY + 130;
+
+                    const offset = badgeOffsets[edge.id] || { x: 0, y: 0 };
+                    const rawX = midX + offset.x;
+                    const rawY = midY + offset.y;
+
+                    const posX = Math.max(minX, Math.min(maxX, rawX));
+                    const posY = Math.max(minY, rawY);
+
+                    return (
+                        <React.Fragment key={edge.id}>
+                            {/* Draggable Waypoint Badge centered at (0, -5) between Target Card (0, 3) and Loop Back Card (2, 3) */}
+                            <LoopBadgeItem
+                                edge={edge}
+                                minX={minX}
+                                maxX={maxX}
+                                minY={minY}
+                                midX={midX}
+                                midY={midY}
+                                posX={posX}
+                                posY={posY}
+                                scale={scale}
+                                pan={pan}
+                                onOffsetChange={(newOffset) => {
+                                    setBadgeOffsets(prev => ({
+                                        ...prev,
+                                        [edge.id]: newOffset
+                                    }));
+                                }}
+                                updateXarrow={updateXarrow}
+                            />
+
+                            {/* Segment 1: Source bottom side into the EXACT RIGHT handle of the badge */}
+                            <Xarrow
+                                key={`seg1-${edge.id}`}
+                                start={edge.source}
+                                end={`loop-badge-in-${edge.id}`}
+                                color="#c4c0ff"
+                                strokeWidth={2 * scale}
+                                path="smooth"
+                                showHead={true}
+                                headSize={3.5}
+                                headColor="#c4c0ff"
+                                headShape="arrow1"
+                                curveness={0.55}
+                                startAnchor="bottom"
+                                endAnchor="right"
+                                dashness={{ strokeLen: 5, nonStrokeLen: 5 }}
+                            />
+
+                            {/* Segment 2: Exits horizontally from EXACT LEFT handle of the badge into BOTTOM of previous card */}
+                            <Xarrow
+                                key={`seg2-${edge.id}`}
+                                start={`loop-badge-out-${edge.id}`}
+                                end={edge.target}
+                                color="#c4c0ff"
+                                strokeWidth={2 * scale}
+                                path="smooth"
+                                showHead={true}
+                                headSize={4}
+                                headColor="#c4c0ff"
+                                headShape="arrow1"
+                                curveness={0.55}
+                                startAnchor="left"
+                                endAnchor="bottom"
+                                dashness={{ strokeLen: 5, nonStrokeLen: 5 }}
+                            />
+                        </React.Fragment>
+                    );
+                }
+
+                return (
+                    <Xarrow
+                        key={edge.id}
+                        start={edge.source}
+                        end={edge.target}
+                        color={edgeColor}
+                        strokeWidth={2 * scale}
+                        path="smooth"
+                        showHead={true}
+                        headSize={4}
+                        headColor={headColor}
+                        headShape="arrow1"
+                        curveness={0.5}
+                        startAnchor="right"
+                        endAnchor="left"
+                        dashness={false}
+                        labels={edge.label ? {
+                            middle: (
+                                <motion.div
+                                    drag
+                                    dragMomentum={false}
+                                    onPointerDown={(e) => e.stopPropagation()}
+                                    className={cn(
+                                        "px-2.5 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap backdrop-blur-sm shadow-2xl border pointer-events-auto select-none cursor-grab active:cursor-grabbing",
+                                        isFollowingEdge
+                                            ? "bg-[#064e3b]/90 border-emerald-500/40 text-emerald-300"
+                                            : isNotFollowingEdge
+                                                ? "bg-[#4c0519]/90 border-rose-500/40 text-rose-300"
+                                                : "bg-[#161622] border-[#c4c0ff]/30 text-[#c4c0ff]"
+                                    )}
+                                >
+                                    {edge.label}
+                                </motion.div>
+                            )
+                        } : undefined}
+                    />
+                );
+            })}
             {(() => {
                 const selectedNode = nodes.find(n => n.id === selectedNodeId);
                 const showSettingsEdge = selectedNodeId && selectedNodeId !== 'global' && selectedNode && selectedNode.type !== 'action' && selectedNode.type !== 'condition' && selectedNode.type !== 'trigger';

@@ -20,11 +20,17 @@ import {
   GalleryHorizontal,
   PillIcon,
   SquareArrowRight,
-  Send
+  Send,
+  User,
+  UserCheck,
+  ExternalLink,
+  ShieldCheck,
+  CheckCircle2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import api from '@/lib/services/api.service';
 import { InstagramMediaPicker } from './InstagramMediaPicker';
+import { InstagramProfileCard } from './InstagramProfileCard';
 
 // --- Fallback Products ---
 const DEFAULT_PRODUCTS = [
@@ -203,7 +209,8 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
   }, [triggerNode]);
 
   // --- Local Editor States ---
-  const [dmFormat, setDmFormat] = React.useState<'text' | 'quick_reply' | 'button_template' | 'generic_template' | 'attachment'>('button_template');
+  type DMFormatType = 'text' | 'quick_reply' | 'button_template' | 'generic_template' | 'attachment' | 'show_profile' | 'check_follow';
+  const [dmFormat, setDmFormat] = React.useState<DMFormatType>('button_template');
   const [rateLimitCount, setRateLimitCount] = React.useState<number>(1);
   const [rateLimitWindow, setRateLimitWindow] = React.useState<number>(86400);
   const [detailedCardView, setDetailedCardView] = React.useState<boolean>(false);
@@ -212,6 +219,30 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
   const [openDropdownId, setOpenDropdownId] = React.useState<string | null>(null);
   const [validationError, setValidationError] = React.useState<string | null>(null);
   const [mobileView, setMobileView] = React.useState<'edit' | 'preview'>('edit');
+
+  // --- Show Profile States ---
+  const [profileUrl, setProfileUrl] = React.useState<string>('');
+  const [profileMessageText, setProfileMessageText] = React.useState<string>('Check out our Instagram profile for more updates!');
+  const [profileButtonText, setProfileButtonText] = React.useState<string>('👤 Visit Profile');
+
+  // --- Check Follow States ---
+  const [followCheckPreviewState, setFollowCheckPreviewState] = React.useState<'following' | 'not_following'>('following');
+
+  // 🟢 If Following Branch
+  const [followingFormat, setFollowingFormat] = React.useState<DMFormatType>('text');
+  const [followingText, setFollowingText] = React.useState<string>('Thanks for following us! Here is your exclusive access:');
+  const [followingButtonText, setFollowingButtonText] = React.useState<string>('What would you like to do?');
+  const [followingButtons, setFollowingButtons] = React.useState<ButtonItem[]>([{ type: 'web_url', title: '🎁 Get Special Deal', url: 'https://' }]);
+  const [followingProfileUrl, setFollowingProfileUrl] = React.useState<string>('');
+
+  // 🔴 If Not Following Branch
+  const [notFollowingFormat, setNotFollowingFormat] = React.useState<DMFormatType>('button_template');
+  const [notFollowingText, setNotFollowingText] = React.useState<string>('Please follow our Instagram account to unlock this offer!');
+  const [notFollowingButtonText, setNotFollowingButtonText] = React.useState<string>('Follow us on Instagram first:');
+  const [notFollowingButtons, setNotFollowingButtons] = React.useState<ButtonItem[]>([
+    { type: 'web_url', title: '👉 Follow Us', url: '' }
+  ]);
+  const [notFollowingProfileUrl, setNotFollowingProfileUrl] = React.useState<string>('');
   const userPreviewMessages = React.useMemo(() => {
     const condNode = nodes.find(n => n.type === 'condition');
     if (!condNode) {
@@ -828,6 +859,36 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
       return item;
     });
     setAttachments(normalizedAttachments);
+
+    // Load Show Profile data
+    setProfileUrl(node.data?.profile_url || `https://instagram.com/${username}`);
+    setProfileMessageText(node.data?.profile_message_text || 'Check out our Instagram profile for more updates!');
+    setProfileButtonText(node.data?.profile_button_text || '👤 Visit Profile');
+
+    // Load Check Follow data
+    setFollowingFormat(node.data?.following_format || 'text');
+    setFollowingText(node.data?.following_text || 'Thanks for following us! Here is your exclusive access:');
+    setFollowingButtonText(node.data?.following_button_text || 'What would you like to do?');
+    if (node.data?.following_buttons_json) {
+      try {
+        const parsed = typeof node.data.following_buttons_json === 'string' ? JSON.parse(node.data.following_buttons_json) : node.data.following_buttons_json;
+        if (Array.isArray(parsed) && parsed.length > 0) setFollowingButtons(parsed);
+      } catch (e) { }
+    }
+    setFollowingProfileUrl(node.data?.following_profile_url || `https://instagram.com/${username}`);
+
+    setNotFollowingFormat(node.data?.not_following_format || 'button_template');
+    setNotFollowingText(node.data?.not_following_text || 'Please follow our Instagram account to unlock this offer!');
+    setNotFollowingButtonText(node.data?.not_following_button_text || 'Follow us on Instagram first:');
+    if (node.data?.not_following_buttons_json) {
+      try {
+        const parsed = typeof node.data.not_following_buttons_json === 'string' ? JSON.parse(node.data.not_following_buttons_json) : node.data.not_following_buttons_json;
+        if (Array.isArray(parsed) && parsed.length > 0) setNotFollowingButtons(parsed);
+      } catch (e) { }
+    } else {
+      setNotFollowingButtons([{ type: 'web_url', title: '👉 Follow Us', url: `https://instagram.com/${username}` }]);
+    }
+    setNotFollowingProfileUrl(node.data?.not_following_profile_url || `https://instagram.com/${username}`);
   }, [node]);
 
   if (!node || !mounted) return null;
@@ -984,16 +1045,34 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
       }
     }
 
+    // 6. Show Profile Validation
+    if (dmFormat === 'show_profile') {
+      if (!profileUrl || !profileUrl.trim()) {
+        setValidationError('Profile URL is required for Show Profile format.');
+        return;
+      }
+    }
+
+    // 7. Check Follow Validation
+    if (dmFormat === 'check_follow') {
+      if (!followingText.trim() && followingFormat === 'text') {
+        setValidationError('Following message text is required.');
+        return;
+      }
+      if (!notFollowingText.trim() && notFollowingFormat === 'text') {
+        setValidationError('Not-following message text is required.');
+        return;
+      }
+    }
+
     // Clear validation error if valid
     setValidationError(null);
 
     // Save settings fields
-    if (isEcommerceTemplate) {
-      dispatch(updateNodeData({ id: nodeId, key: 'dm_format', value: dmFormat }));
-      dispatch(updateNodeData({ id: nodeId, key: 'rate_limit_limit', value: rateLimitCount }));
-      dispatch(updateNodeData({ id: nodeId, key: 'rate_limit_window_seconds', value: rateLimitWindow }));
-      dispatch(updateNodeData({ id: nodeId, key: 'detailed', value: detailedCardView }));
-    }
+    dispatch(updateNodeData({ id: nodeId, key: 'dm_format', value: dmFormat }));
+    dispatch(updateNodeData({ id: nodeId, key: 'rate_limit_limit', value: rateLimitCount }));
+    dispatch(updateNodeData({ id: nodeId, key: 'rate_limit_window_seconds', value: rateLimitWindow }));
+    dispatch(updateNodeData({ id: nodeId, key: 'detailed', value: detailedCardView }));
 
     if (dmFormat === 'text') {
       dispatch(updateNodeData({ id: nodeId, key: 'messages', value: textMessages }));
@@ -1011,6 +1090,25 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
     } else if (dmFormat === 'attachment') {
       dispatch(updateNodeData({ id: nodeId, key: 'attachments', value: attachments }));
       dispatch(updateNodeData({ id: nodeId, key: 'messages', value: [`Sent ${attachments.length} attachment${attachments.length === 1 ? '' : 's'}`] }));
+    } else if (dmFormat === 'show_profile') {
+      dispatch(updateNodeData({ id: nodeId, key: 'profile_url', value: profileUrl }));
+      dispatch(updateNodeData({ id: nodeId, key: 'profile_message_text', value: profileMessageText }));
+      dispatch(updateNodeData({ id: nodeId, key: 'profile_button_text', value: profileButtonText }));
+      dispatch(updateNodeData({ id: nodeId, key: 'messages', value: [profileMessageText || `Profile: ${profileUrl}`] }));
+    } else if (dmFormat === 'check_follow') {
+      dispatch(updateNodeData({ id: nodeId, key: 'following_format', value: followingFormat }));
+      dispatch(updateNodeData({ id: nodeId, key: 'following_text', value: followingText }));
+      dispatch(updateNodeData({ id: nodeId, key: 'following_button_text', value: followingButtonText }));
+      dispatch(updateNodeData({ id: nodeId, key: 'following_buttons_json', value: JSON.stringify(followingButtons) }));
+      dispatch(updateNodeData({ id: nodeId, key: 'following_profile_url', value: followingProfileUrl }));
+
+      dispatch(updateNodeData({ id: nodeId, key: 'not_following_format', value: notFollowingFormat }));
+      dispatch(updateNodeData({ id: nodeId, key: 'not_following_text', value: notFollowingText }));
+      dispatch(updateNodeData({ id: nodeId, key: 'not_following_button_text', value: notFollowingButtonText }));
+      dispatch(updateNodeData({ id: nodeId, key: 'not_following_buttons_json', value: JSON.stringify(notFollowingButtons) }));
+      dispatch(updateNodeData({ id: nodeId, key: 'not_following_profile_url', value: notFollowingProfileUrl }));
+
+      dispatch(updateNodeData({ id: nodeId, key: 'messages', value: [`Check Follow Gate (Following: ${followingFormat}, Not Following: ${notFollowingFormat})`] }));
     }
 
     dispatch(updateNodeData({ id: nodeId, key: 'validationError', value: null }));
@@ -1044,6 +1142,22 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
       dispatch(updateNodeData({ id: nodeId, key: 'generic_template_elements_json', value: JSON.stringify(carouselElements) }));
     } else if (dmFormat === 'attachment') {
       dispatch(updateNodeData({ id: nodeId, key: 'attachments', value: attachments }));
+    } else if (dmFormat === 'show_profile') {
+      dispatch(updateNodeData({ id: nodeId, key: 'profile_url', value: profileUrl }));
+      dispatch(updateNodeData({ id: nodeId, key: 'profile_message_text', value: profileMessageText }));
+      dispatch(updateNodeData({ id: nodeId, key: 'profile_button_text', value: profileButtonText }));
+    } else if (dmFormat === 'check_follow') {
+      dispatch(updateNodeData({ id: nodeId, key: 'following_format', value: followingFormat }));
+      dispatch(updateNodeData({ id: nodeId, key: 'following_text', value: followingText }));
+      dispatch(updateNodeData({ id: nodeId, key: 'following_button_text', value: followingButtonText }));
+      dispatch(updateNodeData({ id: nodeId, key: 'following_buttons_json', value: JSON.stringify(followingButtons) }));
+      dispatch(updateNodeData({ id: nodeId, key: 'following_profile_url', value: followingProfileUrl }));
+
+      dispatch(updateNodeData({ id: nodeId, key: 'not_following_format', value: notFollowingFormat }));
+      dispatch(updateNodeData({ id: nodeId, key: 'not_following_text', value: notFollowingText }));
+      dispatch(updateNodeData({ id: nodeId, key: 'not_following_button_text', value: notFollowingButtonText }));
+      dispatch(updateNodeData({ id: nodeId, key: 'not_following_buttons_json', value: JSON.stringify(notFollowingButtons) }));
+      dispatch(updateNodeData({ id: nodeId, key: 'not_following_profile_url', value: notFollowingProfileUrl }));
     }
     onClose();
   };
@@ -1254,12 +1368,31 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
 
   const updateButton = (idx: number, field: keyof ButtonItem, val: string) => {
     const copy = [...buttonTemplateButtons];
+    const username = activeAccount?.username || appUser?.username || 'shop';
     if (field === 'type' && val === 'track_order') {
       copy[idx] = {
         ...copy[idx],
         type: 'postback',
         payload: 'TRACK_ORDER',
         url: undefined
+      } as any;
+    } else if (field === 'type' && val === 'show_profile') {
+      copy[idx] = {
+        ...copy[idx],
+        type: 'web_url',
+        title: copy[idx].title || '👤 Visit Profile',
+        url: `https://instagram.com/${username}`,
+        is_profile_button: true,
+        payload: undefined
+      } as any;
+    } else if (field === 'type' && val === 'check_follow') {
+      copy[idx] = {
+        ...copy[idx],
+        type: 'postback',
+        title: copy[idx].title || '👉 Follow Us',
+        payload: 'CHECK_FOLLOW',
+        url: `https://instagram.com/${username}`,
+        is_profile_button: false
       } as any;
     } else {
       copy[idx] = { ...copy[idx], [field]: val } as ButtonItem;
@@ -1311,12 +1444,31 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
     const copy = [...carouselElements];
     const card = { ...copy[cardIdx] };
     const btns = [...(card.buttons || [])];
+    const username = activeAccount?.username || appUser?.username || 'shop';
     if (field === 'type' && val === 'track_order') {
       btns[btnIdx] = {
         ...btns[btnIdx],
         type: 'postback',
         payload: 'TRACK_ORDER',
         url: undefined
+      } as any;
+    } else if (field === 'type' && val === 'show_profile') {
+      btns[btnIdx] = {
+        ...btns[btnIdx],
+        type: 'web_url',
+        title: btns[btnIdx].title || '👤 Visit Profile',
+        url: `https://instagram.com/${username}`,
+        is_profile_button: true,
+        payload: undefined
+      } as any;
+    } else if (field === 'type' && val === 'check_follow') {
+      btns[btnIdx] = {
+        ...btns[btnIdx],
+        type: 'postback',
+        title: btns[btnIdx].title || '👉 Follow Us',
+        payload: 'CHECK_FOLLOW',
+        url: `https://instagram.com/${username}`,
+        is_profile_button: false
       } as any;
     } else {
       btns[btnIdx] = { ...btns[btnIdx], [field]: val } as ButtonItem;
@@ -1988,6 +2140,93 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                           )}
                         </div>
                       )}
+
+                      {/* FORMAT: Show Profile Preview */}
+                      {format === 'show_profile' && (
+                        <div className="w-full animate-fadeIn flex flex-col gap-2">
+                          <InstagramProfileCard size="compact" />
+                          <span className="text-[8.5px] text-[#c4c0ff]/60 italic text-center block">
+                            Direct Instagram Profile Link Card
+                          </span>
+                        </div>
+                      )}
+
+                      {/* FORMAT: Check Follow Preview */}
+                      {format === 'check_follow' && (
+                        <div className="flex flex-col gap-2 w-full animate-fadeIn">
+                          <div className="bg-zinc-900/80 border border-white/10 p-1.5 rounded-xl flex items-center justify-between text-[8px] text-zinc-400">
+                            <span className="font-bold">Preview Mode:</span>
+                            <div className="flex gap-1">
+                              <button
+                                type="button"
+                                onClick={() => setFollowCheckPreviewState('following')}
+                                className={cn(
+                                  "px-1.5 py-0.5 rounded font-bold transition-all",
+                                  followCheckPreviewState === 'following'
+                                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                                    : "text-zinc-500"
+                                )}
+                              >
+                                Following
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setFollowCheckPreviewState('not_following')}
+                                className={cn(
+                                  "px-1.5 py-0.5 rounded font-bold transition-all",
+                                  followCheckPreviewState === 'not_following'
+                                    ? "bg-rose-500/20 text-rose-300 border border-rose-500/40"
+                                    : "text-zinc-500"
+                                )}
+                              >
+                                Not Following
+                              </button>
+                            </div>
+                          </div>
+
+                          {followCheckPreviewState === 'following' ? (
+                            <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-2xl p-3 text-[10px] text-emerald-200 text-left shadow-lg">
+                              <div className="text-[8px] font-bold text-emerald-400 mb-1 flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                User IS Following Page
+                              </div>
+                              <p className="font-medium leading-relaxed">
+                                {followingText || 'Thanks for following us! Here is your exclusive access.'}
+                              </p>
+                              {followingFormat === 'button_template' && (
+                                <div className="mt-2 pt-2 border-t border-emerald-500/20 text-[#3797F0] font-bold text-center">
+                                  {followingButtons[0]?.title || '🎁 Claim Deal'}
+                                </div>
+                              )}
+                              {followingFormat === 'show_profile' && (
+                                <div className="mt-2 w-full">
+                                  <InstagramProfileCard size="compact" />
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="bg-rose-950/40 border border-rose-500/30 rounded-2xl p-3 text-[10px] text-rose-200 text-left shadow-lg">
+                              <div className="text-[8px] font-bold text-rose-400 mb-1 flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
+                                User NOT Following Page
+                              </div>
+                              <p className="font-medium leading-relaxed">
+                                {notFollowingText || 'Please follow our Instagram account to unlock this offer!'}
+                              </p>
+                              {notFollowingFormat === 'button_template' && (
+                                <a
+                                  href={notFollowingButtons[0]?.url || `https://instagram.com/${username}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="mt-2 pt-2 border-t border-rose-500/20 text-[#3797F0] font-bold text-center block"
+                                >
+                                  {notFollowingButtons[0]?.title || '👉 Follow Us Now'}
+                                </a>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -2025,14 +2264,11 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
             mobileView === 'edit' ? "block" : "hidden lg:block"
           )}>
 
-            <div className="p-3 sm:p-6 bg-transparent sm:bg-white/5 border-none sm:border border-white/10 rounded-xl space-y-4 sm:space-y-6 shadow-none sm:shadow-xl animate-fadeIn">
-              {/* <div className="flex items-center gap-2 pb-2 border-b border-white/15">
-                <Sparkles className="w-4 h-4 text-white" />
-                <h3 className="font-sora text-xs font-semibold text-white tracking-[0.1em] ">Core Logic</h3>
-              </div> */}
+            {/* <div className="p-3 sm:p-6 bg-transparent sm:bg-white/5 border-none sm:border border-white/10 rounded-xl space-y-4 sm:space-y-6 shadow-none sm:shadow-xl animate-fadeIn">
+
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {/* DM Format */}
+
                 <CustomSelect
                   labelClassName='font-sora text-[10px] font-bold text-zinc-400 tracking-wider  block mb-1.5'
                   label="Message Type"
@@ -2097,32 +2333,10 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                   setOpenDropdownId={setOpenDropdownId}
                 />
 
-                {/* Detailed Card View Switch */}
-                {/* <div >
-                  <span className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider  block mb-1.5">Display detailed settings</span>
 
-                  <div className="w-full bg-surface-container-high border border-white/5 hover:border-white/10 rounded-md px-4 py-2 text-xs text-white focus:outline-none cursor-pointer font-medium flex items-center justify-between transition-all text-left">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="font-sora text-[11px] font-bold text-white .shrink-0">Detailed Canvas Card</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setDetailedCardView(!detailedCardView)}
-                      className={cn(
-                        "w-9 h-5  rounded-full relative transition-all duration-200 shrink-0",
-                        detailedCardView ? "bg-white" : "bg-white/10"
-                      )}
-                    >
-                      <div className={cn(
-                        "absolute top-[2px] w-4 h-4 rounded-full shadow transition-all duration-200",
-                        detailedCardView ? "left-[18px] bg-[#131313]" : "left-[2px] bg-white"
-                      )} />
-                    </button>
-                  </div>
-                </div> */}
               </div>
 
-            </div>
+            </div> */}
 
             {/* Form Fields: Plain Text format */}
             {format === 'text' && (
@@ -2291,7 +2505,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                             )}
                           </div>
                         )
-                      })}
+                      })}x
                     </div>
                   )}
 
@@ -2319,7 +2533,12 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                 <CustomSelect
                                   labelClassName='font-sora text-[10px] font-bold text-zinc-400 tracking-wider block mb-1.5'
                                   label="Button Type"
-                                  value={btn.type === 'postback' && btn.payload === 'TRACK_ORDER' ? 'track_order' : btn.type}
+                                  value={
+                                    btn.type === 'postback' && btn.payload === 'TRACK_ORDER' ? 'track_order' :
+                                      btn.type === 'postback' && btn.payload === 'CHECK_FOLLOW' ? 'check_follow' :
+                                        ((btn.type as string) === 'show_profile' || (btn.type === 'web_url' && btn.url?.includes('instagram.com'))) ? 'show_profile' :
+                                          btn.type
+                                  }
                                   onChange={(val) => updateButton(idx, 'type', val)}
                                   options={[
                                     {
@@ -2342,6 +2561,16 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                       label: 'Track Order (Dynamic)',
                                       icon: <Search className="w-3.5 h-3.5" />,
                                     },
+                                    {
+                                      value: 'show_profile',
+                                      label: 'Show Profile Link',
+                                      icon: <User className="w-3.5 h-3.5 text-cyan-400" />,
+                                    },
+                                    {
+                                      value: 'check_follow',
+                                      label: 'Check Follow (Follower Gate)',
+                                      icon: <UserCheck className="w-3.5 h-3.5 text-[#CECBF6]" />,
+                                    },
                                   ]}
                                   dropdownId={`btn-type-${idx}`}
                                   openDropdownId={openDropdownId}
@@ -2356,7 +2585,53 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                               </div>
                             )}
 
-                            {btn.type === 'web_url' && (
+                            {((btn.type as string) === 'check_follow' || (btn.type === 'postback' && btn.payload === 'CHECK_FOLLOW')) && (
+                              <div className="bg-[#CECBF6]/10 border border-[#CECBF6]/20 rounded-xl p-4 text-xs text-[#CECBF6] font-medium space-y-2.5 animate-fadeIn">
+                                <div className="flex items-center gap-2 font-bold text-white">
+                                  <UserCheck className="w-4 h-4 text-[#CECBF6]" />
+                                  <span>Check Follower Gate Button</span>
+                                </div>
+                                <p className="text-[11px] text-zinc-300 leading-relaxed">
+                                  When customers tap this button in Instagram DM, the system checks if they follow your account before continuing the flow.
+                                </p>
+                                <div>
+                                  <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider block mb-1">Instagram Profile / Follow Link</label>
+                                  <input
+                                    type="text"
+                                    value={btn.url || `https://instagram.com/${activeAccount?.username || appUser?.username || 'shop'}`}
+                                    onChange={(e) => updateButton(idx, 'url', e.target.value)}
+                                    className="w-full bg-[#121212] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none font-mono"
+                                  />
+                                </div>
+                              </div>
+                            )}
+
+                            {((btn.type as string) === 'show_profile' || (btn.type === 'web_url' && btn.url?.includes('instagram.com'))) && (
+                              <div className="space-y-3 bg-[#1c1b1b]/60 border border-white/10 rounded-xl p-3.5 animate-fadeIn">
+                                <div className="flex items-center justify-between">
+                                  <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider block">Instagram Profile Link</label>
+                                  <button
+                                    type="button"
+                                    onClick={() => updateButton(idx, 'url', `https://instagram.com/${activeAccount?.username || appUser?.username || 'shop'}`)}
+                                    className="text-[10px] text-cyan-400 hover:text-cyan-300 font-bold underline cursor-pointer"
+                                  >
+                                    Use My Profile (@{activeAccount?.username || appUser?.username || 'shop'})
+                                  </button>
+                                </div>
+                                <div className="flex items-center bg-[#121212] border border-white/10 rounded px-3 text-xs">
+                                  <LinkIcon className="w-4 h-4 text-zinc-500 mr-2.5 shrink-0" />
+                                  <input
+                                    type="text"
+                                    value={btn.url || `https://instagram.com/${activeAccount?.username || appUser?.username || 'shop'}`}
+                                    onChange={(e) => updateButton(idx, 'url', e.target.value)}
+                                    placeholder="https://instagram.com/username"
+                                    className="w-full bg-transparent border-none py-3 text-xs text-white focus:outline-none font-medium font-mono"
+                                  />
+                                </div>
+                              </div>
+                            )}
+
+                            {btn.type === 'web_url' && !btn.url?.includes('instagram.com') && (
                               <div>
                                 <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider block mb-1.5">Web Link URL</label>
                                 <div className="flex items-center bg-[#1c1b1b]/60 border border-white/10 rounded px-3 text-xs">
@@ -2520,7 +2795,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                               );
                             })()}
 
-                            {btn.type === 'postback' && btn.payload !== 'TRACK_ORDER' && (
+                            {btn.type === 'postback' && btn.payload !== 'TRACK_ORDER' && btn.payload !== 'CHECK_FOLLOW' && (
                               <div className="bg-white/5 border border-[#c4c0ff]/25 text-[#c4c0ff] rounded p-4 text-xs flex flex-col gap-1.5 animate-fadeIn">
                                 <p className="text-[12px] leading-relaxed text-zinc-400">
                                   New flow named  <span className="text-white">{btn.title || 'New Button'}</span> is ready. Configure reply for it .
@@ -3011,6 +3286,16 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                         label: 'Track Order (Dynamic)',
                                         icon: <Search className="w-3.5 h-3.5" />,
                                       },
+                                      {
+                                        value: 'show_profile',
+                                        label: 'Show Profile Link',
+                                        icon: <User className="w-3.5 h-3.5 text-cyan-400" />,
+                                      },
+                                      {
+                                        value: 'check_follow',
+                                        label: 'Check Follow (Follower Gate)',
+                                        icon: <UserCheck className="w-3.5 h-3.5 text-[#CECBF6]" />,
+                                      },
                                     ]}
                                     dropdownId={`carousel-btn-type-${activeCardIndex}-${bi}`}
                                     openDropdownId={openDropdownId}
@@ -3200,7 +3485,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                     );
                                   })()}
 
-                                  {btn.type === 'postback' && btn.payload !== 'TRACK_ORDER' && (
+                                  {btn.type === 'postback' && btn.payload !== 'TRACK_ORDER' && btn.payload !== 'CHECK_FOLLOW' && (
                                     <div className="bg-white/5 border border-[#c4c0ff]/25 text-[#c4c0ff] rounded p-4 text-xs flex flex-col gap-1.5 animate-fadeIn">
                                       {/* <p className="font-bold flex items-center gap-1.5">
                                         <span className="w-1.5 h-1.5 rounded-full bg-[#c4c0ff] animate-pulse"></span>
@@ -3479,6 +3764,300 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                           </div>
                         );
                       })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Form Fields: Show Profile format */}
+            {format === 'show_profile' && (
+              <div className="space-y-6 animate-fadeIn">
+                <div className="bg-white/5 border border-white/10 p-5 rounded-2xl space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-cyan-400">
+                      <User className="w-5 h-5" />
+                      <h3 className="font-sora text-sm font-bold text-white">Instagram Profile Card</h3>
+                    </div>
+                    <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Auto Synced
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-400 leading-relaxed">
+                    This card dynamically pulls your live Instagram profile picture, username, verified badge, followers, and following statistics from your connected account (<strong>@{username}</strong>).
+                  </p>
+
+                  {/* Live Profile Card Render */}
+                  <div className="pt-2 flex justify-center w-full">
+                    <InstagramProfileCard size="full" />
+                  </div>
+
+                  <div className="p-3 bg-zinc-900/60 rounded-xl border border-white/10 text-xs text-zinc-300 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                      <span>Connected Instagram Account: <strong>@{username}</strong></span>
+                    </div>
+                    <a
+                      href={`https://instagram.com/${username}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-cyan-400 hover:text-cyan-300 font-bold flex items-center gap-1 text-xs"
+                    >
+                      <span>Open on Instagram</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Form Fields: Check Follow format */}
+            {format === 'check_follow' && (
+              <div className="space-y-6 animate-fadeIn">
+                <div className="bg-white/5 border border-white/10 p-5 rounded-2xl space-y-4">
+                  <div className="flex items-center gap-2 text-[#CECBF6]">
+                    <UserCheck className="w-5 h-5" />
+                    <h3 className="font-sora text-sm font-bold text-white">Check Follow (Follower Gate Branching)</h3>
+                  </div>
+                  <p className="text-xs text-zinc-400 leading-relaxed">
+                    Dynamically checks if the recipient follows your Instagram account and executes custom message formats for each state.
+                  </p>
+
+                  {/* State Tab Switcher */}
+                  <div className="flex rounded-xl bg-black/40 border border-white/10 p-1 gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setFollowCheckPreviewState('following')}
+                      className={cn(
+                        "flex-1 py-2.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer",
+                        followCheckPreviewState === 'following'
+                          ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-lg"
+                          : "text-zinc-400 hover:text-white"
+                      )}
+                    >
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                      1) If User IS Following
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFollowCheckPreviewState('not_following')}
+                      className={cn(
+                        "flex-1 py-2.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer",
+                        followCheckPreviewState === 'not_following'
+                          ? "bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-lg"
+                          : "text-zinc-400 hover:text-white"
+                      )}
+                    >
+                      <span className="w-2 h-2 rounded-full bg-rose-400 animate-pulse" />
+                      2) If User NOT Following
+                    </button>
+                  </div>
+
+                  {/* Branch 1: If User Following Editor */}
+                  {followCheckPreviewState === 'following' && (
+                    <div className="space-y-4 bg-emerald-950/10 border border-emerald-500/20 p-4 rounded-xl animate-fadeIn">
+                      <div className="flex items-center justify-between pb-2 border-b border-emerald-500/20">
+                        <span className="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                          Message Format for Followers
+                        </span>
+                        <span className="text-[10px] text-emerald-400/70 font-semibold">State: Following</span>
+                      </div>
+
+                      <CustomSelect
+                        label="Choose Follower Message Type"
+                        value={followingFormat}
+                        onChange={(val) => setFollowingFormat(val as DMFormatType)}
+                        options={[
+                          { value: 'text', label: 'Plain Text Message' },
+                          { value: 'button_template', label: 'Button Template' },
+                          { value: 'generic_template', label: 'Generic Template (Carousel)' },
+                          { value: 'quick_reply', label: 'Quick Reply Buttons' },
+                          { value: 'attachment', label: 'Media / Attachment' },
+                          { value: 'show_profile', label: 'Show Profile Link' }
+                        ]}
+                        dropdownId="following-format-select"
+                        openDropdownId={openDropdownId}
+                        setOpenDropdownId={setOpenDropdownId}
+                      />
+
+                      {followingFormat === 'text' && (
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-bold text-zinc-400 block">Follower Text Message</label>
+                          <textarea
+                            value={followingText}
+                            onChange={(e) => setFollowingText(e.target.value)}
+                            rows={3}
+                            className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none"
+                            placeholder="Thanks for following us! Here is your exclusive link..."
+                          />
+                        </div>
+                      )}
+
+                      {followingFormat === 'button_template' && (
+                        <div className="space-y-3">
+                          <div>
+                            <label className="text-[10px] font-bold text-zinc-400 block mb-1">Header Message Text</label>
+                            <input
+                              type="text"
+                              value={followingButtonText}
+                              onChange={(e) => setFollowingButtonText(e.target.value)}
+                              className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none"
+                              placeholder="What would you like to do?"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold text-zinc-400 block mb-1">Button Title</label>
+                            <input
+                              type="text"
+                              value={followingButtons[0]?.title || ''}
+                              onChange={(e) => {
+                                const btns = [...followingButtons];
+                                if (!btns[0]) btns[0] = { type: 'web_url', title: e.target.value, url: 'https://' };
+                                else btns[0] = { ...btns[0], title: e.target.value };
+                                setFollowingButtons(btns);
+                              }}
+                              className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none"
+                              placeholder="🎁 Claim Special Offer"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold text-zinc-400 block mb-1">Button URL</label>
+                            <input
+                              type="text"
+                              value={followingButtons[0]?.url || ''}
+                              onChange={(e) => {
+                                const btns = [...followingButtons];
+                                if (!btns[0]) btns[0] = { type: 'web_url', title: 'Offer', url: e.target.value };
+                                else btns[0] = { ...btns[0], url: e.target.value };
+                                setFollowingButtons(btns);
+                              }}
+                              className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none font-mono"
+                              placeholder="https://yourstore.com/offer"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {followingFormat === 'show_profile' && (
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-bold text-zinc-400 block">Follower Profile Redirection Link</label>
+                          <input
+                            type="text"
+                            value={followingProfileUrl}
+                            onChange={(e) => setFollowingProfileUrl(e.target.value)}
+                            className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none font-mono"
+                            placeholder={`https://instagram.com/${username}`}
+                          />
+                        </div>
+                      )}
+
+                      {(followingFormat === 'generic_template' || followingFormat === 'quick_reply' || followingFormat === 'attachment') && (
+                        <div className="p-3 bg-black/40 border border-white/10 rounded-lg text-xs text-zinc-300">
+                          Followers will receive configured {followingFormat.replace('_', ' ')} layout.
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Branch 2: If User NOT Following Editor */}
+                  {followCheckPreviewState === 'not_following' && (
+                    <div className="space-y-4 bg-rose-950/10 border border-rose-500/20 p-4 rounded-xl animate-fadeIn">
+                      <div className="flex items-center justify-between pb-2 border-b border-rose-500/20">
+                        <span className="text-xs font-bold text-rose-300 flex items-center gap-1.5">
+                          <Info className="w-4 h-4 text-rose-400" />
+                          Message Format for Non-Followers
+                        </span>
+                        <span className="text-[10px] text-rose-400/70 font-semibold">State: Not Following</span>
+                      </div>
+
+                      <CustomSelect
+                        label="Choose Non-Follower Message Type"
+                        value={notFollowingFormat}
+                        onChange={(val) => setNotFollowingFormat(val as DMFormatType)}
+                        options={[
+                          { value: 'button_template', label: 'Button Template (Recommended)' },
+                          { value: 'text', label: 'Plain Text Message' },
+                          { value: 'show_profile', label: 'Show Profile Link' },
+                          { value: 'generic_template', label: 'Generic Template (Carousel)' },
+                          { value: 'quick_reply', label: 'Quick Reply Buttons' },
+                          { value: 'attachment', label: 'Media / Attachment' }
+                        ]}
+                        dropdownId="not-following-format-select"
+                        openDropdownId={openDropdownId}
+                        setOpenDropdownId={setOpenDropdownId}
+                      />
+
+                      {notFollowingFormat === 'button_template' && (
+                        <div className="space-y-3">
+                          <div>
+                            <label className="text-[10px] font-bold text-zinc-400 block mb-1">Warning / Gate Message Text</label>
+                            <input
+                              type="text"
+                              value={notFollowingText}
+                              onChange={(e) => setNotFollowingText(e.target.value)}
+                              className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none"
+                              placeholder="Please follow our Instagram account to unlock this deal!"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold text-zinc-400 block mb-1">Follow Button Title</label>
+                            <input
+                              type="text"
+                              value={notFollowingButtons[0]?.title || ''}
+                              onChange={(e) => {
+                                const btns = [...notFollowingButtons];
+                                if (!btns[0]) btns[0] = { type: 'web_url', title: e.target.value, url: `https://instagram.com/${username}` };
+                                else btns[0] = { ...btns[0], title: e.target.value };
+                                setNotFollowingButtons(btns);
+                              }}
+                              className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none"
+                              placeholder="👉 Follow Us Now"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold text-zinc-400 block mb-1">Follow Link / Profile URL</label>
+                            <input
+                              type="text"
+                              value={notFollowingButtons[0]?.url || `https://instagram.com/${username}`}
+                              onChange={(e) => {
+                                const btns = [...notFollowingButtons];
+                                if (!btns[0]) btns[0] = { type: 'web_url', title: '👉 Follow Us', url: e.target.value };
+                                else btns[0] = { ...btns[0], url: e.target.value };
+                                setNotFollowingButtons(btns);
+                              }}
+                              className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none font-mono"
+                              placeholder={`https://instagram.com/${username}`}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {notFollowingFormat === 'text' && (
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-bold text-zinc-400 block">Non-Follower Text Message</label>
+                          <textarea
+                            value={notFollowingText}
+                            onChange={(e) => setNotFollowingText(e.target.value)}
+                            rows={3}
+                            className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none"
+                            placeholder="Please follow our profile first to receive full details!"
+                          />
+                        </div>
+                      )}
+
+                      {notFollowingFormat === 'show_profile' && (
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-bold text-zinc-400 block">Non-Follower Profile Redirection Link</label>
+                          <input
+                            type="text"
+                            value={notFollowingProfileUrl}
+                            onChange={(e) => setNotFollowingProfileUrl(e.target.value)}
+                            className="w-full bg-[#1c1b1b]/60 border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none font-mono"
+                            placeholder={`https://instagram.com/${username}`}
+                          />
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

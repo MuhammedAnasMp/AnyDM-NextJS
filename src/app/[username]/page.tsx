@@ -21,6 +21,7 @@ const InstagramIcon = ({ className }: { className?: string }) => (
 import api from "@/lib/services/api.service";
 import { getTemplateStyles, TemplateStyle } from "@/components/templates/TemplateProvider";
 import { cn } from "@/lib/utils";
+import { getProductUrl, getTermsUrl, getPrivacyUrl } from "@/lib/utils/domain";
 
 const isVideoUrl = (url: string) => {
   if (!url) return false;
@@ -501,7 +502,7 @@ export default function StorefrontPage({ params }: PageProps) {
                 <div
                   key={product.id}
                   className={cn("group relative flex flex-col cursor-pointer", styles.cardClass)}
-                  onClick={() => router.push(`/${username}/product/${product.id}`)}
+                  onClick={() => router.push(getProductUrl(username, product.id))}
                 >
                   {/* Product Image */}
                   <div className="relative aspect-[3/4] w-full overflow-hidden bg-zinc-900 shrink-0">
@@ -645,10 +646,10 @@ export default function StorefrontPage({ params }: PageProps) {
               <button onClick={() => setIsTrackingOpen(true)} className={cn("block text-xs hover:underline", styles.textMutedClass)}>
                 Track My Order
               </button>
-              <button onClick={() => setActivePolicyModal("privacy")} className={cn("block text-xs hover:underline", styles.textMutedClass)}>
+              <button onClick={() => router.push(getPrivacyUrl(username))} className={cn("block text-xs hover:underline", styles.textMutedClass)}>
                 Privacy Policy
               </button>
-              <button onClick={() => setActivePolicyModal("terms")} className={cn("block text-xs hover:underline", styles.textMutedClass)}>
+              <button onClick={() => router.push(getTermsUrl(username))} className={cn("block text-xs hover:underline", styles.textMutedClass)}>
                 Terms of Service
               </button>
             </div>
@@ -793,7 +794,7 @@ export default function StorefrontPage({ params }: PageProps) {
                         {/* Thumbnail */}
                         <div
                           className="w-20 h-24 shrink-0 rounded-lg overflow-hidden bg-zinc-900 cursor-pointer"
-                          onClick={() => { setWishlistOpen(false); router.push(`/${username}/product/${product.id}`); }}
+                          onClick={() => { setWishlistOpen(false); router.push(getProductUrl(username, product.id)); }}
                         >
                           {isVideoUrl(product.main_media_url) ? (
                             <video
@@ -822,7 +823,7 @@ export default function StorefrontPage({ params }: PageProps) {
                           <div>
                             <h4
                               className={cn("text-xs font-bold line-clamp-2 leading-snug cursor-pointer hover:underline", styles.textColorClass)}
-                              onClick={() => { setWishlistOpen(false); router.push(`/${username}/product/${product.id}`); }}
+                              onClick={() => { setWishlistOpen(false); router.push(getProductUrl(username, product.id)); }}
                             >
                               {product.title}
                             </h4>
@@ -840,7 +841,7 @@ export default function StorefrontPage({ params }: PageProps) {
                           </div>
                           <div className="flex items-center gap-2 mt-2">
                             <button
-                              onClick={() => { setWishlistOpen(false); router.push(`/${username}/product/${product.id}`); }}
+                              onClick={() => { setWishlistOpen(false); router.push(getProductUrl(username, product.id)); }}
                               className={cn("flex-1 text-[10px] font-bold py-1.5 flex items-center justify-center gap-1 transition-all", styles.buttonClass)}
                             >
                               View <ArrowRight className="w-3 h-3" />
@@ -952,7 +953,7 @@ export default function StorefrontPage({ params }: PageProps) {
               <button
                 onClick={() => {
                   setQuickViewProduct(null);
-                  router.push(`/${username}/product/${quickViewProduct.id}`);
+                  router.push(getProductUrl(username, quickViewProduct.id));
                 }}
                 className={cn("w-full text-xs font-bold py-3 mt-auto flex items-center justify-center gap-2", styles.buttonClass)}
               >

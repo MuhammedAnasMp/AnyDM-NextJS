@@ -26,6 +26,7 @@ import {
   Paperclip,
   ImageIcon
 } from 'lucide-react';
+import { InstagramProfileCard } from './InstagramProfileCard';
 
 // Define simulation steps
 export type SimStep =
@@ -113,6 +114,12 @@ export default function SimulationWalkthrough({ onRestartRequest, onStepChange }
     }
     if (dmFormat === 'button_template') {
       return sendDmAction?.data?.button_template_text || "What would you like to do?";
+    }
+    if (dmFormat === 'show_profile') {
+      return sendDmAction?.data?.profile_message_text || "Check out our Instagram profile:";
+    }
+    if (dmFormat === 'check_follow') {
+      return sendDmAction?.data?.following_text || sendDmAction?.data?.not_following_text || "Check Follower Gate";
     }
     return sendDmAction?.data?.messages?.[0] || "Here are the details you requested! 👇";
   }, [dmFormat, sendDmAction]);
@@ -799,6 +806,13 @@ export default function SimulationWalkthrough({ onRestartRequest, onStepChange }
                                   </div>
                                 );
                               })}
+                            </div>
+                          )}
+
+                          {/* Show Profile format */}
+                          {dmFormat === 'show_profile' && (
+                            <div className="w-full max-w-[245px] animate-fadeIn">
+                              <InstagramProfileCard size="compact" />
                             </div>
                           )}
 

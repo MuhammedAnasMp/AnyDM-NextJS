@@ -19,6 +19,7 @@ import {
 import api from "@/lib/services/api.service";
 import { getTemplateStyles, TemplateStyle } from "@/components/templates/TemplateProvider";
 import { cn } from "@/lib/utils";
+import { getProductUrl, getStoreHomeUrl, getTermsUrl, getPrivacyUrl } from "@/lib/utils/domain";
 
 const isVideoUrl = (url: string) => {
   if (!url) return false;
@@ -401,7 +402,7 @@ export default function ProductDetailPage({ params }: PageProps) {
           {error || "The product you are looking for might have been deleted, sold out, or is currently unavailable."}
         </p>
         <button
-          onClick={() => router.push(`/${username}`)}
+          onClick={() => router.push(getStoreHomeUrl(username))}
           className="px-5 py-2.5 bg-white text-black font-bold rounded-lg text-xs hover:bg-[#eaeaea] transition-all"
         >
           View Store Catalog
@@ -1567,7 +1568,7 @@ export default function ProductDetailPage({ params }: PageProps) {
               {/* Card 1: Double column (Hoodie) */}
               {relatedProducts[0] && (
                 <div
-                  onClick={() => router.push(`/${username}/product/${relatedProducts[0].id}`)}
+                  onClick={() => router.push(getProductUrl(username, relatedProducts[0].id))}
                   className="md:col-span-2 bg-white border-2 border-black shadow-[4px_4px_0px_#000] group cursor-pointer overflow-hidden relative flex flex-col justify-between"
                 >
                   <div className="w-full h-48 overflow-hidden bg-zinc-100">
@@ -1587,7 +1588,7 @@ export default function ProductDetailPage({ params }: PageProps) {
               {/* Card 2: Single Column (Cap) */}
               {relatedProducts[1] && (
                 <div
-                  onClick={() => router.push(`/${username}/product/${relatedProducts[1].id}`)}
+                  onClick={() => router.push(getProductUrl(username, relatedProducts[1].id))}
                   className="bg-white border-2 border-black shadow-[4px_4px_0px_#000] p-4 flex flex-col justify-between group cursor-pointer"
                 >
                   <div className="h-32 bg-zinc-100 border-2 border-black overflow-hidden mb-3">
@@ -1607,7 +1608,7 @@ export default function ProductDetailPage({ params }: PageProps) {
               {/* Card 3: Single Column (Bag) */}
               {relatedProducts[2] && (
                 <div
-                  onClick={() => router.push(`/${username}/product/${relatedProducts[2].id}`)}
+                  onClick={() => router.push(getProductUrl(username, relatedProducts[2].id))}
                   className="bg-white border-2 border-black shadow-[4px_4px_0px_#000] p-4 flex flex-col justify-between group cursor-pointer"
                 >
                   <div className="h-32 bg-zinc-100 border-2 border-black overflow-hidden mb-3">
@@ -1931,7 +1932,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                   key={rel.id}
                   onClick={() => {
                     // Navigate to the related product's PDP
-                    router.push(`/${username}/product/${rel.id}`);
+                    router.push(getProductUrl(username, rel.id));
                   }}
                   className={cn("p-2 cursor-pointer flex flex-col group h-full", styles.cardClass)}
                 >
@@ -1997,7 +1998,7 @@ export default function ProductDetailPage({ params }: PageProps) {
     <div className={cn("min-h-screen flex flex-col transition-colors duration-500 pb-16", styles.bodyClass, styles.fontBody)}>
       {/* Top Navbar */}
       <header className={cn("sticky top-0 z-40 px-6 h-16 flex items-center justify-between w-full max-w-full mx-auto", styles.navClass)}>
-        <button onClick={() => router.push(`/${username}`)} className="flex items-center gap-1.5 text-xs font-bold hover:opacity-80 transition-opacity">
+        <button onClick={() => router.push(getStoreHomeUrl(username))} className="flex items-center gap-1.5 text-xs font-bold hover:opacity-80 transition-opacity">
           <ArrowLeft className="w-4 h-4" />
           <span>Back to Store</span>
         </button>
@@ -2103,9 +2104,9 @@ export default function ProductDetailPage({ params }: PageProps) {
               <p className={cn("text-[10px] font-bold tracking-[0.15em]", styles.textMutedClass)}>Legal &amp; Info</p>
               <div className="space-y-2.5">
                 {[
-                  { label: "Privacy Policy", action: () => setActivePolicyModal("privacy") },
-                  { label: "Terms of Service", action: () => setActivePolicyModal("terms") },
-                  { label: "Visit Storefront", action: () => router.push(`/${username}`) },
+                  { label: "Privacy Policy", action: () => router.push(getPrivacyUrl(username)) },
+                  { label: "Terms of Service", action: () => router.push(getTermsUrl(username)) },
+                  { label: "Visit Storefront", action: () => router.push(getStoreHomeUrl(username)) },
                 ].map(({ label, action }) => (
                   <button key={label} onClick={action} className={cn("flex items-center gap-2 text-xs hover:text-[#b6b2ff] transition-colors group w-full text-left", styles.textColorClass)}>
                     <span className="w-1 h-1 rounded-full bg-[#605ca2] group-hover:scale-150 transition-transform shrink-0" />

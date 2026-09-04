@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { authService } from './auth.service';
 
-const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://172.16.4.167:8001';
 const hasProtocol = rawApiUrl.startsWith('http://') || rawApiUrl.startsWith('https://');
 const isLocal = rawApiUrl.includes('localhost') || 
                 rawApiUrl.includes('127.0.0.1') || 
@@ -10,7 +10,7 @@ const isLocal = rawApiUrl.includes('localhost') ||
                 rawApiUrl.startsWith('172.');
 
 const protocol = hasProtocol ? '' : (isLocal ? 'http://' : 'https://');
-const API_URL = `${protocol}${rawApiUrl}/api`;
+const API_URL = rawApiUrl.endsWith('/api') ? rawApiUrl : `${protocol}${rawApiUrl}/api`;
 
 // In-memory cache store
 const cacheMap = new Map<string, {
