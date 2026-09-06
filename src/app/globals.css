@@ -247,3 +247,30 @@ body {
     transform: translate(30%, 30%) rotate(0deg);
   }
 }
+
+/* Back Loop Wireframe Dotted Right-to-Left Flow Animation on Hover */
+@keyframes flowDashesRightToLeft {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: 20px;
+  }
+}
+
+.loop-back-wire-path {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+.loop-back-wire-path path {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+.loop-back-wire-path:hover path,
+.loop-back-wire-path path:hover,
+.group\/loop-wire:hover .loop-back-wire-path path,
+.group\/loop-wire:hover path {
+  animation: flowDashesRightToLeft 0.5s linear infinite !important;
+}

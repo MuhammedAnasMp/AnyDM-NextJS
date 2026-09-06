@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store';
-import { updateNodePosition, selectNode, updateNodeData, removeNode, resetToPlaceholder, setLoopBackTarget, EXECUTION_COLUMNS, getNodeExecutionStep } from '@/store/slices/flowSlice';
+import { updateNodePosition, selectNode, updateNodeData, removeNode, resetToPlaceholder, setLoopBackTarget, EXECUTION_COLUMNS, getNodeExecutionStep, resolveNodePosition, getNodeDimensions } from '@/store/slices/flowSlice';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { MessageSquare, Filter, Send, AtSign, Plus, Trophy, Gift, Sparkles, Clock, ChevronDown, Paperclip, X, Film, Headphones, Share2, Heart, Image as ImageIcon, ArrowRightFromLineIcon, FilterIcon, AlertCircle, User, UserCheck, ExternalLink, ShieldCheck, RotateCcw, Ban, SplitIcon } from 'lucide-react';
@@ -45,6 +45,41 @@ const NODE_THEMES: Record<string, any> = {
     }
 };
 
+let lastAutoPanTime = 0;
+export const autoPanOnDragEdge = (e: any) => {
+    if (!e || typeof window === 'undefined') return;
+    const now = performance.now();
+    if (now - lastAutoPanTime < 35) return;
+    lastAutoPanTime = now;
+
+    const clientX = e.clientX ?? e.touches?.[0]?.clientX ?? e.point?.x;
+    const clientY = e.clientY ?? e.touches?.[0]?.clientY ?? e.point?.y;
+    if (clientX === undefined || clientY === undefined) return;
+
+    const containerEl = document.querySelector('.canvas-container');
+    const rect = containerEl ? containerEl.getBoundingClientRect() : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
+
+    const relX = clientX - rect.left;
+    const relY = clientY - rect.top;
+
+    const edgeThresholdX = rect.width * 0.075; // 85% Focus Area (7.5% margin)
+    const edgeThresholdY = rect.height * 0.075;
+    const panSpeed = 12;
+
+    let panDx = 0;
+    let panDy = 0;
+
+    if (relX < edgeThresholdX) panDx = panSpeed;
+    else if (relX > rect.width - edgeThresholdX) panDx = -panSpeed;
+
+    if (relY < edgeThresholdY) panDy = panSpeed;
+    else if (relY > rect.height - edgeThresholdY) panDy = -panSpeed;
+
+    if (panDx !== 0 || panDy !== 0) {
+        window.dispatchEvent(new CustomEvent('pan-canvas', { detail: { dx: panDx, dy: panDy } }));
+    }
+};
+
 export function CanvasNode({ id }: { id: string }) {
     const dispatch = useDispatch();
     const node = useSelector((state: RootState) => state.flow.nodes.find(n => n.id === id));
@@ -56,6 +91,16 @@ export function CanvasNode({ id }: { id: string }) {
     const isDragging = React.useRef(false);
     const lastDragEndTimestamp = React.useRef(0);
     const dragTotalDistance = React.useRef(0);
+
+    const xarrowRafRef = React.useRef<number | null>(null);
+    const throttledUpdateXarrow = React.useCallback(() => {
+        if (xarrowRafRef.current === null) {
+            xarrowRafRef.current = requestAnimationFrame(() => {
+                updateXarrow();
+                xarrowRafRef.current = null;
+            });
+        }
+    }, [updateXarrow]);
 
     const wasRecentlyDragged = () => {
         if (isDragging.current) return true;
@@ -133,19 +178,17 @@ export function CanvasNode({ id }: { id: string }) {
     const parentThreshold = parentExecNodes.length > 0 ? Math.max(...parentExecNodes.map(p => {
         const pWidth = p.data?.is_cf_fork ? 40 : ((p.data?.is_placeholder && !p.data?.messages?.length) ? 155 : 320);
         return p.position.x + pWidth;
-    })) + 20 : 0;
+    })) + 40 : 0;
     const minAllowedX = Math.max(colConfig.minX, parentThreshold);
 
     const outgoingExecEdges = edges.filter(e => e.source === node.id && !e.id.includes('loop') && !e.label?.includes('Loop'));
     const childExecNodes = nodes.filter(n => outgoingExecEdges.some(e => e.target === n.id));
     const nodeWidth = (node.data?.is_placeholder && !node.data?.messages?.length) ? 155 : (node.data?.is_cf_fork ? 40 : 320);
-    const childThreshold = childExecNodes.length > 0 ? Math.min(...childExecNodes.map(c => c.position.x)) - nodeWidth - 20 : Infinity;
+    const childThreshold = childExecNodes.length > 0 ? Math.min(...childExecNodes.map(c => c.position.x)) - nodeWidth - 40 : Infinity;
     const maxAllowedX = Math.min(colConfig.maxX, childThreshold);
 
     const clampNodePosition = (targetX: number, targetY: number) => {
-        const effectiveMax = maxAllowedX >= minAllowedX ? maxAllowedX : Infinity;
-        const clampedX = Math.max(minAllowedX, Math.min(effectiveMax, targetX));
-        return { x: clampedX, y: targetY };
+        return resolveNodePosition(node, targetX, targetY, nodes, edges);
     };
 
     const activeLoopEdge = edges.find(e => e.source === node.id && (e.id.includes('loop') || e.label?.includes('Loop')));
@@ -157,12 +200,7 @@ export function CanvasNode({ id }: { id: string }) {
         const sourceNode = nodes.find(n => n.id === activeLoopDragSourceId);
         if (!sourceNode) return false;
 
-        // 1. Must be in a strictly earlier execution step (cannot connect to same or later execution order step)
-        const sourceStep = getNodeExecutionStep(sourceNode);
-        const targetStep = getNodeExecutionStep(node);
-        if (targetStep >= sourceStep) return false;
-
-        // 2. Must be a previous card (horizontally before the source node)
+        // 1. Must be a previous card (horizontally before the source node)
         if (node.position.x >= sourceNode.position.x - 50) return false;
 
         // 3. Branch restriction: If Following cannot connect to If Not Following & vice versa
@@ -182,8 +220,8 @@ export function CanvasNode({ id }: { id: string }) {
         // 7. Can't connect to profile card
         if (node.data?.dm_format === 'show_profile' || node.data?.is_profile_card) return false;
 
-        // 8. Can't connect to Y-fork junction pin
-        if (node.data?.is_cf_fork) return false;
+        // 8. Can't connect to another loop back card
+        if (node.data?.dm_format === 'loop_back') return false;
 
         // 9. Valid on action cards (including previous button template, carousel, text, quick reply, etc.)
         if (node.type === 'action') return true;
@@ -299,10 +337,10 @@ export function CanvasNode({ id }: { id: string }) {
                     id={node.id}
                     drag={!activeLoopDragSourceId}
                     dragMomentum={false}
-                    onUpdate={() => updateXarrow()}
                     onDrag={(e, info) => {
                         dragTotalDistance.current += Math.hypot(info.delta.x, info.delta.y);
-                        updateXarrow();
+                        autoPanOnDragEdge(e);
+                        throttledUpdateXarrow();
                     }}
                     onDragStart={() => {
                         isDragging.current = true;
@@ -317,7 +355,7 @@ export function CanvasNode({ id }: { id: string }) {
                             id: node.id,
                             position: clamped
                         }));
-                        updateXarrow();
+                        throttledUpdateXarrow();
                         lastDragEndTimestamp.current = Date.now();
                         setTimeout(() => {
                             isDragging.current = false;
@@ -415,13 +453,19 @@ export function CanvasNode({ id }: { id: string }) {
                                 type="button"
                                 onPointerDown={(e) => {
                                     e.stopPropagation();
-                                    e.preventDefault();
-                                    window.dispatchEvent(new CustomEvent('loop-drag-start', { detail: { sourceId: node.id, mousePos: { x: e.clientX, y: e.clientY } } }));
+                                    if (loopTargetNode) {
+                                        window.dispatchEvent(new CustomEvent('focus-loop-nodes', { detail: { sourceId: node.id, targetId: loopTargetNode.id } }));
+                                    } else {
+                                        e.preventDefault();
+                                        window.dispatchEvent(new CustomEvent('loop-drag-start', { detail: { sourceId: node.id, mousePos: { x: e.clientX, y: e.clientY } } }));
+                                    }
                                 }}
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     e.preventDefault();
-                                    if (activeLoopDragSourceId === node.id) {
+                                    if (loopTargetNode) {
+                                        window.dispatchEvent(new CustomEvent('focus-loop-nodes', { detail: { sourceId: node.id, targetId: loopTargetNode.id } }));
+                                    } else if (activeLoopDragSourceId === node.id) {
                                         window.dispatchEvent(new CustomEvent('loop-drag-end'));
                                     } else {
                                         window.dispatchEvent(new CustomEvent('loop-drag-start', { detail: { sourceId: node.id, mousePos: { x: e.clientX, y: e.clientY } } }));
@@ -469,10 +513,10 @@ export function CanvasNode({ id }: { id: string }) {
                 id={node.id}
                 drag
                 dragMomentum={false}
-                onUpdate={() => updateXarrow()}
                 onDrag={(e, info) => {
                     dragTotalDistance.current += Math.hypot(info.delta.x, info.delta.y);
-                    updateXarrow();
+                    autoPanOnDragEdge(e);
+                    throttledUpdateXarrow();
                 }}
                 onDragStart={() => {
                     isDragging.current = true;
@@ -487,7 +531,7 @@ export function CanvasNode({ id }: { id: string }) {
                         id: node.id,
                         position: clamped
                     }));
-                    updateXarrow();
+                    throttledUpdateXarrow();
                     lastDragEndTimestamp.current = Date.now();
                     setTimeout(() => {
                         isDragging.current = false;
@@ -607,10 +651,10 @@ export function CanvasNode({ id }: { id: string }) {
                 id={node.id}
                 drag
                 dragMomentum={false}
-                onUpdate={() => updateXarrow()}
                 onDrag={(e, info) => {
                     dragTotalDistance.current += Math.hypot(info.delta.x, info.delta.y);
-                    updateXarrow();
+                    autoPanOnDragEdge(e);
+                    throttledUpdateXarrow();
                 }}
                 onDragStart={() => {
                     isDragging.current = true;
@@ -624,7 +668,7 @@ export function CanvasNode({ id }: { id: string }) {
                         id: node.id,
                         position: clamped
                     }));
-                    updateXarrow();
+                    throttledUpdateXarrow();
                     lastDragEndTimestamp.current = Date.now();
                     setTimeout(() => {
                         isDragging.current = false;
@@ -664,10 +708,10 @@ export function CanvasNode({ id }: { id: string }) {
                 id={node.id}
                 drag
                 dragMomentum={false}
-                onUpdate={() => updateXarrow()}
                 onDrag={(e, info) => {
                     dragTotalDistance.current += Math.hypot(info.delta.x, info.delta.y);
-                    updateXarrow();
+                    autoPanOnDragEdge(e);
+                    throttledUpdateXarrow();
                 }}
                 onDragStart={() => {
                     isDragging.current = true;
@@ -682,7 +726,7 @@ export function CanvasNode({ id }: { id: string }) {
                         id: node.id,
                         position: clamped
                     }));
-                    updateXarrow();
+                    throttledUpdateXarrow();
                     lastDragEndTimestamp.current = Date.now();
                     setTimeout(() => {
                         isDragging.current = false;
@@ -727,10 +771,10 @@ export function CanvasNode({ id }: { id: string }) {
             id={node.id}
             drag
             dragMomentum={false}
-            onUpdate={() => updateXarrow()}
             onDrag={(e, info) => {
                 dragTotalDistance.current += Math.hypot(info.delta.x, info.delta.y);
-                updateXarrow();
+                autoPanOnDragEdge(e);
+                throttledUpdateXarrow();
             }}
             onDragStart={() => {
                 isDragging.current = true;
@@ -745,7 +789,7 @@ export function CanvasNode({ id }: { id: string }) {
                     id: node.id,
                     position: clamped
                 }));
-                updateXarrow();
+                throttledUpdateXarrow();
                 lastDragEndTimestamp.current = Date.now();
                 setTimeout(() => {
                     isDragging.current = false;
@@ -1535,48 +1579,69 @@ function LoopBadgeItem({
 }) {
     const isDragging = React.useRef(false);
     const startPoint = React.useRef({ x: 0, y: 0 });
+    const startPos = React.useRef({ x: posX, y: posY });
     const currentPos = React.useRef({ x: posX, y: posY });
     const badgeElRef = React.useRef<HTMLDivElement>(null);
+    const totalMoveDist = React.useRef(0);
 
     React.useEffect(() => {
         currentPos.current = { x: posX, y: posY };
-        if (badgeElRef.current && !isDragging.current) {
-            badgeElRef.current.style.transform = `translate3d(${posX * scale + pan.x}px, ${posY * scale + pan.y}px, 0px) scale(${scale})`;
-        }
-    }, [posX, posY, scale, pan.x, pan.y]);
+    }, [posX, posY]);
 
     return (
         <div
             id={`loop-badge-${edge.id}`}
             ref={badgeElRef}
+            onClick={(e) => {
+                e.stopPropagation();
+                if (totalMoveDist.current < 5) {
+                    window.dispatchEvent(new CustomEvent('focus-loop-nodes', {
+                        detail: { sourceId: edge.source, targetId: edge.target }
+                    }));
+                }
+            }}
             onPointerDown={(e) => {
                 e.stopPropagation();
                 isDragging.current = true;
+                totalMoveDist.current = 0;
                 startPoint.current = { x: e.clientX, y: e.clientY };
+                startPos.current = { x: posX, y: posY };
                 try {
                     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
                 } catch { }
             }}
             onPointerMove={(e) => {
-                if (!isDragging.current || !badgeElRef.current) return;
+                if (!isDragging.current) return;
+                const dist = Math.hypot(e.clientX - startPoint.current.x, e.clientY - startPoint.current.y);
+                totalMoveDist.current = Math.max(totalMoveDist.current, dist);
+
                 const dx = (e.clientX - startPoint.current.x) / scale;
                 const dy = (e.clientY - startPoint.current.y) / scale;
 
-                const rawX = posX + dx;
-                const rawY = posY + dy;
+                const rawX = startPos.current.x + dx;
+                const rawY = startPos.current.y + dy;
 
                 const isBlocked = rawX < minX || rawX > maxX || rawY < minY;
                 const clampedX = Math.max(minX, Math.min(maxX, rawX));
                 const clampedY = Math.max(minY, rawY);
 
                 currentPos.current = { x: clampedX, y: clampedY };
-                badgeElRef.current.style.transform = `translate3d(${clampedX * scale + pan.x}px, ${clampedY * scale + pan.y}px, 0px) scale(${scale})`;
 
-                if (isBlocked) {
-                    badgeElRef.current.classList.add('!bg-rose-950/95', '!border-rose-500', '!text-rose-300', '!ring-2', '!ring-rose-500/80', '!shadow-[0_0_15px_rgba(244,63,94,0.5)]', '!cursor-not-allowed');
-                } else {
-                    badgeElRef.current.classList.remove('!bg-rose-950/95', '!border-rose-500', '!text-rose-300', '!ring-2', '!ring-rose-500/80', '!shadow-[0_0_15px_rgba(244,63,94,0.5)]', '!cursor-not-allowed');
+                // Edge auto-panning when dragging loop badge label near canvas workspace boundaries
+                autoPanOnDragEdge(e);
+
+                if (badgeElRef.current) {
+                    if (isBlocked) {
+                        badgeElRef.current.classList.add('!bg-rose-950/95', '!border-rose-500', '!text-rose-300', '!ring-2', '!ring-rose-500/80', '!shadow-[0_0_15px_rgba(244,63,94,0.5)]', '!cursor-not-allowed');
+                    } else {
+                        badgeElRef.current.classList.remove('!bg-rose-950/95', '!border-rose-500', '!text-rose-300', '!ring-2', '!ring-rose-500/80', '!shadow-[0_0_15px_rgba(244,63,94,0.5)]', '!cursor-not-allowed');
+                    }
                 }
+
+                onOffsetChange({
+                    x: clampedX - midX,
+                    y: clampedY - midY,
+                });
                 updateXarrow();
             }}
             onPointerUp={(e) => {
@@ -1588,6 +1653,11 @@ function LoopBadgeItem({
                 if (badgeElRef.current) {
                     badgeElRef.current.classList.remove('!bg-rose-950/95', '!border-rose-500', '!text-rose-300', '!ring-2', '!ring-rose-500/80', '!shadow-[0_0_15px_rgba(244,63,94,0.5)]', '!cursor-not-allowed');
                 }
+                if (totalMoveDist.current < 5) {
+                    window.dispatchEvent(new CustomEvent('focus-loop-nodes', {
+                        detail: { sourceId: edge.source, targetId: edge.target }
+                    }));
+                }
                 onOffsetChange({
                     x: currentPos.current.x - midX,
                     y: currentPos.current.y - midY,
@@ -1598,7 +1668,6 @@ function LoopBadgeItem({
                 position: 'absolute',
                 transformOrigin: '0 0',
                 transform: `translate3d(${posX * scale + pan.x}px, ${posY * scale + pan.y}px, 0px) scale(${scale})`,
-                zIndex: 30,
                 touchAction: 'none'
             }}
             className="px-2.5 py-1 rounded-full text-[9.5px] font-bold whitespace-nowrap backdrop-blur-md shadow-2xl border select-none pointer-events-auto flex items-center justify-between gap-2 cursor-grab active:cursor-grabbing bg-[#1e1b4b] border-[#c4c0ff] text-[#c4c0ff] hover:bg-[#2e2b6b] transition-colors"
@@ -1634,6 +1703,16 @@ export function CanvasEdges() {
     const updateXarrow = useXarrow();
     const [badgeOffsets, setBadgeOffsets] = React.useState<Record<string, { x: number; y: number }>>({});
 
+    const xarrowRafRef = React.useRef<number | null>(null);
+    const throttledUpdateXarrow = React.useCallback(() => {
+        if (xarrowRafRef.current === null) {
+            xarrowRafRef.current = requestAnimationFrame(() => {
+                updateXarrow();
+                xarrowRafRef.current = null;
+            });
+        }
+    }, [updateXarrow]);
+
     return (
         <>
             {edges.map(edge => {
@@ -1665,24 +1744,37 @@ export function CanvasEdges() {
                     const sNode = nodes.find(n => n.id === edge.source);
                     const tNode = nodes.find(n => n.id === edge.target);
 
-                    // Dimensions & Origin References
-                    const cardWidth = 320;
-                    const cardHeight = 280;
+                    const { width: sW, height: sH } = sNode ? getNodeDimensions(sNode) : { width: 320, height: 280 };
+                    const { width: tW, height: tH } = tNode ? getNodeDimensions(tNode) : { width: 320, height: 280 };
 
-                    const leftNodeX = Math.min(tNode?.position.x || 0, sNode?.position.x || 0);
-                    const rightNodeX = Math.max(tNode?.position.x || 0, sNode?.position.x || 0);
+                    const leftNodeX = Math.min(tNode?.position.x ?? 0, sNode?.position.x ?? 0);
+                    const rightNodeX = Math.max((tNode?.position.x ?? 0) + tW, (sNode?.position.x ?? 0) + sW);
 
                     // Min & Max bounds: strictly between the cards with safe margins
                     const minX = leftNodeX + 20;
-                    const maxX = rightNodeX + cardWidth - 20;
+                    const maxX = Math.max(minX, rightNodeX - 20);
 
-                    // Centered horizontally along Y-axis between target (0,3) and source (2,3)
-                    const midX = (leftNodeX + rightNodeX + cardWidth) / 2 - 55;
+                    // Centered horizontally along Y-axis between target and source
+                    const midX = (leftNodeX + rightNodeX) / 2 - 55;
 
-                    // Lower position at (0, -5) below horizontal X-axis
-                    const bottomCardsY = Math.max(tNode?.position.y || 0, sNode?.position.y || 0) + cardHeight;
-                    const minY = bottomCardsY + 30;
-                    const midY = bottomCardsY + 130;
+                    // Find all cards spanning horizontally between source and target (including any intermediate/sibling cards)
+                    const spanNodes = nodes.filter(n => {
+                        const { width: nW } = getNodeDimensions(n);
+                        const nLeft = n.position.x;
+                        const nRight = n.position.x + nW;
+                        return nRight >= leftNodeX - 40 && nLeft <= rightNodeX + 40;
+                    });
+
+                    // Ensure loop badge is strictly below the lowest card in the entire span
+                    const bottomCardsY = spanNodes.length > 0
+                        ? Math.max(...spanNodes.map(n => {
+                            const { height: nH } = getNodeDimensions(n);
+                            return n.position.y + nH;
+                        }))
+                        : Math.max((tNode?.position.y ?? 0) + tH, (sNode?.position.y ?? 0) + sH);
+
+                    const minY = bottomCardsY + 40;
+                    const midY = bottomCardsY + 110;
 
                     const offset = badgeOffsets[edge.id] || { x: 0, y: 0 };
                     const rawX = midX + offset.x;
@@ -1692,7 +1784,7 @@ export function CanvasEdges() {
                     const posY = Math.max(minY, rawY);
 
                     return (
-                        <React.Fragment key={edge.id}>
+                        <div key={edge.id} className="group/loop-wire">
                             {/* Draggable Waypoint Badge centered at (0, -5) between Target Card (0, 3) and Loop Back Card (2, 3) */}
                             <LoopBadgeItem
                                 edge={edge}
@@ -1711,7 +1803,7 @@ export function CanvasEdges() {
                                         [edge.id]: newOffset
                                     }));
                                 }}
-                                updateXarrow={updateXarrow}
+                                updateXarrow={throttledUpdateXarrow}
                             />
 
                             {/* Segment 1: Source bottom side into the EXACT RIGHT handle of the badge */}
@@ -1730,6 +1822,8 @@ export function CanvasEdges() {
                                 startAnchor="bottom"
                                 endAnchor="right"
                                 dashness={{ strokeLen: 5, nonStrokeLen: 5 }}
+                                zIndex={0}
+                                passProps={{ className: "loop-back-wire-path" }}
                             />
 
                             {/* Segment 2: Exits horizontally from EXACT LEFT handle of the badge into BOTTOM of previous card */}
@@ -1748,8 +1842,10 @@ export function CanvasEdges() {
                                 startAnchor="left"
                                 endAnchor="bottom"
                                 dashness={{ strokeLen: 5, nonStrokeLen: 5 }}
+                                zIndex={0}
+                                passProps={{ className: "loop-back-wire-path" }}
                             />
-                        </React.Fragment>
+                        </div>
                     );
                 }
 
@@ -1771,12 +1867,10 @@ export function CanvasEdges() {
                         dashness={false}
                         labels={edge.label ? {
                             middle: (
-                                <motion.div
-                                    drag
-                                    dragMomentum={false}
+                                <div
                                     onPointerDown={(e) => e.stopPropagation()}
                                     className={cn(
-                                        "px-2.5 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap backdrop-blur-sm shadow-2xl border pointer-events-auto select-none cursor-grab active:cursor-grabbing",
+                                        "px-2.5 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap backdrop-blur-sm shadow-2xl border pointer-events-none select-none",
                                         isFollowingEdge
                                             ? "bg-[#064e3b]/90 border-emerald-500/40 text-emerald-300"
                                             : isNotFollowingEdge
@@ -1785,7 +1879,7 @@ export function CanvasEdges() {
                                     )}
                                 >
                                     {edge.label}
-                                </motion.div>
+                                </div>
                             )
                         } : undefined}
                     />

@@ -5,7 +5,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/store";
 import api from "@/lib/services/api.service";
 import { setUser } from "@/store/slices/authSlice";
-import { Check, CreditCard, Sparkles, Star, Zap, Gift, RefreshCw, Loader2, Calendar } from "lucide-react";
+import { Check, CreditCard, Sparkles, Star, Zap, Gift, RefreshCw, Loader2, Calendar, Crown, DollarSign, ArrowRight } from "lucide-react";
 import Toast from "@/components/Toast";
 import { useRouter } from "next/navigation";
 
@@ -286,7 +286,7 @@ export default function PricingPage() {
       </div>
 
       {/* Pricing Cards Grid */}
-      <div className="relative max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+      <div className="relative max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
         {/* Free Trial / Starter Card */}
         <div className="flex flex-col justify-between rounded-xl border border-[#2a2a2a] bg-[#1c1b1b] p-6 shadow-xl relative overflow-hidden group hover:border-[#444748] transition-all">
           <div>
@@ -456,6 +456,80 @@ export default function PricingPage() {
                   <span>Redeem {stats?.points_needed_for_premium || 100} Referral Points</span>
                 </button>
               </>
+            )}
+          </div>
+        </div>
+
+        {/* 3. Creator Partner Card (Commission & VIP) */}
+        <div className="flex flex-col justify-between rounded-xl border border-[#2a2a2a] bg-[#1c1b1b] p-6 shadow-xl relative overflow-hidden group hover:border-[#444748] transition-all">
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-[#c4c0ff] tracking-wide flex items-center gap-1.5">
+                <Crown className="w-3.5 h-3.5 text-[#c4c0ff]" />
+                <span>Creator Partner</span>
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-white/5 border border-white/10 text-zinc-300 font-semibold">
+                Affiliate / VIP
+              </span>
+            </div>
+
+            <div className="mt-3 flex items-baseline gap-1">
+              <span className="text-2xl font-bold text-white tracking-tight">Earn Cash / VIP</span>
+            </div>
+
+            <p className="mt-2 text-xs leading-relaxed text-[#c4c7c8]/70">
+              Partner with AnyDM to monetize your audience or earn complimentary Creator Pro VIP access.
+            </p>
+
+            {/* Features list */}
+            <ul className="mt-6 space-y-3 text-xs text-[#c4c7c8]">
+              <li className="flex items-center gap-2.5">
+                <div className="w-4 h-4 rounded-full bg-[#c4c0ff]/10 border border-[#c4c0ff]/30 flex items-center justify-center text-[#c4c0ff] shrink-0">
+                  <Check className="w-2.5 h-2.5" strokeWidth={2.5} />
+                </div>
+                <span><strong>10%–20% Cash Commission</strong> on 1st payments</span>
+              </li>
+              <li className="flex items-center gap-2.5">
+                <div className="w-4 h-4 rounded-full bg-[#c4c0ff]/10 border border-[#c4c0ff]/30 flex items-center justify-center text-[#c4c0ff] shrink-0">
+                  <Check className="w-2.5 h-2.5" strokeWidth={2.5} />
+                </div>
+                <span>Direct Bank Payouts &amp; Live Tracking</span>
+              </li>
+              <li className="flex items-center gap-2.5">
+                <div className="w-4 h-4 rounded-full bg-[#c4c0ff]/10 border border-[#c4c0ff]/30 flex items-center justify-center text-[#c4c0ff] shrink-0">
+                  <Check className="w-2.5 h-2.5" strokeWidth={2.5} />
+                </div>
+                <span>Option for <strong>VIP Free Pro Access</strong></span>
+              </li>
+              <li className="flex items-center gap-2.5">
+                <div className="w-4 h-4 rounded-full bg-[#c4c0ff]/10 border border-[#c4c0ff]/30 flex items-center justify-center text-[#c4c0ff] shrink-0">
+                  <Check className="w-2.5 h-2.5" strokeWidth={2.5} />
+                </div>
+                <span>Dedicated Creator Hub Dashboard</span>
+              </li>
+            </ul>
+          </div>
+
+          {/* Action Button */}
+          <div className="mt-8 pt-4 border-t border-[#2a2a2a]">
+            {appUser?.is_creator_vip ? (
+              <button
+                onClick={() => router.push("/dashboard/creator")}
+                className="w-full bg-[#ffffff] hover:bg-[#e2e2e2] text-[#131313] py-2.5 rounded-md text-xs font-bold tracking-wide transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.98] shadow-md"
+              >
+                <span>Open Creator Hub</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            ) : (
+              <a
+                href="https://ig.me/m/anydm.in"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full rounded-md bg-[#ffffff] hover:bg-[#eaeaea] py-2.5 text-xs font-bold text-[#131313] transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] shadow-md"
+              >
+                <span>Contact anydm.in</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </a>
             )}
           </div>
         </div>

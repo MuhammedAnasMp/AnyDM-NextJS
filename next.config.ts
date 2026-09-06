@@ -1,7 +1,19 @@
 import type { NextConfig } from "next";
 
+const backendUrl =
+  process.env.BACKEND_API_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://172.16.4.167:8001";
+
 const nextConfig: NextConfig = {
-  /* config options here */
+  async rewrites() {
+    return [
+      {
+        source: "/api/:path*",
+        destination: `${backendUrl.replace(/\/$/, "")}/api/:path*`,
+      },
+    ];
+  },
   allowedDevOrigins: [
     "my_muscles_factory.com",
     "*.my_muscles_factory.com",
@@ -21,8 +33,8 @@ const nextConfig: NextConfig = {
     "*.shop",
     "*.xyz",
     "172.16.4.167",
-    "localhost:3000"
-  ]
+    "localhost:3000",
+  ],
 } as any;
 
 export default nextConfig;

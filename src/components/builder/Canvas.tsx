@@ -28,19 +28,19 @@ const screenshotFlow: FlowState = {
     {
       id: 'n_filter',
       type: 'condition',
-      position: { x: 420, y: 150 },
+      position: { x: 440, y: 150 },
       data: {}
     },
     {
       id: 'n_action1',
       type: 'action',
-      position: { x: 760, y: 80 },
+      position: { x: 800, y: 80 },
       data: { isPrimary: false, action_label: "ACTION 1", is_placeholder: true, action_type: 'reply_comment' }
     },
     {
       id: 'n_action2',
       type: 'action',
-      position: { x: 760, y: 280 },
+      position: { x: 800, y: 400 },
       data: { isPrimary: true, action_label: "PRIMARY ACTION", is_placeholder: true, action_type: 'send_dm' }
     }
   ],
@@ -54,11 +54,25 @@ const screenshotFlow: FlowState = {
 function XarrowUpdater({ trigger }: { trigger: any }) {
   const updateXarrow = useXarrow();
   React.useEffect(() => {
-    updateXarrow();
+    let rAFId: number | null = requestAnimationFrame(() => {
+      updateXarrow();
+      rAFId = null;
+    });
 
-    const handleCustomUpdate = () => updateXarrow();
+    const handleCustomUpdate = () => {
+      if (rAFId === null) {
+        rAFId = requestAnimationFrame(() => {
+          updateXarrow();
+          rAFId = null;
+        });
+      }
+    };
+
     window.addEventListener('update-xarrow', handleCustomUpdate);
-    return () => window.removeEventListener('update-xarrow', handleCustomUpdate);
+    return () => {
+      if (rAFId !== null) cancelAnimationFrame(rAFId);
+      window.removeEventListener('update-xarrow', handleCustomUpdate);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trigger]);
   return null;
@@ -107,8 +121,34 @@ export function Canvas() {
   const [cardPosition, setCardPosition] = React.useState({ x: 300, y: 150 });
   const isDraggingCard = React.useRef(false);
   const [loopDragState, setLoopDragState] = React.useState<{ sourceId: string; mousePos: { x: number; y: number } } | null>(null);
+  const loopDragStateRef = React.useRef(loopDragState);
+  React.useEffect(() => {
+    loopDragStateRef.current = loopDragState;
+  }, [loopDragState]);
 
   React.useEffect(() => {
+    let pendingPan = { dx: 0, dy: 0 };
+    let panRafId: number | null = null;
+
+    const schedulePanUpdate = (dx: number, dy: number) => {
+      pendingPan.dx += dx;
+      pendingPan.dy += dy;
+
+      if (panRafId === null) {
+        panRafId = requestAnimationFrame(() => {
+          const applyDx = pendingPan.dx;
+          const applyDy = pendingPan.dy;
+          pendingPan = { dx: 0, dy: 0 };
+          panRafId = null;
+
+          if (applyDx !== 0 || applyDy !== 0) {
+            setPan(p => ({ x: p.x + applyDx, y: p.y + applyDy }));
+            window.dispatchEvent(new CustomEvent('update-xarrow'));
+          }
+        });
+      }
+    };
+
     const handleStart = (e: any) => {
       setLoopDragState({ sourceId: e.detail.sourceId, mousePos: e.detail.mousePos || { x: window.innerWidth / 2, y: window.innerHeight / 2 } });
     };
@@ -116,9 +156,95 @@ export function Canvas() {
       setLoopDragState(null);
     };
     const handlePointerMove = (e: MouseEvent | PointerEvent) => {
-      setLoopDragState(prev => {
-        if (!prev) return null;
-        return { ...prev, mousePos: { x: e.clientX, y: e.clientY } };
+      if (!loopDragStateRef.current || !containerRef.current) return;
+
+      const rect = containerRef.current.getBoundingClientRect();
+      const relX = e.clientX - rect.left;
+      const relY = e.clientY - rect.top;
+
+      // Auto-pan only when dragging beyond 85% canvas workspace area (within 7.5% boundary of canvas edge, excluding sidebar & header)
+      const edgeThresholdX = rect.width * 0.075;
+      const edgeThresholdY = rect.height * 0.075;
+      const panSpeed = 12;
+      let dx = 0;
+      let dy = 0;
+      if (relX < edgeThresholdX) dx = panSpeed;
+      else if (relX > rect.width - edgeThresholdX) dx = -panSpeed;
+
+      if (relY < edgeThresholdY) dy = panSpeed;
+      else if (relY > rect.height - edgeThresholdY) dy = -panSpeed;
+
+      if (dx !== 0 || dy !== 0) {
+        schedulePanUpdate(dx, dy);
+      }
+
+      setLoopDragState(prev => (prev ? { ...prev, mousePos: { x: e.clientX, y: e.clientY } } : null));
+    };
+
+    const handlePanCanvas = (e: any) => {
+      const { dx, dy } = e.detail || {};
+      if (dx || dy) {
+        schedulePanUpdate(dx || 0, dy || 0);
+      }
+    };
+
+    const handleFocusLoopNodes = (e: any) => {
+      const { sourceId, targetId } = e.detail || {};
+      const sNode = flow.nodes.find(n => n.id === sourceId);
+      const tNode = flow.nodes.find(n => n.id === targetId);
+      const relevantNodes = [sNode, tNode].filter((n): n is NonNullable<typeof n> => Boolean(n));
+      if (relevantNodes.length === 0) return;
+
+      const minX = Math.min(...relevantNodes.map(n => n.position.x));
+      const maxX = Math.max(...relevantNodes.map(n => n.position.x + 320));
+      const minY = Math.min(...relevantNodes.map(n => n.position.y));
+      const maxY = Math.max(...relevantNodes.map(n => n.position.y + 280));
+
+      const container = containerRef.current;
+      const rect = container ? container.getBoundingClientRect() : { width: window.innerWidth, height: window.innerHeight };
+
+      const canvasW = rect.width;
+      const canvasH = rect.height;
+
+      // 85% Focus Area of canvas workspace (7.5% margins on each side)
+      const minAllowedX = canvasW * 0.075;
+      const maxAllowedX = canvasW * 0.925;
+      const minAllowedY = canvasH * 0.075;
+      const maxAllowedY = canvasH * 0.925;
+
+      const currentScreenMinX = minX * scale + pan.x;
+      const currentScreenMaxX = maxX * scale + pan.x;
+      const currentScreenMinY = minY * scale + pan.y;
+      const currentScreenMaxY = maxY * scale + pan.y;
+
+      // Calculate minimal shift needed to bring cards into the 85% focus area
+      let shiftX = 0;
+      let shiftY = 0;
+
+      if (currentScreenMinX < minAllowedX) {
+        shiftX = minAllowedX - currentScreenMinX;
+      } else if (currentScreenMaxX > maxAllowedX) {
+        shiftX = maxAllowedX - currentScreenMaxX;
+      }
+
+      if (currentScreenMinY < minAllowedY) {
+        shiftY = minAllowedY - currentScreenMinY;
+      } else if (currentScreenMaxY > maxAllowedY) {
+        shiftY = maxAllowedY - currentScreenMaxY;
+      }
+
+      // If connected cards fit inside 85% focus area, no movement needed!
+      if (shiftX === 0 && shiftY === 0) {
+        return;
+      }
+
+      // Move canvas ONLY by the minimal shift required to bring cards into view
+      const targetPanX = pan.x + shiftX;
+      const targetPanY = pan.y + shiftY;
+
+      setPan({ x: Math.round(targetPanX), y: Math.round(targetPanY) });
+      requestAnimationFrame(() => {
+        window.dispatchEvent(new CustomEvent('update-xarrow'));
       });
     };
 
@@ -126,13 +252,17 @@ export function Canvas() {
     window.addEventListener('loop-drag-end', handleEnd);
     window.addEventListener('pointermove', handlePointerMove, { passive: true });
     window.addEventListener('mousemove', handlePointerMove, { passive: true });
+    window.addEventListener('pan-canvas', handlePanCanvas);
+    window.addEventListener('focus-loop-nodes', handleFocusLoopNodes);
     return () => {
       window.removeEventListener('loop-drag-start', handleStart);
       window.removeEventListener('loop-drag-end', handleEnd);
       window.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('mousemove', handlePointerMove);
+      window.removeEventListener('pan-canvas', handlePanCanvas);
+      window.removeEventListener('focus-loop-nodes', handleFocusLoopNodes);
     };
-  }, []);
+  }, [flow.nodes, scale]);
 
   // Clear flow in Redux if openTab changes to initialize overlay
   React.useEffect(() => {
@@ -194,7 +324,7 @@ export function Canvas() {
         const actionNode = {
           id: actionId,
           type: 'action' as const,
-          position: { x: 420, y: 150 },
+          position: { x: 440, y: 150 },
           ruleType: 'dm_automation',
           data: {
             action_type: 'send_dm',
@@ -258,7 +388,7 @@ export function Canvas() {
         const actionNode = {
           id: actionId,
           type: 'action' as const,
-          position: { x: 420, y: 150 },
+          position: { x: 440, y: 150 },
           ruleType: 'dm_automation',
           data: {
             action_type: 'send_dm',
@@ -754,6 +884,8 @@ export function Canvas() {
                 startAnchor="bottom"
                 endAnchor="middle"
                 dashness={{ strokeLen: 5, nonStrokeLen: 5 }}
+                zIndex={0}
+                passProps={{ className: "loop-back-wire-path" }}
                 labels={{
                   middle: (
                     <div className="px-2.5 py-0.5 rounded-full bg-[#1e1b4b]/95 border border-[#c4c0ff]/40 text-[#c4c0ff] text-[9px] font-extrabold whitespace-nowrap backdrop-blur-md shadow-2xl animate-pulse select-none pointer-events-none">

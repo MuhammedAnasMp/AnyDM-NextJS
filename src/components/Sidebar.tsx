@@ -22,6 +22,7 @@ import {
   ChevronLeft,
   ChevronRight,
   CalendarClock,
+  DollarSign,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -53,6 +54,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     if (pathname.startsWith("/dashboard/settings")) return "Settings";
     if (pathname.startsWith("/dashboard/admin")) return "Admin Panel";
     if (pathname.startsWith("/dashboard/refer")) return "Refer & Earn";
+    if (pathname.startsWith("/dashboard/creator")) return "Creator Hub";
     if (pathname.startsWith("/dashboard/pricing")) return "Pricing";
     return "Dashboard";
   };
@@ -70,6 +72,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     { name: "Products", icon: Package, href: "/dashboard/products/catalog" },
     { name: "Inbox", icon: MessageSquare, href: "/dashboard/inbox" },
     { name: "Refer & Earn", icon: Gift, href: "/dashboard/refer" },
+    ...(appUser?.is_creator_vip ? [{ name: "Creator Hub", icon: DollarSign, href: "/dashboard/creator" }] : []),
     { name: "Pricing", icon: CreditCard, href: "/dashboard/pricing" },
     { name: "Settings", icon: Settings, href: "/dashboard/settings/accounts" },
     ...(isAdmin ? [{ name: "Admin Panel", icon: ShieldAlert, href: "/dashboard/admin" }] : []),

@@ -18,40 +18,149 @@ const initialState: FlowState = {
 };
 
 export const EXECUTION_COLUMNS = {
-    1: { name: 'TRIGGER', step: 1, baseX: 80, minX: 40, maxX: 360 },
-    2: { name: 'FILTER', step: 2, baseX: 420, minX: 380, maxX: 700 },
-    3: { name: 'ACTION', step: 3, baseX: 760, minX: 720, maxX: 1040 },
-    4: { name: 'DM / COMMENT', step: 4, baseX: 1100, minX: 1060, maxX: 1380 },
-    5: { name: 'NEXT', step: 5, baseX: 1440, minX: 1400, maxX: 1900 },
+    1: { name: 'TRIGGER', step: 1, baseX: 80, minX: 40, maxX: 380 },
+    2: { name: 'FILTER', step: 2, baseX: 440, minX: 400, maxX: 740 },
+    3: { name: 'ACTION', step: 3, baseX: 800, minX: 760, maxX: 1100 },
+    4: { name: 'DM / COMMENT', step: 4, baseX: 1160, minX: 1120, maxX: 1460 },
+    5: { name: 'NEXT', step: 5, baseX: 1520, minX: 1480, maxX: 2000 },
 } as const;
 
 export function getNodeExecutionStep(node: FlowNode): number {
     if (node.type === 'trigger' || node.data?.is_icebreaker_trigger || node.data?.is_menu_trigger) {
         return 1;
     }
-    if (node.data?.is_cf_fork) {
-        // Follower Gate Split Junction Pin: treated as an execution order stage / column
-        return 4;
-    }
     if (node.type === 'condition') {
         return 2;
     }
-    if (node.type === 'giveaway_config' || node.data?.is_cf_gate) {
+    if (node.type === 'giveaway_config' || node.data?.is_cf_gate || node.data?.is_cf_fork) {
         return 3;
     }
     if (node.type === 'action') {
-        if (node.data?.parent_event || node.data?.dm_format === 'loop_back' || node.data?.is_cf_following || node.data?.is_cf_not_following) {
-            return 5;
-        }
         if (node.data?.action_type === 'reply_comment') {
             return 3;
         }
+        if (node.position?.x !== undefined) {
+            if (node.position.x < 400) return 1;
+            if (node.position.x < 760) return 2;
+            if (node.position.x < 1120) return 3;
+            if (node.position.x < 1480) return 4;
+            return Math.max(4, Math.floor((node.position.x - 80) / 360) + 1);
+        }
         return 4;
     }
-    if (node.type === 'reward') {
-        return 5;
-    }
     return 3;
+}
+
+export function getNodeDimensions(node: FlowNode): { width: number; height: number } {
+    if (node.data?.is_cf_fork) {
+        return { width: 40, height: 40 };
+    }
+    if (node.data?.is_placeholder && !node.data?.messages?.length && node.type === 'action') {
+        return { width: 155, height: 240 };
+    }
+    if (node.data?.dm_format === 'show_profile' || node.data?.is_profile_card) {
+        return { width: 320, height: 260 };
+    }
+    if (node.type === 'trigger') {
+        return { width: 320, height: 260 };
+    }
+    if (node.type === 'condition') {
+        return { width: 320, height: 240 };
+    }
+    if (node.type === 'giveaway_config') {
+        return { width: 320, height: 280 };
+    }
+    if (node.type === 'reward') {
+        return { width: 320, height: 220 };
+    }
+    // Default action card
+    return { width: 320, height: 280 };
+}
+
+export function resolveNodePosition(
+    node: FlowNode,
+    targetX: number,
+    targetY: number,
+    allNodes: FlowNode[],
+    edges: FlowEdge[]
+): { x: number; y: number } {
+    const nodeStep = getNodeExecutionStep(node);
+    const colConfig = EXECUTION_COLUMNS[nodeStep as keyof typeof EXECUTION_COLUMNS] || EXECUTION_COLUMNS[3];
+    const { width: nodeW, height: nodeH } = getNodeDimensions(node);
+
+    // 1. Horizontal execution order constraints (predecessors & successors)
+    const incomingExecEdges = edges.filter(
+        e => e.target === node.id && !e.id.includes('loop') && !e.label?.includes('Loop')
+    );
+    let minAllowedX: number = colConfig.minX;
+    if (incomingExecEdges.length > 0) {
+        const parentNodes = allNodes.filter(n => incomingExecEdges.some(e => e.source === n.id));
+        if (parentNodes.length > 0) {
+            const maxParentEdge = Math.max(...parentNodes.map(p => {
+                const { width: pW } = getNodeDimensions(p);
+                return p.position.x + pW;
+            }));
+            minAllowedX = Math.max(minAllowedX, maxParentEdge + 40);
+        }
+    }
+
+    const outgoingExecEdges = edges.filter(
+        e => e.source === node.id && !e.id.includes('loop') && !e.label?.includes('Loop')
+    );
+    let maxAllowedX: number = colConfig.maxX;
+    if (outgoingExecEdges.length > 0) {
+        const childNodes = allNodes.filter(n => outgoingExecEdges.some(e => e.target === n.id));
+        if (childNodes.length > 0) {
+            const minChildX = Math.min(...childNodes.map(c => c.position.x));
+            maxAllowedX = Math.min(maxAllowedX, minChildX - nodeW - 40);
+        }
+    }
+
+    let clampedX = targetX;
+    if (maxAllowedX >= minAllowedX) {
+        clampedX = Math.max(minAllowedX, Math.min(maxAllowedX, targetX));
+    } else {
+        clampedX = Math.max(minAllowedX, targetX);
+    }
+
+    let clampedY = Math.max(40, targetY);
+    const GAP = 40;
+
+    // 2. Collision avoidance with all other cards
+    const otherNodes = allNodes.filter(n => n.id !== node.id);
+    let hasOverlap = true;
+    let iterations = 0;
+    const maxIterations = 15;
+
+    while (hasOverlap && iterations < maxIterations) {
+        hasOverlap = false;
+        iterations++;
+
+        for (const other of otherNodes) {
+            const { width: otherW, height: otherH } = getNodeDimensions(other);
+            const otherX = other.position.x;
+            const otherY = other.position.y;
+
+            // Check if bounding boxes overlap with less than 40px gap
+            const isOverlapX = clampedX < otherX + otherW + GAP && clampedX + nodeW + GAP > otherX;
+            const isOverlapY = clampedY < otherY + otherH + GAP && clampedY + nodeH + GAP > otherY;
+
+            if (isOverlapX && isOverlapY) {
+                hasOverlap = true;
+                const nodeCenterY = clampedY + nodeH / 2;
+                const otherCenterY = otherY + otherH / 2;
+
+                if (nodeCenterY < otherCenterY && otherY - nodeH - GAP >= 40) {
+                    clampedY = otherY - nodeH - GAP;
+                } else {
+                    clampedY = otherY + otherH + GAP;
+                }
+                clampedY = Math.max(40, clampedY);
+            }
+        }
+    }
+
+    return { x: clampedX, y: clampedY };
 }
 
 const MAX_HISTORY = 50;
@@ -248,8 +357,8 @@ const syncLinkedNodes = (state: FlowState, nodeId: string) => {
                         id: promptId,
                         type: 'action',
                         position: {
-                            x: node.position.x + 340,
-                            y: node.position.y + 350 + idx * 220,
+                            x: node.position.x + 360,
+                            y: node.position.y + 360 + idx * 320,
                         },
                         data: {
                             action_type: 'send_dm',
@@ -267,8 +376,8 @@ const syncLinkedNodes = (state: FlowState, nodeId: string) => {
                         id: inputId,
                         type: 'action',
                         position: {
-                            x: node.position.x + 680,
-                            y: node.position.y + 350 + idx * 220,
+                            x: node.position.x + 720,
+                            y: node.position.y + 360 + idx * 320,
                         },
                         data: {
                             action_type: 'send_dm',
@@ -286,8 +395,8 @@ const syncLinkedNodes = (state: FlowState, nodeId: string) => {
                         id: responseId,
                         type: 'action',
                         position: {
-                            x: node.position.x + 1020,
-                            y: node.position.y + 350 + idx * 220,
+                            x: node.position.x + 1080,
+                            y: node.position.y + 360 + idx * 320,
                         },
                         data: {
                             action_type: 'send_dm',
@@ -337,8 +446,8 @@ const syncLinkedNodes = (state: FlowState, nodeId: string) => {
                         id: forkId,
                         type: 'action',
                         position: {
-                            x: node.position.x + 340,
-                            y: node.position.y + 110 + idx * 260,
+                            x: node.position.x + 360,
+                            y: node.position.y + 140 + idx * 360,
                         },
                         data: {
                             action_type: 'send_dm',
@@ -363,8 +472,8 @@ const syncLinkedNodes = (state: FlowState, nodeId: string) => {
                         id: followingId,
                         type: 'action',
                         position: {
-                            x: node.position.x + 400,
-                            y: node.position.y - 120 + idx * 260,
+                            x: node.position.x + 440,
+                            y: node.position.y - 120 + idx * 360,
                         },
                         data: {
                             action_type: 'send_dm',
@@ -383,8 +492,8 @@ const syncLinkedNodes = (state: FlowState, nodeId: string) => {
                         id: notFollowingId,
                         type: 'action',
                         position: {
-                            x: node.position.x + 400,
-                            y: node.position.y + 160 + idx * 260,
+                            x: node.position.x + 440,
+                            y: node.position.y + 200 + idx * 360,
                         },
                         data: {
                             action_type: 'send_dm',
@@ -437,8 +546,8 @@ const syncLinkedNodes = (state: FlowState, nodeId: string) => {
                         id: profileId,
                         type: 'action',
                         position: {
-                            x: node.position.x + 340,
-                            y: node.position.y + idx * 220,
+                            x: node.position.x + 360,
+                            y: node.position.y + idx * 320,
                         },
                         data: {
                             action_type: 'send_dm',
@@ -473,8 +582,8 @@ const syncLinkedNodes = (state: FlowState, nodeId: string) => {
                     id: newNodeId,
                     type: 'action',
                     position: {
-                        x: node.position.x + 340,
-                        y: node.position.y + idx * 220,
+                        x: node.position.x + 360,
+                        y: node.position.y + idx * 320,
                     },
                     data: {
                         action_type: 'send_dm',
@@ -541,50 +650,8 @@ export const flowSlice = createSlice({
             saveToPast(state);
             const node = state.nodes.find(n => n.id === action.payload.id);
             if (node) {
-                let { x, y } = action.payload.position;
-
-                const step = getNodeExecutionStep(node);
-                const colConfig = EXECUTION_COLUMNS[step as keyof typeof EXECUTION_COLUMNS] || EXECUTION_COLUMNS[3];
-
-                let minAllowedX: number = colConfig.minX;
-                let maxAllowedX: number = colConfig.maxX;
-
-                const nodeWidth = (node.data?.is_placeholder && !node.data?.messages?.length) ? 155 : (node.data?.is_cf_fork ? 40 : 320);
-
-                // Execution Order Rule: A node cannot move backward past its predecessor / parent card (non-loop)
-                const incomingExecEdges = state.edges.filter(
-                    e => e.target === node.id && !e.id.includes('loop') && !e.label?.includes('Loop')
-                );
-                if (incomingExecEdges.length > 0) {
-                    const parentNodes = state.nodes.filter(n => incomingExecEdges.some(e => e.source === n.id));
-                    if (parentNodes.length > 0) {
-                        const maxParentEdge = Math.max(...parentNodes.map(p => {
-                            const pWidth = p.data?.is_cf_fork ? 40 : ((p.data?.is_placeholder && !p.data?.messages?.length) ? 155 : 320);
-                            return p.position.x + pWidth;
-                        }));
-                        minAllowedX = Math.max(minAllowedX, maxParentEdge + 20);
-                    }
-                }
-
-                // Downstream Execution Rule: Cannot move forward past its successor / child card (non-loop)
-                const outgoingExecEdges = state.edges.filter(
-                    e => e.source === node.id && !e.id.includes('loop') && !e.label?.includes('Loop')
-                );
-                if (outgoingExecEdges.length > 0) {
-                    const childNodes = state.nodes.filter(n => outgoingExecEdges.some(e => e.target === n.id));
-                    if (childNodes.length > 0) {
-                        const minChildX = Math.min(...childNodes.map(c => c.position.x));
-                        maxAllowedX = Math.min(maxAllowedX, minChildX - nodeWidth - 20);
-                    }
-                }
-
-                if (maxAllowedX >= minAllowedX) {
-                    x = Math.max(minAllowedX, Math.min(maxAllowedX, x));
-                } else {
-                    x = Math.max(minAllowedX, x);
-                }
-
-                node.position = { x, y };
+                const resolved = resolveNodePosition(node, action.payload.position.x, action.payload.position.y, state.nodes, state.edges);
+                node.position = resolved;
             }
         },
         updateNodeData: (state, action: PayloadAction<{ id: string; key: string; value: unknown }>) => {
@@ -682,10 +749,11 @@ export const flowSlice = createSlice({
             const targetNode = state.nodes.find(n => n.id === targetId);
 
             if (targetId && node && targetNode) {
-                const sourceStep = getNodeExecutionStep(node);
-                const targetStep = getNodeExecutionStep(targetNode);
-                if (targetStep >= sourceStep) {
-                    return; // Reject loop connection to same or later execution order step
+                if (targetNode.position.x >= node.position.x - 50) {
+                    return; // Reject loop connection to same or later card horizontally
+                }
+                if (targetNode.data?.dm_format === 'loop_back') {
+                    return; // Reject loop connection to another loop back card
                 }
             }
 
@@ -791,20 +859,20 @@ export const flowSlice = createSlice({
 
             if (!isShareRule) {
                 const cId = `node-c-${Date.now()}`;
-                state.nodes.push({ id: cId, type: 'condition', position: { x: 420, y: 150 }, data: caseData.condition, ruleType, templateId: tid });
+                state.nodes.push({ id: cId, type: 'condition', position: { x: 440, y: 150 }, data: caseData.condition, ruleType, templateId: tid });
                 state.edges.push({ id: `edge-${Date.now()}-1`, source: tId, target: cId });
                 parentNodeId = cId;
             }
 
             if (caseData.giveaway) {
                 const gId = `node-g-${Date.now()}`;
-                state.nodes.push({ id: gId, type: 'giveaway_config', position: { x: 760, y: 50 }, data: caseData.giveaway, ruleType, templateId: tid });
+                state.nodes.push({ id: gId, type: 'giveaway_config', position: { x: 800, y: 50 }, data: caseData.giveaway, ruleType, templateId: tid });
                 state.edges.push({ id: `edge-${Date.now()}-2`, source: parentNodeId, target: gId });
 
                 if (caseData.giveaway.rewards) {
                     caseData.giveaway.rewards.forEach((rew, idx) => {
                         const rId = `node-r-${Date.now()}-${idx}`;
-                        state.nodes.push({ id: rId, type: 'reward', position: { x: 1100, y: 50 + (idx * 160) }, data: rew, ruleType, templateId: tid });
+                        state.nodes.push({ id: rId, type: 'reward', position: { x: 1160, y: 50 + (idx * 300) }, data: rew, ruleType, templateId: tid });
                         state.edges.push({ id: `edge-${Date.now()}-reward-${idx}`, source: gId, target: rId });
                     });
                 }
@@ -818,9 +886,9 @@ export const flowSlice = createSlice({
                         (actAny.messages && actAny.messages.length > 0) ||
                         (actAny.dm_format && actAny.dm_format !== 'text') ||
                         (actAny.action_type && actAny.action_type !== 'send_dm');
-                    const posX = isShareRule ? 420 : (caseData.giveaway ? 760 : 760);
-                    // Offset vertically for multiple actions
-                    state.nodes.push({ id: aId, type: 'action', position: { x: posX, y: caseData.giveaway ? 300 + (i * 200) : 150 + (i * 200) }, data: { ...act, is_placeholder: !hasConfiguredData }, ruleType, templateId: tid });
+                    const posX = isShareRule ? 440 : 800;
+                    // Offset vertically with at least 40px gap between action cards
+                    state.nodes.push({ id: aId, type: 'action', position: { x: posX, y: caseData.giveaway ? 360 + (i * 320) : 150 + (i * 320) }, data: { ...act, is_placeholder: !hasConfiguredData }, ruleType, templateId: tid });
                     state.edges.push({ id: `edge-${Date.now()}-act-${i}`, source: parentNodeId, target: aId });
                 });
             }
@@ -834,7 +902,7 @@ export const flowSlice = createSlice({
             offsetY?: number;
         }>) => {
             saveToPast(state);
-            const { sourceNodeId, parentEventPayload, parentEventLabel, offsetX = 340, offsetY = 0 } = action.payload;
+            const { sourceNodeId, parentEventPayload, parentEventLabel, offsetX = 360, offsetY = 0 } = action.payload;
             const sourceNode = state.nodes.find(n => n.id === sourceNodeId);
             if (!sourceNode) return;
 
@@ -845,14 +913,14 @@ export const flowSlice = createSlice({
             if (alreadyLinked) return;
 
             const newNodeId = `node-reply-${Date.now()}`;
-            // Stack reply nodes vertically based on how many already exist from this source
+            // Stack reply nodes vertically based on how many already exist from this source with at least 40px gap
             const existingReplies = state.edges.filter(e => e.source === sourceNodeId && e.label).length;
             const newNode: FlowNode = {
                 id: newNodeId,
                 type: 'action',
                 position: {
                     x: sourceNode.position.x + offsetX,
-                    y: sourceNode.position.y + existingReplies * 220 + offsetY,
+                    y: sourceNode.position.y + existingReplies * 320 + offsetY,
                 },
                 data: {
                     action_type: 'send_dm',

@@ -6,21 +6,11 @@ export function middleware(request: NextRequest) {
   const hostname = request.headers.get('host') || '';
 
   // Root domain configured via environment variable (default: zoyee.in)
-  // Supports switching main domain (e.g., from zoyee.in to anydm.in) without code modifications.
   const rootDomain = (process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'zoyee.in').toLowerCase().trim();
 
   // Extract hostname without port
   const currentHost = hostname.split(':')[0].toLowerCase();
   const rootHost = rootDomain.split(':')[0].toLowerCase();
-
-  // Exclude static assets, internal paths
-  if (
-    url.pathname.startsWith('/_next') ||
-    url.pathname.startsWith('/api') ||
-    url.pathname.includes('.')
-  ) {
-    return NextResponse.next();
-  }
 
   const RESERVED_SUBDOMAINS = ['api', 'app', 'www', 'admin', 'cdn', 'assets', 'static', 'mail', 'auth'];
 
@@ -29,6 +19,21 @@ export function middleware(request: NextRequest) {
     if (url.pathname === '/' || url.pathname === '') {
       return NextResponse.json({ status: 'ok' });
     }
+    // If request to api subdomain does not start with /api, prepend /api so it gets proxied to backend
+    if (!url.pathname.startsWith('/api')) {
+      url.pathname = `/api${url.pathname}`;
+      return NextResponse.rewrite(url);
+    }
+    return NextResponse.next();
+  }
+
+  // Exclude static assets, internal paths, and API routes
+  if (
+    url.pathname.startsWith('/_next') ||
+    url.pathname.startsWith('/api') ||
+    url.pathname.includes('.')
+  ) {
+    return NextResponse.next();
   }
 
   // Main system domains / local environments
@@ -60,6 +65,6 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 };

@@ -29,6 +29,10 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  DollarSign,
+  Wallet,
+  Landmark,
+  CheckCircle2,
 } from "lucide-react";
 import Link from "next/link";
 import api from "@/lib/services/api.service";
@@ -65,8 +69,12 @@ export default function AdminUsersPage() {
   // VIP Grant modal / state
   const [targetEmail, setTargetEmail] = useState("");
   const [grantMonths, setGrantMonths] = useState(3);
+  const [rewardType, setRewardType] = useState<"vip" | "commission">("vip");
+  const [commissionPercent, setCommissionPercent] = useState(10);
   const [isGranting, setIsGranting] = useState(false);
   const [showGrantModal, setShowGrantModal] = useState(false);
+  const [showSettleModal, setShowSettleModal] = useState(false);
+  const [isSettling, setIsSettling] = useState(false);
 
   // Pagination & Sorting state
   const [currentPage, setCurrentPage] = useState(1);
@@ -99,28 +107,55 @@ export default function AdminUsersPage() {
     fetchUsers();
   }, []);
 
+  const handleSettleCommission = async () => {
+    if (!selectedUser) return;
+    setIsSettling(true);
+    try {
+      const res = await api.post("/accounts/admin/settle-creator-commission/", {
+        user_id: selectedUser.id,
+      });
+      showToast(res.data?.message || `Settled commissions for ${selectedUser.username}!`, "success");
+      setShowSettleModal(false);
+      setSelectedUser((prev: any) => ({
+        ...prev,
+        commission_total_pending: 0,
+        commission_total_paid: (prev.commission_total_paid || 0) + (res.data?.total_settled_now || 0),
+      }));
+      fetchUsers();
+    } catch (err: any) {
+      const msg = err.response?.data?.error || err.response?.data?.details || "Failed to settle commissions.";
+      showToast(msg, "error");
+    } finally {
+      setIsSettling(false);
+    }
+  };
+
   const handleGrantVIP = async () => {
     if (!targetEmail.trim()) return;
     setIsGranting(true);
     try {
-      const res = await api.post("/accounts/admin/grant-creator-vip/", {
-        email: targetEmail.trim(),
-        months: grantMonths,
-      });
-      showToast(res.data?.message || `Granted ${grantMonths} months Creator Pro to ${targetEmail.trim()}!`, "success");
+      const endpoint = rewardType === 'commission' 
+        ? "/accounts/admin/set-creator-type/"
+        : "/accounts/admin/grant-creator-vip/";
+      const payload = rewardType === 'commission'
+        ? { email: targetEmail.trim(), reward_type: 'commission', commission_percent: commissionPercent }
+        : { email: targetEmail.trim(), reward_type: 'vip', months: grantMonths };
+      const res = await api.post(endpoint, payload);
+      showToast(res.data?.message || `Creator reward set for ${targetEmail.trim()}!`, "success");
       setShowGrantModal(false);
       if (selectedUser && (selectedUser.email === targetEmail || selectedUser.username === targetEmail)) {
         setSelectedUser((prev: any) => ({
           ...prev,
-          plan: "pro",
+          plan: rewardType === 'vip' ? "pro" : prev.plan,
           is_creator_vip: true,
-          is_premium_active: true,
+          creator_reward_type: rewardType,
+          is_premium_active: rewardType === 'vip' ? true : prev.is_premium_active,
         }));
       }
       setTargetEmail("");
       fetchUsers();
     } catch (err: any) {
-      const msg = err.response?.data?.error || err.response?.data?.details || "Failed to grant VIP access.";
+      const msg = err.response?.data?.error || err.response?.data?.details || "Failed to set creator reward.";
       showToast(msg, "error");
     } finally {
       setIsGranting(false);
@@ -348,6 +383,9 @@ export default function AdminUsersPage() {
                         {getSortIcon("username")}
                       </div>
                     </th>
+                    <th className="pb-2.5 text-center">
+                      <span>Creator Reward</span>
+                    </th>
                     <th className="pb-2.5 cursor-pointer hover:text-white text-center" onClick={() => handleSort("ig_accounts_count")}>
                       <div className="flex items-center justify-center gap-1">
                         <span>IG Sellers</span>
@@ -390,18 +428,34 @@ export default function AdminUsersPage() {
                     >
                       <td className="py-3 font-medium text-white">
                         <div className="flex flex-col">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-semibold text-white group-hover:text-[#c4c0ff] transition-colors">
-                              {user.email || user.username}
+                          <span className="font-semibold text-white group-hover:text-[#c4c0ff] transition-colors">
+                            {user.email || user.username}
+                          </span>
+                          <span className="text-[10px] text-zinc-500">@{user.username} • Joined {new Date(user.date_joined).toLocaleDateString()}</span>
+                        </div>
+                      </td>
+
+                      <td className="py-3 text-center">
+                        {user.is_creator_vip ? (
+                          <div className="inline-flex flex-col items-center gap-0.5">
+                            <span className={`px-2 py-0.5 text-[10px] font-bold border rounded ${
+                              user.creator_reward_type === 'commission'
+                                ? 'bg-amber-500/10 text-amber-300 border-amber-500/25'
+                                : 'bg-[#c4c0ff]/10 text-[#c4c0ff] border-[#c4c0ff]/25'
+                            }`}>
+                              {user.creator_reward_type === 'commission' 
+                                ? `💰 ${user.creator_commission_percent || 10}% Comm.` 
+                                : '👑 VIP Free Pro'}
                             </span>
-                            {user.is_creator_vip && (
-                              <span className="px-1.5 py-0.2 text-[9px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded">
-                                VIP
+                            {user.creator_reward_type === 'commission' && (user.commission_total_pending > 0 || user.commission_total_earned > 0) && (
+                              <span className="text-[9px] font-mono text-amber-400 font-semibold">
+                                ₹{user.commission_total_pending || 0} Pending
                               </span>
                             )}
                           </div>
-                          <span className="text-[10px] text-zinc-500">@{user.username} • Joined {new Date(user.date_joined).toLocaleDateString()}</span>
-                        </div>
+                        ) : (
+                          <span className="text-[11px] text-zinc-500 font-mono">—</span>
+                        )}
                       </td>
 
                       <td className="py-3 text-center">
@@ -451,10 +505,15 @@ export default function AdminUsersPage() {
                       </td>
 
                       <td className="py-3 text-center">
-                        <div className="flex flex-col items-center">
+                        <div className="flex flex-col items-center gap-0.5">
                           <span className="px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-bold text-xs">
                             {user.referred_count} Total ({user.paid_referred_count} Paid)
                           </span>
+                          {user.creator_reward_type === 'commission' && (
+                            <span className="text-[10px] font-mono text-amber-300 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.2 rounded mt-0.5">
+                              ₹{user.commission_total_pending || 0} Pending
+                            </span>
+                          )}
                           {user.referral_code && (
                             <span className="text-[9px] font-mono text-zinc-500 mt-0.5">Code: {user.referral_code}</span>
                           )}
@@ -575,8 +634,14 @@ export default function AdminUsersPage() {
                     <h3 className="text-base font-bold text-white flex items-center gap-2">
                       <span>{selectedUser.email || selectedUser.username}</span>
                       {selectedUser.is_creator_vip && (
-                        <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded">
-                          VIP Creator
+                        <span className={`px-2 py-0.5 text-[10px] font-bold border rounded ${
+                          selectedUser.creator_reward_type === 'commission'
+                            ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                            : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                        }`}>
+                          {selectedUser.creator_reward_type === 'commission'
+                            ? `Creator: ${selectedUser.creator_commission_percent || 10}% Commission`
+                            : 'VIP Creator'}
                         </span>
                       )}
                     </h3>
@@ -623,6 +688,107 @@ export default function AdminUsersPage() {
                   <span className="text-base font-bold text-indigo-300">{selectedUser.paid_referred_count} Conversions</span>
                 </div>
               </div>
+
+              {/* Creator Commission & Payout Status (If Creator or has Commissions) */}
+              {(selectedUser.is_creator_vip || selectedUser.creator_reward_type === 'commission' || (selectedUser.commission_total_earned > 0)) && (
+                <div className="space-y-3 bg-[#101012] p-4 rounded-lg border border-[#c4c0ff]/20">
+                  <div className="flex items-center justify-between pb-2 border-b border-white/5">
+                    <h4 className="text-xs font-semibold text-[#c4c0ff] flex items-center gap-1.5 tracking-wider">
+                      <Wallet className="w-3.5 h-3.5 text-[#c4c0ff]" />
+                      <span>Creator Commission &amp; Bank Settlement</span>
+                    </h4>
+                    <span className="text-[10px] font-mono text-zinc-400">
+                      Rate: <strong className="text-white">{selectedUser.creator_commission_percent || 10}%</strong>
+                    </span>
+                  </div>
+
+                  {/* Financial Metrics */}
+                  <div className="grid grid-cols-3 gap-2.5">
+                    <div className="bg-[#1c1b1b] p-3 rounded border border-white/5 flex flex-col">
+                      <span className="text-[10px] text-zinc-400 font-medium">Total Earned</span>
+                      <span className="text-sm font-bold text-white mt-0.5">
+                        ₹{(selectedUser.commission_total_earned || 0).toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+                      </span>
+                    </div>
+
+                    <div className="bg-[#1c1b1b] p-3 rounded border border-amber-500/20 flex flex-col">
+                      <span className="text-[10px] text-amber-400 font-medium">Pending Payout</span>
+                      <span className="text-sm font-bold text-amber-300 mt-0.5">
+                        ₹{(selectedUser.commission_total_pending || 0).toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+                      </span>
+                    </div>
+
+                    <div className="bg-[#1c1b1b] p-3 rounded border border-white/5 flex flex-col">
+                      <span className="text-[10px] text-zinc-400 font-medium">Total Settled</span>
+                      <span className="text-sm font-bold text-[#c4c0ff] mt-0.5">
+                        ₹{(selectedUser.commission_total_paid || 0).toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* KYC Bank Details for Transfer */}
+                  <div className="bg-[#1c1b1b] p-3 rounded border border-white/5 space-y-2">
+                    <div className="flex items-center justify-between text-xs font-semibold text-zinc-300">
+                      <span className="flex items-center gap-1.5">
+                        <Landmark className="w-3.5 h-3.5 text-[#c4c0ff]" />
+                        <span>Registered Bank Account (KYC)</span>
+                      </span>
+                      {selectedUser.kyc ? (
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                          selectedUser.kyc.status === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-white/5 text-zinc-400'
+                        }`}>
+                          {selectedUser.kyc.status}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-zinc-500 italic">No KYC profile</span>
+                      )}
+                    </div>
+
+                    {selectedUser.kyc && selectedUser.kyc.bank_account_number ? (
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs pt-1">
+                        <div>
+                          <span className="text-[10px] text-zinc-500 block">Account Holder</span>
+                          <span className="font-medium text-white truncate block">{selectedUser.kyc.full_name || selectedUser.display_name}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-zinc-500 block">Bank Name</span>
+                          <span className="font-medium text-white truncate block">{selectedUser.kyc.bank_name || "N/A"}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-zinc-500 block">Account No.</span>
+                          <span className="font-mono font-medium text-white block">{selectedUser.kyc.bank_account_number}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-zinc-500 block">IFSC Code</span>
+                          <span className="font-mono font-medium text-white block">{selectedUser.kyc.bank_ifsc || "N/A"}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-zinc-500">
+                        No bank details submitted in KYC. Bank transfer should be verified directly with the creator before settling.
+                      </p>
+                    )}
+
+                    {/* Settle Payout Button */}
+                    <div className="pt-2 flex items-center justify-between border-t border-white/5">
+                      <span className="text-[11px] text-zinc-400">
+                        {selectedUser.commission_total_pending > 0 
+                          ? `Ready to settle ₹${selectedUser.commission_total_pending} via bank transfer.`
+                          : "All commissions are fully settled."}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setShowSettleModal(true)}
+                        disabled={!selectedUser.commission_total_pending || selectedUser.commission_total_pending <= 0}
+                        className="px-3 py-1.5 rounded text-xs font-bold bg-white text-black hover:bg-[#e2e2e2] disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Settle Payout (₹{selectedUser.commission_total_pending || 0})</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Connected Instagram Accounts List */}
               <div className="space-y-3 bg-[#101012] p-4 rounded-lg border border-white/5">
@@ -738,12 +904,14 @@ export default function AdminUsersPage() {
                     onClick={() => {
                       setTargetEmail(selectedUser.email || selectedUser.username);
                       setGrantMonths(3);
+                      setRewardType(selectedUser.creator_reward_type || "vip");
+                      setCommissionPercent(selectedUser.creator_commission_percent || 10);
                       setShowGrantModal(true);
                     }}
                     className="px-4 py-2 rounded font-bold text-xs bg-[#c4c0ff] text-black hover:bg-[#c4c0ff]/90 transition-colors cursor-pointer flex items-center gap-1.5 shadow-md"
                   >
                     <Gift className="w-3.5 h-3.5 text-black" />
-                    <span>{selectedUser.is_creator_vip ? "Extend VIP Access" : "Grant VIP Pro Access"}</span>
+                    <span>{selectedUser.is_creator_vip ? "Edit Creator Reward" : "Grant VIP Pro Access"}</span>
                   </button>
                   <button
                     onClick={() => setSelectedUser(null)}
@@ -789,18 +957,61 @@ export default function AdminUsersPage() {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-zinc-400">VIP Pro Access Term</label>
-                <select
-                  value={grantMonths}
-                  onChange={(e) => setGrantMonths(parseInt(e.target.value) || 3)}
-                  className="w-full bg-[#101012] border border-[#444748] rounded text-xs py-2 px-3 text-white focus:outline-none focus:border-[#c4c0ff] cursor-pointer"
-                >
-                  <option value={1}>1 Month Free Pro</option>
-                  <option value={3}>3 Months Free Pro (Recommended)</option>
-                  <option value={6}>6 Months Free Pro</option>
-                  <option value={12}>1 Year Free Pro</option>
-                </select>
+                <label className="text-xs font-medium text-zinc-400">Creator Reward Type</label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setRewardType("vip")}
+                    className={`flex-1 px-3 py-2 rounded text-xs font-bold transition-all cursor-pointer border ${
+                      rewardType === "vip"
+                        ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400"
+                        : "bg-white/5 border-white/10 text-zinc-400 hover:bg-white/10"
+                    }`}
+                  >
+                    🎁 VIP Free Pro
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRewardType("commission")}
+                    className={`flex-1 px-3 py-2 rounded text-xs font-bold transition-all cursor-pointer border ${
+                      rewardType === "commission"
+                        ? "bg-amber-500/20 border-amber-500/50 text-amber-400"
+                        : "bg-white/5 border-white/10 text-zinc-400 hover:bg-white/10"
+                    }`}
+                  >
+                    💰 Commission Earnings
+                  </button>
+                </div>
               </div>
+
+              {rewardType === "vip" ? (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-zinc-400">VIP Pro Access Term</label>
+                  <select
+                    value={grantMonths}
+                    onChange={(e) => setGrantMonths(parseInt(e.target.value) || 3)}
+                    className="w-full bg-[#101012] border border-[#444748] rounded text-xs py-2 px-3 text-white focus:outline-none focus:border-[#c4c0ff] cursor-pointer"
+                  >
+                    <option value={1}>1 Month Free Pro</option>
+                    <option value={3}>3 Months Free Pro (Recommended)</option>
+                    <option value={6}>6 Months Free Pro</option>
+                    <option value={12}>1 Year Free Pro</option>
+                  </select>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-zinc-400">Commission Percentage (%)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={commissionPercent}
+                    onChange={(e) => setCommissionPercent(parseInt(e.target.value) || 10)}
+                    className="w-full bg-[#101012] border border-[#444748] rounded text-xs py-2 px-3 text-white focus:outline-none focus:border-[#c4c0ff]"
+                  />
+                  <p className="text-[10px] text-zinc-500">Creator earns this % of each referred user's first payment only.</p>
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end gap-2 pt-2 border-t border-white/10">
@@ -818,7 +1029,82 @@ export default function AdminUsersPage() {
                 className="px-4 py-1.5 rounded text-xs font-bold bg-[#a3f7ff] text-black hover:bg-[#a3f7ff]/90 transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
               >
                 {isGranting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <UserCheck className="w-3.5 h-3.5" />}
-                <span>Confirm VIP Grant</span>
+                <span>{rewardType === 'commission' ? 'Set Commission Mode' : 'Confirm VIP Grant'}</span>
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Settle Payout Confirmation Modal */}
+      {showSettleModal && selectedUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4">
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-[#1e1e24] border border-white/10 rounded-xl p-6 max-w-md w-full space-y-4 shadow-2xl"
+          >
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Landmark className="w-4 h-4 text-[#c4c0ff]" />
+                <span>Confirm Commission Payout Settlement</span>
+              </h3>
+              <button onClick={() => setShowSettleModal(false)} className="text-zinc-400 hover:text-white text-xs cursor-pointer">
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="p-3.5 rounded bg-[#101012] border border-white/5 space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-zinc-400">Creator Account:</span>
+                  <span className="font-semibold text-white">{selectedUser.email || selectedUser.username}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-zinc-400">Settlement Amount:</span>
+                  <span className="font-bold text-base text-white">
+                    ₹{(selectedUser.commission_total_pending || 0).toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+                  </span>
+                </div>
+                {selectedUser.kyc?.bank_account_number && (
+                  <div className="pt-2 border-t border-white/5 space-y-1 text-[11px]">
+                    <div className="flex justify-between text-zinc-400">
+                      <span>Bank:</span>
+                      <span className="text-zinc-200">{selectedUser.kyc.bank_name}</span>
+                    </div>
+                    <div className="flex justify-between text-zinc-400">
+                      <span>Account No:</span>
+                      <span className="font-mono text-zinc-200">{selectedUser.kyc.bank_account_number}</span>
+                    </div>
+                    <div className="flex justify-between text-zinc-400">
+                      <span>IFSC Code:</span>
+                      <span className="font-mono text-zinc-200">{selectedUser.kyc.bank_ifsc}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <p className="text-[11px] text-zinc-400 leading-relaxed">
+                By confirming, you certify that the pending commission amount of <strong>₹{selectedUser.commission_total_pending}</strong> has been transferred to the creator&apos;s bank account. This will mark all pending commissions as <strong>Settled</strong> in the creator&apos;s dashboard.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-white/10">
+              <button
+                type="button"
+                onClick={() => setShowSettleModal(false)}
+                className="px-3 py-1.5 rounded text-xs font-medium bg-white/5 hover:bg-white/10 text-zinc-400 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSettleCommission}
+                disabled={isSettling}
+                className="px-4 py-1.5 rounded text-xs font-bold bg-white text-black hover:bg-[#e2e2e2] transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {isSettling ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                <span>Confirm Settlement</span>
               </button>
             </div>
           </motion.div>

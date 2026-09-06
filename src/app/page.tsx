@@ -36,10 +36,10 @@ export default function LandingPage() {
                 Features
               </a>
               <a href="#pricing" className="text-sm text-[#5e5e5e] hover:text-black transition-colors duration-200">
-                Pricing
+                Pricing &amp; Creators
               </a>
-              <a href="#" className="text-sm text-[#5e5e5e] hover:text-black transition-colors duration-200">
-                About
+              <a href="#pricing" className="text-sm text-[#5e5e5e] hover:text-black transition-colors duration-200">
+                Creator Partner
               </a>
             </div>
           </div>
@@ -201,94 +201,141 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Pricing Section */}
+        {/* Pricing & Creator Plans Section */}
         <section className="max-w-[1152px] mx-auto px-6 py-20 bg-[#f3f3f3] rounded-3xl mb-20" id="pricing">
-          <div className="text-center mb-16">
+          <div className="text-center mb-14">
+            <span className="inline-block text-[11px] font-bold tracking-widest text-black uppercase px-3 py-1 bg-white border border-[#eaeaea] rounded-full mb-3 shadow-xs">
+              Plans &amp; Creator Program
+            </span>
             <h2 className="text-[clamp(1.875rem,4vw,2.5rem)] font-extrabold text-black tracking-tight">
-              Predictable Pricing
+              Simple, Predictable Plans
             </h2>
-            <p className="text-lg text-[#5e5e5e] mt-2">
-              No hidden fees. Scale as you grow.
+            <p className="text-sm text-[#5e5e5e] mt-2 max-w-lg mx-auto">
+              Choose the right plan for your storefront or partner with us as an AnyDM Creator.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl mx-auto items-stretch">
-            {/* Free Trial Plan */}
-            <div className="bg-white p-8 rounded-2xl border border-[#eaeaea] flex flex-col justify-between transition-all duration-300 hover:border-black shadow-sm">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto items-stretch">
+            {/* 1. Free Trial Plan */}
+            <div className="bg-white p-6 rounded-2xl border border-[#eaeaea] flex flex-col justify-between transition-all duration-300 hover:border-black shadow-xs">
               <div>
-                <h4 className="text-xs font-bold text-[#5e5e5e] tracking-widest mb-4">Free Trial</h4>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-black text-black">₹0</span>
-                  <span className="text-[#5e5e5e] text-xs font-bold ml-1">14 Days</span>
+                <span className="text-[10px] font-bold text-[#5e5e5e] tracking-widest uppercase block mb-3">Starter</span>
+                <h3 className="text-base font-bold text-black">14-Day Free Trial</h3>
+                <div className="mt-3 flex items-baseline gap-1">
+                  <span className="text-3xl font-extrabold text-black">₹0</span>
+                  <span className="text-[#5e5e5e] text-xs font-semibold">/ 14 days</span>
                 </div>
-                <p className="text-xs text-[#888888] mt-4 leading-relaxed">
-                  Start risk-free and experience automatic lead captures. No credit card required.
+                <p className="text-xs text-[#888888] mt-2 leading-relaxed">
+                  Test out Instagram keyword replies and storefront tools. No credit card needed.
                 </p>
-                <ul className="space-y-3 mt-8 text-xs text-[#5e5e5e] font-medium">
+                <ul className="space-y-2.5 mt-6 text-xs text-[#5e5e5e] font-medium border-t border-[#f0f0f0] pt-4">
                   <li className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-sm text-black">check</span>
                     <span>1 Connected Instagram Account</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-sm text-black">check</span>
-                    <span>Standard Automated Responses</span>
+                    <span>Keyword DMs &amp; Story Auto-Replies</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-sm text-black">check</span>
-                    <span>Standard Analytics</span>
+                    <span>Basic Store Catalog (5 items)</span>
                   </li>
                 </ul>
               </div>
               <Link
                 href="/signup"
-                className="mt-8 block w-full text-center border border-black py-3 rounded-xl text-xs font-bold hover:bg-[#f3f3f3] transition-colors"
+                className="mt-6 block w-full text-center border border-black py-2.5 rounded-xl text-xs font-bold hover:bg-[#f3f3f3] transition-colors"
               >
-                Start Free Trial
+                Start 14-Day Trial
               </Link>
             </div>
 
-            {/* Creator Pro Plan */}
-            <div className="bg-white p-8 rounded-2xl border-2 border-black flex flex-col justify-between relative transition-all duration-300 shadow-xl md:scale-105">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-black text-white text-[9px] font-black px-3.5 py-1 rounded-full tracking-widest">
-                MONTHLY PREMIUM
+            {/* 2. Creator Pro Plan */}
+            <div className="bg-white p-6 rounded-2xl border-2 border-black flex flex-col justify-between relative transition-all duration-300 shadow-lg md:scale-105">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-black text-white text-[9px] font-bold px-3 py-0.5 rounded-full tracking-wider">
+                MOST POPULAR
               </div>
               <div>
-                <h4 className="text-xs font-bold text-[#5e5e5e] tracking-widest mb-4">Creator Pro</h4>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-black text-black">₹499</span>
-                  <span className="text-[#5e5e5e] text-xs font-bold ml-1">/ Month</span>
+                <span className="text-[10px] font-bold text-[#5e5e5e] tracking-widest uppercase block mb-3">Full Suite</span>
+                <h3 className="text-base font-bold text-black">Creator Pro</h3>
+                <div className="mt-3 flex items-baseline gap-1">
+                  <span className="text-3xl font-extrabold text-black">₹499</span>
+                  <span className="text-[#5e5e5e] text-xs font-semibold">/ month</span>
                 </div>
-                <p className="text-xs text-[#888888] mt-4 leading-relaxed">
-                  Scale your social commerce engine. Unlimited accounts, complete inbox access, and fully powered DMs.
+                <p className="text-xs text-[#888888] mt-2 leading-relaxed">
+                  Full power operating system for creators, sellers, and growing social brands.
                 </p>
-                <ul className="space-y-3 mt-8 text-xs text-black font-bold">
+                <ul className="space-y-2.5 mt-6 text-xs text-black font-semibold border-t border-[#f0f0f0] pt-4">
                   <li className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-sm text-black">check</span>
-                    <span>Unlimited Connected Instagram Accounts</span>
+                    <span>Unlimited Instagram Accounts</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-sm text-black">check</span>
-                    <span>Full Direct Message CRM Inbox</span>
+                    <span>Unlimited AI Chatbots &amp; DM Loops</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-sm text-black">check</span>
-                    <span>Unlimited Story Triggers &amp; Automations</span>
+                    <span>Full Product Catalog &amp; Orders</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-sm text-black">check</span>
-                    <span>Custom Engagement Games (Spin-Wheel)</span>
+                    <span>Interactive Spin-Wheel Games</span>
                   </li>
                 </ul>
               </div>
               <Link
                 href="/signup"
-                className="mt-8 block w-full text-center py-3 rounded-xl text-xs font-black text-white hover:opacity-95 transition-opacity"
+                className="mt-6 block w-full text-center py-2.5 rounded-xl text-xs font-bold text-white hover:opacity-95 transition-opacity"
                 style={{
                   background: "linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)"
                 }}
               >
-                Get Started
+                Get Creator Pro
               </Link>
+            </div>
+
+            {/* 3. Creator Partner Program (Commission & VIP) */}
+            <div className="bg-[#111111] text-white p-6 rounded-2xl border border-black flex flex-col justify-between transition-all duration-300 shadow-md">
+              <div>
+                <span className="text-[10px] font-bold text-zinc-400 tracking-widest uppercase block mb-3">Partner Program</span>
+                <h3 className="text-base font-bold text-white flex items-center gap-1.5">
+                  <span>Creator Partner</span>
+                </h3>
+                <div className="mt-3 flex items-baseline gap-1">
+                  <span className="text-2xl font-extrabold text-white">Earn Cash / VIP</span>
+                </div>
+                <p className="text-xs text-zinc-400 mt-2 leading-relaxed">
+                  Refer your audience and earn cash rewards or complimentary Creator Pro access.
+                </p>
+                <ul className="space-y-2.5 mt-6 text-xs text-zinc-300 font-medium border-t border-white/10 pt-4">
+                  <li className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-sm text-white">paid</span>
+                    <span><strong>10%–20% Commission</strong> on first purchases</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-sm text-white">account_balance</span>
+                    <span>Direct Bank Payouts &amp; Real-Time Tracking</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-sm text-white">card_membership</span>
+                    <span>Option for <strong>VIP Free Pro Access</strong></span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-sm text-white">link</span>
+                    <span>Custom Referral Link &amp; Creator Hub</span>
+                  </li>
+                </ul>
+              </div>
+              <a
+                href="https://ig.me/m/anydm.in"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-6 block w-full text-center bg-white text-black py-2.5 rounded-xl text-xs font-bold hover:bg-[#eaeaea] transition-colors"
+              >
+                Contact anydm.in
+              </a>
             </div>
           </div>
         </section>

@@ -34,6 +34,8 @@ import {
   Menu,
   ChevronDown,
   Pencil,
+  ExternalLink,
+  Copy,
 } from "lucide-react";
 
 const InstagramIcon = ({ className }: { className?: string }) => (
@@ -322,7 +324,7 @@ export default function WebsiteSettingsPage() {
     }
   };
 
-  const handleSaveSettings = async () => {
+  const handleSaveSettings = async (overrides?: any) => {
     setLoading(true);
     const payload = {
       store_name: storeName,
@@ -347,6 +349,7 @@ export default function WebsiteSettingsPage() {
       privacy_policy: privacyPolicy,
       terms_of_service: termsOfService,
       custom_settings: { ...customSettings, order_track_retry_limit: orderTrackRetryLimit },
+      ...overrides,
     };
     try {
       await api.put("/accounts/website-settings/", payload);
@@ -356,6 +359,26 @@ export default function WebsiteSettingsPage() {
       showToast(err.response?.data?.error || "Couldn't save settings. Try again.", "error");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleConfirmSlugEdit = async () => {
+    if (isEditingSlug) {
+      setIsEditingSlug(false);
+      await handleSaveSettings({ store_slug: storeSlug });
+    } else {
+      setIsEditingSlug(true);
+      setTimeout(() => slugInputRef.current?.focus(), 50);
+    }
+  };
+
+  const handleConfirmCustomDomainEdit = async () => {
+    if (isEditingCustomDomain) {
+      setIsEditingCustomDomain(false);
+      await handleSaveSettings({ custom_domain: customDomain });
+    } else {
+      setIsEditingCustomDomain(true);
+      setTimeout(() => customDomainInputRef.current?.focus(), 50);
     }
   };
 
@@ -488,11 +511,23 @@ export default function WebsiteSettingsPage() {
                 <Field label="Store Subdomain">
                   <div
                     className="flex items-center rounded overflow-hidden relative transition-colors"
-                    style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${isEditingSlug ? t.accentCyan : t.outlineVariant}` }}
+                    style={{
+                      backgroundColor: t.surfaceContainerLowest,
+                      border: `1px solid ${isEditingSlug ? t.accentCyan : t.outlineVariant
+                        }`,
+                    }}
                   >
-                    <span className="px-3 py-2 text-xs font-mono select-none shrink-0" style={{ color: t.outline, backgroundColor: t.surfaceContainerHigh, borderRight: `1px solid ${t.outlineVariant}` }}>
+                    <span
+                      className="px-3 py-2 text-xs font-mono select-none shrink-0"
+                      style={{
+                        color: t.outline,
+                        backgroundColor: t.surfaceContainerHigh,
+                        borderRight: `1px solid ${t.outlineVariant}`,
+                      }}
+                    >
                       https://
                     </span>
+
                     <div className="relative w-full flex items-center">
                       <input
                         ref={slugInputRef}
@@ -500,8 +535,16 @@ export default function WebsiteSettingsPage() {
                         disabled={!isEditingSlug}
                         value={storeSlug}
                         onChange={(e) => {
-                          const val = e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, "");
+                          const val = e.target.value
+                            .toLowerCase()
+                            .replace(/[^a-z0-9_-]/g, "");
                           setStoreSlug(val);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleConfirmSlugEdit();
+                          }
                         }}
                         className={cn(
                           "w-full text-sm pl-3 pr-10 py-2 bg-transparent focus:outline-none font-mono transition-opacity",
@@ -510,93 +553,192 @@ export default function WebsiteSettingsPage() {
                         style={{ color: t.onSurface }}
                         placeholder="my_muscles_factory"
                       />
+
                       <button
                         type="button"
-                        onClick={() => {
-                          setIsEditingSlug((prev) => {
-                            const next = !prev;
-                            if (next) setTimeout(() => slugInputRef.current?.focus(), 50);
-                            return next;
-                          });
-                        }}
-                        title={isEditingSlug ? "Lock editing" : "Edit subdomain"}
+                        onClick={handleConfirmSlugEdit}
+                        title={isEditingSlug ? "Confirm & Save subdomain" : "Edit subdomain"}
                         className="absolute right-2.5 p-1 rounded hover:bg-white/10 transition-colors flex items-center justify-center cursor-pointer"
                       >
                         {isEditingSlug ? (
-                          <Check className="w-4 h-4 text-emerald-400" strokeWidth={2} />
+                          <Check
+                            className="w-4 h-4 text-emerald-400"
+                            strokeWidth={2}
+                          />
                         ) : (
-                          <Pencil className="w-4 h-4" style={{ color: t.outline }} strokeWidth={1.75} />
+                          <Pencil
+                            className="w-4 h-4"
+                            style={{ color: t.outline }}
+                            strokeWidth={1.75}
+                          />
                         )}
                       </button>
                     </div>
-                    <span className="px-3 py-2 text-xs font-mono select-none shrink-0" style={{ color: t.outline, backgroundColor: t.surfaceContainerHigh, borderLeft: `1px solid ${t.outlineVariant}` }}>
+
+                    <span
+                      className="px-3 py-2 text-xs font-mono select-none shrink-0"
+                      style={{
+                        color: t.outline,
+                        backgroundColor: t.surfaceContainerHigh,
+                        borderLeft: `1px solid ${t.outlineVariant}`,
+                      }}
+                    >
                       .{baseRootDomain}
                     </span>
-                  </div>
-                  <p className="text-xs mt-1.5" style={{ color: t.onSurfaceVariant }}>
-                    Default platform subdomain:{" "}
-                    <a
-                      href={subdomainUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-mono text-xs font-semibold underline underline-offset-2"
-                      style={{ color: t.accentCyan }}
+
+                    {/* Visit button */}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        window.open(subdomainUrl, "_blank", "noopener,noreferrer")
+                      }
+                      disabled={!storeSlug}
+                      className="px-3 py-2 text-xs font-medium flex items-center gap-1.5 shrink-0 transition-colors hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                      style={{
+                        color: t.accentCyan,
+                        backgroundColor: t.surfaceContainerHigh,
+                        borderLeft: `1px solid ${t.outlineVariant}`,
+                      }}
+                      title="Visit store"
                     >
-                      {subdomainUrl}
-                    </a>
-                  </p>
+                      <ExternalLink className="w-3.5 h-3.5" strokeWidth={1.75} />
+                      Visit
+                    </button>
+                  </div>
                 </Field>
 
-                {/* Custom Domain Field */}
-                <Field label="Custom Domain (Own Domain)">
+                <div className="flex items-center gap-3 my-1">
+                  <div className="flex-1 h-px" style={{ backgroundColor: t.outlineVariant }} />
+                  <span className="text-[11px] font-semibold tracking-wider uppercase" style={{ color: t.outline }}>OR</span>
+                  <div className="flex-1 h-px" style={{ backgroundColor: t.outlineVariant }} />
+                </div>
+
+                <Field label="Custom Domain">
+                  <div className="rounded-lg overflow-hidden transition-colors" style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${isEditingCustomDomain ? t.accentCyan : t.outlineVariant}` }}>
+                    {/* Domain input */}
+                    <div className="flex items-center">
+                      <span className="px-3 py-2.5 text-xs font-mono select-none shrink-0" style={{ color: t.outline, backgroundColor: t.surfaceContainerHigh, borderRight: `1px solid ${t.outlineVariant}` }}>
+                        https://
+                      </span>
+
+                      <div className="relative w-full flex items-center">
+                        <input
+                          ref={customDomainInputRef}
+                          type="text"
+                          disabled={!isEditingCustomDomain}
+                          value={customDomain}
+                          onChange={(e) => {
+                            const val = e.target.value
+                              .toLowerCase()
+                              .replace(/^https?:\/\//, "")
+                              .replace(/[^a-z0-9.-]/g, "");
+                            setCustomDomain(val);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleConfirmCustomDomainEdit();
+                            }
+                          }}
+                          className={cn(
+                            "w-full text-sm pl-3 pr-10 py-2.5 bg-transparent focus:outline-none font-mono transition-opacity",
+                            !isEditingCustomDomain && "cursor-not-allowed opacity-70"
+                          )}
+                          style={{ color: t.onSurface }}
+                          placeholder="my-muscles-factory.in"
+                        />
+
+                        <button
+                          type="button"
+                          onClick={handleConfirmCustomDomainEdit}
+                          title={
+                            isEditingCustomDomain
+                              ? "Confirm & Save custom domain"
+                              : "Edit custom domain"
+                          }
+                          className="absolute right-2 p-1.5 rounded-md hover:bg-white/10 transition-colors flex items-center justify-center cursor-pointer"
+                        >
+                          {isEditingCustomDomain ? (
+                            <Check
+                              className="w-4 h-4 text-emerald-400"
+                              strokeWidth={2}
+                            />
+                          ) : (
+                            <Pencil
+                              className="w-4 h-4"
+                              style={{ color: t.outline }}
+                              strokeWidth={1.75}
+                            />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                  {/* DNS instruction */}
                   <div
-                    className="flex items-center rounded overflow-hidden relative transition-colors"
-                    style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${isEditingCustomDomain ? t.accentCyan : t.outlineVariant}` }}
+                    className="px-3 py-3"
+                    style={{
+                      backgroundColor: t.surfaceContainerHigh,
+                      borderTop: `1px solid ${t.outlineVariant}`,
+                    }}
                   >
-                    <span className="px-3 py-2 text-xs font-mono select-none shrink-0" style={{ color: t.outline, backgroundColor: t.surfaceContainerHigh, borderRight: `1px solid ${t.outlineVariant}` }}>
-                      https://
-                    </span>
-                    <div className="relative w-full flex items-center">
-                      <input
-                        ref={customDomainInputRef}
-                        type="text"
-                        disabled={!isEditingCustomDomain}
-                        value={customDomain}
-                        onChange={(e) => {
-                          const val = e.target.value.toLowerCase().replace(/^https?:\/\//, "").replace(/[^a-z0-9.-]/g, "");
-                          setCustomDomain(val);
-                        }}
-                        className={cn(
-                          "w-full text-sm pl-3 pr-10 py-2 bg-transparent focus:outline-none font-mono transition-opacity",
-                          !isEditingCustomDomain && "cursor-not-allowed opacity-70"
-                        )}
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p
+                          className="text-xs font-medium mb-1"
+                          style={{ color: t.onSurfaceVariant }}
+                        >
+                          DNS setup
+                        </p>
+
+                        <p
+                          className="text-xs"
+                          style={{ color: t.outline }}
+                        >
+                          Add a <span className="font-semibold">CNAME</span> record
+                          pointing to:
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* CNAME copy field */}
+                    <div
+                      className="mt-2 flex items-center gap-2 rounded-md px-2.5 py-2"
+                      style={{
+                        backgroundColor: t.surfaceContainerLowest,
+                        border: `1px solid ${t.outlineVariant}`,
+                      }}
+                    >
+                      <code
+                        className="flex-1 min-w-0 truncate text-xs font-mono"
                         style={{ color: t.onSurface }}
-                        placeholder="my_muscles_factory.in"
-                      />
+                      >
+                        cname.{baseRootDomain}
+                      </code>
+
                       <button
                         type="button"
-                        onClick={() => {
-                          setIsEditingCustomDomain((prev) => {
-                            const next = !prev;
-                            if (next) setTimeout(() => customDomainInputRef.current?.focus(), 50);
-                            return next;
-                          });
-                        }}
-                        title={isEditingCustomDomain ? "Lock editing" : "Edit custom domain"}
-                        className="absolute right-2.5 p-1 rounded hover:bg-white/10 transition-colors flex items-center justify-center cursor-pointer"
+                        onClick={() =>
+                          navigator.clipboard.writeText(`cname.${baseRootDomain}`)
+                        }
+                        title="Copy CNAME"
+                        className="shrink-0 flex items-center gap-1.5 px-2 py-1 rounded hover:bg-white/10 transition-colors cursor-pointer"
+                        style={{ color: t.accentCyan }}
                       >
-                        {isEditingCustomDomain ? (
-                          <Check className="w-4 h-4 text-emerald-400" strokeWidth={2} />
-                        ) : (
-                          <Pencil className="w-4 h-4" style={{ color: t.outline }} strokeWidth={1.75} />
-                        )}
+                        <Copy className="w-3.5 h-3.5" />
+                        <span className="text-[11px] font-medium">Copy</span>
                       </button>
                     </div>
+
+                    <p
+                      className="text-[11px] mt-2"
+                      style={{ color: t.outline }}
+                    >
+                      Use your domain as the CNAME name, then paste the value above.
+                    </p>
                   </div>
-                  <p className="text-xs mt-1.5" style={{ color: t.onSurfaceVariant }}>
-                    Connect your own domain (e.g. <span className="font-mono text-xs font-semibold text-white">my_muscles_factory.in</span>). Point a CNAME record to <span className="font-mono text-xs text-white">cname.{baseRootDomain}</span> in your DNS provider.
-                  </p>
-                </Field>
+
+                </div> </Field>
 
                 <Field label="Store logo">
                   <div className="flex items-center gap-4">

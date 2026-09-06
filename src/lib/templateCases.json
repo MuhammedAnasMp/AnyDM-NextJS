@@ -1350,8 +1350,7 @@
         "message_mode": "fixed",
         "messages": [
           "Hello! Customize this reply flow for your Icebreaker question click."
-        ],
-        "parent_event": "SUPPORT"
+        ]
       }
     ]
   },
@@ -1378,8 +1377,7 @@
         "message_mode": "fixed",
         "messages": [
           "Hello! Customize this reply flow for your Persistent Menu button click."
-        ],
-        "parent_event": "TALK_TO_SALES"
+        ]
       }
     ]
   },
