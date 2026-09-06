@@ -515,13 +515,16 @@ export default function LinkInBioPublicView({
       </div>
 
       {/* Main Container */}
-      <div className={cn("w-full max-w-md px-4 flex flex-col items-center gap-5 z-10", isPreviewMode ? "pb-6" : "pb-16", page.banner_image_url ? "-mt-16 sm:-mt-18" : "mt-3")}>
+      <div className={cn("w-full px-3 flex flex-col items-center z-10", isPreviewMode ? "max-w-xs gap-3 pb-6" : "max-w-md px-4 gap-5 pb-16", page.banner_image_url ? (isPreviewMode ? "-mt-12" : "-mt-16 sm:-mt-18") : "mt-3")}>
 
         {/* Profile Header */}
-        <div className="flex flex-col items-center text-center gap-3 w-full">
+        <div className={cn("flex flex-col items-center text-center w-full", isPreviewMode ? "gap-2" : "gap-3")}>
           <div className="relative group flex items-center justify-center">
             <div
-              className="w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden p-1 shadow-2xl border-2 bg-[#131313]"
+              className={cn(
+                "rounded-full overflow-hidden p-1 shadow-2xl border-2 bg-[#131313]",
+                isPreviewMode ? "w-16 h-16 sm:w-18 sm:h-18" : "w-24 h-24 sm:w-28 sm:h-28"
+              )}
               style={{ borderColor: theme.accentColor }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -540,22 +543,33 @@ export default function LinkInBioPublicView({
               />
             </div>
             <div
-              className="absolute bottom-0 right-0 w-6 h-6 rounded-full flex items-center justify-center shadow-lg border-2 border-[#131313]"
+              className={cn(
+                "absolute bottom-0 right-0 rounded-full flex items-center justify-center shadow-lg border-2 border-[#131313]",
+                isPreviewMode ? "w-4.5 h-4.5" : "w-6 h-6"
+              )}
               style={{ backgroundColor: theme.accentColor, color: theme.isDark ? "#000" : "#fff" }}
             >
-              <CheckCircle2 className="w-3.5 h-3.5 stroke-[2.5]" />
+              <CheckCircle2 className={cn("stroke-[2.5]", isPreviewMode ? "w-2.5 h-2.5" : "w-3.5 h-3.5")} />
             </div>
           </div>
 
-          <div className="space-y-1 w-full px-2">
+          <div className="space-y-0.5 w-full px-2">
             <h1
-              className={cn("text-xl sm:text-2xl font-black tracking-tight leading-tight", !customTextColor && theme.textClass)}
+              className={cn(
+                "font-black tracking-tight leading-tight",
+                isPreviewMode ? "text-base sm:text-lg" : "text-xl sm:text-2xl",
+                !customTextColor && theme.textClass
+              )}
               style={primaryTextStyle}
             >
               {page.title || creator?.full_name || `@${page.username}`}
             </h1>
             <p
-              className={cn("text-xs font-semibold tracking-wide", !customTextColor && theme.textMutedClass)}
+              className={cn(
+                "font-semibold tracking-wide",
+                isPreviewMode ? "text-[11px]" : "text-xs",
+                !customTextColor && theme.textMutedClass
+              )}
               style={mutedTextStyle}
             >
               @{page.username}
@@ -564,7 +578,11 @@ export default function LinkInBioPublicView({
 
           {page.bio && (
             <p
-              className={cn("text-xs sm:text-sm font-normal leading-relaxed max-w-sm px-4", !customTextColor && theme.textMutedClass)}
+              className={cn(
+                "font-normal leading-relaxed px-4",
+                isPreviewMode ? "text-[11px] max-w-[260px]" : "text-xs sm:text-sm max-w-sm",
+                !customTextColor && theme.textMutedClass
+              )}
               style={mutedTextStyle}
             >
               {page.bio}
@@ -573,7 +591,7 @@ export default function LinkInBioPublicView({
 
           {socialAccounts.length > 0 && page.social_display_mode !== "icons_bottom" && page.social_display_mode !== "hidden" && (
             <div className={cn(
-              "flex flex-wrap items-center justify-center gap-2 pt-1 w-full",
+              "flex flex-wrap items-center justify-center gap-1.5 pt-1 w-full",
               page.show_social_usernames ? "max-w-sm" : "max-w-xs"
             )}>
               {socialAccounts.map((social) => {
@@ -590,15 +608,16 @@ export default function LinkInBioPublicView({
                       rel="noopener noreferrer"
                       onClick={() => trackClick("social_click")}
                       className={cn(
-                        "px-3 py-1.5 rounded-full flex items-center gap-2 text-xs font-semibold transition-all duration-200 hover:scale-[1.02] shadow-sm",
+                        "rounded-full flex items-center gap-1.5 font-semibold transition-all duration-200 hover:scale-[1.02] shadow-sm",
+                        isPreviewMode ? "px-2.5 py-1 text-[11px]" : "px-3 py-1.5 text-xs",
                         theme.cardClass,
                         theme.cardBorderClass
                       )}
                       style={primaryTextStyle}
                       title={social.label || social.platform}
                     >
-                      <div className="w-5 h-5 rounded-full flex items-center justify-center bg-white/10 shrink-0">
-                        <SocialIcon platformOrIcon={iconKey} className="w-3 h-3" />
+                      <div className={cn("rounded-full flex items-center justify-center bg-white/10 shrink-0", isPreviewMode ? "w-4 h-4" : "w-5 h-5")}>
+                        <SocialIcon platformOrIcon={iconKey} className={isPreviewMode ? "w-2.5 h-2.5" : "w-3 h-3"} />
                       </div>
                       <span className="truncate max-w-[120px]">{displayHandle}</span>
                     </a>
@@ -614,14 +633,15 @@ export default function LinkInBioPublicView({
                     onClick={() => trackClick("social_click")}
                     aria-label={social.label || social.platform}
                     className={cn(
-                      "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 transform hover:scale-110 shadow-sm",
+                      "rounded-full flex items-center justify-center transition-all duration-200 transform hover:scale-110 shadow-sm",
+                      isPreviewMode ? "w-8 h-8" : "w-10 h-10",
                       theme.cardClass,
                       theme.cardBorderClass
                     )}
                     style={primaryTextStyle}
                     title={social.label || social.platform}
                   >
-                    <SocialIcon platformOrIcon={iconKey} className="w-4.5 h-4.5" />
+                    <SocialIcon platformOrIcon={iconKey} className={isPreviewMode ? "w-3.5 h-3.5" : "w-4.5 h-4.5"} />
                   </a>
                 );
               })}
@@ -631,7 +651,7 @@ export default function LinkInBioPublicView({
 
         {/* Smart Reel / URL Paste Input */}
         {page.smart_redirect_enabled !== false && (
-          <div className={cn("w-full p-4 rounded relative overflow-hidden transition-all", theme.pasteCardClass)}>
+          <div className={cn("w-full rounded relative overflow-hidden transition-all", isPreviewMode ? "p-3" : "p-4", theme.pasteCardClass)}>
             <div className="flex items-center gap-2 mb-2.5">
               <Sparkles className="w-4 h-4 shrink-0" style={{ color: theme.accentColor }} />
               <span

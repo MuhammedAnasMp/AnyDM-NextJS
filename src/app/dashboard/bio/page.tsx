@@ -1151,7 +1151,7 @@ export default function LinkInBioDashboard() {
 
               {/* Background Style Mode Switcher */}
               <div className="space-y-3">
-                <div className="bg-[#141414] p-0.5 rounded border border-[#2c2c2c] flex items-center gap-1">
+                <div className="inline-flex items-center gap-1 bg-[#141414] p-0.5 rounded border border-[#2c2c2c]">
                   <button
                     type="button"
                     onClick={() => {
@@ -1162,13 +1162,13 @@ export default function LinkInBioDashboard() {
                       setPreviewKey((k) => k + 1);
                     }}
                     className={cn(
-                      "flex-1 py-1.5 px-2 rounded text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none",
+                      "px-2.5 py-1 rounded text-[10px] sm:text-[11px] font-semibold flex items-center justify-center gap-1 transition-all cursor-pointer select-none",
                       currentBgType === "preset"
                         ? "bg-white text-black font-bold shadow-sm"
                         : "text-zinc-400 hover:text-white hover:bg-white/5"
                     )}
                   >
-                    <Palette className="w-3.5 h-3.5 shrink-0" />
+                    <Palette className="w-3 h-3 shrink-0" />
                     <span>Preset Themes</span>
                   </button>
 
@@ -1182,14 +1182,14 @@ export default function LinkInBioDashboard() {
                       setPreviewKey((k) => k + 1);
                     }}
                     className={cn(
-                      "flex-1 py-1.5 px-2 rounded text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none",
+                      "px-2.5 py-1 rounded text-[10px] sm:text-[11px] font-semibold flex items-center justify-center gap-1 transition-all cursor-pointer select-none",
                       currentBgType === "color"
                         ? "bg-white text-black font-bold shadow-sm"
                         : "text-zinc-400 hover:text-white hover:bg-white/5"
                     )}
                   >
-                    <Sparkles className="w-3.5 h-3.5 shrink-0" />
-                    <span>Solid / Hex Color</span>
+                    <Sparkles className="w-3 h-3 shrink-0" />
+                    <span>Solid Color</span>
                   </button>
 
                   <button
@@ -1202,14 +1202,14 @@ export default function LinkInBioDashboard() {
                       setPreviewKey((k) => k + 1);
                     }}
                     className={cn(
-                      "flex-1 py-1.5 px-2 rounded text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none",
+                      "px-2.5 py-1 rounded text-[10px] sm:text-[11px] font-semibold flex items-center justify-center gap-1 transition-all cursor-pointer select-none",
                       currentBgType === "image"
                         ? "bg-white text-black font-bold shadow-sm"
                         : "text-zinc-400 hover:text-white hover:bg-white/5"
                     )}
                   >
-                    <ImageIcon className="w-3.5 h-3.5 shrink-0" />
-                    <span>Wallpaper Image</span>
+                    <ImageIcon className="w-3 h-3 shrink-0" />
+                    <span>Wallpaper</span>
                   </button>
                 </div>
 
@@ -2463,17 +2463,17 @@ export default function LinkInBioDashboard() {
             {/* DEVICE 1: APPLE IPHONE 17 PRO MAX (iOS UI) */}
             {previewDevice === "mobile" && (
               <div key={`mobile-${previewKey}`} className="w-full flex justify-center py-1 animate-in fade-in zoom-in-95 duration-200">
-                <div className="relative w-full max-w-[395px] bg-[#1a1a1c] rounded-[56px] p-[8px] shadow-[0_25px_70px_-15px_rgba(0,0,0,0.95),0_0_0_1px_rgba(255,255,255,0.22),inset_0_0_0_1.5px_#3a3a3d]">
+                <div className="relative w-[285px] max-w-full xs:w-[300px] sm:w-[325px] bg-[#1a1a1c] rounded-[48px] p-[7px] shadow-[0_25px_70px_-15px_rgba(0,0,0,0.95),0_0_0_1px_rgba(255,255,255,0.22),inset_0_0_0_1.5px_#3a3a3d]">
                   {/* Left Hardware: Action Button & Volume Rockers */}
-                  <div className="absolute -left-[3px] top-20 w-[3px] h-4.5 bg-zinc-500 rounded-l-sm" />
-                  <div className="absolute -left-[3px] top-29 w-[3px] h-10 bg-zinc-500 rounded-l-sm" />
-                  <div className="absolute -left-[3px] top-42 w-[3px] h-10 bg-zinc-500 rounded-l-sm" />
+                  <div className="absolute -left-[3px] top-18 w-[3px] h-4 bg-zinc-500 rounded-l-sm" />
+                  <div className="absolute -left-[3px] top-26 w-[3px] h-8 bg-zinc-500 rounded-l-sm" />
+                  <div className="absolute -left-[3px] top-37 w-[3px] h-8 bg-zinc-500 rounded-l-sm" />
                   {/* Right Hardware: Power Button & Flush Camera Control */}
-                  <div className="absolute -right-[3px] top-32 w-[3px] h-14 bg-zinc-500 rounded-r-sm" />
-                  <div className="absolute -right-[3px] top-66 w-[3px] h-8 bg-zinc-600 rounded-r-sm shadow-inner" />
+                  <div className="absolute -right-[3px] top-26 w-[3px] h-11 bg-zinc-500 rounded-r-sm" />
+                  <div className="absolute -right-[3px] top-42 w-[3px] h-7 bg-zinc-600 rounded-r-sm shadow-inner" />
 
                   {/* Phone Screen Frame - 19.5:9 Ultra Retina Display */}
-                  <div className="relative w-full bg-[#131313] rounded-[48px] overflow-hidden border border-[#2a2a2a] flex flex-col h-[750px] max-h-[82vh]">
+                  <div className="relative w-full bg-[#131313] rounded-[40px] overflow-hidden border border-[#2a2a2a] flex flex-col h-[530px] max-h-[72vh] xs:h-[570px] sm:h-[640px]">
                     {/* iOS Status Bar with Dynamic Island */}
                     <div className="h-10 bg-black/45 backdrop-blur-md shrink-0 z-40 px-5 flex items-center justify-between text-[11px] font-semibold text-white select-none pointer-events-none">
                       <span className="tracking-tight font-bold">9:41</span>
@@ -2985,7 +2985,7 @@ function BlockEditModal({
             initial={{ opacity: 0, scale: 0.97, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.97, y: 10 }}
-            className="relative w-full max-w-4xl xl:max-w-5xl bg-[#141414] border border-white/15 rounded overflow-hidden shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9)] flex flex-col max-h-[92vh] z-10"
+            className="relative w-full max-w-4xl xl:max-w-5xl bg-[#141414] border border-white/15 rounded-xl overflow-hidden shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9)] flex flex-col h-[570px] max-h-[88vh] z-10"
           >
             {/* Modal Header */}
             <div className="p-3 px-4 border-b border-white/10 flex items-center justify-between shrink-0 bg-[#1c1b1b]">
@@ -3002,8 +3002,24 @@ function BlockEditModal({
               </div>
 
               <div className="flex items-center gap-2">
+                {/* Top Action Buttons */}
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-3 py-1 rounded bg-[#20201f] text-zinc-300 text-xs font-semibold hover:bg-[#2c2c2c] transition-all cursor-pointer border border-white/10"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  form="block-edit-form"
+                  className="px-3.5 py-1 rounded bg-white text-black text-xs font-bold hover:bg-zinc-200 transition-all cursor-pointer shadow-sm"
+                >
+                  {block ? "Update Block" : "Add Block"}
+                </button>
+
                 {/* Mobile View Switcher */}
-                <div className="flex lg:hidden items-center gap-0.5 bg-[#101010] p-0.5 rounded border border-[#2c2c2c]">
+                <div className="flex lg:hidden items-center gap-0.5 bg-[#101010] p-0.5 rounded border border-[#2c2c2c] ml-1">
                   <button
                     type="button"
                     onClick={() => setActiveTab("edit")}
@@ -3030,20 +3046,88 @@ function BlockEditModal({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="p-1 rounded text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                  className="p-1 rounded text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer ml-1"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
-            {/* Modal Body: Split Form + Live Mockup */}
+            {/* Modal Body: Split Live Mockup + Form */}
             <div className="grid grid-cols-1 lg:grid-cols-12 flex-1 overflow-hidden min-h-0">
-              {/* Left Column: Form Fields */}
+              {/* Left Column: Live iPhone 17 Pro Max Mockup Preview */}
+              <div
+                className={cn(
+                  "lg:col-span-5 bg-[#09090b] p-3 flex flex-col items-center justify-center overflow-y-auto min-h-0 border-b lg:border-b-0 lg:border-r border-white/10",
+                  activeTab === "edit" ? "hidden lg:flex" : "flex"
+                )}
+              >
+                {/* Mockup Title Badge */}
+                <div className="mb-2 flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#18181b] border border-white/10 text-[10px] font-semibold text-zinc-300">
+                  <Smartphone className="w-3 h-3 text-[#c4c0ff]" />
+                  <span>iPhone 17 Pro Max</span>
+                </div>
+
+                <div className="w-full flex justify-center py-0.5 animate-in fade-in zoom-in-95 duration-200">
+                  {/* iPhone 17 Pro Max Titanium Chassis */}
+                  <div className="relative w-[270px] max-w-full bg-gradient-to-b from-[#2a2930] via-[#1c1b22] to-[#121216] rounded-[48px] p-[7px] border border-white/20 shadow-[0_25px_70px_-15px_rgba(0,0,0,0.95),inset_0_0_0_1.5px_#3d3b44]">
+                    {/* Left Hardware Buttons: Action Button + Volume Up/Down */}
+                    <div className="absolute -left-[3px] top-14 w-[3px] h-4 bg-zinc-400 rounded-l-sm shadow-sm" title="Action Button" />
+                    <div className="absolute -left-[3px] top-22 w-[3px] h-7 bg-zinc-500 rounded-l-sm" title="Volume Up" />
+                    <div className="absolute -left-[3px] top-32 w-[3px] h-7 bg-zinc-500 rounded-l-sm" title="Volume Down" />
+                    {/* Right Hardware Buttons: Power + Camera Control */}
+                    <div className="absolute -right-[3px] top-22 w-[3px] h-10 bg-zinc-500 rounded-r-sm" title="Power" />
+                    <div className="absolute -right-[3px] top-36 w-[3px] h-7 bg-zinc-400/90 rounded-r-sm shadow-sm" title="Camera Control" />
+
+                    {/* Screen Glass */}
+                    <div className="relative w-full bg-[#101012] rounded-[40px] overflow-hidden border border-[#28282e] flex flex-col h-[465px]">
+                      {/* Speaker Micro Slot */}
+                      <div className="h-1.5 bg-black shrink-0 flex items-center justify-center">
+                        <div className="w-8 h-[2px] bg-zinc-700/80 rounded-full" />
+                      </div>
+
+                      {/* iOS Status Bar */}
+                      <div className="h-7 bg-black/50 backdrop-blur-md shrink-0 z-40 px-3.5 flex items-center justify-between text-[10px] font-semibold text-white select-none pointer-events-none">
+                        <span className="tracking-tight font-bold text-[10.5px]">9:41</span>
+                        {/* iPhone 17 Pro Max Dynamic Island */}
+                        <div className="w-[76px] h-[17px] bg-black rounded-full flex items-center justify-between px-2 shadow-inner border border-white/10">
+                          <div className="w-1.5 h-1.5 rounded-full bg-[#18181b]" />
+                          <div className="w-2 h-2 rounded-full bg-[#0a1226] border border-[#1b2b48] flex items-center justify-center">
+                            <div className="w-1 h-1 rounded-full bg-blue-400/90" />
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 text-[10px]">
+                          <span className="font-bold tracking-tighter text-[9px]">5G</span>
+                          <div className="w-[14px] h-[7px] rounded-[2px] border border-white/80 p-[1px] flex items-center relative">
+                            <div className="w-full h-full bg-emerald-400 rounded-[0.5px]" />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Live Content */}
+                      <div className="flex-1 w-full overflow-y-auto scrollbar-hide">
+                        <LinkInBioPublicView
+                          username={username || page.username}
+                          initialData={modalPreviewData}
+                          isPreviewMode={true}
+                        />
+                      </div>
+
+                      {/* iOS Bottom Gesture Indicator */}
+                      <div className="h-3 bg-transparent shrink-0 z-40 flex items-center justify-center pointer-events-none">
+                        <div className="w-22 h-0.5 bg-white/40 rounded-full shadow-sm" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Form Fields */}
               <form
+                id="block-edit-form"
                 onSubmit={handleSubmit}
                 className={cn(
-                  "lg:col-span-7 p-4 overflow-y-auto space-y-3.5 border-b lg:border-b-0 lg:border-r border-white/10 flex flex-col justify-between",
+                  "lg:col-span-7 p-4 overflow-y-auto space-y-3.5 flex flex-col justify-between",
                   activeTab === "preview" ? "hidden lg:flex" : "flex"
                 )}
               >
@@ -3243,77 +3327,7 @@ function BlockEditModal({
                     </div>
                   )}
                 </div>
-
-                <div className="flex items-center justify-end gap-2 pt-4 mt-4 border-t border-[#353535]">
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="px-3 py-1.5 bg-[#20201f] text-zinc-300 text-xs font-semibold rounded hover:bg-[#2c2c2c] cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-1.5 bg-white text-black text-xs font-bold rounded hover:bg-zinc-200 transition-all cursor-pointer shadow-sm"
-                  >
-                    {block ? "Update Block" : "Add Block"}
-                  </button>
-                </div>
               </form>
-
-              {/* Right Column: Live Apple Mockup Preview */}
-              <div
-                className={cn(
-                  "lg:col-span-5 bg-[#09090b] p-3 sm:p-4 flex flex-col items-center justify-center overflow-y-auto min-h-[460px]",
-                  activeTab === "edit" ? "hidden lg:flex" : "flex"
-                )}
-              >
-                <div className="w-full flex justify-center py-1 animate-in fade-in zoom-in-95 duration-200">
-                  <div className="relative w-full max-w-[310px] bg-[#1a1a1c] rounded-[44px] p-[8px] shadow-[0_25px_70px_-15px_rgba(0,0,0,0.95),0_0_0_1px_rgba(255,255,255,0.2),inset_0_0_0_1.5px_#3a3a3d]">
-                    {/* Left Hardware */}
-                    <div className="absolute -left-[3px] top-16 w-[3px] h-3.5 bg-zinc-500 rounded-l-sm" />
-                    <div className="absolute -left-[3px] top-22 w-[3px] h-7 bg-zinc-500 rounded-l-sm" />
-                    <div className="absolute -left-[3px] top-32 w-[3px] h-7 bg-zinc-500 rounded-l-sm" />
-                    {/* Right Hardware */}
-                    <div className="absolute -right-[3px] top-26 w-[3px] h-10 bg-zinc-500 rounded-r-sm" />
-
-                    {/* Screen Glass */}
-                    <div className="relative w-full bg-[#131313] rounded-[36px] overflow-hidden border border-[#2a2a2a] flex flex-col h-[520px] max-h-[60vh]">
-                      {/* iOS Status Bar */}
-                      <div className="h-8 bg-black/45 backdrop-blur-md shrink-0 z-40 px-4 flex items-center justify-between text-[10px] font-semibold text-white select-none pointer-events-none">
-                        <span className="tracking-tight font-bold">9:41</span>
-                        {/* Apple Dynamic Island */}
-                        <div className="w-20 h-4 bg-black rounded-full flex items-center justify-between px-2 shadow-inner border border-white/10">
-                          <div className="w-1.5 h-1.5 rounded-full bg-[#18181b]" />
-                          <div className="w-2 h-2 rounded-full bg-[#091122] border border-[#1b2b48] flex items-center justify-center">
-                            <div className="w-1 h-1 rounded-full bg-blue-400/80" />
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1 text-[10px]">
-                          <span className="font-bold tracking-tighter">5G</span>
-                          <div className="w-[15px] h-[7.5px] rounded-[2px] border border-white/80 p-[1px] flex items-center relative">
-                            <div className="w-full h-full bg-emerald-400 rounded-[0.5px]" />
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Live Content */}
-                      <div className="flex-1 w-full overflow-y-auto scrollbar-hide">
-                        <LinkInBioPublicView
-                          username={username || page.username}
-                          initialData={modalPreviewData}
-                          isPreviewMode={true}
-                        />
-                      </div>
-
-                      {/* iOS Bottom Indicator */}
-                      <div className="h-3 bg-transparent shrink-0 z-40 flex items-center justify-center pointer-events-none">
-                        <div className="w-24 h-0.5 bg-white/40 rounded-full shadow-sm" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
           </motion.div>
         </div>

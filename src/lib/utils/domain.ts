@@ -12,7 +12,8 @@ export function isTenantDomain(): boolean {
     host === `app.${rootHost}` ||
     host === rootHost ||
     host === "localhost" ||
-    host === "127.0.0.1";
+    host === "127.0.0.1" ||
+    host.endsWith(".vercel.app");
 
   return !isMainApp;
 }

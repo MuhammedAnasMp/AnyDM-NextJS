@@ -42,7 +42,8 @@ export function middleware(request: NextRequest) {
     currentHost === `api.${rootHost}` ||
     currentHost === rootHost ||
     currentHost === 'localhost' ||
-    currentHost === '127.0.0.1';
+    currentHost === '127.0.0.1' ||
+    currentHost.endsWith('.vercel.app');
 
   if (!isAppHost) {
     // 1. Subdomain of root domain (e.g., my_muscles_factory.zoyee.in)
