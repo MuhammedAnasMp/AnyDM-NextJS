@@ -22,6 +22,7 @@ import api from "@/lib/services/api.service";
 import { getTemplateStyles, TemplateStyle } from "@/components/templates/TemplateProvider";
 import { cn } from "@/lib/utils";
 import { getProductUrl, getTermsUrl, getPrivacyUrl } from "@/lib/utils/domain";
+import LinkInBioPublicView from "@/components/bio/LinkInBioPublicView";
 
 const isVideoUrl = (url: string) => {
   if (!url) return false;
@@ -75,8 +76,20 @@ interface ProductData {
 
 export default function StorefrontPage({ params }: PageProps) {
   const { username } = use(params);
-  const router = useRouter();
 
+  const decodedUsername = decodeURIComponent(username || "");
+  const isBioRequest = decodedUsername.startsWith("@") || username?.startsWith("%40");
+
+  if (isBioRequest) {
+    const cleanBioUsername = decodedUsername.replace(/^@/, "");
+    return <LinkInBioPublicView username={cleanBioUsername} />;
+  }
+
+  return <StorefrontView username={username} />;
+}
+
+function StorefrontView({ username }: { username: string }) {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [supplier, setSupplier] = useState<SupplierData | null>(null);

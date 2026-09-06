@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const backendUrl =
   process.env.BACKEND_API_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
-  "http://172.16.4.167:8001";
+  "https://localapi.locanydm.online";
 
 const nextConfig: NextConfig = {
   async rewrites() {
@@ -15,11 +15,13 @@ const nextConfig: NextConfig = {
     ];
   },
   allowedDevOrigins: [
+    "zoyee.in",
+    "*.zoyee.in",
+    "localapi.locanydm.online",
+    "*.locanydm.online",
     "my_muscles_factory.com",
     "*.my_muscles_factory.com",
     "test_store_unique_slug324.com",
-    "zoyee.in",
-    "*.zoyee.in",
     "*.anydm.in",
     "*.com",
     "*.in",
@@ -32,7 +34,6 @@ const nextConfig: NextConfig = {
     "*.store",
     "*.shop",
     "*.xyz",
-    "172.16.4.167",
     "localhost:3000",
   ],
 } as any;

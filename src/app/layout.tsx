@@ -20,7 +20,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark scroll-smooth">
+    <html lang="en" className="dark scroll-smooth" suppressHydrationWarning>
       <head>
         <link
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Mono&display=swap"
@@ -31,7 +31,10 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="bg-background text-on-background antialiased selection:bg-primary/20 min-h-screen flex flex-col">
+      <body
+        className="bg-background text-on-background antialiased selection:bg-primary/20 min-h-screen flex flex-col"
+        suppressHydrationWarning
+      >
         <div className="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none -z-10">
           <div className="absolute -top-[10%] -left-[5%] w-[40%] h-[40%] bg-[#605ca2]/5 blur-[120px] rounded-full"></div>
           <div className="absolute bottom-[10%] right-[0%] w-[30%] h-[30%] bg-primary/5 blur-[100px] rounded-full"></div>

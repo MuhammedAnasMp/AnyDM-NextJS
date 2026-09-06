@@ -13,7 +13,7 @@ import { auth, googleProvider } from '../firebase';
 import { store } from '@/store';
 import { setUser, clearAuth, setInstagramAccounts, setTokens, setHydrating, setFetchingAccounts } from '@/store/slices/authSlice';
 
-const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://172.16.4.167:8001';
+const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://localapi.locanydm.online';
 const hasProtocol = rawApiUrl.startsWith('http://') || rawApiUrl.startsWith('https://');
 const isLocal = rawApiUrl.includes('localhost') || 
                 rawApiUrl.includes('127.0.0.1') || 

@@ -113,6 +113,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
     if (pathname.startsWith("/dashboard/refer")) return "Refer";
     if (pathname.startsWith("/dashboard/pricing")) return "Pricing";
     if (pathname.startsWith("/dashboard/admin")) return "Admin";
+    if (pathname.startsWith("/dashboard/bio")) return "Bio";
     if (pathname.startsWith("/dashboard/analytics") || pathname.startsWith("/dashboard/revenue") || pathname === "/dashboard") return "Dashboard";
     return "Dashboard";
   };
@@ -165,6 +166,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
       { name: "Order Settings", href: "/dashboard/admin/order-settings" },
       { name: "Payment Settlements", href: "/dashboard/admin/payment-settlement" },
     ],
+    Bio: [],
     Schedule: [],
     Refer: [],
     Pricing: [],

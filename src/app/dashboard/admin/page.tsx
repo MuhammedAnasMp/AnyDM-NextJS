@@ -16,6 +16,14 @@ import {
   EyeOff,
   AlertTriangle,
   Award,
+  Gift,
+  DollarSign,
+  Percent,
+  Calendar,
+  Wallet,
+  Crown,
+  ChevronRight,
+  BookOpen,
 } from "lucide-react";
 import api from "@/lib/services/api.service";
 import Toast from "@/components/Toast";
@@ -48,10 +56,21 @@ export default function AdminSettingsPage() {
     extend_days: 7,
     referral_points: 50,
     points_to_redeem: 100,
+    official_follow_points: 50,
     premium_plan_price: 499.0,
     enable_ai: true,
     enable_subscription_ai: false,
     business_gemini_api_key: "",
+    // 🎁 Creator VIP Free Pro
+    creator_vip_extended_trial_days: 15,
+    creator_vip_points_per_paid_sub: 20,
+    creator_vip_max_redemption_months: 5,
+    creator_vip_default_term_months: 3,
+    // 💰 Creator Commission Earnings
+    creator_commission_percent: 10.0,
+    creator_min_payout_amount: 500.0,
+    creator_payout_cycle_days: 30,
+    creator_commission_default_term_months: 6,
   });
 
   const [showApiKey, setShowApiKey] = useState(false);
@@ -74,10 +93,19 @@ export default function AdminSettingsPage() {
             extend_days: res.data.extend_days ?? 7,
             referral_points: res.data.referral_points ?? 50,
             points_to_redeem: res.data.points_to_redeem ?? 100,
+            official_follow_points: res.data.official_follow_points ?? 50,
             premium_plan_price: parseFloat(res.data.premium_plan_price) || 499.0,
             enable_ai: res.data.enable_ai !== false,
             enable_subscription_ai: !!res.data.enable_subscription_ai,
             business_gemini_api_key: res.data.business_gemini_api_key ?? "",
+            creator_vip_extended_trial_days: res.data.creator_vip_extended_trial_days ?? 15,
+            creator_vip_points_per_paid_sub: res.data.creator_vip_points_per_paid_sub ?? 20,
+            creator_vip_max_redemption_months: res.data.creator_vip_max_redemption_months ?? 5,
+            creator_vip_default_term_months: res.data.creator_vip_default_term_months ?? 3,
+            creator_commission_percent: parseFloat(res.data.creator_commission_percent) || 10.0,
+            creator_min_payout_amount: parseFloat(res.data.creator_min_payout_amount) || 500.0,
+            creator_payout_cycle_days: res.data.creator_payout_cycle_days ?? 30,
+            creator_commission_default_term_months: res.data.creator_commission_default_term_months ?? 6,
           });
         }
       } catch (err) {
@@ -103,10 +131,19 @@ export default function AdminSettingsPage() {
           extend_days: res.data.settings.extend_days ?? 7,
           referral_points: res.data.settings.referral_points ?? 50,
           points_to_redeem: res.data.settings.points_to_redeem ?? 100,
+          official_follow_points: res.data.settings.official_follow_points ?? 50,
           premium_plan_price: parseFloat(res.data.settings.premium_plan_price) || 499.0,
           enable_ai: res.data.settings.enable_ai !== false,
           enable_subscription_ai: !!res.data.settings.enable_subscription_ai,
           business_gemini_api_key: res.data.settings.business_gemini_api_key ?? "",
+          creator_vip_extended_trial_days: res.data.settings.creator_vip_extended_trial_days ?? 15,
+          creator_vip_points_per_paid_sub: res.data.settings.creator_vip_points_per_paid_sub ?? 20,
+          creator_vip_max_redemption_months: res.data.settings.creator_vip_max_redemption_months ?? 5,
+          creator_vip_default_term_months: res.data.settings.creator_vip_default_term_months ?? 3,
+          creator_commission_percent: parseFloat(res.data.settings.creator_commission_percent) || 10.0,
+          creator_min_payout_amount: parseFloat(res.data.settings.creator_min_payout_amount) || 500.0,
+          creator_payout_cycle_days: res.data.settings.creator_payout_cycle_days ?? 30,
+          creator_commission_default_term_months: res.data.settings.creator_commission_default_term_months ?? 6,
         });
       }
     } catch (err: any) {
@@ -163,15 +200,24 @@ export default function AdminSettingsPage() {
               </p>
             </div>
           </div>
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="px-4 py-2 rounded-md font-medium text-xs flex items-center gap-1.5 transition-opacity hover:opacity-90 disabled:opacity-50 cursor-pointer"
-            style={{ backgroundColor: t.primary, color: t.onPrimary }}
-          >
-            {isSaving ? <RefreshCw className="w-4 h-4 animate-spin" strokeWidth={1.75} /> : <Save className="w-4 h-4" strokeWidth={1.75} />}
-            <span>Save configuration</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/dashboard/admin/docs"
+              className="px-3 py-2 rounded-md font-medium text-xs flex items-center gap-1.5 border border-white/10 bg-white/5 hover:bg-white/10 text-zinc-300 transition-colors"
+            >
+              <BookOpen className="w-4 h-4 text-purple-400" />
+              <span>System Documentation</span>
+            </Link>
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="px-4 py-2 rounded-md font-medium text-xs flex items-center gap-1.5 transition-opacity hover:opacity-90 disabled:opacity-50 cursor-pointer"
+              style={{ backgroundColor: t.primary, color: t.onPrimary }}
+            >
+              {isSaving ? <RefreshCw className="w-4 h-4 animate-spin" strokeWidth={1.75} /> : <Save className="w-4 h-4" strokeWidth={1.75} />}
+              <span>Save configuration</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -259,6 +305,24 @@ export default function AdminSettingsPage() {
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium" style={{ color: t.onSurfaceVariant }}>
+                  Follow @anydm.in Instagram Points
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2.5 text-zinc-500">
+                    <Sparkles className="w-3.5 h-3.5" />
+                  </span>
+                  <input
+                    type="number"
+                    value={globalSettings.official_follow_points}
+                    onChange={(e) => setGlobalSettings({ ...globalSettings, official_follow_points: parseInt(e.target.value) || 0 })}
+                    className="w-full rounded text-xs py-2 pl-9 pr-3 focus:outline-none transition-colors"
+                    style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface }}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium" style={{ color: t.onSurfaceVariant }}>
                   Premium Paid Plan Price (INR)
                 </label>
                 <div className="relative">
@@ -278,50 +342,230 @@ export default function AdminSettingsPage() {
           </section>
 
           {/* Creator & Affiliate Campaign Program */}
-          <section className="rounded-lg p-5 space-y-4" style={{ backgroundColor: t.surfaceContainer }}>
-            <h3 className="text-sm font-semibold tracking-wide flex items-center gap-2" style={{ color: t.accentCyan }}>
-              <Award className="w-4 h-4" />
-              <span>Creator &amp; Affiliate Program Parameters</span>
-            </h3>
+          <section className="rounded-lg p-5 space-y-6" style={{ backgroundColor: t.surfaceContainer }}>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-white/5">
+              <div className="flex items-center gap-2">
+                <Award className="w-4 h-4" style={{ color: t.accentCyan }} />
+                <h3 className="text-sm font-semibold tracking-wide" style={{ color: t.accentCyan }}>
+                  Creator &amp; Affiliate Program Parameters
+                </h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/dashboard/admin/users"
+                  className="text-[11px] font-medium px-2.5 py-1 rounded bg-white/5 hover:bg-white/10 text-zinc-300 border border-white/10 flex items-center gap-1 transition-colors"
+                >
+                  <Crown className="w-3 h-3 text-[#c4c0ff]" />
+                  <span>Manage Creators</span>
+                </Link>
+                <Link
+                  href="/dashboard/admin/payment-settlement"
+                  className="text-[11px] font-medium px-2.5 py-1 rounded bg-white/5 hover:bg-white/10 text-zinc-300 border border-white/10 flex items-center gap-1 transition-colors"
+                >
+                  <Wallet className="w-3 h-3 text-emerald-400" />
+                  <span>Settlements</span>
+                </Link>
+              </div>
+            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium" style={{ color: t.onSurfaceVariant }}>
-                  Audience Extended Trial (Days)
-                </label>
-                <input
-                  type="number"
-                  defaultValue={15}
-                  className="w-full rounded text-xs py-2 px-3 focus:outline-none transition-colors"
-                  style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface }}
-                />
-                <span className="text-[10px]" style={{ color: t.onSurfaceVariant }}>Granted to signups via creator links</span>
+            {/* Option 1: 🎁 VIP Free Pro Model */}
+            <div className="rounded-md p-4 space-y-3.5 border border-[#c4c0ff]/20 bg-[#16161b]">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded bg-[#c4c0ff]/10 text-[#c4c0ff]">
+                    <Gift className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-[#e5e2e1] flex items-center gap-1.5">
+                      <span>🎁 VIP Free Pro Program</span>
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#c4c0ff]/15 text-[#c4c0ff] border border-[#c4c0ff]/30">
+                        Points &amp; Pro Redemptions
+                      </span>
+                    </h4>
+                    <p className="text-[11px] text-[#8e9192] mt-0.5">
+                      Creators invite audiences to extend their trial, earn bounty points on paid conversions, and redeem Creator Pro for free.
+                    </p>
+                  </div>
+                </div>
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium" style={{ color: t.onSurfaceVariant }}>
-                  Points per Paid Conversion
-                </label>
-                <input
-                  type="number"
-                  defaultValue={20}
-                  className="w-full rounded text-xs py-2 px-3 focus:outline-none transition-colors"
-                  style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface }}
-                />
-                <span className="text-[10px]" style={{ color: t.onSurfaceVariant }}>Credited ONLY on first paid purchase</span>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3.5 pt-1">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium" style={{ color: t.onSurfaceVariant }}>
+                    Default VIP Access Term (Months)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2.5 text-zinc-500">
+                      <Calendar className="w-3.5 h-3.5" />
+                    </span>
+                    <input
+                      type="number"
+                      value={globalSettings.creator_vip_default_term_months}
+                      onChange={(e) => setGlobalSettings({ ...globalSettings, creator_vip_default_term_months: parseInt(e.target.value) || 0 })}
+                      className="w-full rounded text-xs py-2 pl-9 pr-3 focus:outline-none transition-colors"
+                      style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface }}
+                    />
+                  </div>
+                  <span className="text-[10px]" style={{ color: t.onSurfaceVariant }}>Default term on granting VIP Pro</span>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium" style={{ color: t.onSurfaceVariant }}>
+                    Audience Extended Trial (Days)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2.5 text-zinc-500">
+                      <Clock className="w-3.5 h-3.5" />
+                    </span>
+                    <input
+                      type="number"
+                      value={globalSettings.creator_vip_extended_trial_days}
+                      onChange={(e) => setGlobalSettings({ ...globalSettings, creator_vip_extended_trial_days: parseInt(e.target.value) || 0 })}
+                      className="w-full rounded text-xs py-2 pl-9 pr-3 focus:outline-none transition-colors"
+                      style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface }}
+                    />
+                  </div>
+                  <span className="text-[10px]" style={{ color: t.onSurfaceVariant }}>Granted to signups via creator code</span>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium" style={{ color: t.onSurfaceVariant }}>
+                    Points per Paid Conversion
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2.5 text-zinc-500">
+                      <Coins className="w-3.5 h-3.5" />
+                    </span>
+                    <input
+                      type="number"
+                      value={globalSettings.creator_vip_points_per_paid_sub}
+                      onChange={(e) => setGlobalSettings({ ...globalSettings, creator_vip_points_per_paid_sub: parseInt(e.target.value) || 0 })}
+                      className="w-full rounded text-xs py-2 pl-9 pr-3 focus:outline-none transition-colors"
+                      style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface }}
+                    />
+                  </div>
+                  <span className="text-[10px]" style={{ color: t.onSurfaceVariant }}>Credited on paid conversion during VIP</span>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium" style={{ color: t.onSurfaceVariant }}>
+                    Max Pro Redemption Cap (Months)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2.5 text-zinc-500">
+                      <Calendar className="w-3.5 h-3.5" />
+                    </span>
+                    <input
+                      type="number"
+                      value={globalSettings.creator_vip_max_redemption_months}
+                      onChange={(e) => setGlobalSettings({ ...globalSettings, creator_vip_max_redemption_months: parseInt(e.target.value) || 0 })}
+                      className="w-full rounded text-xs py-2 pl-9 pr-3 focus:outline-none transition-colors"
+                      style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface }}
+                    />
+                  </div>
+                  <span className="text-[10px]" style={{ color: t.onSurfaceVariant }}>Max free Pro months redeemable</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Option 2: 💰 Commission Earnings Model */}
+            <div className="rounded-md p-4 space-y-3.5 border border-emerald-500/20 bg-[#121814]">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded bg-emerald-500/10 text-emerald-400">
+                    <DollarSign className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-[#e5e2e1] flex items-center gap-1.5">
+                      <span>💰 Commission Earnings Program</span>
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                        Cash &amp; Bank Payouts
+                      </span>
+                    </h4>
+                    <p className="text-[11px] text-[#8e9192] mt-0.5">
+                      Affiliates and high-tier partners earn recurring revenue-share commission in INR on every referred subscriber.
+                    </p>
+                  </div>
+                </div>
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium" style={{ color: t.onSurfaceVariant }}>
-                  Max Redemption Cap (Months)
-                </label>
-                <input
-                  type="number"
-                  defaultValue={5}
-                  className="w-full rounded text-xs py-2 px-3 focus:outline-none transition-colors"
-                  style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface }}
-                />
-                <span className="text-[10px]" style={{ color: t.onSurfaceVariant }}>Max points redemption limit</span>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3.5 pt-1">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium" style={{ color: t.onSurfaceVariant }}>
+                    Default Program Term (Months)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2.5 text-zinc-500">
+                      <Clock className="w-3.5 h-3.5" />
+                    </span>
+                    <input
+                      type="number"
+                      value={globalSettings.creator_commission_default_term_months}
+                      onChange={(e) => setGlobalSettings({ ...globalSettings, creator_commission_default_term_months: parseInt(e.target.value) || 0 })}
+                      className="w-full rounded text-xs py-2 pl-9 pr-3 focus:outline-none transition-colors"
+                      style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface }}
+                    />
+                  </div>
+                  <span className="text-[10px]" style={{ color: t.onSurfaceVariant }}>Duration before commission program ends</span>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium" style={{ color: t.onSurfaceVariant }}>
+                    Default Commission Rate (%)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2.5 text-zinc-500">
+                      <Percent className="w-3.5 h-3.5" />
+                    </span>
+                    <input
+                      type="number"
+                      step="0.5"
+                      value={globalSettings.creator_commission_percent}
+                      onChange={(e) => setGlobalSettings({ ...globalSettings, creator_commission_percent: parseFloat(e.target.value) || 0.0 })}
+                      className="w-full rounded text-xs py-2 pl-9 pr-3 focus:outline-none transition-colors"
+                      style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface }}
+                    />
+                  </div>
+                  <span className="text-[10px]" style={{ color: t.onSurfaceVariant }}>Platform default revenue share %</span>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium" style={{ color: t.onSurfaceVariant }}>
+                    Minimum Payout Threshold (₹)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2 text-zinc-500 font-semibold text-sm">
+                      ₹
+                    </span>
+                    <input
+                      type="number"
+                      value={globalSettings.creator_min_payout_amount}
+                      onChange={(e) => setGlobalSettings({ ...globalSettings, creator_min_payout_amount: parseFloat(e.target.value) || 0.0 })}
+                      className="w-full rounded text-xs py-2 pl-9 pr-3 focus:outline-none transition-colors"
+                      style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface }}
+                    />
+                  </div>
+                  <span className="text-[10px]" style={{ color: t.onSurfaceVariant }}>Min earnings before settlement release</span>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium" style={{ color: t.onSurfaceVariant }}>
+                    Payout Settlement Cycle (Days)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2.5 text-zinc-500">
+                      <Calendar className="w-3.5 h-3.5" />
+                    </span>
+                    <input
+                      type="number"
+                      value={globalSettings.creator_payout_cycle_days}
+                      onChange={(e) => setGlobalSettings({ ...globalSettings, creator_payout_cycle_days: parseInt(e.target.value) || 0 })}
+                      className="w-full rounded text-xs py-2 pl-9 pr-3 focus:outline-none transition-colors"
+                      style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface }}
+                    />
+                  </div>
+                  <span className="text-[10px]" style={{ color: t.onSurfaceVariant }}>E.g. 7 (weekly), 30 (monthly)</span>
+                </div>
               </div>
             </div>
           </section>
@@ -412,8 +656,26 @@ export default function AdminSettingsPage() {
           </section>
         </div>
 
-        {/* Right Column - Warnings */}
+        {/* Right Column - Warnings & Reference Docs */}
         <div className="lg:col-span-1 flex flex-col gap-6">
+          {/* Documentation Card */}
+          <div className="rounded-lg p-5 border border-purple-500/20 bg-gradient-to-b from-purple-950/20 to-[#1e1e24] space-y-3">
+            <div className="flex items-center gap-2 text-purple-300">
+              <BookOpen className="w-4 h-4" />
+              <h4 className="font-semibold text-xs text-white">System Documentation</h4>
+            </div>
+            <p className="text-[11px] text-[#c4c7c8]/80 leading-relaxed">
+              Read the complete specification for Membership Plans, Features, Point Economics, VIP Free Pro, and Affiliate Commission lifecycle rules.
+            </p>
+            <Link
+              href="/dashboard/admin/docs"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-purple-300 hover:text-purple-200 transition-colors"
+            >
+              <span>View full reference docs</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
           <div className="bg-[#20201f] border border-red-500/20 rounded-md p-4 flex gap-3">
             <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
             <div className="space-y-1">

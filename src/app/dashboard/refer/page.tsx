@@ -87,13 +87,14 @@ export default function ReferPage() {
     setClaimFollowLoading(true);
     try {
       const res = await api.post("/accounts/official-follow/claim/");
-      showToast(res.data?.message || "Success! +50 points added for following @anydm.in.", "success");
+      const ptsAwarded = res.data?.points_awarded || stats?.official_follow_points || 50;
+      showToast(res.data?.message || `Success! +${ptsAwarded} points added for following @anydm.in.`, "success");
       if (res.data?.user) dispatch(setUser(res.data.user));
       setStats((prev: any) => ({
         ...prev,
-        points: res.data?.points ?? ((prev?.points || 0) + 50),
+        points: res.data?.points ?? ((prev?.points || 0) + ptsAwarded),
         is_following_official_account: true,
-        official_follow_points_awarded: 50,
+        official_follow_points_awarded: ptsAwarded,
       }));
     } catch (err: any) {
       const msg = err.response?.data?.error || err.response?.data?.details || "Failed to claim follow reward.";
@@ -250,7 +251,7 @@ export default function ReferPage() {
           {stats?.is_following_official_account ? (
             <div className="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-md bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
               <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-              <span>50 Points Claimed (Following @anydm.in)</span>
+              <span>{stats?.official_follow_points_awarded || stats?.official_follow_points || 50} Points Claimed (Following @anydm.in)</span>
             </div>
           ) : (
             <button
@@ -263,7 +264,7 @@ export default function ReferPage() {
               ) : (
                 <Sparkles className="w-3.5 h-3.5 text-zinc-950" />
               )}
-              <span>Follow &amp; Claim 50 Points</span>
+              <span>Follow &amp; Claim {stats?.official_follow_points || 50} Points</span>
             </button>
           )}
         </div>

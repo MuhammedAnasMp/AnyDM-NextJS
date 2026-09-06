@@ -69,6 +69,12 @@ export default function AdminUsersPage() {
   // VIP Grant modal / state
   const [targetEmail, setTargetEmail] = useState("");
   const [grantMonths, setGrantMonths] = useState(3);
+  const [durationMode, setDurationMode] = useState<"preset" | "custom_date">("preset");
+  const [customEndDate, setCustomEndDate] = useState(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() + 3);
+    return d.toISOString().split("T")[0];
+  });
   const [rewardType, setRewardType] = useState<"vip" | "commission">("vip");
   const [commissionPercent, setCommissionPercent] = useState(10);
   const [isGranting, setIsGranting] = useState(false);
@@ -134,12 +140,16 @@ export default function AdminUsersPage() {
     if (!targetEmail.trim()) return;
     setIsGranting(true);
     try {
-      const endpoint = rewardType === 'commission' 
-        ? "/accounts/admin/set-creator-type/"
-        : "/accounts/admin/grant-creator-vip/";
-      const payload = rewardType === 'commission'
-        ? { email: targetEmail.trim(), reward_type: 'commission', commission_percent: commissionPercent }
-        : { email: targetEmail.trim(), reward_type: 'vip', months: grantMonths };
+      const endpoint = "/accounts/admin/set-creator-type/";
+      const payload: any = {
+        email: targetEmail.trim(),
+        reward_type: rewardType,
+        months: grantMonths,
+        commission_percent: commissionPercent,
+      };
+      if (durationMode === "custom_date" && customEndDate) {
+        payload.end_date = customEndDate;
+      }
       const res = await api.post(endpoint, payload);
       showToast(res.data?.message || `Creator reward set for ${targetEmail.trim()}!`, "success");
       setShowGrantModal(false);
@@ -149,6 +159,7 @@ export default function AdminUsersPage() {
           plan: rewardType === 'vip' ? "pro" : prev.plan,
           is_creator_vip: true,
           creator_reward_type: rewardType,
+          creator_commission_percent: commissionPercent,
           is_premium_active: rewardType === 'vip' ? true : prev.is_premium_active,
         }));
       }
@@ -437,22 +448,36 @@ export default function AdminUsersPage() {
 
                       <td className="py-3 text-center">
                         {user.is_creator_vip ? (
-                          <div className="inline-flex flex-col items-center gap-0.5">
-                            <span className={`px-2 py-0.5 text-[10px] font-bold border rounded ${
-                              user.creator_reward_type === 'commission'
-                                ? 'bg-amber-500/10 text-amber-300 border-amber-500/25'
-                                : 'bg-[#c4c0ff]/10 text-[#c4c0ff] border-[#c4c0ff]/25'
-                            }`}>
-                              {user.creator_reward_type === 'commission' 
-                                ? `💰 ${user.creator_commission_percent || 10}% Comm.` 
-                                : '👑 VIP Free Pro'}
-                            </span>
-                            {user.creator_reward_type === 'commission' && (user.commission_total_pending > 0 || user.commission_total_earned > 0) && (
-                              <span className="text-[9px] font-mono text-amber-400 font-semibold">
-                                ₹{user.commission_total_pending || 0} Pending
-                              </span>
-                            )}
-                          </div>
+                          (() => {
+                            const isExpired = user.creator_program_expires_at ? new Date(user.creator_program_expires_at) <= new Date() : false;
+                            return (
+                              <div className="inline-flex flex-col items-center gap-0.5">
+                                <span className={`px-2 py-0.5 text-[10px] font-bold border rounded ${
+                                  isExpired
+                                    ? 'bg-red-500/10 text-red-400 border-red-500/25'
+                                    : user.creator_reward_type === 'commission'
+                                    ? 'bg-amber-500/10 text-amber-300 border-amber-500/25'
+                                    : 'bg-[#c4c0ff]/10 text-[#c4c0ff] border-[#c4c0ff]/25'
+                                }`}>
+                                  {isExpired 
+                                    ? `⏰ Expired (${user.creator_reward_type === 'commission' ? 'Comm.' : 'VIP'})`
+                                    : user.creator_reward_type === 'commission' 
+                                    ? `💰 ${user.creator_commission_percent || 10}% Comm.` 
+                                    : '👑 VIP Free Pro'}
+                                </span>
+                                {user.creator_program_expires_at && (
+                                  <span className="text-[9px] text-zinc-400">
+                                    {isExpired ? 'Ended: ' : 'Till: '}{new Date(user.creator_program_expires_at).toLocaleDateString()}
+                                  </span>
+                                )}
+                                {user.creator_reward_type === 'commission' && (user.commission_total_pending > 0 || user.commission_total_earned > 0) && (
+                                  <span className="text-[9px] font-mono text-amber-400 font-semibold">
+                                    ₹{user.commission_total_pending || 0} Pending
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })()
                         ) : (
                           <span className="text-[11px] text-zinc-500 font-mono">—</span>
                         )}
@@ -903,8 +928,9 @@ export default function AdminUsersPage() {
                   <button
                     onClick={() => {
                       setTargetEmail(selectedUser.email || selectedUser.username);
-                      setGrantMonths(3);
-                      setRewardType(selectedUser.creator_reward_type || "vip");
+                      const type = selectedUser.creator_reward_type || "vip";
+                      setRewardType(type);
+                      setGrantMonths(type === 'commission' ? 6 : 3);
                       setCommissionPercent(selectedUser.creator_commission_percent || 10);
                       setShowGrantModal(true);
                     }}
@@ -984,34 +1010,101 @@ export default function AdminUsersPage() {
                 </div>
               </div>
 
-              {rewardType === "vip" ? (
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-zinc-400">VIP Pro Access Term</label>
-                  <select
-                    value={grantMonths}
-                    onChange={(e) => setGrantMonths(parseInt(e.target.value) || 3)}
-                    className="w-full bg-[#101012] border border-[#444748] rounded text-xs py-2 px-3 text-white focus:outline-none focus:border-[#c4c0ff] cursor-pointer"
-                  >
-                    <option value={1}>1 Month Free Pro</option>
-                    <option value={3}>3 Months Free Pro (Recommended)</option>
-                    <option value={6}>6 Months Free Pro</option>
-                    <option value={12}>1 Year Free Pro</option>
-                  </select>
+              {/* Duration & End Date Selection */}
+              <div className="space-y-2.5 pt-1 border-t border-white/5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium text-zinc-300">
+                    {rewardType === "vip" ? "VIP Pro Access Duration" : "Commission Program Duration"}
+                  </label>
+                  <div className="flex items-center gap-1 bg-[#101012] p-0.5 rounded border border-white/10 text-[10px]">
+                    <button
+                      type="button"
+                      onClick={() => setDurationMode("preset")}
+                      className={`px-2 py-0.5 rounded font-medium transition-colors ${
+                        durationMode === "preset" ? "bg-[#c4c0ff] text-black font-bold" : "text-zinc-400 hover:text-white"
+                      }`}
+                    >
+                      Term Months
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDurationMode("custom_date")}
+                      className={`px-2 py-0.5 rounded font-medium transition-colors ${
+                        durationMode === "custom_date" ? "bg-[#c4c0ff] text-black font-bold" : "text-zinc-400 hover:text-white"
+                      }`}
+                    >
+                      Custom End Date
+                    </button>
+                  </div>
                 </div>
-              ) : (
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-zinc-400">Commission Percentage (%)</label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={100}
-                    value={commissionPercent}
-                    onChange={(e) => setCommissionPercent(parseInt(e.target.value) || 10)}
-                    className="w-full bg-[#101012] border border-[#444748] rounded text-xs py-2 px-3 text-white focus:outline-none focus:border-[#c4c0ff]"
-                  />
-                  <p className="text-[10px] text-zinc-500">Creator earns this % of each referred user's first payment only.</p>
+
+                {rewardType === "commission" && (
+                  <div className="flex flex-col gap-1.5 pb-2">
+                    <label className="text-xs font-medium text-zinc-400">Commission Percentage (%)</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={100}
+                      value={commissionPercent}
+                      onChange={(e) => setCommissionPercent(parseInt(e.target.value) || 10)}
+                      className="w-full bg-[#101012] border border-[#444748] rounded text-xs py-2 px-3 text-white focus:outline-none focus:border-[#c4c0ff]"
+                    />
+                  </div>
+                )}
+
+                {durationMode === "preset" ? (
+                  <div className="flex flex-col gap-1.5">
+                    <select
+                      value={grantMonths}
+                      onChange={(e) => {
+                        const m = parseInt(e.target.value) || 3;
+                        setGrantMonths(m);
+                        const d = new Date();
+                        d.setMonth(d.getMonth() + m);
+                        setCustomEndDate(d.toISOString().split("T")[0]);
+                      }}
+                      className="w-full bg-[#101012] border border-[#444748] rounded text-xs py-2 px-3 text-white focus:outline-none focus:border-[#c4c0ff] cursor-pointer"
+                    >
+                      <option value={1}>1 Month Duration</option>
+                      <option value={3}>3 Months Duration (VIP Default)</option>
+                      <option value={6}>6 Months Duration (Commission Default)</option>
+                      <option value={12}>1 Year Duration</option>
+                      <option value={24}>2 Years Duration</option>
+                      <option value={36}>3 Years Duration</option>
+                    </select>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-1.5">
+                    <input
+                      type="date"
+                      value={customEndDate}
+                      min={new Date().toISOString().split("T")[0]}
+                      onChange={(e) => setCustomEndDate(e.target.value)}
+                      className="w-full bg-[#101012] border border-[#444748] rounded text-xs py-2 px-3 text-white focus:outline-none focus:border-[#c4c0ff] cursor-pointer"
+                    />
+                  </div>
+                )}
+
+                {/* Live End Date Preview Box */}
+                <div className="p-2.5 rounded bg-white/5 border border-white/10 flex items-center justify-between text-xs">
+                  <span className="text-zinc-400">Program Ends On:</span>
+                  <span className="font-bold text-[#c4c0ff] font-mono">
+                    {durationMode === "custom_date" && customEndDate
+                      ? new Date(customEndDate).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+                      : (() => {
+                          const d = new Date();
+                          d.setMonth(d.getMonth() + grantMonths);
+                          return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+                        })()}
+                  </span>
                 </div>
-              )}
+
+                <p className="text-[10px] text-zinc-500 leading-relaxed">
+                  {rewardType === "vip"
+                    ? "After this end date, Creator Pro access expires and user reverts to standard referral reward points."
+                    : "After this end date, commission earnings stop and future referrals award standard referral points."}
+                </p>
+              </div>
             </div>
 
             <div className="flex justify-end gap-2 pt-2 border-t border-white/10">

@@ -7,15 +7,14 @@ import { useSelector } from "react-redux";
 import { RootState } from "@/store";
 import { cn } from "@/lib/utils";
 import { auth } from "@/lib/firebase";
+import type { User as FirebaseUser } from "firebase/auth";
 import {
   LayoutDashboard,
   Zap,
-  Gamepad2,
   Package,
   MessageSquare,
   Settings,
   X,
-  Video,
   Gift,
   CreditCard,
   ShieldAlert,
@@ -23,6 +22,7 @@ import {
   ChevronRight,
   CalendarClock,
   DollarSign,
+  Link2,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -33,7 +33,7 @@ interface SidebarProps {
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
   const appUser = useSelector((state: RootState) => state.auth.user);
-  const [firebaseUser, setFirebaseUser] = useState<any>(null);
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
 
   useEffect(() => {
     if (!auth) return;
@@ -44,6 +44,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   }, []);
 
   const getActiveTab = () => {
+    if (pathname.startsWith("/dashboard/bio") || pathname.startsWith("/dashboard/link-in-bio")) return "Link-in-Bio";
     if (pathname.startsWith("/dashboard/automations") || pathname.startsWith("/dashboard/automation")) return "Automations";
     if (pathname.startsWith("/dashboard/schedule") || pathname.startsWith("/dashboard/publisher")) return "Schedule Posts";
     if (pathname.startsWith("/dashboard/videos")) return "Videos";
@@ -65,6 +66,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const menuItems = [
     { name: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
+    { name: "Link-in-Bio", icon: Link2, href: "/dashboard/bio" },
     { name: "Automations", icon: Zap, href: "/dashboard/automation" },
     { name: "Schedule Posts", icon: CalendarClock, href: "/dashboard/schedule" },
     // { name: "Videos", icon: Video, href: "/dashboard/videos" },
@@ -79,7 +81,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   ];
 
   const userDisplayName = appUser?.display_name || appUser?.first_name || "Alex Rivera";
-  const googlePhoto = firebaseUser?.providerData?.find((p: any) => p.providerId === "google.com")?.photoURL || firebaseUser?.photoURL;
+  const googlePhoto = firebaseUser?.providerData?.find((p: { providerId: string; photoURL?: string | null }) => p.providerId === "google.com")?.photoURL || firebaseUser?.photoURL;
   const userPhoto = googlePhoto || appUser?.photo_url || "https://static.vecteezy.com/system/resources/previews/002/318/271/non_2x/user-profile-icon-free-vector.jpg";
 
   const getAccountTypeLabel = () => {
