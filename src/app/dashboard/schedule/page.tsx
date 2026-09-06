@@ -1475,10 +1475,10 @@ export default function InstagramSchedulerPage() {
                   {/* Studio Ambient Glow */}
                   <div className="absolute w-80 h-80 bg-gradient-to-tr from-purple-600/15 via-[#c4c0ff]/15 to-pink-500/15 blur-3xl rounded-full pointer-events-none" />
 
-                  {/* Header Tag with F                  {/* ── Responsive iPhone 16 Pro Wrapper ── */}
-                  <div className="transform scale-[0.72] sm:scale-90 md:scale-95 lg:scale-100 origin-center sm:origin-top lg:origin-center -my-20 sm:-my-6 lg:my-0 flex justify-center shrink-0">
+                  {/* ── Responsive iPhone 16 Pro Wrapper ── */}
+                  <div className="transform scale-[0.85] sm:scale-90 lg:scale-95 origin-center flex justify-center shrink-0">
                     {/* ── iPhone 16 Pro Titanium Chassis ── */}
-                    <div className="relative w-[310px] h-[630px] rounded-[50px] p-[10px] shadow-[0_30px_70px_-15px_rgba(0,0,0,1),0_0_0_1px_rgba(255,255,255,0.22),0_0_0_4px_#222222,0_0_20px_rgba(0,0,0,0.8)] bg-gradient-to-b from-[#3a3a3a] via-[#1c1c1e] to-[#2a2a2a] flex flex-col shrink-0 overflow-visible">
+                    <div className="relative w-[270px] h-[540px] rounded-[44px] p-[8px] shadow-[0_30px_70px_-15px_rgba(0,0,0,1),0_0_0_1px_rgba(255,255,255,0.22),0_0_0_4px_#222222,0_0_20px_rgba(0,0,0,0.8)] bg-gradient-to-b from-[#3a3a3a] via-[#1c1c1e] to-[#2a2a2a] flex flex-col shrink-0 overflow-visible">
 
                       {/* Titanium Antenna Bands */}
                       <div className="absolute top-[80px] -left-[1px] w-[2px] h-[4px] bg-[#555] rounded-full" />

@@ -27,6 +27,8 @@ import {
   MoveUp,
   MoveDown,
   Sparkles,
+  User,
+  AlignLeft,
   Smartphone,
   Tablet,
   Monitor,
@@ -236,6 +238,7 @@ export default function LinkInBioDashboard() {
   const [mockPreviewModalOpen, setMockPreviewModalOpen] = useState(false);
 
   const [usernameInput, setUsernameInput] = useState("");
+  const [isEditingUsername, setIsEditingUsername] = useState(false);
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [usernameStatus, setUsernameStatus] = useState<{ available: boolean; message: string } | null>(null);
 
@@ -265,6 +268,7 @@ export default function LinkInBioDashboard() {
   const [bgImageDeleteToken, setBgImageDeleteToken] = useState<string | null>(null);
   const [isDeletingBgImage, setIsDeletingBgImage] = useState(false);
 
+  const [expandedBlockIds, setExpandedBlockIds] = useState<Record<string | number, boolean>>({});
   const [bgPaletteOpen, setBgPaletteOpen] = useState(false);
   const bgPaletteRef = useRef<HTMLDivElement>(null);
   const [presetThemeOpen, setPresetThemeOpen] = useState(false);
@@ -524,8 +528,8 @@ export default function LinkInBioDashboard() {
             loaded.show_social_usernames !== undefined
               ? Boolean(loaded.show_social_usernames)
               : cTheme.show_social_usernames !== undefined
-              ? Boolean(cTheme.show_social_usernames)
-              : true,
+                ? Boolean(cTheme.show_social_usernames)
+                : true,
         });
         setUsernameInput(loaded.username);
         showToast("Saved successfully");
@@ -817,48 +821,130 @@ export default function LinkInBioDashboard() {
       )}
 
       {/* Top Header Card */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-[#1c1b1b] p-2.5 sm:p-3 rounded border border-[#20201f]">
-        {/* Left: Bio info & status */}
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded bg-white/5 border border-white/10 flex items-center justify-center text-white shrink-0">
+      {/* Top Header Card (Single Line / Oneline) */}
+      <div className="flex items-center justify-between gap-2 bg-[#1c1b1b] px-2 py-1 sm:px-2.5 sm:py-1 rounded border border-[#20201f] overflow-x-auto scrollbar-hide">
+        {/* Left: Direct Editable URL & Status */}
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-6.5 h-6.5 rounded bg-white/5 border border-white/10 flex items-center justify-center text-white shrink-0">
             <Link2 className="w-3.5 h-3.5 text-[#c4c0ff]" />
           </div>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <h1 className="text-xs sm:text-sm font-bold text-white tracking-tight">Link-in-Bio</h1>
-              <span
+
+          <div className="flex items-center gap-2 min-w-0">
+            {isEditingUsername ? (
+              <div className="flex items-center gap-1 bg-[#121214] border border-[#353535] focus-within:border-white/50 rounded px-2 py-0.5 text-xs text-white">
+                <span className="text-zinc-500 font-mono text-[11px] select-none">{rootDomain}/@</span>
+                <input
+                  type="text"
+                  value={usernameInput}
+                  onChange={(e) => {
+                    const val = e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, "");
+                    setUsernameInput(val);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleSavePageSettings();
+                      setIsEditingUsername(false);
+                    } else if (e.key === "Escape") {
+                      setUsernameInput(page.username);
+                      setIsEditingUsername(false);
+                    }
+                  }}
+                  className="bg-transparent text-white font-mono text-xs focus:outline-none w-24 sm:w-32"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleSavePageSettings();
+                    setIsEditingUsername(false);
+                  }}
+                  className="p-0.5 hover:text-emerald-400 text-zinc-400 transition-colors cursor-pointer"
+                  title="Save username"
+                >
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUsernameInput(page.username);
+                    setIsEditingUsername(false);
+                  }}
+                  className="p-0.5 hover:text-red-400 text-zinc-400 transition-colors cursor-pointer"
+                  title="Cancel"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 min-w-0">
+                {/* Clickable URL button to copy */}
+                <button
+                  type="button"
+                  onClick={handleCopyBioLink}
+                  className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-[#121214] hover:bg-[#252528] border border-[#2c2c2c] hover:border-zinc-500 transition-all cursor-pointer select-none group/copy max-w-full"
+                  title="Click to copy link"
+                >
+                  <span className="text-xs font-mono font-bold text-white tracking-tight truncate">
+                    {rootDomain}/@{page.username}
+                  </span>
+                  {copiedLink ? (
+                    <Check className="w-3 h-3 text-emerald-400 shrink-0" />
+                  ) : (
+                    <Copy className="w-3 h-3 text-zinc-400 group-hover/copy:text-white transition-colors shrink-0" />
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsEditingUsername(true)}
+                  className="p-1 rounded text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer shrink-0"
+                  title="Edit Page URL / Username"
+                >
+                  <Edit3 className="w-3.5 h-3.5 text-[#c4c0ff]" />
+                </button>
+              </div>
+            )}
+
+            <button
+              type="button"
+              role="switch"
+              aria-checked={page.is_published}
+              onClick={() => {
+                const nextPublished = !page.is_published;
+                setPage((prev) => ({ ...prev, is_published: nextPublished }));
+                handleSavePageSettings({ is_published: nextPublished });
+              }}
+              className="flex items-center gap-2 cursor-pointer select-none bg-[#141414] px-2.5 py-1 rounded border border-[#2c2c2c] hover:border-[#3d3d3d] transition-all shrink-0"
+              title={page.is_published ? "Status: Enabled (Click to Disable)" : "Status: Disabled (Click to Enable)"}
+            >
+              <span className={cn("text-xs font-semibold", page.is_published ? "text-emerald-400" : "text-zinc-400")}>
+                {page.is_published ? "Enabled" : "Disabled"}
+              </span>
+              <div
                 className={cn(
-                  "px-1.5 py-0.5 rounded text-[9px] font-bold uppercase",
-                  page.is_published
-                    ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
-                    : "bg-amber-500/15 text-amber-400 border border-amber-500/30"
+                  "w-6 h-3.5 rounded-full p-0.5 transition-colors duration-200 flex items-center",
+                  page.is_published ? "bg-emerald-500" : "bg-zinc-700"
                 )}
               >
-                {page.is_published ? "Live" : "Draft"}
-              </span>
-            </div>
-            <p className="text-[10px] text-zinc-400 font-mono select-all">
-              {rootDomain}/@{page.username}
-            </p>
+                <div
+                  className={cn(
+                    "w-2.5 h-2.5 rounded-full bg-white transition-transform duration-200 shadow-sm",
+                    page.is_published ? "translate-x-2.5" : "translate-x-0"
+                  )}
+                />
+              </div>
+            </button>
           </div>
         </div>
 
-        {/* Right Actions: Copy, QR Code, Open, Save */}
-        <div className="flex flex-wrap items-center gap-1.5">
-          <button
-            onClick={handleCopyBioLink}
-            className="px-2 py-1 rounded bg-[#20201f] hover:bg-[#2c2c2c] border border-[#353535] text-xs font-semibold text-white flex items-center gap-1 transition-all cursor-pointer"
-          >
-            {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-            <span>{copiedLink ? "Copied" : "Copy"}</span>
-          </button>
+        {/* Right Actions: QR Code, Open, Save */}
+        <div className="flex items-center gap-1.5 shrink-0">
 
           <button
             onClick={() => setQrModalOpen(true)}
             className="px-2 py-1 rounded bg-[#20201f] hover:bg-[#2c2c2c] border border-[#353535] text-xs font-semibold text-white flex items-center gap-1 transition-all cursor-pointer"
           >
             <QrCode className="w-3.5 h-3.5 text-zinc-400" />
-            <span>QR Code</span>
+            <span className="hidden sm:inline">QR Code</span>
           </button>
 
           <a
@@ -868,7 +954,7 @@ export default function LinkInBioDashboard() {
             className="px-2 py-1 rounded bg-[#20201f] hover:bg-[#2c2c2c] border border-[#353535] text-xs font-semibold text-white flex items-center gap-1 transition-all"
           >
             <ExternalLink className="w-3.5 h-3.5 text-zinc-400" />
-            <span>Open</span>
+            <span className="hidden sm:inline">Open</span>
           </a>
 
           <button
@@ -900,7 +986,6 @@ export default function LinkInBioDashboard() {
             { id: "styling", label: "Styling", icon: Palette },
             { id: "social", label: "Social Hub", icon: Share2, count: page.social_accounts?.filter((s) => s.is_active && s.url).length || 0 },
             { id: "redirects", label: "Redirects", icon: Sparkles, count: redirectRules.length },
-            { id: "settings", label: "Settings", icon: Settings },
             { id: "analytics", label: "Analytics", icon: BarChart3 },
           ].map((tab) => {
             const Icon = tab.icon;
@@ -911,21 +996,16 @@ export default function LinkInBioDashboard() {
                 type="button"
                 onClick={() => setActiveTab(tab.id as any)}
                 className={cn(
-                  "px-2 py-1 rounded text-[11px] font-semibold flex items-center gap-1.5 whitespace-nowrap transition-all cursor-pointer shrink-0 select-none",
+                  "px-2.5 py-1 rounded text-[11px] font-semibold flex items-center gap-1.5 whitespace-nowrap transition-all cursor-pointer shrink-0 select-none",
                   isActive
                     ? "bg-white text-black font-bold shadow-sm"
                     : "text-zinc-400 hover:text-white hover:bg-white/5"
                 )}
               >
-                <Icon className="w-3 h-3 shrink-0" />
+                {isActive && <Icon className="w-3 h-3 shrink-0" />}
                 <span>{tab.label}</span>
-                {tab.count !== undefined && (
-                  <span
-                    className={cn(
-                      "px-1 py-0.2 rounded text-[9px] font-bold leading-none",
-                      isActive ? "bg-black/15 text-black" : "bg-white/10 text-zinc-300"
-                    )}
-                  >
+                {isActive && tab.count !== undefined && (
+                  <span className="px-1 py-0.2 rounded text-[9px] font-bold leading-none bg-black/15 text-black">
                     {tab.count}
                   </span>
                 )}
@@ -986,13 +1066,13 @@ export default function LinkInBioDashboard() {
             previewDevice === "mobile"
               ? "xl:col-span-7"
               : previewDevice === "tablet"
-              ? "xl:col-span-6"
-              : "xl:col-span-5"
+                ? "xl:col-span-6"
+                : "xl:col-span-5"
           )}
         >
           {/* TAB 1: CONTENT BLOCKS */}
           {activeTab === "blocks" && (
-            <div className="bg-[#1c1b1b] p-4 rounded border border-[#20201f] space-y-4 animate-in fade-in">
+            <div className="bg-[#1c1b1b] p-3 rounded border border-[#20201f] space-y-3 animate-in fade-in">
               <div className="flex items-center justify-between border-b border-white/5 pb-3">
                 <h2 className="text-xs sm:text-sm font-bold text-white">Content Blocks</h2>
                 <button
@@ -1028,702 +1108,205 @@ export default function LinkInBioDashboard() {
                     onReorder={handleReorderBlocks}
                     className="space-y-2"
                   >
-                    {blocks.map((block, index) => (
-                      <Reorder.Item
-                        key={block.id || index}
-                        value={block}
-                        whileDrag={{
-                          scale: 1.02,
-                          boxShadow: "0 20px 30px -10px rgba(0,0,0,0.8)",
-                          zIndex: 50,
-                        }}
-                        className={cn(
-                          "group flex items-center justify-between gap-3 p-3 rounded border transition-colors select-none",
-                          block.is_active
-                            ? "bg-[#20201f] border-[#353535]/80 hover:border-zinc-500 shadow-sm"
-                            : "bg-black/30 border-[#20201f] opacity-60"
-                        )}
-                      >
-                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                          {/* Drag Handle & Step Buttons */}
-                          <div className="flex items-center gap-1 shrink-0">
-                            <div
-                              className="p-1 rounded text-zinc-500 hover:text-white hover:bg-white/10 cursor-grab active:cursor-grabbing transition-colors"
-                              title="Drag to reorder"
-                            >
-                              <GripVertical className="w-4 h-4" />
-                            </div>
+                    {blocks.map((block, index) => {
+                      const blockKey = block.id || index;
+                      const isExpanded = Boolean(expandedBlockIds[blockKey]);
 
-                            <div className="flex flex-col gap-0.5">
-                              <button
-                                type="button"
-                                disabled={index === 0}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleMoveBlock(index, "up");
-                                }}
-                                className="p-0.5 hover:bg-white/10 rounded disabled:opacity-20 text-zinc-400 hover:text-white transition-colors cursor-pointer"
-                                title="Move up"
+                      return (
+                        <Reorder.Item
+                          key={blockKey}
+                          value={block}
+                          whileDrag={{
+                            boxShadow: "0 20px 30px -10px rgba(0,0,0,0.8)",
+                            zIndex: 50,
+                          }}
+                          className={cn(
+                            "group rounded-md border transition-colors select-none overflow-hidden",
+                            block.is_active
+                              ? "bg-[#20201f] border-[#353535]/80 hover:border-zinc-500 shadow-sm"
+                              : "bg-black/30 border-[#20201f] opacity-60"
+                          )}
+                        >
+                          {/* Single-line Header Row */}
+                          <div
+                            onClick={() => {
+                              setExpandedBlockIds((prev) => ({
+                                ...prev,
+                                [blockKey]: !prev[blockKey],
+                              }));
+                            }}
+                            className="flex items-center justify-between gap-2.5 p-2.5 sm:p-3 cursor-pointer hover:bg-white/[0.02] transition-colors"
+                          >
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                              {/* Drag Handle (No up/down arrows) */}
+                              <div
+                                onClick={(e) => e.stopPropagation()}
+                                className="p-1 rounded text-zinc-500 hover:text-white hover:bg-white/10 cursor-grab active:cursor-grabbing transition-colors shrink-0"
+                                title="Drag to reorder"
                               >
-                                <MoveUp className="w-2.5 h-2.5" />
-                              </button>
-                              <button
-                                type="button"
-                                disabled={index === blocks.length - 1}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleMoveBlock(index, "down");
-                                }}
-                                className="p-0.5 hover:bg-white/10 rounded disabled:opacity-20 text-zinc-400 hover:text-white transition-colors cursor-pointer"
-                                title="Move down"
-                              >
-                                <MoveDown className="w-2.5 h-2.5" />
-                              </button>
-                            </div>
-                          </div>
+                                <GripVertical className="w-4 h-4" />
+                              </div>
 
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-white/10 text-zinc-300">
+                              {/* Block Type Badge */}
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-white/10 text-zinc-300 shrink-0">
                                 {block.block_type.replace("_", " ")}
                               </span>
-                              <h3 className="text-xs font-bold text-white truncate">{block.title || "Untitled"}</h3>
+
+                              {/* Single-line Title */}
+                              <h3 className="text-xs font-semibold text-white truncate min-w-0 flex-1">
+                                {block.title || "Untitled Block"}
+                              </h3>
                             </div>
-                            {block.subtitle && (
-                              <p className="text-[11px] text-zinc-400 truncate mt-0.5">{block.subtitle}</p>
-                            )}
-                            {block.url && (
-                              <p className="text-[10px] text-zinc-500 font-mono truncate mt-0.5">{block.url}</p>
-                            )}
+
+                            {/* Right Actions & Accordion Trigger */}
+                            <div
+                              onClick={(e) => e.stopPropagation()}
+                              className="flex items-center gap-1 shrink-0"
+                            >
+                              <button
+                                type="button"
+                                onClick={() => handleToggleBlockActive(block)}
+                                className={cn(
+                                  "p-1.5 rounded transition-colors cursor-pointer",
+                                  block.is_active
+                                    ? "text-emerald-400 hover:bg-emerald-500/10"
+                                    : "text-zinc-500 hover:bg-white/10"
+                                )}
+                                title={block.is_active ? "Hide block" : "Show block"}
+                              >
+                                {block.is_active ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingBlock(block);
+                                  setBlockModalOpen(true);
+                                }}
+                                className="p-1.5 rounded text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                                title="Edit block"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => block.id && handleDeleteBlock(block.id)}
+                                className="p-1.5 rounded text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+                                title="Delete block"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+
+                              {/* Accordion Toggle Chevron Button */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setExpandedBlockIds((prev) => ({
+                                    ...prev,
+                                    [blockKey]: !prev[blockKey],
+                                  }));
+                                }}
+                                className="p-1.5 rounded text-zinc-400 hover:text-white hover:bg-white/10 transition-transform cursor-pointer"
+                                title={isExpanded ? "Collapse details" : "Expand details"}
+                              >
+                                <ChevronDown
+                                  className={cn(
+                                    "w-3.5 h-3.5 transition-transform duration-200",
+                                    isExpanded && "rotate-180 text-[#c4c0ff]"
+                                  )}
+                                />
+                              </button>
+                            </div>
                           </div>
-                        </div>
 
-                        <div className="flex items-center gap-1 shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => handleToggleBlockActive(block)}
-                            className={cn(
-                              "p-1.5 rounded transition-colors cursor-pointer",
-                              block.is_active
-                                ? "text-emerald-400 hover:bg-emerald-500/10"
-                                : "text-zinc-500 hover:bg-white/10"
-                            )}
-                            title={block.is_active ? "Hide block" : "Show block"}
-                          >
-                            {block.is_active ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-                          </button>
+                          {/* Accordion Expanded Details */}
+                          {isExpanded && (
+                            <div className="px-3 pb-3 pt-2 border-t border-white/5 bg-black/20 space-y-2 text-xs text-zinc-300 animate-in fade-in duration-100">
+                              {block.subtitle && (
+                                <div className="flex items-start gap-1.5 text-zinc-400">
+                                  <span className="font-semibold text-[10px] text-zinc-500 uppercase shrink-0">Subtitle:</span>
+                                  <span className="text-zinc-300 text-xs truncate">{block.subtitle}</span>
+                                </div>
+                              )}
 
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditingBlock(block);
-                              setBlockModalOpen(true);
-                            }}
-                            className="p-1.5 rounded text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-                            title="Edit block"
-                          >
-                            <Edit3 className="w-3.5 h-3.5" />
-                          </button>
+                              {block.url && (
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-semibold text-[10px] text-zinc-500 uppercase shrink-0">URL:</span>
+                                  <a
+                                    href={block.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-[#c4c0ff] hover:underline font-mono truncate flex items-center gap-1"
+                                  >
+                                    <span className="truncate">{block.url}</span>
+                                    <ExternalLink className="w-3 h-3 shrink-0" />
+                                  </a>
+                                </div>
+                              )}
 
-                          <button
-                            type="button"
-                            onClick={() => block.id && handleDeleteBlock(block.id)}
-                            className="p-1.5 rounded text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
-                            title="Delete block"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </Reorder.Item>
-                    ))}
+                              {block.media_url && (
+                                <div className="flex items-center gap-2 pt-1">
+                                  <span className="font-semibold text-[10px] text-zinc-500 uppercase shrink-0">Media:</span>
+                                  <div className="w-12 h-10 rounded border border-white/20 overflow-hidden bg-black shrink-0">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={block.media_url} alt="Media" className="w-full h-full object-cover" />
+                                  </div>
+                                </div>
+                              )}
+
+                              <div className="flex items-center justify-between pt-1 border-t border-white/5 text-[11px] text-zinc-400">
+                                <span>Clicks: <strong className="text-white font-mono">{block.clicks_count || 0}</strong></span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingBlock(block);
+                                    setBlockModalOpen(true);
+                                  }}
+                                  className="text-[10px] text-[#c4c0ff] hover:underline font-semibold flex items-center gap-1 cursor-pointer"
+                                >
+                                  <Edit3 className="w-3 h-3" />
+                                  <span>Edit Details</span>
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </Reorder.Item>
+                      );
+                    })}
                   </Reorder.Group>
                 )}
               </div>
             </div>
           )}
 
-          {/* TAB 2: THEMES, CUSTOM BACKGROUND & TEXT COLOR */}
+          {/* TAB 2: PROFILE & BACKGROUND STYLING */}
           {activeTab === "styling" && (
-            <div className="bg-[#1c1b1b] p-4 rounded border border-[#20201f] space-y-4 animate-in fade-in">
-              <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                <h2 className="text-xs sm:text-sm font-bold text-white">Profile & Background Styling</h2>
-              </div>
-
-              {/* Background Style Mode Switcher */}
+            <div className="bg-[#1c1b1b] p-3.5 rounded-lg border border-[#20201f] space-y-5 animate-in fade-in">
+              {/* SECTION 1: PROFILE IDENTITY */}
               <div className="space-y-3">
-                <div className="inline-flex items-center gap-1 bg-[#141414] p-0.5 rounded border border-[#2c2c2c]">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPage((prev) => ({
-                        ...prev,
-                        custom_theme: { ...prev.custom_theme, background_type: "preset" },
-                      }));
-                      setPreviewKey((k) => k + 1);
-                    }}
-                    className={cn(
-                      "px-2.5 py-1 rounded text-[10px] sm:text-[11px] font-semibold flex items-center justify-center gap-1 transition-all cursor-pointer select-none",
-                      currentBgType === "preset"
-                        ? "bg-white text-black font-bold shadow-sm"
-                        : "text-zinc-400 hover:text-white hover:bg-white/5"
-                    )}
-                  >
-                    <Palette className="w-3 h-3 shrink-0" />
-                    <span>Preset Themes</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPage((prev) => ({
-                        ...prev,
-                        custom_theme: { ...prev.custom_theme, background_type: "color" },
-                      }));
-                      setPreviewKey((k) => k + 1);
-                    }}
-                    className={cn(
-                      "px-2.5 py-1 rounded text-[10px] sm:text-[11px] font-semibold flex items-center justify-center gap-1 transition-all cursor-pointer select-none",
-                      currentBgType === "color"
-                        ? "bg-white text-black font-bold shadow-sm"
-                        : "text-zinc-400 hover:text-white hover:bg-white/5"
-                    )}
-                  >
-                    <Sparkles className="w-3 h-3 shrink-0" />
-                    <span>Solid Color</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPage((prev) => ({
-                        ...prev,
-                        custom_theme: { ...prev.custom_theme, background_type: "image" },
-                      }));
-                      setPreviewKey((k) => k + 1);
-                    }}
-                    className={cn(
-                      "px-2.5 py-1 rounded text-[10px] sm:text-[11px] font-semibold flex items-center justify-center gap-1 transition-all cursor-pointer select-none",
-                      currentBgType === "image"
-                        ? "bg-white text-black font-bold shadow-sm"
-                        : "text-zinc-400 hover:text-white hover:bg-white/5"
-                    )}
-                  >
-                    <ImageIcon className="w-3 h-3 shrink-0" />
-                    <span>Wallpaper</span>
-                  </button>
+                <div className="flex items-center gap-2 border-b border-white/5 pb-2">
+                  <div className="w-6 h-6 rounded bg-[#c4c0ff]/10 border border-[#c4c0ff]/20 flex items-center justify-center text-[#c4c0ff]">
+                    <User className="w-3.5 h-3.5" />
+                  </div>
+                  <h2 className="text-xs sm:text-sm font-bold text-white tracking-tight">Profile Details</h2>
                 </div>
 
-                {/* MODE 1: PRESET THEMES DROPDOWN & TEXT COLOR (ONE LINE) */}
-                {currentBgType === "preset" && (
-                  <div className="p-3.5 rounded bg-[#20201f] border border-[#353535] animate-in fade-in">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
-                      {/* Col 1: Preset Theme Selection */}
-                      <div className="space-y-1.5 relative" ref={presetThemeRef}>
-                        <label className="text-xs font-semibold text-zinc-300">Preset Theme Selection</label>
-
-                        {/* Dropdown Trigger */}
-                        <button
-                          type="button"
-                          onClick={() => setPresetThemeOpen(!presetThemeOpen)}
-                          className="w-full bg-[#131313] border border-[#353535] hover:border-zinc-500 rounded p-2 text-xs text-white flex items-center justify-between transition-all cursor-pointer select-none h-[38px]"
-                        >
-                          <div className="flex items-center gap-2.5 truncate min-w-0">
-                            <div
-                              className="w-6 h-5 rounded-md overflow-hidden border border-white/20 shrink-0 flex items-center justify-center p-0.5 shadow-sm"
-                              style={{
-                                background:
-                                  PRESET_THEME_GRADIENTS[page.theme_id] ||
-                                  (BIO_THEMES as Record<string, any>)[page.theme_id]?.bgStyle?.backgroundImage ||
-                                  "#131313",
-                              }}
-                            >
-                              <div
-                                className="w-2 h-2 rounded-full shadow-sm ring-1 ring-black/40"
-                                style={{
-                                  backgroundColor:
-                                    (BIO_THEMES as Record<string, any>)[page.theme_id]?.accentColor || "#c4c0ff",
-                                }}
-                              />
-                            </div>
-                            <span className="font-semibold text-white truncate text-xs">
-                              {(BIO_THEMES as Record<string, any>)[page.theme_id]?.name || "Select Theme"}
-                            </span>
-                          </div>
-                          <ChevronDown className={cn("w-3.5 h-3.5 text-zinc-400 transition-transform shrink-0 ml-1", presetThemeOpen && "rotate-180")} />
-                        </button>
-
-                        {/* Dropdown Menu */}
-                        {presetThemeOpen && (
-                          <div className="absolute top-full left-0 right-0 mt-1 bg-[#161616] border border-[#353535] rounded shadow-2xl z-30 p-1.5 space-y-1 max-h-64 overflow-y-auto">
-                            {Object.values(BIO_THEMES).map((theme) => {
-                              const isSelected = page.theme_id === theme.id;
-                              const gradientStyle =
-                                PRESET_THEME_GRADIENTS[theme.id] ||
-                                (theme.bgStyle as any)?.backgroundImage ||
-                                "#131313";
-                              return (
-                                <button
-                                  key={theme.id}
-                                  type="button"
-                                  onClick={() => {
-                                    setPage({
-                                      ...page,
-                                      theme_id: theme.id,
-                                      custom_theme: {
-                                        ...page.custom_theme,
-                                        background_type: "preset",
-                                      },
-                                    });
-                                    setPresetThemeOpen(false);
-                                    setPreviewKey((k) => k + 1);
-                                  }}
-                                  className={cn(
-                                    "w-full px-2.5 py-2 rounded flex items-center justify-between text-left transition-all cursor-pointer text-xs select-none",
-                                    isSelected ? "bg-white/10 text-white font-bold" : "text-zinc-300 hover:bg-white/5 hover:text-white"
-                                  )}
-                                >
-                                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                                    <div
-                                      className="w-8 h-5.5 rounded-md overflow-hidden border border-white/20 shrink-0 flex items-center justify-center p-0.5 shadow-sm"
-                                      style={{ background: gradientStyle }}
-                                    >
-                                      <div
-                                        className="w-2 h-2 rounded-full shadow-sm ring-1 ring-black/40"
-                                        style={{ backgroundColor: theme.accentColor }}
-                                      />
-                                    </div>
-                                    <span className="truncate">{theme.name}</span>
-                                  </div>
-                                  <div className="flex items-center gap-2 shrink-0">
-                                    <div
-                                      className="w-10 h-2.5 rounded-full border border-white/10 opacity-70 hidden sm:block"
-                                      style={{ background: gradientStyle }}
-                                    />
-                                    {isSelected && <Check className="w-3.5 h-3.5 text-emerald-400" />}
-                                  </div>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Col 2: Text Color */}
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <label className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
-                            <Type className="w-3.5 h-3.5 text-[#c4c0ff]" />
-                            <span>Text Color</span>
-                          </label>
-                          {currentTextColor && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setPage((prev) => ({
-                                  ...prev,
-                                  custom_theme: { ...prev.custom_theme, text_color: "" },
-                                }));
-                                setPreviewKey((k) => k + 1);
-                              }}
-                              className="text-[10px] text-zinc-400 hover:text-white transition-colors flex items-center gap-0.5 cursor-pointer"
-                              title="Reset to theme default"
-                            >
-                              <RotateCcw className="w-2.5 h-2.5" />
-                              <span>Reset</span>
-                            </button>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 h-[38px]">
-                          <div className="relative w-8 h-8 rounded overflow-hidden border border-white/20 shrink-0 cursor-pointer">
-                            <input
-                              type="color"
-                              value={currentTextColor || "#ffffff"}
-                              onChange={(e) => {
-                                setPage((prev) => ({
-                                  ...prev,
-                                  custom_theme: { ...prev.custom_theme, text_color: e.target.value },
-                                }));
-                                setPreviewKey((k) => k + 1);
-                              }}
-                              className="absolute -inset-2 w-12 h-12 cursor-pointer opacity-0"
-                            />
-                            <div className="w-full h-full" style={{ backgroundColor: currentTextColor || "#ffffff" }} />
-                          </div>
-                          <input
-                            type="text"
-                            value={currentTextColor}
-                            onChange={(e) => {
-                              setPage((prev) => ({
-                                ...prev,
-                                custom_theme: { ...prev.custom_theme, text_color: e.target.value },
-                              }));
-                              setPreviewKey((k) => k + 1);
-                            }}
-                            placeholder="Default (#ffffff)"
-                            className="flex-1 bg-[#131313] border border-[#353535] rounded px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-white font-mono"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* MODE 2: CUSTOM COLOR PICKER, PALETTE & TEXT COLOR */}
-                {currentBgType === "color" && (
-                  <div className="p-3.5 rounded bg-[#20201f] border border-[#353535] space-y-3 animate-in fade-in">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
-                      {/* Background Palette */}
-                      <div className="space-y-1.5 relative" ref={bgPaletteRef}>
-                        <label className="text-xs font-semibold text-zinc-300">Background Palette</label>
-                        
-                        {/* Custom Dropdown Trigger */}
-                        <button
-                          type="button"
-                          onClick={() => setBgPaletteOpen(!bgPaletteOpen)}
-                          className="w-full bg-[#131313] border border-[#353535] hover:border-zinc-500 rounded p-2 text-xs text-white flex items-center justify-between transition-all cursor-pointer select-none h-[38px]"
-                        >
-                          <div className="flex items-center gap-2 truncate min-w-0">
-                            <div
-                              className="w-4 h-4 rounded-full border border-white/20 shrink-0 shadow-sm"
-                              style={{
-                                background:
-                                  PRESET_BG_PALETTES.find(
-                                    (p) => p.color.toLowerCase() === currentBgColor.toLowerCase()
-                                  )?.gradient || currentBgColor,
-                              }}
-                            />
-                            <span className="font-semibold text-white truncate text-xs">
-                              {PRESET_BG_PALETTES.find(
-                                (p) => p.color.toLowerCase() === currentBgColor.toLowerCase()
-                              )?.name || "Custom Palette"}
-                            </span>
-                          </div>
-                          <ChevronDown className={cn("w-3.5 h-3.5 text-zinc-400 transition-transform shrink-0 ml-1", bgPaletteOpen && "rotate-180")} />
-                        </button>
-
-                        {/* Dropdown Menu with Gradient Previews */}
-                        {bgPaletteOpen && (
-                          <div className="absolute top-full left-0 right-0 mt-1 bg-[#161616] border border-[#353535] rounded shadow-2xl z-30 p-1.5 space-y-1 max-h-60 overflow-y-auto">
-                            {PRESET_BG_PALETTES.map((palette) => {
-                              const isChosen = currentBgColor.toLowerCase() === palette.color.toLowerCase();
-                              return (
-                                <button
-                                  key={palette.color}
-                                  type="button"
-                                  onClick={() => {
-                                    setPage((prev) => ({
-                                      ...prev,
-                                      custom_theme: { ...prev.custom_theme, background_color: palette.color },
-                                    }));
-                                    setBgPaletteOpen(false);
-                                    setPreviewKey((k) => k + 1);
-                                  }}
-                                  className={cn(
-                                    "w-full px-2.5 py-2 rounded flex items-center justify-between text-left transition-all cursor-pointer text-xs select-none",
-                                    isChosen ? "bg-white/10 text-white font-bold" : "text-zinc-300 hover:bg-white/5 hover:text-white"
-                                  )}
-                                >
-                                  <div className="flex items-center gap-2.5">
-                                    <div
-                                      className="w-4 h-4 rounded-full border border-white/20 shrink-0 shadow-sm"
-                                      style={{ background: palette.gradient }}
-                                    />
-                                    <span>{palette.name}</span>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-[10px] text-zinc-500 font-mono">{palette.color}</span>
-                                    {isChosen && <Check className="w-3.5 h-3.5 text-emerald-400" />}
-                                  </div>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Text Color */}
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <label className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
-                            <Type className="w-3.5 h-3.5 text-[#c4c0ff]" />
-                            <span>Text Color</span>
-                          </label>
-                          {currentTextColor && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setPage((prev) => ({
-                                  ...prev,
-                                  custom_theme: { ...prev.custom_theme, text_color: "" },
-                                }));
-                                setPreviewKey((k) => k + 1);
-                              }}
-                              className="text-[10px] text-zinc-400 hover:text-white transition-colors flex items-center gap-0.5 cursor-pointer"
-                              title="Reset to theme default"
-                            >
-                              <RotateCcw className="w-2.5 h-2.5" />
-                              <span>Reset</span>
-                            </button>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 h-[38px]">
-                          <div className="relative w-8 h-8 rounded overflow-hidden border border-white/20 shrink-0 cursor-pointer">
-                            <input
-                              type="color"
-                              value={currentTextColor || "#ffffff"}
-                              onChange={(e) => {
-                                setPage((prev) => ({
-                                  ...prev,
-                                  custom_theme: { ...prev.custom_theme, text_color: e.target.value },
-                                }));
-                                setPreviewKey((k) => k + 1);
-                              }}
-                              className="absolute -inset-2 w-12 h-12 cursor-pointer opacity-0"
-                            />
-                            <div className="w-full h-full" style={{ backgroundColor: currentTextColor || "#ffffff" }} />
-                          </div>
-                          <input
-                            type="text"
-                            value={currentTextColor}
-                            onChange={(e) => {
-                              setPage((prev) => ({
-                                ...prev,
-                                custom_theme: { ...prev.custom_theme, text_color: e.target.value },
-                              }));
-                              setPreviewKey((k) => k + 1);
-                            }}
-                            placeholder="Default (#ffffff)"
-                            className="flex-1 bg-[#131313] border border-[#353535] rounded px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-white font-mono"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Custom Background Hex */}
-                    <div className="pt-2 border-t border-[#353535]/60 flex items-center gap-3">
-                      <div className="space-y-1 flex-1">
-                        <label className="text-xs font-semibold text-zinc-300">Custom Background Hex</label>
-                        <div className="flex items-center gap-2">
-                          <div className="relative w-8 h-8 rounded overflow-hidden border border-white/20 shrink-0 cursor-pointer">
-                            <input
-                              type="color"
-                              value={currentBgColor}
-                              onChange={(e) => {
-                                setPage((prev) => ({
-                                  ...prev,
-                                  custom_theme: { ...prev.custom_theme, background_color: e.target.value },
-                                }));
-                                setPreviewKey((k) => k + 1);
-                              }}
-                              className="absolute -inset-2 w-12 h-12 cursor-pointer opacity-0"
-                            />
-                            <div className="w-full h-full" style={{ backgroundColor: currentBgColor }} />
-                          </div>
-                          <input
-                            type="text"
-                            value={currentBgColor}
-                            onChange={(e) => {
-                              setPage((prev) => ({
-                                ...prev,
-                                custom_theme: { ...prev.custom_theme, background_color: e.target.value },
-                              }));
-                              setPreviewKey((k) => k + 1);
-                            }}
-                            placeholder="#131313"
-                            className="flex-1 bg-[#131313] border border-[#353535] rounded px-3 py-1.5 text-xs text-white focus:outline-none focus:border-white font-mono"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* MODE 3: CUSTOM BACKGROUND WALLPAPER */}
-                {currentBgType === "image" && (
-                  <div className="p-3.5 rounded bg-[#20201f] border border-[#353535] space-y-3 animate-in fade-in">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-semibold text-zinc-300">Custom Wallpaper</label>
-                      {currentBgImage && (
-                        <button
-                          type="button"
-                          onClick={handleRemoveBgImage}
-                          disabled={isDeletingBgImage}
-                          className="text-[10px] text-red-400 hover:text-red-300 transition-colors flex items-center gap-1 cursor-pointer"
-                        >
-                          {isDeletingBgImage ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
-                          <span>Remove</span>
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <div className="w-20 h-14 rounded overflow-hidden border border-white/20 shrink-0 bg-black flex items-center justify-center">
-                        {currentBgImage ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={currentBgImage} alt="Background" className="w-full h-full object-cover" />
-                        ) : (
-                          <ImageIcon className="w-6 h-6 text-zinc-600" />
-                        )}
-                      </div>
-
-                      <div className="flex-1 min-w-0 space-y-2">
-                        <input
-                          type="file"
-                          ref={bgImageInputRef}
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) handleBgImageUpload(file);
-                          }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => bgImageInputRef.current?.click()}
-                          disabled={bgImageUploading}
-                          className="w-full py-2 px-3 rounded bg-[#131313] hover:bg-[#252525] border border-[#353535] text-xs font-semibold text-white flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
-                        >
-                          {bgImageUploading ? (
-                            <>
-                              <Loader2 className="w-3.5 h-3.5 animate-spin text-[#c4c0ff]" />
-                              <span>Uploading {bgImageUploadProgress}%…</span>
-                            </>
-                          ) : (
-                            <>
-                              <Upload className="w-3.5 h-3.5" />
-                              <span>Upload Wallpaper</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="pt-2 border-t border-[#353535]/60 grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
-                      <div className="space-y-1">
-                        <label className="text-xs font-semibold text-zinc-300">Overlay Tint</label>
-                        <select
-                          value={currentBgOverlay}
-                          onChange={(e) => {
-                            setPage((prev) => ({
-                              ...prev,
-                              custom_theme: {
-                                ...prev.custom_theme,
-                                background_overlay: e.target.value as "dark" | "heavy" | "light",
-                              },
-                            }));
-                            setPreviewKey((k) => k + 1);
-                          }}
-                          className="w-full bg-[#131313] border border-[#353535] rounded px-3 py-1.5 text-xs text-white focus:outline-none focus:border-white cursor-pointer"
-                        >
-                          <option value="dark">Medium Dark</option>
-                          <option value="heavy">Heavy Dark</option>
-                          <option value="light">Soft Dark</option>
-                        </select>
-                      </div>
-
-                      {/* Text Color for Image */}
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between">
-                          <label className="text-xs font-semibold text-zinc-300 flex items-center gap-1">
-                            <Type className="w-3 h-3 text-[#c4c0ff]" />
-                            <span>Text Color</span>
-                          </label>
-                          {currentTextColor && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setPage((prev) => ({
-                                  ...prev,
-                                  custom_theme: { ...prev.custom_theme, text_color: "" },
-                                }));
-                                setPreviewKey((k) => k + 1);
-                              }}
-                              className="text-[10px] text-zinc-400 hover:text-white transition-colors"
-                            >
-                              Reset
-                            </button>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="relative w-8 h-8 rounded overflow-hidden border border-white/20 shrink-0 cursor-pointer">
-                            <input
-                              type="color"
-                              value={currentTextColor || "#ffffff"}
-                              onChange={(e) => {
-                                setPage((prev) => ({
-                                  ...prev,
-                                  custom_theme: { ...prev.custom_theme, text_color: e.target.value },
-                                }));
-                                setPreviewKey((k) => k + 1);
-                              }}
-                              className="absolute -inset-2 w-12 h-12 cursor-pointer opacity-0"
-                            />
-                            <div className="w-full h-full" style={{ backgroundColor: currentTextColor || "#ffffff" }} />
-                          </div>
-                          <input
-                            type="text"
-                            value={currentTextColor}
-                            onChange={(e) => {
-                              setPage((prev) => ({
-                                ...prev,
-                                custom_theme: { ...prev.custom_theme, text_color: e.target.value },
-                              }));
-                              setPreviewKey((k) => k + 1);
-                            }}
-                            placeholder="#ffffff"
-                            className="flex-1 bg-[#131313] border border-[#353535] rounded px-2.5 py-1.5 text-xs text-white font-mono"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Profile Fields */}
-              <div className="pt-2 border-t border-[#353535]/60 space-y-3">
+                {/* Media Cards: Avatar & Banner side by side */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-zinc-300">Display Name</label>
-                    <input
-                      type="text"
-                      value={page.title}
-                      onChange={(e) => {
-                        setPage({ ...page, title: e.target.value });
-                        setPreviewKey((k) => k + 1);
-                      }}
-                      placeholder="e.g. Alex Rivera"
-                      className="w-full bg-[#131313] border border-[#353535] rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-white"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-zinc-300">Bio</label>
-                    <input
-                      type="text"
-                      value={page.bio}
-                      onChange={(e) => {
-                        setPage({ ...page, bio: e.target.value });
-                        setPreviewKey((k) => k + 1);
-                      }}
-                      placeholder="Short bio description"
-                      className="w-full bg-[#131313] border border-[#353535] rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-white"
-                    />
-                  </div>
-                </div>
-
-                {/* Avatar & Banner Upload */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                   {/* Profile Avatar Card */}
-                  <div className="p-3 rounded bg-[#20201f] border border-[#353535] space-y-2">
+                  <div className="p-3 rounded-lg bg-[#20201f] border border-[#353535] space-y-2.5">
                     <div className="flex items-center justify-between">
-                      <label className="text-xs font-semibold text-zinc-300">Avatar</label>
+                      <label className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
+                        <Globe className="w-3.5 h-3.5 text-[#c4c0ff]" />
+                        <span>Profile Avatar</span>
+                      </label>
                       {page.profile_image_url && (
                         <button
                           type="button"
                           onClick={handleRemoveAvatar}
                           disabled={isDeletingAvatar}
-                          className="text-[10px] text-red-400 hover:text-red-300 transition-colors flex items-center gap-1 cursor-pointer"
+                          className="text-[10px] font-semibold text-red-400 hover:text-red-300 transition-colors flex items-center gap-1 cursor-pointer"
                         >
                           {isDeletingAvatar ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
                           <span>Remove</span>
@@ -1732,7 +1315,7 @@ export default function LinkInBioDashboard() {
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full overflow-hidden border border-white/20 shrink-0 bg-black flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white/20 shrink-0 bg-black flex items-center justify-center shadow-md">
                         {page.profile_image_url ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={page.profile_image_url} alt="Avatar" className="w-full h-full object-cover" />
@@ -1756,16 +1339,16 @@ export default function LinkInBioDashboard() {
                           type="button"
                           onClick={() => avatarInputRef.current?.click()}
                           disabled={avatarUploading}
-                          className="w-full py-1.5 px-3 rounded bg-[#131313] hover:bg-[#252525] border border-[#353535] text-xs font-semibold text-white flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                          className="w-full py-1.5 px-3 rounded-md bg-[#131313] hover:bg-[#252525] border border-[#353535] text-xs font-semibold text-white flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 shadow-sm"
                         >
                           {avatarUploading ? (
                             <>
-                              <Loader2 className="w-3 h-3 animate-spin text-[#c4c0ff]" />
+                              <Loader2 className="w-3.5 h-3.5 animate-spin text-[#c4c0ff]" />
                               <span>{avatarUploadProgress}%</span>
                             </>
                           ) : (
                             <>
-                              <Upload className="w-3.5 h-3.5" />
+                              <Upload className="w-3.5 h-3.5 text-zinc-400" />
                               <span>Upload Avatar</span>
                             </>
                           )}
@@ -1775,15 +1358,18 @@ export default function LinkInBioDashboard() {
                   </div>
 
                   {/* Cover Banner Card */}
-                  <div className="p-3 rounded bg-[#20201f] border border-[#353535] space-y-2">
+                  <div className="p-3 rounded-lg bg-[#20201f] border border-[#353535] space-y-2.5">
                     <div className="flex items-center justify-between">
-                      <label className="text-xs font-semibold text-zinc-300">Cover Banner</label>
+                      <label className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
+                        <ImageIcon className="w-3.5 h-3.5 text-[#c4c0ff]" />
+                        <span>Cover Banner</span>
+                      </label>
                       {page.banner_image_url && (
                         <button
                           type="button"
                           onClick={handleRemoveBanner}
                           disabled={isDeletingBanner}
-                          className="text-[10px] text-red-400 hover:text-red-300 transition-colors flex items-center gap-1 cursor-pointer"
+                          className="text-[10px] font-semibold text-red-400 hover:text-red-300 transition-colors flex items-center gap-1 cursor-pointer"
                         >
                           {isDeletingBanner ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
                           <span>Remove</span>
@@ -1792,7 +1378,7 @@ export default function LinkInBioDashboard() {
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <div className="w-16 h-12 rounded overflow-hidden border border-white/20 shrink-0 bg-black flex items-center justify-center">
+                      <div className="w-16 h-12 rounded-md overflow-hidden border border-white/20 shrink-0 bg-black flex items-center justify-center shadow-md">
                         {page.banner_image_url ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={page.banner_image_url} alt="Banner" className="w-full h-full object-cover" />
@@ -1816,16 +1402,16 @@ export default function LinkInBioDashboard() {
                           type="button"
                           onClick={() => bannerInputRef.current?.click()}
                           disabled={bannerUploading}
-                          className="w-full py-1.5 px-3 rounded bg-[#131313] hover:bg-[#252525] border border-[#353535] text-xs font-semibold text-white flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                          className="w-full py-1.5 px-3 rounded-md bg-[#131313] hover:bg-[#252525] border border-[#353535] text-xs font-semibold text-white flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 shadow-sm"
                         >
                           {bannerUploading ? (
                             <>
-                              <Loader2 className="w-3 h-3 animate-spin text-[#c4c0ff]" />
+                              <Loader2 className="w-3.5 h-3.5 animate-spin text-[#c4c0ff]" />
                               <span>{bannerUploadProgress}%</span>
                             </>
                           ) : (
                             <>
-                              <Upload className="w-3.5 h-3.5" />
+                              <Upload className="w-3.5 h-3.5 text-zinc-400" />
                               <span>Upload Banner</span>
                             </>
                           )}
@@ -1834,13 +1420,487 @@ export default function LinkInBioDashboard() {
                     </div>
                   </div>
                 </div>
+
+                {/* Display Name & Bio inputs */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
+                      <Type className="w-3 h-3 text-zinc-400" />
+                      <span>Display Name</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={page.title}
+                      onChange={(e) => {
+                        setPage({ ...page, title: e.target.value });
+                        setPreviewKey((k) => k + 1);
+                      }}
+                      placeholder="e.g. Alex Rivera"
+                      className="w-full bg-[#131313] border border-[#353535] rounded-md px-3 py-2 text-xs text-white focus:outline-none focus:border-white transition-all shadow-inner"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
+                      <AlignLeft className="w-3 h-3 text-zinc-400" />
+                      <span>Bio</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={page.bio}
+                      onChange={(e) => {
+                        setPage({ ...page, bio: e.target.value });
+                        setPreviewKey((k) => k + 1);
+                      }}
+                      placeholder="Short bio description"
+                      className="w-full bg-[#131313] border border-[#353535] rounded-md px-3 py-2 text-xs text-white focus:outline-none focus:border-white transition-all shadow-inner"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 2: APPEARANCE & BACKGROUND */}
+              <div className="pt-2 border-t border-white/5 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded bg-[#c4c0ff]/10 border border-[#c4c0ff]/20 flex items-center justify-center text-[#c4c0ff]">
+                      <Palette className="w-3.5 h-3.5" />
+                    </div>
+                    <h2 className="text-xs sm:text-sm font-bold text-white tracking-tight">Appearance & Background</h2>
+                  </div>
+
+                  {/* Background Style Segmented Pill */}
+                  <div className="inline-flex items-center gap-0.5 bg-[#141414] p-0.5 rounded-lg border border-[#2c2c2c] self-start sm:self-auto">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPage((prev) => ({
+                          ...prev,
+                          custom_theme: { ...prev.custom_theme, background_type: "preset" },
+                        }));
+                        setPreviewKey((k) => k + 1);
+                      }}
+                      className={cn(
+                        "px-2.5 py-1 rounded-md text-[10px] sm:text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer select-none",
+                        currentBgType === "preset"
+                          ? "bg-white text-black font-bold shadow-sm"
+                          : "text-zinc-400 hover:text-white hover:bg-white/5"
+                      )}
+                    >
+                      <Palette className="w-3 h-3 shrink-0" />
+                      <span>Preset Theme</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPage((prev) => ({
+                          ...prev,
+                          custom_theme: { ...prev.custom_theme, background_type: "color" },
+                        }));
+                        setPreviewKey((k) => k + 1);
+                      }}
+                      className={cn(
+                        "px-2.5 py-1 rounded-md text-[10px] sm:text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer select-none",
+                        currentBgType === "color"
+                          ? "bg-white text-black font-bold shadow-sm"
+                          : "text-zinc-400 hover:text-white hover:bg-white/5"
+                      )}
+                    >
+                      <Sparkles className="w-3 h-3 shrink-0" />
+                      <span>Solid Color</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPage((prev) => ({
+                          ...prev,
+                          custom_theme: { ...prev.custom_theme, background_type: "image" },
+                        }));
+                        setPreviewKey((k) => k + 1);
+                      }}
+                      className={cn(
+                        "px-2.5 py-1 rounded-md text-[10px] sm:text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer select-none",
+                        currentBgType === "image"
+                          ? "bg-white text-black font-bold shadow-sm"
+                          : "text-zinc-400 hover:text-white hover:bg-white/5"
+                      )}
+                    >
+                      <ImageIcon className="w-3 h-3 shrink-0" />
+                      <span>Wallpaper</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* MODE 1: PRESET THEMES DROPDOWN */}
+                {currentBgType === "preset" && (
+                  <div className="p-3.5 rounded-lg bg-[#20201f] border border-[#353535] space-y-2 animate-in fade-in">
+                    <label className="text-xs font-semibold text-zinc-300">Preset Theme Selection</label>
+
+                    <div className="relative" ref={presetThemeRef}>
+                      {/* Dropdown Trigger */}
+                      <button
+                        type="button"
+                        onClick={() => setPresetThemeOpen(!presetThemeOpen)}
+                        className="w-full bg-[#131313] border border-[#353535] hover:border-zinc-500 rounded-md p-2 text-xs text-white flex items-center justify-between transition-all cursor-pointer select-none h-[38px]"
+                      >
+                        <div className="flex items-center gap-2.5 truncate min-w-0">
+                          <div
+                            className="w-6 h-5 rounded-md overflow-hidden border border-white/20 shrink-0 flex items-center justify-center p-0.5 shadow-sm"
+                            style={{
+                              background:
+                                PRESET_THEME_GRADIENTS[page.theme_id] ||
+                                (BIO_THEMES as Record<string, any>)[page.theme_id]?.bgStyle?.backgroundImage ||
+                                "#131313",
+                            }}
+                          >
+                            <div
+                              className="w-2 h-2 rounded-full shadow-sm ring-1 ring-black/40"
+                              style={{
+                                backgroundColor:
+                                  (BIO_THEMES as Record<string, any>)[page.theme_id]?.accentColor || "#c4c0ff",
+                              }}
+                            />
+                          </div>
+                          <span className="font-semibold text-white truncate text-xs">
+                            {(BIO_THEMES as Record<string, any>)[page.theme_id]?.name || "Select Theme"}
+                          </span>
+                        </div>
+                        <ChevronDown className={cn("w-3.5 h-3.5 text-zinc-400 transition-transform shrink-0 ml-1", presetThemeOpen && "rotate-180")} />
+                      </button>
+
+                      {/* Dropdown Menu */}
+                      {presetThemeOpen && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-[#161616] border border-[#353535] rounded-lg shadow-2xl z-30 p-1.5 space-y-1 max-h-64 overflow-y-auto custom-scrollbar">
+                          {Object.values(BIO_THEMES).map((theme) => {
+                            const isSelected = page.theme_id === theme.id;
+                            const gradientStyle =
+                              PRESET_THEME_GRADIENTS[theme.id] ||
+                              (theme.bgStyle as any)?.backgroundImage ||
+                              "#131313";
+                            return (
+                              <button
+                                key={theme.id}
+                                type="button"
+                                onClick={() => {
+                                  setPage({
+                                    ...page,
+                                    theme_id: theme.id,
+                                    custom_theme: {
+                                      ...page.custom_theme,
+                                      background_type: "preset",
+                                    },
+                                  });
+                                  setPresetThemeOpen(false);
+                                  setPreviewKey((k) => k + 1);
+                                }}
+                                className={cn(
+                                  "w-full px-2.5 py-2 rounded-md flex items-center justify-between text-left transition-all cursor-pointer text-xs select-none",
+                                  isSelected ? "bg-white/10 text-white font-bold" : "text-zinc-300 hover:bg-white/5 hover:text-white"
+                                )}
+                              >
+                                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                  <div
+                                    className="w-8 h-5.5 rounded-md overflow-hidden border border-white/20 shrink-0 flex items-center justify-center p-0.5 shadow-sm"
+                                    style={{ background: gradientStyle }}
+                                  >
+                                    <div
+                                      className="w-2 h-2 rounded-full shadow-sm ring-1 ring-black/40"
+                                      style={{ backgroundColor: theme.accentColor }}
+                                    />
+                                  </div>
+                                  <span className="truncate">{theme.name}</span>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <div
+                                    className="w-10 h-2.5 rounded-full border border-white/10 opacity-70 hidden sm:block"
+                                    style={{ background: gradientStyle }}
+                                  />
+                                  {isSelected && <Check className="w-3.5 h-3.5 text-emerald-400" />}
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* MODE 2: SOLID / GRADIENT COLOR */}
+                {currentBgType === "color" && (
+                  <div className="p-3.5 rounded-lg bg-[#20201f] border border-[#353535] space-y-3.5 animate-in fade-in">
+                    {/* Visual Color Swatches Grid */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-zinc-300">Quick Palette Swatches</label>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {PRESET_BG_PALETTES.map((palette) => {
+                          const isChosen = currentBgColor.toLowerCase() === palette.color.toLowerCase();
+                          return (
+                            <button
+                              key={palette.color}
+                              type="button"
+                              onClick={() => {
+                                setPage((prev) => ({
+                                  ...prev,
+                                  custom_theme: { ...prev.custom_theme, background_color: palette.color },
+                                }));
+                                setPreviewKey((k) => k + 1);
+                              }}
+                              className={cn(
+                                "w-7 h-7 rounded-full border transition-all cursor-pointer flex items-center justify-center shadow-sm relative group",
+                                isChosen
+                                  ? "border-white ring-2 ring-white/30 scale-110"
+                                  : "border-white/20 hover:scale-105 hover:border-white/60"
+                              )}
+                              style={{ background: palette.gradient }}
+                              title={palette.name}
+                            >
+                              {isChosen && <Check className="w-3.5 h-3.5 text-white drop-shadow-md" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Custom Background Hex Picker */}
+                    <div className="pt-2 border-t border-[#353535]/60 space-y-1.5">
+                      <label className="text-xs font-semibold text-zinc-300">Custom Hex Code</label>
+                      <div className="flex items-center gap-2">
+                        <div className="relative w-8 h-8 rounded-md overflow-hidden border border-white/20 shrink-0 cursor-pointer shadow-sm">
+                          <input
+                            type="color"
+                            value={currentBgColor}
+                            onChange={(e) => {
+                              setPage((prev) => ({
+                                ...prev,
+                                custom_theme: { ...prev.custom_theme, background_color: e.target.value },
+                              }));
+                              setPreviewKey((k) => k + 1);
+                            }}
+                            className="absolute -inset-2 w-12 h-12 cursor-pointer opacity-0"
+                          />
+                          <div className="w-full h-full" style={{ backgroundColor: currentBgColor }} />
+                        </div>
+                        <input
+                          type="text"
+                          value={currentBgColor}
+                          onChange={(e) => {
+                            setPage((prev) => ({
+                              ...prev,
+                              custom_theme: { ...prev.custom_theme, background_color: e.target.value },
+                            }));
+                            setPreviewKey((k) => k + 1);
+                          }}
+                          placeholder="#131313"
+                          className="flex-1 bg-[#131313] border border-[#353535] rounded-md px-3 py-1.5 text-xs text-white focus:outline-none focus:border-white font-mono shadow-inner"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* MODE 3: CUSTOM WALLPAPER */}
+                {currentBgType === "image" && (
+                  <div className="p-3.5 rounded-lg bg-[#20201f] border border-[#353535] space-y-3.5 animate-in fade-in">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-zinc-300">Custom Wallpaper</label>
+                      {currentBgImage && (
+                        <button
+                          type="button"
+                          onClick={handleRemoveBgImage}
+                          disabled={isDeletingBgImage}
+                          className="text-[10px] font-semibold text-red-400 hover:text-red-300 transition-colors flex items-center gap-1 cursor-pointer"
+                        >
+                          {isDeletingBgImage ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                          <span>Remove</span>
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <div className="w-20 h-14 rounded-md overflow-hidden border border-white/20 shrink-0 bg-black flex items-center justify-center shadow-md">
+                        {currentBgImage ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={currentBgImage} alt="Background" className="w-full h-full object-cover" />
+                        ) : (
+                          <ImageIcon className="w-6 h-6 text-zinc-600" />
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0 space-y-2">
+                        <input
+                          type="file"
+                          ref={bgImageInputRef}
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleBgImageUpload(file);
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => bgImageInputRef.current?.click()}
+                          disabled={bgImageUploading}
+                          className="w-full py-2 px-3 rounded-md bg-[#131313] hover:bg-[#252525] border border-[#353535] text-xs font-semibold text-white flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 shadow-sm"
+                        >
+                          {bgImageUploading ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin text-[#c4c0ff]" />
+                              <span>Uploading {bgImageUploadProgress}%…</span>
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="w-3.5 h-3.5 text-zinc-400" />
+                              <span>Upload Wallpaper</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Overlay Tint Selector: Icon Pill Buttons instead of HTML Select */}
+                    <div className="pt-2 border-t border-[#353535]/60 space-y-1.5">
+                      <label className="text-xs font-semibold text-zinc-300">Overlay Dark Tint</label>
+                      <div className="grid grid-cols-3 gap-1.5 bg-[#131313] p-1 rounded-md border border-[#353535]">
+                        {[
+                          { id: "light", label: "Soft Dark" },
+                          { id: "dark", label: "Medium Dark" },
+                          { id: "heavy", label: "Heavy Dark" },
+                        ].map((tint) => {
+                          const isSelected = currentBgOverlay === tint.id;
+                          return (
+                            <button
+                              key={tint.id}
+                              type="button"
+                              onClick={() => {
+                                setPage((prev) => ({
+                                  ...prev,
+                                  custom_theme: {
+                                    ...prev.custom_theme,
+                                    background_overlay: tint.id as "dark" | "heavy" | "light",
+                                  },
+                                }));
+                                setPreviewKey((k) => k + 1);
+                              }}
+                              className={cn(
+                                "py-1.5 px-2 rounded text-[10px] font-semibold text-center transition-all cursor-pointer select-none",
+                                isSelected
+                                  ? "bg-white text-black font-bold shadow-sm"
+                                  : "text-zinc-400 hover:text-white hover:bg-white/5"
+                              )}
+                            >
+                              {tint.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* SECTION 3: UNIFIED GLOBAL TEXT COLOR (UI Swatches + Hex) */}
+                <div className="p-3.5 rounded-lg bg-[#20201f] border border-[#353535] space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
+                      <Type className="w-3.5 h-3.5 text-[#c4c0ff]" />
+                      <span>Text Color Override</span>
+                    </label>
+                    {currentTextColor && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPage((prev) => ({
+                            ...prev,
+                            custom_theme: { ...prev.custom_theme, text_color: "" },
+                          }));
+                          setPreviewKey((k) => k + 1);
+                        }}
+                        className="text-[10px] text-zinc-400 hover:text-white transition-colors flex items-center gap-1 cursor-pointer"
+                        title="Reset to theme default"
+                      >
+                        <RotateCcw className="w-3 h-3 text-[#c4c0ff]" />
+                        <span>Reset Default</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Preset Text Color Swatches */}
+                  <div className="flex items-center gap-2">
+                    {[
+                      { name: "White", color: "#ffffff" },
+                      { name: "Soft Pearl", color: "#e4e4e7" },
+                      { name: "Golden Sand", color: "#fef08a" },
+                      { name: "Cyan Spark", color: "#a5f3fc" },
+                      { name: "Neon Mint", color: "#a7f3d0" },
+                      { name: "Rose Pink", color: "#fbcfe8" },
+                    ].map((swatch) => {
+                      const isChosen = currentTextColor?.toLowerCase() === swatch.color.toLowerCase();
+                      return (
+                        <button
+                          key={swatch.color}
+                          type="button"
+                          onClick={() => {
+                            setPage((prev) => ({
+                              ...prev,
+                              custom_theme: { ...prev.custom_theme, text_color: swatch.color },
+                            }));
+                            setPreviewKey((k) => k + 1);
+                          }}
+                          className={cn(
+                            "w-6 h-6 rounded-full border transition-all cursor-pointer flex items-center justify-center shadow-sm shrink-0",
+                            isChosen ? "border-white ring-2 ring-white/40 scale-110" : "border-white/20 hover:scale-105"
+                          )}
+                          style={{ backgroundColor: swatch.color }}
+                          title={swatch.name}
+                        >
+                          {isChosen && <Check className="w-3 h-3 text-black font-bold" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Custom Hex Code */}
+                  <div className="flex items-center gap-2 pt-1">
+                    <div className="relative w-8 h-8 rounded-md overflow-hidden border border-white/20 shrink-0 cursor-pointer shadow-sm">
+                      <input
+                        type="color"
+                        value={currentTextColor || "#ffffff"}
+                        onChange={(e) => {
+                          setPage((prev) => ({
+                            ...prev,
+                            custom_theme: { ...prev.custom_theme, text_color: e.target.value },
+                          }));
+                          setPreviewKey((k) => k + 1);
+                        }}
+                        className="absolute -inset-2 w-12 h-12 cursor-pointer opacity-0"
+                      />
+                      <div className="w-full h-full" style={{ backgroundColor: currentTextColor || "#ffffff" }} />
+                    </div>
+                    <input
+                      type="text"
+                      value={currentTextColor}
+                      onChange={(e) => {
+                        setPage((prev) => ({
+                          ...prev,
+                          custom_theme: { ...prev.custom_theme, text_color: e.target.value },
+                        }));
+                        setPreviewKey((k) => k + 1);
+                      }}
+                      placeholder="Theme Default (#ffffff)"
+                      className="flex-1 bg-[#131313] border border-[#353535] rounded-md px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-white font-mono shadow-inner"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           )}
 
           {/* TAB 3: SOCIAL MEDIA HUB */}
           {activeTab === "social" && (
-            <div className="bg-[#1c1b1b] p-4 rounded border border-[#20201f] space-y-4 animate-in fade-in">
+            <div className="bg-[#1c1b1b] p-3 rounded border border-[#20201f] space-y-3 animate-in fade-in">
               {/* Header Toolbar: All in One Line */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-white/5 pb-3">
                 {/* Label & Active Count */}
@@ -1858,7 +1918,7 @@ export default function LinkInBioDashboard() {
 
                 {/* Right Controls in One Line: Icon Position Tabs, Show Handles, Add Custom Link */}
                 <div className="flex flex-wrap items-center gap-2">
-                  {/* Icon Position Tabs */}
+                  {/* Icon Position Tabs: Icon Only */}
                   <div className="flex items-center gap-1 bg-[#141414] p-0.5 rounded border border-[#2c2c2c]">
                     <span className="text-[10px] font-semibold text-zinc-400 pl-1.5 pr-0.5 hidden sm:inline">Position:</span>
                     {[
@@ -1879,15 +1939,14 @@ export default function LinkInBioDashboard() {
                             setPreviewKey((k) => k + 1);
                           }}
                           className={cn(
-                            "px-2 py-1 rounded text-[10px] font-semibold flex items-center gap-1 transition-all select-none cursor-pointer",
+                            "p-1.5 rounded transition-all select-none cursor-pointer flex items-center justify-center",
                             isSelected
                               ? "bg-white text-black font-bold shadow-sm"
                               : "text-zinc-400 hover:text-white hover:bg-white/5"
                           )}
                           title={mode.label}
                         >
-                          <Icon className="w-3 h-3 shrink-0" />
-                          <span className="hidden md:inline">{mode.label.split(" ")[0]}</span>
+                          <Icon className="w-3.5 h-3.5 shrink-0" />
                         </button>
                       );
                     })}
@@ -1927,27 +1986,26 @@ export default function LinkInBioDashboard() {
                     className="px-2.5 py-1 rounded bg-white text-black font-bold text-xs hover:bg-zinc-200 transition-all flex items-center gap-1 cursor-pointer shadow-sm"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    <span>Add Custom Link</span>
+                    <span>Link</span>
                   </button>
                 </div>
               </div>
 
               {/* Popular Networks Dropdown Selector */}
-              <div className="space-y-1.5 relative" ref={popularNetworkRef}>
-                <label className="text-xs font-semibold text-zinc-300 flex items-center justify-between">
+              <div className="space-y-1 relative" ref={popularNetworkRef}>
+                <label className="text-xs font-semibold text-zinc-300">
                   <span>Popular Networks</span>
-                  <span className="text-[10px] text-zinc-400 font-normal">Select a platform to add link</span>
                 </label>
 
                 <button
                   type="button"
                   onClick={() => setPopularNetworkDropdownOpen(!popularNetworkDropdownOpen)}
-                  className="w-full bg-[#131313] border border-[#353535] hover:border-zinc-500 rounded p-2 text-xs text-white flex items-center justify-between transition-all cursor-pointer select-none h-[38px]"
+                  className="w-full bg-[#131313] border border-[#353535] hover:border-zinc-500 rounded p-2 text-xs text-white flex items-center justify-between transition-all cursor-pointer select-none h-[36px]"
                 >
                   <div className="flex items-center gap-2 text-zinc-300 truncate min-w-0">
                     <Plus className="w-3.5 h-3.5 text-[#c4c0ff] shrink-0" />
-                    <span className="font-medium text-xs text-zinc-300 truncate">
-                      Select network to add (Instagram, YouTube, TikTok, WhatsApp, etc.)...
+                    <span className="font-medium text-xs text-zinc-400 truncate">
+                      Select network...
                     </span>
                   </div>
                   <ChevronDown
@@ -2035,12 +2093,9 @@ export default function LinkInBioDashboard() {
                 </div>
 
                 {(page.social_accounts || []).length === 0 ||
-                !(page.social_accounts || []).some((s) => s.is_active || s.url) ? (
-                  <div className="py-6 text-center rounded border border-dashed border-[#353535] p-4 space-y-1">
-                    <p className="text-xs font-medium text-zinc-300">No active social links</p>
-                    <p className="text-[10px] text-zinc-500">
-                      Choose a platform from the Popular Networks dropdown above or click Add Custom Link.
-                    </p>
+                  !(page.social_accounts || []).some((s) => s.is_active || s.url) ? (
+                  <div className="py-3.5 text-center rounded border border-dashed border-[#353535] p-3">
+                    <p className="text-xs font-medium text-zinc-400">No active social links</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -2161,72 +2216,59 @@ export default function LinkInBioDashboard() {
 
           {/* TAB 4: SMART REEL REDIRECTS */}
           {activeTab === "redirects" && (
-            <div className="bg-[#1c1b1b] p-4 rounded border border-[#20201f] space-y-4 animate-in fade-in">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/5 pb-3.5">
+            <div className="bg-[#1c1b1b] p-3 rounded border border-[#20201f] space-y-3 animate-in fade-in">
+              <div className="flex items-center justify-between gap-3 border-b border-white/5 pb-2.5">
                 <div>
                   <h2 className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-[#c4c0ff]" />
                     <span>Smart Reel Redirects</span>
                   </h2>
-                  <p className="text-[11px] text-zinc-400 mt-0.5">
-                    Match Reel URLs, shortcodes, and keywords to route visitors directly to downloads, messages, or external links.
-                  </p>
                 </div>
 
                 <div className="flex items-center gap-2">
+                  {/* Enable / Disable Switch Toggle (Left of Add Rule) */}
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={page.smart_redirect_enabled !== false}
+                    onClick={() => {
+                      const nextVal = page.smart_redirect_enabled === false ? true : false;
+                      setPage({ ...page, smart_redirect_enabled: nextVal });
+                      setPreviewKey((k) => k + 1);
+                    }}
+                    className="flex items-center gap-1.5 cursor-pointer select-none bg-[#141414] px-2.5 py-1 rounded border border-[#2c2c2c] hover:border-[#3d3d3d] transition-all shrink-0"
+                    title={page.smart_redirect_enabled !== false ? "Resolver Card Enabled (Click to Disable)" : "Resolver Card Disabled (Click to Enable)"}
+                  >
+                    <span className="text-xs font-semibold text-zinc-300">
+                      {page.smart_redirect_enabled !== false ? "Enabled" : "Disabled"}
+                    </span>
+                    <div
+                      className={cn(
+                        "w-6 h-3.5 rounded-full p-0.5 transition-colors duration-200 flex items-center",
+                        page.smart_redirect_enabled !== false ? "bg-emerald-500" : "bg-zinc-700"
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "w-2.5 h-2.5 rounded-full bg-white transition-transform duration-200 shadow-sm",
+                          page.smart_redirect_enabled !== false ? "translate-x-2.5" : "translate-x-0"
+                        )}
+                      />
+                    </div>
+                  </button>
+
+                  {/* Add Rule Button */}
                   <button
                     onClick={() => {
                       setEditingRule(null);
                       setRuleModalOpen(true);
                     }}
-                    className="px-3 py-1.5 bg-white text-black font-bold text-xs rounded hover:bg-zinc-200 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+                    className="px-3 py-1 bg-white text-black font-bold text-xs rounded hover:bg-zinc-200 transition-all flex items-center gap-1 cursor-pointer shadow-sm"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>Add Rule</span>
                   </button>
                 </div>
-              </div>
-
-              {/* Master Enable/Disable Switch */}
-              <div className="p-3.5 rounded bg-[#20201f] border border-[#353535] flex items-center justify-between gap-3">
-                <div className="space-y-0.5">
-                  <label className="text-xs font-bold text-white flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-[#c4c0ff]" />
-                    <span>Show Link Resolver Card on Bio Page</span>
-                  </label>
-                  <p className="text-[11px] text-zinc-400">
-                    Displays an interactive paste & resolve box on your bio profile where visitors can input Reel links or codes.
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={page.smart_redirect_enabled !== false}
-                  onClick={() => {
-                    const nextVal = page.smart_redirect_enabled === false ? true : false;
-                    setPage({ ...page, smart_redirect_enabled: nextVal });
-                    setPreviewKey((k) => k + 1);
-                  }}
-                  className="flex items-center gap-2 cursor-pointer select-none bg-[#141414] px-2.5 py-1.5 rounded border border-[#2c2c2c] hover:border-[#3d3d3d] transition-all shrink-0"
-                >
-                  <span className="text-xs font-semibold text-zinc-200">
-                    {page.smart_redirect_enabled !== false ? "Enabled" : "Disabled"}
-                  </span>
-                  <div
-                    className={cn(
-                      "w-7 h-4 rounded-full p-0.5 transition-colors duration-200 flex items-center",
-                      page.smart_redirect_enabled !== false ? "bg-emerald-500" : "bg-zinc-700"
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        "w-3 h-3 rounded-full bg-white transition-transform duration-200 shadow-sm",
-                        page.smart_redirect_enabled !== false ? "translate-x-3" : "translate-x-0"
-                      )}
-                    />
-                  </div>
-                </button>
               </div>
 
               {/* Card Text & Labels Customizer */}
@@ -2358,66 +2400,6 @@ export default function LinkInBioDashboard() {
             </div>
           )}
 
-          {/* TAB 5: PAGE URL & SETTINGS */}
-          {activeTab === "settings" && (
-            <div className="bg-[#1c1b1b] p-4 rounded border border-[#20201f] space-y-3 animate-in fade-in">
-              <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                <h2 className="text-xs sm:text-sm font-bold text-white">Page Settings</h2>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-zinc-300">Username</label>
-                <div className="flex items-center">
-                  <span className="px-2.5 py-2 bg-black/50 border border-r-0 border-[#353535] rounded-l text-xs font-mono text-zinc-400">
-                    {rootDomain}/@
-                  </span>
-                  <input
-                    type="text"
-                    value={usernameInput}
-                    onChange={(e) => {
-                      const val = e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, "");
-                      setUsernameInput(val);
-                      setUsernameStatus(null);
-                      setPreviewKey((k) => k + 1);
-                    }}
-                    className="flex-1 bg-[#131313] border border-[#353535] rounded-r px-3 py-2 text-xs font-mono font-bold text-white focus:outline-none focus:border-white"
-                  />
-                </div>
-
-                {isCheckingUsername && (
-                  <p className="text-[11px] text-zinc-400 flex items-center gap-1">
-                    <RefreshCw className="w-3 h-3 animate-spin" /> Checking…
-                  </p>
-                )}
-
-                {usernameStatus && (
-                  <p
-                    className={cn(
-                      "text-[11px] font-semibold flex items-center gap-1",
-                      usernameStatus.available ? "text-emerald-400" : "text-red-400"
-                    )}
-                  >
-                    {usernameStatus.available ? <Check className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
-                    {usernameStatus.message}
-                  </p>
-                )}
-              </div>
-
-              <div className="flex items-center justify-between p-3 rounded bg-[#20201f] border border-[#353535]">
-                <span className="text-xs font-semibold text-white">Publish Page</span>
-                <input
-                  type="checkbox"
-                  checked={page.is_published}
-                  onChange={(e) => {
-                    setPage({ ...page, is_published: e.target.checked });
-                    setPreviewKey((k) => k + 1);
-                  }}
-                  className="w-4 h-4 accent-white cursor-pointer"
-                />
-              </div>
-            </div>
-          )}
-
           {/* TAB 6: ANALYTICS */}
           {activeTab === "analytics" && (
             <div className="bg-[#1c1b1b] p-4 rounded border border-[#20201f] space-y-3 animate-in fade-in">
@@ -2455,69 +2437,114 @@ export default function LinkInBioDashboard() {
             previewDevice === "mobile"
               ? "xl:col-span-5"
               : previewDevice === "tablet"
-              ? "xl:col-span-6"
-              : "xl:col-span-7"
+                ? "xl:col-span-6"
+                : "xl:col-span-7"
           )}
         >
-          <div className="w-full flex flex-col items-center justify-center bg-[#09090b] p-2 sm:p-3 rounded border border-[#20201f] shadow-2xl relative min-h-[640px] group/mockup">
-            {/* DEVICE 1: APPLE IPHONE 17 PRO MAX (iOS UI) */}
+          <div className="w-full flex flex-col items-center justify-center bg-[#09090b] p-2 sm:p-3 rounded border border-[#20201f] shadow-2xl relative min-h-[470px] group/mockup">
+            {/* Disabled Page Preview Glass Overlay */}
+            {!page.is_published && (
+              <div className="absolute inset-0 z-50 bg-[#09090b]/85 backdrop-blur-md rounded-lg flex flex-col items-center justify-center p-6 text-center animate-in fade-in space-y-3">
+                <div className="w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shadow-lg">
+                  <EyeOff className="w-6 h-6" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-sm font-bold text-white tracking-tight">Preview Disabled</h3>
+                  <p className="text-xs text-zinc-400 max-w-[240px] leading-relaxed">
+                    Your Link-in-Bio page is currently disabled. Enable your page to view the live preview.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPage((prev) => ({ ...prev, is_published: true }));
+                    handleSavePageSettings({ is_published: true });
+                  }}
+                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs rounded-full transition-all flex items-center gap-2 cursor-pointer shadow-lg shadow-emerald-500/20 active:scale-95 select-none mt-1"
+                >
+                  <div className="w-2 h-2 rounded-full bg-black animate-pulse" />
+                  <span>Enable Page Preview</span>
+                </button>
+              </div>
+            )}
+
+            {/* DEVICE 1: APPLE IPHONE 16 PRO SIMULATOR (iOS UI) */}
             {previewDevice === "mobile" && (
               <div key={`mobile-${previewKey}`} className="w-full flex justify-center py-1 animate-in fade-in zoom-in-95 duration-200">
-                <div className="relative w-[285px] max-w-full xs:w-[300px] sm:w-[325px] bg-[#1a1a1c] rounded-[48px] p-[7px] shadow-[0_25px_70px_-15px_rgba(0,0,0,0.95),0_0_0_1px_rgba(255,255,255,0.22),inset_0_0_0_1.5px_#3a3a3d]">
-                  {/* Left Hardware: Action Button & Volume Rockers */}
-                  <div className="absolute -left-[3px] top-18 w-[3px] h-4 bg-zinc-500 rounded-l-sm" />
-                  <div className="absolute -left-[3px] top-26 w-[3px] h-8 bg-zinc-500 rounded-l-sm" />
-                  <div className="absolute -left-[3px] top-37 w-[3px] h-8 bg-zinc-500 rounded-l-sm" />
-                  {/* Right Hardware: Power Button & Flush Camera Control */}
-                  <div className="absolute -right-[3px] top-26 w-[3px] h-11 bg-zinc-500 rounded-r-sm" />
-                  <div className="absolute -right-[3px] top-42 w-[3px] h-7 bg-zinc-600 rounded-r-sm shadow-inner" />
+                <div className="relative w-[235px] sm:w-[245px] h-[450px] sm:h-[470px] rounded-[38px] p-[7px] shadow-[0_25px_60px_-15px_rgba(0,0,0,1),0_0_0_1px_rgba(255,255,255,0.2),0_0_0_3px_#222222,0_0_16px_rgba(0,0,0,0.8)] bg-gradient-to-b from-[#3a3a3a] via-[#1c1c1e] to-[#2a2a2a] flex flex-col shrink-0 overflow-visible">
+                  {/* Titanium Antenna Bands */}
+                  <div className="absolute top-[60px] -left-[1px] w-[2px] h-[4px] bg-[#555] rounded-full" />
+                  <div className="absolute top-[60px] -right-[1px] w-[2px] h-[4px] bg-[#555] rounded-full" />
+                  <div className="absolute bottom-[60px] -left-[1px] w-[2px] h-[4px] bg-[#555] rounded-full" />
+                  <div className="absolute bottom-[60px] -right-[1px] w-[2px] h-[4px] bg-[#555] rounded-full" />
 
-                  {/* Phone Screen Frame - 19.5:9 Ultra Retina Display */}
-                  <div className="relative w-full bg-[#131313] rounded-[40px] overflow-hidden border border-[#2a2a2a] flex flex-col h-[530px] max-h-[72vh] xs:h-[570px] sm:h-[640px]">
-                    {/* iOS Status Bar with Dynamic Island */}
-                    <div className="h-10 bg-black/45 backdrop-blur-md shrink-0 z-40 px-5 flex items-center justify-between text-[11px] font-semibold text-white select-none pointer-events-none">
-                      <span className="tracking-tight font-bold">9:41</span>
+                  {/* Left Hardware Buttons: Action Button, Volume Up, Volume Down */}
+                  <div className="absolute -left-[4px] top-[75px] w-[3px] h-[18px] bg-[#404040] border-l border-white/20 rounded-l-[3px] shadow-sm" title="Action Button" />
+                  <div className="absolute -left-[4px] top-[105px] w-[3px] h-[36px] bg-[#404040] border-l border-white/20 rounded-l-[3px] shadow-sm" title="Volume Up" />
+                  <div className="absolute -left-[4px] top-[149px] w-[3px] h-[36px] bg-[#404040] border-l border-white/20 rounded-l-[3px] shadow-sm" title="Volume Down" />
 
-                      {/* Apple Dynamic Island */}
-                      <div className="w-24 h-5 bg-black rounded-full flex items-center justify-between px-2.5 shadow-inner border border-white/10">
-                        <div className="w-2 h-2 rounded-full bg-[#18181b]" />
-                        <div className="w-2.5 h-2.5 rounded-full bg-[#091122] border border-[#1b2b48] flex items-center justify-center">
-                          <div className="w-1 h-1 rounded-full bg-blue-400/80" />
+                  {/* Right Hardware Buttons: Power / Siri & Camera Control */}
+                  <div className="absolute -right-[4px] top-[115px] w-[3px] h-[52px] bg-[#404040] border-r border-white/20 rounded-r-[3px] shadow-sm" title="Power" />
+                  <div className="absolute -right-[3px] top-[275px] w-[2.5px] h-[28px] bg-[#2a2a2a] border border-white/20 rounded-r-[2px] shadow-inner" title="Camera Control" />
+
+                  {/* OLED Display Bezel (Super Retina XDR) */}
+                  <div className="relative w-full h-full bg-black rounded-[32px] overflow-hidden flex flex-col justify-between text-white border border-white/10 shadow-inner">
+                    {/* Top Earpiece Speaker Slit */}
+                    <div className="absolute top-1.5 left-1/2 -translate-x-1/2 z-40 w-10 h-[2px] bg-[#1a1a1a] rounded-full" />
+
+                    {/* iOS 18 Top Status Bar & Dynamic Island */}
+                    <div className="absolute top-0 left-0 right-0 z-40 pt-2 px-3.5 flex items-center justify-between pointer-events-none">
+                      {/* iOS Clock */}
+                      <span className="text-[11px] font-semibold tracking-tight text-white font-sans">9:41</span>
+
+                      {/* Dynamic Island */}
+                      <div className="w-[80px] h-[20px] bg-black rounded-full border border-white/10 flex items-center justify-between px-1.5 shadow-md">
+                        {/* FaceID Sensor */}
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#111] border border-[#262626] flex items-center justify-center">
+                          <div className="w-0.5 h-0.5 rounded-full bg-[#050518]" />
+                        </div>
+                        {/* Front Camera Lens with Antireflective Sheen */}
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#070b18] border border-[#1e293b] flex items-center justify-center shadow-inner">
+                          <div className="w-0.5 h-0.5 rounded-full bg-[#1e1b4b]" />
                         </div>
                       </div>
 
-                      {/* iOS Cellular + Wi-Fi + Battery */}
-                      <div className="flex items-center gap-1.5 text-xs">
-                        <div className="flex items-end gap-[1.5px] h-2.5">
-                          <div className="w-[2.5px] h-[3px] bg-white rounded-[0.5px]" />
-                          <div className="w-[2.5px] h-[5px] bg-white rounded-[0.5px]" />
-                          <div className="w-[2.5px] h-[7px] bg-white rounded-[0.5px]" />
-                          <div className="w-[2.5px] h-[9px] bg-white rounded-[0.5px]" />
+                      {/* Status Icons */}
+                      <div className="flex items-center gap-1 text-white">
+                        <div className="flex items-end gap-[1px] h-2">
+                          <div className="w-[1.5px] h-[2.5px] bg-white rounded-[0.5px]" />
+                          <div className="w-[1.5px] h-[4px] bg-white rounded-[0.5px]" />
+                          <div className="w-[1.5px] h-[6px] bg-white rounded-[0.5px]" />
+                          <div className="w-[1.5px] h-[8px] bg-white rounded-[0.5px]" />
                         </div>
-                        <span className="text-[10px] font-bold tracking-tighter">5G</span>
-                        <div className="w-[18px] h-[9px] rounded-[2.5px] border border-white/80 p-[1px] flex items-center relative">
-                          <div className="w-full h-full bg-emerald-400 rounded-[1px]" />
-                          <div className="absolute -right-[2.5px] top-[2px] w-[1.5px] h-[3px] bg-white/80 rounded-r-[1px]" />
+                        <span className="text-[8.5px] font-bold tracking-tight">5G</span>
+                        {/* Battery Capsule */}
+                        <div className="flex items-center">
+                          <div className="w-[15px] h-[8px] border border-white/80 rounded-[2px] p-[1px] flex items-center">
+                            <div className="w-[10px] h-full bg-[#c4c0ff] rounded-[0.5px]" />
+                          </div>
                         </div>
                       </div>
                     </div>
 
                     {/* Scrollable Screen Content */}
-                    <div className="flex-1 w-full overflow-y-auto scrollbar-hide">
-                      <LinkInBioPublicView
-                        username={usernameInput || page.username}
-                        initialData={livePreviewData}
-                        isPreviewMode={true}
-                      />
+                    <div className="flex-1 w-full pt-7 overflow-y-auto scrollbar-hide overflow-x-hidden relative">
+                      <div className="w-[138%] origin-top-left transform scale-[0.725] min-h-full pb-8">
+                        <LinkInBioPublicView
+                          username={usernameInput || page.username}
+                          initialData={livePreviewData}
+                          isPreviewMode={true}
+                        />
+                      </div>
                     </div>
 
                     {/* iOS Safari Bottom Address Pill & Home Indicator */}
-                    <div className="bg-transparent shrink-0 z-40 flex flex-col items-center pointer-events-none pb-1 pt-1">
-                      <div className="w-[88%] bg-black/70 backdrop-blur-xl border border-white/15 rounded-full py-1.5 px-3.5 flex items-center justify-between text-[11px] text-zinc-300 font-sans shadow-lg mb-1 pointer-events-auto">
-                        <span className="font-serif font-bold text-zinc-400 text-xs tracking-tighter select-none">AA</span>
-                        <div className="flex items-center gap-1.5 text-zinc-200">
-                          <Lock className="w-3 h-3 text-zinc-400" />
-                          <span className="font-medium">{rootDomain}</span>
+                    <div className="bg-transparent shrink-0 z-40 flex flex-col items-center pointer-events-none pb-0.5 pt-0.5">
+                      <div className="w-[88%] bg-black/70 backdrop-blur-xl border border-white/15 rounded-full py-0.5 px-2.5 flex items-center justify-between text-[9.5px] text-zinc-300 font-sans shadow-lg mb-0.5 pointer-events-auto">
+                        <span className="font-serif font-bold text-zinc-400 text-[9px] tracking-tighter select-none">AA</span>
+                        <div className="flex items-center gap-1 text-zinc-200">
+                          <Lock className="w-2 h-2 text-zinc-400" />
+                          <span className="font-medium text-[9.5px]">{rootDomain}</span>
                         </div>
                         <button
                           type="button"
@@ -2525,10 +2552,10 @@ export default function LinkInBioDashboard() {
                           className="hover:text-white transition-colors cursor-pointer"
                           title="Reload"
                         >
-                          <RefreshCw className="w-3 h-3 text-zinc-400" />
+                          <RefreshCw className="w-2 h-2 text-zinc-400" />
                         </button>
                       </div>
-                      <div className="w-36 h-1 bg-white/50 rounded-full shadow-sm" />
+                      <div className="w-24 h-[2.5px] bg-white/80 rounded-full shadow-xs" />
                     </div>
                   </div>
                 </div>
@@ -2847,12 +2874,14 @@ function BlockEditModal({
   const [email, setEmail] = useState((block?.config?.email as string) || "");
   const [price, setPrice] = useState((block?.config?.price as string) || "");
 
+  const [isBlockTypeOpen, setIsBlockTypeOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
   const blockMediaInputRef = useRef<HTMLInputElement>(null);
   const [mediaUploading, setMediaUploading] = useState(false);
   const [mediaProgress, setMediaProgress] = useState(0);
 
   useEffect(() => {
+    setIsBlockTypeOpen(false);
     if (block) {
       setBlockType(block.block_type || "link");
       setTitle(block.title || "");
@@ -2997,7 +3026,6 @@ function BlockEditModal({
                   <h3 className="text-xs sm:text-sm font-bold text-white tracking-tight truncate">
                     {block ? "Edit Block" : "Add Block"}
                   </h3>
-                  <p className="text-[10px] text-zinc-400">Preview updates live as you type</p>
                 </div>
               </div>
 
@@ -3055,67 +3083,70 @@ function BlockEditModal({
 
             {/* Modal Body: Split Live Mockup + Form */}
             <div className="grid grid-cols-1 lg:grid-cols-12 flex-1 overflow-hidden min-h-0">
-              {/* Left Column: Live iPhone 17 Pro Max Mockup Preview */}
+              {/* Left Column: Live Mobile Mockup Preview */}
               <div
                 className={cn(
-                  "lg:col-span-5 bg-[#09090b] p-3 flex flex-col items-center justify-center overflow-y-auto min-h-0 border-b lg:border-b-0 lg:border-r border-white/10",
+                  "lg:col-span-5 bg-[#09090b] p-3 sm:p-4 flex flex-col items-center justify-center overflow-y-auto min-h-0 border-b lg:border-b-0 lg:border-r border-white/10",
                   activeTab === "edit" ? "hidden lg:flex" : "flex"
                 )}
               >
-                {/* Mockup Title Badge */}
-                <div className="mb-2 flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#18181b] border border-white/10 text-[10px] font-semibold text-zinc-300">
-                  <Smartphone className="w-3 h-3 text-[#c4c0ff]" />
-                  <span>iPhone 17 Pro Max</span>
-                </div>
+                <div className="w-full flex justify-center py-1 animate-in fade-in zoom-in-95 duration-200">
+                  <div className="relative w-[225px] sm:w-[235px] h-[410px] sm:h-[430px] rounded-[36px] p-[6px] shadow-[0_25px_60px_-15px_rgba(0,0,0,1),0_0_0_1px_rgba(255,255,255,0.2),0_0_0_3px_#222222,0_0_16px_rgba(0,0,0,0.8)] bg-gradient-to-b from-[#3a3a3a] via-[#1c1c1e] to-[#2a2a2a] flex flex-col shrink-0 overflow-visible">
+                    {/* Titanium Antenna Bands */}
+                    <div className="absolute top-[50px] -left-[1px] w-[2px] h-[4px] bg-[#555] rounded-full" />
+                    <div className="absolute top-[50px] -right-[1px] w-[2px] h-[4px] bg-[#555] rounded-full" />
+                    <div className="absolute bottom-[50px] -left-[1px] w-[2px] h-[4px] bg-[#555] rounded-full" />
+                    <div className="absolute bottom-[50px] -right-[1px] w-[2px] h-[4px] bg-[#555] rounded-full" />
 
-                <div className="w-full flex justify-center py-0.5 animate-in fade-in zoom-in-95 duration-200">
-                  {/* iPhone 17 Pro Max Titanium Chassis */}
-                  <div className="relative w-[270px] max-w-full bg-gradient-to-b from-[#2a2930] via-[#1c1b22] to-[#121216] rounded-[48px] p-[7px] border border-white/20 shadow-[0_25px_70px_-15px_rgba(0,0,0,0.95),inset_0_0_0_1.5px_#3d3b44]">
-                    {/* Left Hardware Buttons: Action Button + Volume Up/Down */}
-                    <div className="absolute -left-[3px] top-14 w-[3px] h-4 bg-zinc-400 rounded-l-sm shadow-sm" title="Action Button" />
-                    <div className="absolute -left-[3px] top-22 w-[3px] h-7 bg-zinc-500 rounded-l-sm" title="Volume Up" />
-                    <div className="absolute -left-[3px] top-32 w-[3px] h-7 bg-zinc-500 rounded-l-sm" title="Volume Down" />
-                    {/* Right Hardware Buttons: Power + Camera Control */}
-                    <div className="absolute -right-[3px] top-22 w-[3px] h-10 bg-zinc-500 rounded-r-sm" title="Power" />
-                    <div className="absolute -right-[3px] top-36 w-[3px] h-7 bg-zinc-400/90 rounded-r-sm shadow-sm" title="Camera Control" />
+                    {/* Left Hardware Buttons: Action Button, Volume Up, Volume Down */}
+                    <div className="absolute -left-[4px] top-[65px] w-[3px] h-[18px] bg-[#404040] border-l border-white/20 rounded-l-[3px] shadow-sm" title="Action Button" />
+                    <div className="absolute -left-[4px] top-[94px] w-[3px] h-[34px] bg-[#404040] border-l border-white/20 rounded-l-[3px] shadow-sm" title="Volume Up" />
+                    <div className="absolute -left-[4px] top-[136px] w-[3px] h-[34px] bg-[#404040] border-l border-white/20 rounded-l-[3px] shadow-sm" title="Volume Down" />
 
-                    {/* Screen Glass */}
-                    <div className="relative w-full bg-[#101012] rounded-[40px] overflow-hidden border border-[#28282e] flex flex-col h-[465px]">
-                      {/* Speaker Micro Slot */}
-                      <div className="h-1.5 bg-black shrink-0 flex items-center justify-center">
-                        <div className="w-8 h-[2px] bg-zinc-700/80 rounded-full" />
-                      </div>
+                    {/* Right Hardware Buttons: Power / Siri & Camera Control */}
+                    <div className="absolute -right-[4px] top-[104px] w-[3px] h-[50px] bg-[#404040] border-r border-white/20 rounded-r-[3px] shadow-sm" title="Power" />
+                    <div className="absolute -right-[3px] top-[260px] w-[2.5px] h-[26px] bg-[#2a2a2a] border border-white/20 rounded-r-[2px] shadow-inner" title="Camera Control" />
 
-                      {/* iOS Status Bar */}
-                      <div className="h-7 bg-black/50 backdrop-blur-md shrink-0 z-40 px-3.5 flex items-center justify-between text-[10px] font-semibold text-white select-none pointer-events-none">
-                        <span className="tracking-tight font-bold text-[10.5px]">9:41</span>
-                        {/* iPhone 17 Pro Max Dynamic Island */}
-                        <div className="w-[76px] h-[17px] bg-black rounded-full flex items-center justify-between px-2 shadow-inner border border-white/10">
-                          <div className="w-1.5 h-1.5 rounded-full bg-[#18181b]" />
-                          <div className="w-2 h-2 rounded-full bg-[#0a1226] border border-[#1b2b48] flex items-center justify-center">
-                            <div className="w-1 h-1 rounded-full bg-blue-400/90" />
+                    {/* OLED Display Bezel */}
+                    <div className="relative w-full h-full bg-black rounded-[30px] overflow-hidden flex flex-col justify-between text-white border border-white/10 shadow-inner">
+                      {/* Top Earpiece Speaker Slit */}
+                      <div className="absolute top-1 left-1/2 -translate-x-1/2 z-40 w-10 h-[2px] bg-[#1a1a1a] rounded-full" />
+
+                      {/* iOS 18 Top Status Bar & Dynamic Island */}
+                      <div className="absolute top-0 left-0 right-0 z-40 pt-2 px-3 flex items-center justify-between pointer-events-none">
+                        <span className="text-[11px] font-semibold tracking-tight text-white font-sans">9:41</span>
+                        <div className="w-[82px] h-[20px] bg-black rounded-full border border-white/10 flex items-center justify-between px-1.5 shadow-md">
+                          <div className="w-2 h-2 rounded-full bg-[#111] border border-[#262626] flex items-center justify-center">
+                            <div className="w-0.5 h-0.5 rounded-full bg-[#050518]" />
+                          </div>
+                          <div className="w-2 h-2 rounded-full bg-[#070b18] border border-[#1e293b] flex items-center justify-center shadow-inner">
+                            <div className="w-0.5 h-0.5 rounded-full bg-[#1e1b4b]" />
                           </div>
                         </div>
-                        <div className="flex items-center gap-1 text-[10px]">
-                          <span className="font-bold tracking-tighter text-[9px]">5G</span>
-                          <div className="w-[14px] h-[7px] rounded-[2px] border border-white/80 p-[1px] flex items-center relative">
-                            <div className="w-full h-full bg-emerald-400 rounded-[0.5px]" />
+                        <div className="flex items-center gap-1 text-white">
+                          <span className="text-[9px] font-bold tracking-tight">5G</span>
+                          <div className="flex items-center">
+                            <div className="w-[16px] h-[8px] border border-white/80 rounded-[2px] p-[1px] flex items-center">
+                              <div className="w-[10px] h-full bg-[#c4c0ff] rounded-[0.5px]" />
+                            </div>
                           </div>
                         </div>
                       </div>
 
                       {/* Live Content */}
-                      <div className="flex-1 w-full overflow-y-auto scrollbar-hide">
-                        <LinkInBioPublicView
-                          username={username || page.username}
-                          initialData={modalPreviewData}
-                          isPreviewMode={true}
-                        />
+                      <div className="flex-1 w-full pt-7 overflow-y-auto scrollbar-hide overflow-x-hidden relative">
+                        <div className="w-[138%] origin-top-left transform scale-[0.725] min-h-full pb-8">
+                          <LinkInBioPublicView
+                            username={username || page.username}
+                            initialData={modalPreviewData}
+                            isPreviewMode={true}
+                          />
+                        </div>
                       </div>
 
-                      {/* iOS Bottom Gesture Indicator */}
-                      <div className="h-3 bg-transparent shrink-0 z-40 flex items-center justify-center pointer-events-none">
-                        <div className="w-22 h-0.5 bg-white/40 rounded-full shadow-sm" />
+                      {/* iOS Bottom Indicator */}
+                      <div className="h-2.5 bg-transparent shrink-0 z-40 flex items-center justify-center pointer-events-none">
+                        <div className="w-20 h-[3px] bg-white/80 rounded-full shadow-xs" />
                       </div>
                     </div>
                   </div>
@@ -3132,29 +3163,71 @@ function BlockEditModal({
                 )}
               >
                 <div className="space-y-3.5">
-                  <div className="space-y-1.5">
+                  {/* Block Type Custom Dropdown with Icons */}
+                  <div className="space-y-1.5 relative z-30">
                     <label className="text-xs font-semibold text-zinc-300">Block Type</label>
-                    <div className="grid grid-cols-4 gap-1.5">
-                      {BLOCK_TYPES.map((t) => {
-                        const Icon = t.icon;
-                        const isSelected = blockType === t.id;
+                    <div className="relative">
+                      {(() => {
+                        const selectedTypeObj = BLOCK_TYPES.find((t) => t.id === blockType) || BLOCK_TYPES[0];
                         return (
-                          <button
-                            key={t.id}
-                            type="button"
-                            onClick={() => setBlockType(t.id)}
-                            className={cn(
-                              "p-2 rounded border text-center flex flex-col items-center gap-1 transition-all select-none cursor-pointer",
-                              isSelected
-                                ? "bg-white text-black border-white font-bold shadow-sm"
-                                : "bg-[#131313] border-[#353535] text-zinc-300 hover:border-zinc-500"
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => setIsBlockTypeOpen(!isBlockTypeOpen)}
+                              className="w-full bg-[#131313] border border-[#353535] hover:border-white/40 rounded px-3 py-2 text-xs text-white flex items-center justify-between transition-all cursor-pointer shadow-sm"
+                            >
+                              <div className="flex items-center gap-2.5">
+                                {selectedTypeObj && (
+                                  <>
+                                    <div className="w-5 h-5 rounded bg-white/10 flex items-center justify-center text-[#c4c0ff]">
+                                      <selectedTypeObj.icon className="w-3.5 h-3.5" />
+                                    </div>
+                                    <span className="font-bold text-xs">{selectedTypeObj.label}</span>
+                                  </>
+                                )}
+                              </div>
+                              <ChevronDown className={cn("w-4 h-4 text-zinc-400 transition-transform duration-200", isBlockTypeOpen && "rotate-180")} />
+                            </button>
+
+                            {isBlockTypeOpen && (
+                              <>
+                                <div
+                                  className="fixed inset-0 z-40"
+                                  onClick={() => setIsBlockTypeOpen(false)}
+                                />
+                                <div className="absolute top-full left-0 right-0 mt-1 bg-[#18181a] border border-white/20 rounded-lg shadow-2xl overflow-hidden z-50 p-1 space-y-0.5 max-h-56 overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95 duration-150">
+                                  {BLOCK_TYPES.map((t) => {
+                                    const Icon = t.icon;
+                                    const isSelected = blockType === t.id;
+                                    return (
+                                      <button
+                                        key={t.id}
+                                        type="button"
+                                        onClick={() => {
+                                          setBlockType(t.id);
+                                          setIsBlockTypeOpen(false);
+                                        }}
+                                        className={cn(
+                                          "w-full px-2.5 py-2 rounded text-xs flex items-center justify-between transition-colors select-none cursor-pointer text-left",
+                                          isSelected
+                                            ? "bg-white text-black font-bold"
+                                            : "text-zinc-300 hover:bg-white/10 hover:text-white"
+                                        )}
+                                      >
+                                        <div className="flex items-center gap-2.5">
+                                          <Icon className={cn("w-4 h-4", isSelected ? "text-black" : "text-[#c4c0ff]")} />
+                                          <span>{t.label}</span>
+                                        </div>
+                                        {isSelected && <Check className="w-3.5 h-3.5 text-black" />}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </>
                             )}
-                          >
-                            <Icon className="w-4 h-4" />
-                            <p className="text-[10px] leading-tight font-bold">{t.label}</p>
-                          </button>
+                          </>
                         );
-                      })}
+                      })()}
                     </div>
                   </div>
 
@@ -3746,59 +3819,76 @@ function MockupPreviewModal({
             </div>
 
             {/* Modal Body / Mockup Viewport */}
-            <div className="flex-1 overflow-y-auto p-3 sm:p-4 bg-[#09090b] flex items-center justify-center min-h-[460px]">
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4 bg-[#09090b] flex items-center justify-center min-h-[420px]">
               {/* DEVICE 1: APPLE IPHONE 16 PRO (iOS UI) */}
               {modalDevice === "mobile" && (
                 <div key={`modal-mobile-${previewKey}`} className="w-full flex justify-center py-1 animate-in fade-in zoom-in-95 duration-200">
-                  <div className="relative w-full max-w-[340px] bg-[#1a1a1c] rounded-[48px] p-[9px] shadow-[0_25px_70px_-15px_rgba(0,0,0,0.95),0_0_0_1px_rgba(255,255,255,0.2),inset_0_0_0_1.5px_#3a3a3d]">
-                    {/* Left Hardware */}
-                    <div className="absolute -left-[3px] top-18 w-[3px] h-3.5 bg-zinc-500 rounded-l-sm" />
-                    <div className="absolute -left-[3px] top-25 w-[3px] h-8 bg-zinc-500 rounded-l-sm" />
-                    <div className="absolute -left-[3px] top-36 w-[3px] h-8 bg-zinc-500 rounded-l-sm" />
-                    {/* Right Hardware */}
-                    <div className="absolute -right-[3px] top-28 w-[3px] h-11 bg-zinc-500 rounded-r-sm" />
+                  <div className="relative w-[215px] sm:w-[225px] h-[410px] sm:h-[430px] rounded-[36px] p-[6px] shadow-[0_20px_50px_-12px_rgba(0,0,0,1),0_0_0_1px_rgba(255,255,255,0.2),0_0_0_3px_#222222] bg-gradient-to-b from-[#3a3a3a] via-[#1c1c1e] to-[#2a2a2a] flex flex-col shrink-0 overflow-visible">
+                    {/* Titanium Antenna Bands */}
+                    <div className="absolute top-[50px] -left-[1px] w-[2px] h-[3px] bg-[#555] rounded-full" />
+                    <div className="absolute top-[50px] -right-[1px] w-[2px] h-[3px] bg-[#555] rounded-full" />
+                    <div className="absolute bottom-[50px] -left-[1px] w-[2px] h-[3px] bg-[#555] rounded-full" />
+                    <div className="absolute bottom-[50px] -right-[1px] w-[2px] h-[3px] bg-[#555] rounded-full" />
+
+                    {/* Left Hardware Buttons */}
+                    <div className="absolute -left-[4px] top-[65px] w-[3px] h-[16px] bg-[#404040] border-l border-white/20 rounded-l-[2px] shadow-sm" title="Action Button" />
+                    <div className="absolute -left-[4px] top-[92px] w-[3px] h-[32px] bg-[#404040] border-l border-white/20 rounded-l-[2px] shadow-sm" title="Volume Up" />
+                    <div className="absolute -left-[4px] top-[132px] w-[3px] h-[32px] bg-[#404040] border-l border-white/20 rounded-l-[2px] shadow-sm" title="Volume Down" />
+
+                    {/* Right Hardware Buttons */}
+                    <div className="absolute -right-[4px] top-[102px] w-[3px] h-[46px] bg-[#404040] border-r border-white/20 rounded-r-[2px] shadow-sm" title="Power" />
+                    <div className="absolute -right-[3px] top-[245px] w-[2px] h-[24px] bg-[#2a2a2a] border border-white/20 rounded-r-[2px]" title="Camera Control" />
 
                     {/* Screen Glass */}
-                    <div className="relative w-full bg-[#131313] rounded-[40px] overflow-hidden border border-[#2a2a2a] flex flex-col h-[580px] max-h-[66vh]">
-                      {/* iOS Status Bar */}
-                      <div className="h-9 bg-black/45 backdrop-blur-md shrink-0 z-40 px-5 flex items-center justify-between text-[10px] font-semibold text-white select-none pointer-events-none">
-                        <span className="tracking-tight font-bold">9:41</span>
+                    <div className="relative w-full h-full bg-black rounded-[30px] overflow-hidden flex flex-col justify-between text-white border border-white/10 shadow-inner">
+                      {/* Earpiece Speaker */}
+                      <div className="absolute top-1 left-1/2 -translate-x-1/2 z-40 w-9 h-[2px] bg-[#1a1a1a] rounded-full" />
+
+                      {/* iOS Top Status Bar */}
+                      <div className="absolute top-0 left-0 right-0 z-40 pt-1.5 px-3 flex items-center justify-between text-[10px] font-semibold text-white select-none pointer-events-none">
+                        <span className="tracking-tight font-bold text-[10px]">9:41</span>
+
                         {/* Dynamic Island */}
-                        <div className="w-22 h-4.5 bg-black rounded-full flex items-center justify-between px-2 shadow-inner border border-white/10">
-                          <div className="w-1.5 h-1.5 rounded-full bg-[#18181b]" />
-                          <div className="w-2 h-2 rounded-full bg-[#091122] border border-[#1b2b48] flex items-center justify-center">
-                            <div className="w-1 h-1 rounded-full bg-blue-400/80" />
+                        <div className="w-[74px] h-[18px] bg-black rounded-full border border-white/10 flex items-center justify-between px-1.5 shadow-md">
+                          <div className="w-1.5 h-1.5 rounded-full bg-[#111] border border-[#262626] flex items-center justify-center">
+                            <div className="w-0.5 h-0.5 rounded-full bg-[#050518]" />
+                          </div>
+                          <div className="w-1.5 h-1.5 rounded-full bg-[#070b18] border border-[#1e293b] flex items-center justify-center shadow-inner">
+                            <div className="w-0.5 h-0.5 rounded-full bg-[#1e1b4b]" />
                           </div>
                         </div>
-                        {/* Icons */}
-                        <div className="flex items-center gap-1 text-[10px]">
+
+                        {/* Status Icons */}
+                        <div className="flex items-center gap-1 text-[8.5px]">
                           <span className="font-bold tracking-tighter">5G</span>
-                          <div className="w-[16px] h-[8px] rounded-[2px] border border-white/80 p-[1px] flex items-center relative">
-                            <div className="w-full h-full bg-emerald-400 rounded-[0.5px]" />
+                          <div className="w-[14px] h-[7.5px] border border-white/80 rounded-[2px] p-[1px] flex items-center relative">
+                            <div className="w-full h-full bg-[#c4c0ff] rounded-[0.5px]" />
                           </div>
                         </div>
                       </div>
 
                       {/* Content */}
-                      <div className="flex-1 w-full overflow-y-auto scrollbar-hide">
-                        <LinkInBioPublicView
-                          username={username || page.username}
-                          initialData={livePreviewData}
-                          isPreviewMode={true}
-                        />
+                      <div className="flex-1 w-full pt-6 overflow-y-auto scrollbar-hide overflow-x-hidden relative">
+                        <div className="w-[138%] origin-top-left transform scale-[0.725] min-h-full pb-8">
+                          <LinkInBioPublicView
+                            username={username || page.username}
+                            initialData={livePreviewData}
+                            isPreviewMode={true}
+                          />
+                        </div>
                       </div>
 
                       {/* Bottom Safari Pill & Home Indicator */}
-                      <div className="bg-transparent shrink-0 z-40 flex flex-col items-center pointer-events-none pb-1 pt-0.5">
-                        <div className="w-[88%] bg-black/70 backdrop-blur-xl border border-white/15 rounded-full py-1 px-3 flex items-center justify-between text-[10px] text-zinc-300 font-sans shadow-lg mb-1 pointer-events-auto">
-                          <span className="font-serif font-bold text-zinc-400 text-[11px] tracking-tighter select-none">AA</span>
+                      <div className="bg-transparent shrink-0 z-40 flex flex-col items-center pointer-events-none pb-0.5 pt-0.5">
+                        <div className="w-[88%] bg-black/70 backdrop-blur-xl border border-white/15 rounded-full py-0.5 px-2 flex items-center justify-between text-[9px] text-zinc-300 font-sans shadow-lg mb-0.5 pointer-events-auto">
+                          <span className="font-serif font-bold text-zinc-400 text-[8.5px] tracking-tighter select-none">AA</span>
                           <div className="flex items-center gap-1 text-zinc-200">
-                            <Lock className="w-2.5 h-2.5 text-zinc-400" />
-                            <span className="font-medium text-[10px]">{rootDomain}</span>
+                            <Lock className="w-2 h-2 text-zinc-400" />
+                            <span className="font-medium text-[9px]">{rootDomain}</span>
                           </div>
-                          <RefreshCw className="w-2.5 h-2.5 text-zinc-400" />
+                          <RefreshCw className="w-2 h-2 text-zinc-400" />
                         </div>
-                        <div className="w-28 h-1 bg-white/50 rounded-full shadow-sm" />
+                        <div className="w-20 h-[2px] bg-white/70 rounded-full shadow-xs" />
                       </div>
                     </div>
                   </div>

@@ -121,7 +121,7 @@ function DashboardLayoutContent({
           "flex-1 w-full mx-auto",
           isFullBleed
             ? "flex flex-col flex-1 min-h-0 p-0 max-w-none overflow-hidden"
-            : "w-full px-4 py-6 sm:px-6"
+            : "w-full px-3 py-3 sm:px-4 sm:py-3.5"
         )}>
           {firebaseUser ? children : null}
         </main>
