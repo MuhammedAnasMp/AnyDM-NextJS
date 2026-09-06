@@ -12,6 +12,8 @@ import { authService } from "@/lib/services/auth.service";
 import { setHydrating } from "@/store/slices/authSlice";
 import { cn } from "@/lib/utils";
 
+import InstagramAccountGuard from "@/components/InstagramAccountGuard";
+
 function DashboardLayoutContent({
   children,
 }: {
@@ -123,7 +125,11 @@ function DashboardLayoutContent({
             ? "flex flex-col flex-1 min-h-0 p-0 max-w-none overflow-hidden"
             : "w-full px-3 py-3 sm:px-4 sm:py-3.5"
         )}>
-          {firebaseUser ? children : null}
+          {firebaseUser ? (
+            <InstagramAccountGuard>
+              {children}
+            </InstagramAccountGuard>
+          ) : null}
         </main>
       </div>
     </div>

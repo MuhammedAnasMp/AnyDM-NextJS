@@ -304,9 +304,13 @@ export default function Header({ onMenuClick }: HeaderProps) {
           <button className="p-1.5 md:p-2 text-[#c4c7c8]/60 hover:text-white transition-colors hover:bg-white/5 rounded-full relative notification-pulse">
             <span className="material-symbols-outlined text-lg md:text-xl">notifications</span>
           </button>
-          <button className="p-1.5 md:p-2 text-[#c4c7c8]/60 hover:text-white transition-colors hover:bg-white/5 rounded-full hidden sm:inline-flex">
+          <Link
+            href="/docs"
+            title="User Documentation"
+            className="p-1.5 md:p-2 text-[#c4c7c8]/60 hover:text-white transition-colors hover:bg-white/5 rounded-full hidden sm:inline-flex"
+          >
             <span className="material-symbols-outlined text-lg md:text-xl">help_outline</span>
-          </button>
+          </Link>
 
           <div className="h-6 w-px bg-white/10 mx-0.5 md:mx-1"></div>
 
@@ -332,6 +336,15 @@ export default function Header({ onMenuClick }: HeaderProps) {
                   <p className="text-xs font-bold text-white truncate">{userDisplayName}</p>
                   <p className="text-[10px] text-[#c4c7c8]/60 truncate mt-0.5">{appUser?.email || "Connected account"}</p>
                 </div>
+
+                <Link
+                  href="/docs"
+                  onClick={() => setIsProfileMenuOpen(false)}
+                  className="flex items-center gap-2.5 px-3 py-2 text-xs text-[#c4c7c8]/60 hover:text-white hover:bg-white/5 rounded-lg transition-all"
+                >
+                  <span className="material-symbols-outlined text-sm">menu_book</span>
+                  <span>Documentation</span>
+                </Link>
 
                 <Link
                   href="/dashboard/settings/accounts"
