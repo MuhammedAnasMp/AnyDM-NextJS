@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { authService } from './auth.service';
+import { store } from '@/store';
 
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://localapi.locanydm.online';
 const hasProtocol = rawApiUrl.startsWith('http://') || rawApiUrl.startsWith('https://');
@@ -119,6 +120,15 @@ api.interceptors.response.use(
         const originalRequest = error.config;
 
         if (error.response?.status === 401 && !originalRequest._retry) {
+            const state = store.getState();
+            const isHydrating = state?.auth?.isHydrating;
+            const isAuthEndpoint = originalRequest.url?.includes('/accounts/auth/');
+
+            // Don't trigger logout redirect if session is still hydrating or during initial auth exchange
+            if (isHydrating || isAuthEndpoint) {
+                return Promise.reject(error);
+            }
+
             originalRequest._retry = true;
             try {
                 await authService.refreshToken();

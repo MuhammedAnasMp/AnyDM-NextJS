@@ -32,6 +32,7 @@ interface KYCState {
   bank_ifsc: string;
   status: "PENDING" | "SUBMITTED" | "APPROVED" | "REJECTED" | string;
   is_card_verified: boolean;
+  razorpay_account_id?: string;
 }
 
 export default function SellerKYCPage() {
@@ -45,6 +46,7 @@ export default function SellerKYCPage() {
     bank_ifsc: "",
     status: "PENDING",
     is_card_verified: false,
+    razorpay_account_id: "",
   });
 
   const [isLoading, setIsLoading] = useState(true);
@@ -80,6 +82,7 @@ export default function SellerKYCPage() {
             bank_ifsc: res.data.bank_ifsc || "",
             status: res.data.status || "PENDING",
             is_card_verified: !!res.data.is_card_verified,
+            razorpay_account_id: res.data.razorpay_account_id || "",
           });
         }
       } catch (err) {
@@ -242,11 +245,19 @@ export default function SellerKYCPage() {
           >
             <CheckCircle2 className="w-5 h-5 text-[#34d399] shrink-0 mt-0.5" />
             <div className="space-y-0.5">
-              <h4 className="text-xs font-semibold text-[#34d399]">Identity Verified &amp; Payouts Active</h4>
+              <h4 className="text-xs font-semibold text-[#34d399]">Identity Verified &amp; Automated Route Payouts Active</h4>
               <p className="text-xs text-[#34d399]/80 leading-relaxed">
                 Your bank details are verified. Settlements are automatically routed to{" "}
-                <span className="font-bold text-white">{kycData.bank_name || "your registered bank"}</span> on a T+1 daily cycle.
+                <span className="font-bold text-white">{kycData.bank_name || "your registered bank"}</span> via Razorpay Route.
               </p>
+              {kycData.razorpay_account_id && (
+                <div className="pt-1.5 flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded bg-emerald-950/60 border border-emerald-700/50 text-[10px] font-mono text-emerald-300 inline-flex items-center gap-1.5">
+                    <Zap className="w-3 h-3 text-emerald-400" />
+                    <span>Razorpay Route ID: {kycData.razorpay_account_id}</span>
+                  </span>
+                </div>
+              )}
             </div>
           </motion.div>
         )}

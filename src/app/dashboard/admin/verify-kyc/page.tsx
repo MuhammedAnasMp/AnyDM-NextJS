@@ -30,6 +30,7 @@ interface KYCSubmission {
   bank_ifsc: string;
   status: string;
   is_card_verified: boolean;
+  razorpay_account_id?: string;
   created_at: string;
   updated_at: string;
 }
@@ -361,6 +362,12 @@ export default function AdminVerifyKYCPage() {
                     <span className="text-[10px] text-zinc-500 font-bold tracking-wider">Account Number</span>
                     <span className="font-mono text-zinc-200">{selectedKyc.bank_account_number ? "•••• •••• " + selectedKyc.bank_account_number.slice(-4) : "N/A"}</span>
                   </div>
+                  {selectedKyc.razorpay_account_id && (
+                    <div className="flex flex-col gap-0.5 pt-1">
+                      <span className="text-[10px] text-purple-400 font-bold tracking-wider">Razorpay Route Account</span>
+                      <span className="font-mono text-emerald-400 font-medium">{selectedKyc.razorpay_account_id}</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Quick actions in sidebar */}

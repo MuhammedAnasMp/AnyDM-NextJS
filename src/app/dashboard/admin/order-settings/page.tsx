@@ -46,7 +46,11 @@ export default function AdminOrderSettingsPage() {
   const isAdmin = !!(appUser?.is_superuser || appUser?.is_staff);
 
   const [stores, setStores] = useState<StoreSetting[]>([]);
+  const [globalCommPct, setGlobalCommPct] = useState<string>("10.00");
+  const [instantCommPct, setInstantCommPct] = useState<string>("3.00");
+  const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSavingCommissions, setIsSavingCommissions] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [editingStore, setEditingStore] = useState<StoreSetting | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -69,18 +73,52 @@ export default function AdminOrderSettingsPage() {
     setLoading(true);
     try {
       const res = await api.get("/crm/admin/order-settings/");
-      if (Array.isArray(res.data)) {
-        setStores(res.data.map((s: any) => ({
-          ...s,
-          return_policy: !!s.return_policy,
-          cancellation_policy: !!s.cancellation_policy
-        })));
+      if (res.data) {
+        if (Array.isArray(res.data.stores)) {
+          setStores(res.data.stores.map((s: any) => ({
+            ...s,
+            return_policy: !!s.return_policy,
+            cancellation_policy: !!s.cancellation_policy
+          })));
+        } else if (Array.isArray(res.data)) {
+          setStores(res.data);
+        }
+        if (res.data.global_commission_pct !== undefined) {
+          setGlobalCommPct(res.data.global_commission_pct);
+        }
+        if (res.data.instant_payout_commission_pct !== undefined) {
+          setInstantCommPct(res.data.instant_payout_commission_pct);
+        }
+        if (Array.isArray(res.data.categories)) {
+          setCategories(res.data.categories);
+        }
       }
     } catch (err: any) {
       console.error("Error loading store list:", err);
       showToast("Failed to load store configurations.", "error");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveCommissions = async () => {
+    setIsSavingCommissions(true);
+    try {
+      const res = await api.post("/crm/admin/order-settings/", {
+        global_commission_pct: globalCommPct,
+        instant_payout_commission_pct: instantCommPct,
+        category_commissions: categories.map(c => ({
+          id: c.id,
+          commission_percentage: c.commission_percentage
+        }))
+      });
+      showToast(res.data?.message || "Commission settings updated successfully!", "success");
+      fetchStores();
+    } catch (err: any) {
+      console.error("Error saving commission settings:", err);
+      showToast("Failed to update commission settings.", "error");
+    } finally {
+      setIsSavingCommissions(false);
     }
   };
 
@@ -176,6 +214,106 @@ export default function AdminOrderSettingsPage() {
         >
           <RefreshCw className={cn("w-4 h-4 text-zinc-400", loading && "animate-spin")} />
         </button>
+      </div>
+
+      {/* Platform Commission & Category Fees Card */}
+      <div className="bg-[#20201f] border border-white/10 rounded-lg p-5 space-y-4 shadow-md">
+        <div className="flex items-center justify-between border-b border-white/5 pb-3">
+          <div>
+            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <Settings className="w-4 h-4 text-[#b6b2ff]" />
+              <span>AnyDM Platform Commission Rules</span>
+            </h3>
+            <p className="text-xs text-zinc-400 mt-0.5">
+              Set the default platform commission percentage deducted from each order before routing payouts to creators via Razorpay Route.
+            </p>
+          </div>
+          <button
+            onClick={handleSaveCommissions}
+            disabled={isSavingCommissions}
+            className="py-1.5 px-3 rounded bg-[#b6b2ff] hover:bg-[#a39eff] text-[#111] font-bold text-xs transition-colors flex items-center gap-1.5 disabled:opacity-50 shrink-0"
+          >
+            {isSavingCommissions ? (
+              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Save className="w-3.5 h-3.5" />
+            )}
+            <span>Save Commission Rules</span>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+          {/* Global Commission */}
+          <div className="space-y-1.5 bg-[#141416] p-3.5 rounded-md border border-white/5">
+            <label className="text-xs font-semibold text-zinc-300">Global Default Platform Commission (%)</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                max="100"
+                value={globalCommPct}
+                onChange={(e) => setGlobalCommPct(e.target.value)}
+                className="bg-[#0e0e0e] border border-[#444748] rounded px-3 py-1.5 text-xs text-white outline-none w-full font-mono"
+              />
+              <span className="text-xs text-zinc-400 font-bold">%</span>
+            </div>
+            <p className="text-[10px] text-zinc-500">Applied for standard monthly held payouts when no category commission is set.</p>
+          </div>
+
+          {/* Instant Payouts Commission */}
+          <div className="space-y-1.5 bg-[#141416] p-3.5 rounded-md border border-emerald-500/20">
+            <label className="text-xs font-semibold text-emerald-400 flex items-center gap-1">
+              <span>⚡ Instant Payouts Platform Commission (%)</span>
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                max="100"
+                value={instantCommPct}
+                onChange={(e) => setInstantCommPct(e.target.value)}
+                className="bg-[#0e0e0e] border border-emerald-500/40 rounded px-3 py-1.5 text-xs text-white outline-none w-full font-mono"
+              />
+              <span className="text-xs text-emerald-400 font-bold">%</span>
+            </div>
+            <p className="text-[10px] text-zinc-400">
+              Applied on orders for users who enable <span className="text-emerald-400 font-semibold">⚡ Instant Payouts</span> in their Orders settings.
+            </p>
+          </div>
+
+          {/* Category Commissions */}
+          <div className="space-y-2 bg-[#141416] p-3.5 rounded-md border border-white/5">
+            <label className="text-xs font-semibold text-zinc-300">Category-Specific Commissions (%)</label>
+            {categories.length === 0 ? (
+              <p className="text-xs text-zinc-500">No product categories created yet.</p>
+            ) : (
+              <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                {categories.map((cat, idx) => (
+                  <div key={cat.id || idx} className="flex items-center justify-between gap-2 text-xs">
+                    <span className="text-zinc-300 font-medium truncate">{cat.name}</span>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="100"
+                        value={cat.commission_percentage || "10.00"}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setCategories(prev => prev.map((c, i) => i === idx ? { ...c, commission_percentage: val } : c));
+                        }}
+                        className="bg-[#0e0e0e] border border-[#444748] rounded px-2 py-1 text-xs text-white outline-none w-20 text-right font-mono"
+                      />
+                      <span className="text-zinc-400 font-bold">%</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Search Bar */}

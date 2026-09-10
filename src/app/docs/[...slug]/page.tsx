@@ -2,7 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
-import { marked } from "marked";
+import { Marked } from "marked";
 import {
   getDocArticleBySlug,
   getAllDocArticles,
@@ -60,7 +60,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 /**
- * Dynamic Documentation Page Component
+ * Dynamic Documentation Page Component with 3-Column Layout & # Anchor Navigation
  */
 export default async function DocArticlePage({ params }: PageProps) {
   const { slug } = await params;
@@ -70,24 +70,37 @@ export default async function DocArticlePage({ params }: PageProps) {
     notFound();
   }
 
-  // Parse markdown into HTML
-  const renderer = new marked.Renderer();
-  renderer.heading = ({ text, depth }: { text: string; depth: number }) => {
-    const cleanId = text
-      .toLowerCase()
-      .replace(/<[^>]*>/g, "")
-      .replace(/[^\w\s-]/g, "")
-      .replace(/\s+/g, "-");
-    return `<h${depth} id="${cleanId}">${text}</h${depth}>`;
-  };
+  // Parse markdown into HTML with custom heading renderer for IDs and # anchor permalinks
+  const customMarked = new Marked();
+  customMarked.use({
+    renderer: {
+      heading({ tokens, depth, text }: { tokens: any[]; depth: number; text: string }) {
+        const inlineHtml = this.parser.parseInline(tokens);
+        const cleanId = text
+          .toLowerCase()
+          .replace(/<[^>]*>/g, "")
+          .replace(/[^\w\s-]/g, "")
+          .replace(/\s+/g, "-");
 
-  const renderedHtml = await marked.parse(doc.content, { renderer, gfm: true, breaks: true });
+        if (depth === 1) {
+          return `<h1 id="${cleanId}">${inlineHtml}</h1>\n`;
+        }
+
+        return `<h${depth} id="${cleanId}" class="scroll-mt-20 group flex items-center justify-between">
+          <span>${inlineHtml}</span>
+          <a href="#${cleanId}" class="ml-2 text-[#8e9192] opacity-0 group-hover:opacity-100 transition-opacity hover:text-[#c4c0ff] text-sm font-mono font-normal no-underline px-1.5 py-0.5 rounded hover:bg-[#20201f]" title="Direct link to ${text}" aria-label="Permalink to ${text}">#</a>
+        </h${depth}>\n`;
+      },
+    },
+  });
+
+  const renderedHtml = await customMarked.parse(doc.content, { gfm: true, breaks: true });
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-10">
-      <div className="flex flex-col lg:flex-row gap-8 xl:gap-12">
-        {/* Main Article Content */}
-        <article className="flex-1 min-w-0">
+    <div className="w-full px-4 sm:px-6 lg:px-8 py-8 lg:py-10">
+      <div className="flex justify-between gap-8 xl:gap-12">
+        {/* Center Portion: Detailed Documentation Content */}
+        <article className="flex-1 min-w-0 max-w-4xl mx-auto xl:mx-0">
           {/* Breadcrumb Navigation */}
           <nav className="flex items-center gap-1.5 text-xs text-[#8e9192] mb-4">
             <Link href="/docs" className="hover:text-[#e5e2e1] transition-colors">
@@ -150,9 +163,9 @@ export default async function DocArticlePage({ params }: PageProps) {
           </div>
         </article>
 
-        {/* Right Sidebar: Table of Contents */}
-        <aside className="hidden xl:block w-60 shrink-0 sticky top-20 self-start">
-          <DocsTableOfContents headings={doc.headings} />
+        {/* Right Section: Sticky Table of Contents with # Navigation */}
+        <aside className="hidden xl:block w-64 shrink-0 sticky top-20 self-start pl-6 border-l border-[#20201f] max-h-[calc(100vh-6rem)] overflow-y-auto">
+          <DocsTableOfContents headings={doc.headings} appUrl={doc.appUrl} />
         </aside>
       </div>
     </div>

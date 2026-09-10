@@ -16,6 +16,7 @@ import LinkInBioPublicView, {
 } from "@/components/bio/LinkInBioPublicView";
 import SocialIcon, { POPULAR_SOCIAL_PLATFORMS, ALL_CUSTOM_ICONS } from "@/components/bio/SocialIcon";
 import CustomSocialModal from "@/components/bio/CustomSocialModal";
+import { QrCodeStudioModal } from "@/components/bio/QrCodeStudioModal";
 import Toast from "@/components/Toast";
 import {
   Link2,
@@ -48,6 +49,7 @@ import {
   MessageCircle,
   QrCode,
   ArrowRight,
+  ArrowLeft,
   Layers,
   AlertCircle,
   X,
@@ -108,6 +110,17 @@ interface CustomThemeConfig {
   [key: string]: unknown;
 }
 
+const BLOCK_TYPE_ICON_MAP: Record<string, any> = {
+  link: Link2,
+  header: FileText,
+  video: Video,
+  image: ImageIcon,
+  file_download: Download,
+  product_card: ShoppingBag,
+  contact_card: MessageCircle,
+  custom_button: ArrowRight,
+};
+
 interface BioPageData {
   id?: number;
   username: string;
@@ -120,10 +133,13 @@ interface BioPageData {
   social_accounts: PublicSocialAccount[];
   social_display_mode: string;
   show_social_usernames: boolean;
+  blocks_enabled?: boolean;
+  social_enabled?: boolean;
   smart_redirect_enabled: boolean;
   smart_input_placeholder: string;
   smart_input_button_text: string;
   smart_input_title: string;
+  section_order?: string[];
   is_published: boolean;
   views_count?: number;
   clicks_count?: number;
@@ -208,6 +224,8 @@ export default function LinkInBioDashboard() {
     social_accounts: [],
     social_display_mode: "icons_top",
     show_social_usernames: true,
+    blocks_enabled: true,
+    social_enabled: true,
     smart_redirect_enabled: true,
     smart_input_placeholder: "Paste link here...",
     smart_input_button_text: "Get Link",
@@ -227,9 +245,24 @@ export default function LinkInBioDashboard() {
   const [previewDevice, setPreviewDevice] = useState<"mobile" | "tablet" | "desktop">("mobile");
   const [previewKey, setPreviewKey] = useState<number>(0);
   const [activeTab, setActiveTab] = useState<"blocks" | "styling" | "social" | "redirects" | "settings" | "analytics">("blocks");
+  const [draggableTabs, setDraggableTabs] = useState<string[]>([
+    "blocks",
+    "social",
+    "redirects",
+  ]);
+
+  const handleTabReorder = (newOrder: string[]) => {
+    setDraggableTabs(newOrder);
+    setPage((prev) => ({
+      ...prev,
+      section_order: newOrder,
+    }));
+    setPreviewKey((k) => k + 1);
+  };
 
   const [blockModalOpen, setBlockModalOpen] = useState(false);
   const [editingBlock, setEditingBlock] = useState<BlockItem | null>(null);
+  const [editingSocialId, setEditingSocialId] = useState<string | null>(null);
   const [ruleModalOpen, setRuleModalOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<RedirectRuleItem | null>(null);
   const [qrModalOpen, setQrModalOpen] = useState(false);
@@ -311,6 +344,14 @@ export default function LinkInBioDashboard() {
           const customTheme = loadedPage.custom_theme || {};
           setPage({
             ...loadedPage,
+            blocks_enabled:
+              loadedPage.blocks_enabled !== undefined
+                ? Boolean(loadedPage.blocks_enabled)
+                : true,
+            social_enabled:
+              loadedPage.social_enabled !== undefined
+                ? Boolean(loadedPage.social_enabled)
+                : true,
             smart_redirect_enabled:
               loadedPage.smart_redirect_enabled !== undefined
                 ? Boolean(loadedPage.smart_redirect_enabled)
@@ -329,6 +370,16 @@ export default function LinkInBioDashboard() {
             show_social_usernames:
               loadedPage.show_social_usernames !== undefined ? loadedPage.show_social_usernames : true,
           });
+          const loadedSecOrder = loadedPage.section_order || customTheme.section_order;
+          if (loadedSecOrder && Array.isArray(loadedSecOrder)) {
+            const filteredOrder: string[] = loadedSecOrder.filter(
+              (s: string) => s === "blocks" || s === "social" || s === "redirects"
+            );
+            ["blocks", "social", "redirects"].forEach((s: string) => {
+              if (!filteredOrder.includes(s)) filteredOrder.push(s);
+            });
+            setDraggableTabs(filteredOrder);
+          }
           setUsernameInput(loadedPage.username || "");
           setBlocks(res.data.blocks || []);
           setRedirectRules(res.data.redirect_rules || []);
@@ -349,6 +400,16 @@ export default function LinkInBioDashboard() {
       isMounted = false;
     };
   }, []);
+
+  const handleReorderSocialAccounts = (newAccounts: PublicSocialAccount[]) => {
+    const activeIds = new Set(newAccounts.map((a) => a.id || a.platform));
+    const hiddenAccounts = (page.social_accounts || []).filter(
+      (s) => !activeIds.has(s.id || s.platform)
+    );
+    const updated = [...newAccounts, ...hiddenAccounts];
+    setPage((prev) => ({ ...prev, social_accounts: updated }));
+    setPreviewKey((k) => k + 1);
+  };
 
   const handleAvatarUpload = async (file: File) => {
     if (!file) return;
@@ -496,10 +557,16 @@ export default function LinkInBioDashboard() {
     try {
       const payload = {
         ...page,
+        section_order: draggableTabs,
+        blocks_enabled: page.blocks_enabled !== false,
+        social_enabled: page.social_enabled !== false,
         ...(overrideData || {}),
         username: usernameInput || page.username,
         custom_theme: {
           ...(page.custom_theme || {}),
+          section_order: draggableTabs,
+          blocks_enabled: page.blocks_enabled !== false,
+          social_enabled: page.social_enabled !== false,
           show_social_usernames: page.show_social_usernames,
         },
       };
@@ -507,8 +574,26 @@ export default function LinkInBioDashboard() {
       if (res.data && res.data.page) {
         const loaded = res.data.page;
         const cTheme = loaded.custom_theme || {};
+        const rawLoadedOrder = loaded.section_order || cTheme.section_order;
+        const loadedOrder: string[] = Array.isArray(rawLoadedOrder) ? (rawLoadedOrder as string[]) : draggableTabs;
+        if (loadedOrder.length > 0) {
+          setDraggableTabs(loadedOrder);
+        }
         setPage({
           ...loaded,
+          section_order: loadedOrder,
+          blocks_enabled:
+            loaded.blocks_enabled !== undefined
+              ? Boolean(loaded.blocks_enabled)
+              : cTheme.blocks_enabled !== undefined
+                ? Boolean(cTheme.blocks_enabled)
+                : true,
+          social_enabled:
+            loaded.social_enabled !== undefined
+              ? Boolean(loaded.social_enabled)
+              : cTheme.social_enabled !== undefined
+                ? Boolean(cTheme.social_enabled)
+                : true,
           smart_redirect_enabled:
             loaded.smart_redirect_enabled !== undefined
               ? Boolean(loaded.smart_redirect_enabled)
@@ -792,7 +877,10 @@ export default function LinkInBioDashboard() {
   const livePreviewData: PublicBioPayload = {
     page: {
       ...page,
+      section_order: draggableTabs,
       username: usernameInput || page.username,
+      blocks_enabled: page.blocks_enabled !== false,
+      social_enabled: page.social_enabled !== false,
       smart_redirect_enabled: page.smart_redirect_enabled !== false,
       smart_input_title: page.smart_input_title || "Have a Reel or Promo Link?",
       smart_input_placeholder: page.smart_input_placeholder || "Paste link here...",
@@ -820,147 +908,188 @@ export default function LinkInBioDashboard() {
         />
       )}
 
-      {/* Top Header Card */}
-      {/* Top Header Card (Single Line / Oneline) */}
-      <div className="flex items-center justify-between gap-2 bg-[#1c1b1b] px-2 py-1 sm:px-2.5 sm:py-1 rounded border border-[#20201f] overflow-x-auto scrollbar-hide">
-        {/* Left: Direct Editable URL & Status */}
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="w-6.5 h-6.5 rounded bg-white/5 border border-white/10 flex items-center justify-center text-white shrink-0">
-            <Link2 className="w-3.5 h-3.5 text-[#c4c0ff]" />
-          </div>
+      {/* Top Header Card (2 rows on mobile, 1 row on desktop) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-[#1c1b1b] p-2 sm:px-2.5 sm:py-1 rounded border border-[#20201f]">
+        {/* Row 1 on Mobile: User Link & Active Status Toggle */}
+        <div className="flex items-center justify-between gap-2 w-full sm:w-auto min-w-0">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <div className="w-6.5 h-6.5 rounded bg-white/5 border border-white/10 flex items-center justify-center text-white shrink-0">
+              <Link2 className="w-3.5 h-3.5 text-[#c4c0ff]" />
+            </div>
 
-          <div className="flex items-center gap-2 min-w-0">
-            {isEditingUsername ? (
-              <div className="flex items-center gap-1 bg-[#121214] border border-[#353535] focus-within:border-white/50 rounded px-2 py-0.5 text-xs text-white">
-                <span className="text-zinc-500 font-mono text-[11px] select-none">{rootDomain}/@</span>
-                <input
-                  type="text"
-                  value={usernameInput}
-                  onChange={(e) => {
-                    const val = e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, "");
-                    setUsernameInput(val);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
+            <div className="flex items-center gap-2 min-w-0">
+              {isEditingUsername ? (
+                <div className="flex items-center gap-1 bg-[#121214] border border-[#353535] focus-within:border-white/50 rounded px-2 py-0.5 text-xs text-white">
+                  <span className="text-zinc-500 font-mono text-[11px] select-none">{rootDomain}/@</span>
+                  <input
+                    type="text"
+                    value={usernameInput}
+                    onChange={(e) => {
+                      const val = e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, "");
+                      setUsernameInput(val);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        handleSavePageSettings();
+                        setIsEditingUsername(false);
+                      } else if (e.key === "Escape") {
+                        setUsernameInput(page.username);
+                        setIsEditingUsername(false);
+                      }
+                    }}
+                    className="bg-transparent text-white font-mono text-xs focus:outline-none w-24 sm:w-32"
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
                       handleSavePageSettings();
                       setIsEditingUsername(false);
-                    } else if (e.key === "Escape") {
+                    }}
+                    className="p-0.5 hover:text-emerald-400 text-zinc-400 transition-colors cursor-pointer"
+                    title="Save username"
+                  >
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
                       setUsernameInput(page.username);
                       setIsEditingUsername(false);
-                    }
-                  }}
-                  className="bg-transparent text-white font-mono text-xs focus:outline-none w-24 sm:w-32"
-                  autoFocus
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleSavePageSettings();
-                    setIsEditingUsername(false);
-                  }}
-                  className="p-0.5 hover:text-emerald-400 text-zinc-400 transition-colors cursor-pointer"
-                  title="Save username"
-                >
-                  <Check className="w-3.5 h-3.5 text-emerald-400" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setUsernameInput(page.username);
-                    setIsEditingUsername(false);
-                  }}
-                  className="p-0.5 hover:text-red-400 text-zinc-400 transition-colors cursor-pointer"
-                  title="Cancel"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-1.5 min-w-0">
-                {/* Clickable URL button to copy */}
-                <button
-                  type="button"
-                  onClick={handleCopyBioLink}
-                  className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-[#121214] hover:bg-[#252528] border border-[#2c2c2c] hover:border-zinc-500 transition-all cursor-pointer select-none group/copy max-w-full"
-                  title="Click to copy link"
-                >
-                  <span className="text-xs font-mono font-bold text-white tracking-tight truncate">
-                    {rootDomain}/@{page.username}
-                  </span>
-                  {copiedLink ? (
-                    <Check className="w-3 h-3 text-emerald-400 shrink-0" />
-                  ) : (
-                    <Copy className="w-3 h-3 text-zinc-400 group-hover/copy:text-white transition-colors shrink-0" />
-                  )}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsEditingUsername(true)}
-                  className="p-1 rounded text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer shrink-0"
-                  title="Edit Page URL / Username"
-                >
-                  <Edit3 className="w-3.5 h-3.5 text-[#c4c0ff]" />
-                </button>
-              </div>
-            )}
+                    }}
+                    className="p-0.5 hover:text-red-400 text-zinc-400 transition-colors cursor-pointer"
+                    title="Cancel"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 min-w-0">
+                  {/* Clickable URL button to copy */}
+                  <button
+                    type="button"
+                    onClick={handleCopyBioLink}
+                    className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-[#121214] hover:bg-[#252528] border border-[#2c2c2c] hover:border-zinc-500 transition-all cursor-pointer select-none group/copy max-w-full"
+                    title="Click to copy link"
+                  >
+                    <span className="text-xs font-bold text-white tracking-tight truncate">
+                      {rootDomain}/@{page.username}
+                    </span>
+                    {copiedLink ? (
+                      <Check className="w-3 h-3 text-emerald-400 shrink-0" />
+                    ) : (
+                      <Copy className="w-3 h-3 text-zinc-400 group-hover/copy:text-white transition-colors shrink-0" />
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingUsername(true)}
+                    className="p-1 rounded text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer shrink-0"
+                    title="Edit Page URL / Username"
+                  >
+                    <Edit3 className="w-3.5 h-3.5 text-[#c4c0ff]" />
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
 
-            <button
-              type="button"
-              role="switch"
-              aria-checked={page.is_published}
-              onClick={() => {
-                const nextPublished = !page.is_published;
-                setPage((prev) => ({ ...prev, is_published: nextPublished }));
-                handleSavePageSettings({ is_published: nextPublished });
-              }}
-              className="flex items-center gap-2 cursor-pointer select-none bg-[#141414] px-2.5 py-1 rounded border border-[#2c2c2c] hover:border-[#3d3d3d] transition-all shrink-0"
-              title={page.is_published ? "Status: Enabled (Click to Disable)" : "Status: Disabled (Click to Enable)"}
+          {/* Active Status Switch Toggle */}
+          <button
+            type="button"
+            role="switch"
+            aria-checked={page.is_published}
+            onClick={() => {
+              const nextPublished = !page.is_published;
+              setPage((prev) => ({ ...prev, is_published: nextPublished }));
+              handleSavePageSettings({ is_published: nextPublished });
+            }}
+            className="flex items-center gap-2 cursor-pointer select-none bg-[#141414] px-2.5 py-1 rounded border border-[#2c2c2c] hover:border-[#3d3d3d] transition-all shrink-0"
+            title={page.is_published ? "Status: Active (Click to Disable)" : "Status: Inactive (Click to Enable)"}
+          >
+            <span className={cn("text-xs font-bold tracking-tight", page.is_published ? "text-white" : "text-zinc-400")}>
+              {page.is_published ? "Active" : "Inactive"}
+            </span>
+            <div
+              className={cn(
+                "w-7 h-4 rounded-full p-0.5 transition-colors duration-200 flex items-center",
+                page.is_published ? "bg-emerald-500" : "bg-zinc-700"
+              )}
             >
-              <span className={cn("text-xs font-semibold", page.is_published ? "text-emerald-400" : "text-zinc-400")}>
-                {page.is_published ? "Enabled" : "Disabled"}
-              </span>
               <div
                 className={cn(
-                  "w-6 h-3.5 rounded-full p-0.5 transition-colors duration-200 flex items-center",
-                  page.is_published ? "bg-emerald-500" : "bg-zinc-700"
+                  "w-3 h-3 rounded-full bg-white transition-transform duration-200 shadow-sm",
+                  page.is_published ? "translate-x-3" : "translate-x-0"
                 )}
-              >
-                <div
-                  className={cn(
-                    "w-2.5 h-2.5 rounded-full bg-white transition-transform duration-200 shadow-sm",
-                    page.is_published ? "translate-x-2.5" : "translate-x-0"
-                  )}
-                />
-              </div>
-            </button>
-          </div>
+              />
+            </div>
+          </button>
         </div>
 
-        {/* Right Actions: QR Code, Open, Save */}
-        <div className="flex items-center gap-1.5 shrink-0">
-
+        {/* Row 2 on Mobile: Action Buttons (Analytics, Preview, Save) */}
+        <div className="grid grid-cols-3 sm:flex items-center gap-1.5 w-full sm:w-auto shrink-0 border-t border-white/5 pt-2 sm:border-0 sm:pt-0">
           <button
-            onClick={() => setQrModalOpen(true)}
-            className="px-2 py-1 rounded bg-[#20201f] hover:bg-[#2c2c2c] border border-[#353535] text-xs font-semibold text-white flex items-center gap-1 transition-all cursor-pointer"
+            type="button"
+            onClick={() => setActiveTab(activeTab === "analytics" ? "blocks" : "analytics")}
+            className={cn(
+              "px-2 py-1.5 sm:px-2.5 sm:py-1 rounded border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none",
+              activeTab === "analytics"
+                ? "bg-white text-black font-bold border-white shadow-sm hover:bg-zinc-200"
+                : "bg-[#20201f] hover:bg-[#2c2c2c] border-[#353535] text-white"
+            )}
+            title={activeTab === "analytics" ? "Back to Bio Editor" : "View Analytics"}
           >
-            <QrCode className="w-3.5 h-3.5 text-zinc-400" />
-            <span className="hidden sm:inline">QR Code</span>
+            {activeTab === "analytics" ? (
+              <>
+                <ArrowLeft className="w-3.5 h-3.5 text-black" />
+                <span>Set Bio</span>
+              </>
+            ) : (
+              <>
+                <BarChart3 className="w-3.5 h-3.5 text-zinc-400" />
+                <span>Analytics</span>
+              </>
+            )}
           </button>
 
+          {/* Mobile Preview Button (< xl) */}
+          {activeTab !== "analytics" && (
+            <button
+              type="button"
+              onClick={() => setMockPreviewModalOpen(true)}
+              className="flex xl:hidden items-center justify-center gap-1.5 px-2 py-1.5 sm:px-2.5 sm:py-1 rounded bg-[#20201f] hover:bg-[#2c2c2c] border border-[#353535] text-xs font-semibold text-white transition-all cursor-pointer"
+              title="Preview Live Page"
+            >
+              <Eye className="w-3.5 h-3.5 text-[#c4c0ff]" />
+              <span>Preview</span>
+            </button>
+          )}
+
+          {/* QR Code Button (hidden on mobile < sm) */}
+          <button
+            type="button"
+            onClick={() => setQrModalOpen(true)}
+            className="hidden sm:flex items-center justify-center gap-1 px-2.5 py-1 rounded bg-[#20201f] hover:bg-[#2c2c2c] border border-[#353535] text-xs font-semibold text-white transition-all cursor-pointer"
+          >
+            <QrCode className="w-3.5 h-3.5 text-zinc-400" />
+            <span>QR Code</span>
+          </button>
+
+          {/* Open Button (hidden on mobile < sm) */}
           <a
             href={publicBioUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-2 py-1 rounded bg-[#20201f] hover:bg-[#2c2c2c] border border-[#353535] text-xs font-semibold text-white flex items-center gap-1 transition-all"
+            className="hidden sm:flex items-center justify-center gap-1 px-2.5 py-1 rounded bg-[#20201f] hover:bg-[#2c2c2c] border border-[#353535] text-xs font-semibold text-white transition-all"
           >
             <ExternalLink className="w-3.5 h-3.5 text-zinc-400" />
-            <span className="hidden sm:inline">Open</span>
+            <span>Open</span>
           </a>
 
           <button
             onClick={() => handleSavePageSettings()}
             disabled={saving}
-            className="px-3 py-1 rounded bg-white hover:bg-zinc-200 text-black font-bold text-xs flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50"
+            className="px-3 py-1.5 sm:py-1 rounded bg-white hover:bg-zinc-200 text-black font-bold text-xs flex items-center justify-center gap-1 transition-all cursor-pointer disabled:opacity-50"
           >
             {saving ? (
               <>
@@ -978,84 +1107,118 @@ export default function LinkInBioDashboard() {
       </div>
 
       {/* Horizontal Tabs & Device Switcher Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 bg-[#151515] p-1 rounded border border-[#20201f]">
-        {/* Left: Horizontal Tabs */}
-        <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
-          {[
-            { id: "blocks", label: "Blocks", icon: Layers, count: blocks.length },
-            { id: "styling", label: "Styling", icon: Palette },
-            { id: "social", label: "Social Hub", icon: Share2, count: page.social_accounts?.filter((s) => s.is_active && s.url).length || 0 },
-            { id: "redirects", label: "Redirects", icon: Sparkles, count: redirectRules.length },
-            { id: "analytics", label: "Analytics", icon: BarChart3 },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id as any)}
-                className={cn(
-                  "px-2.5 py-1 rounded text-[11px] font-semibold flex items-center gap-1.5 whitespace-nowrap transition-all cursor-pointer shrink-0 select-none",
-                  isActive
-                    ? "bg-white text-black font-bold shadow-sm"
-                    : "text-zinc-400 hover:text-white hover:bg-white/5"
-                )}
-              >
-                {isActive && <Icon className="w-3 h-3 shrink-0" />}
-                <span>{tab.label}</span>
-                {isActive && tab.count !== undefined && (
-                  <span className="px-1 py-0.2 rounded text-[9px] font-bold leading-none bg-black/15 text-black">
-                    {tab.count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+      {activeTab !== "analytics" && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 bg-[#151515] p-1 rounded border border-[#20201f]">
+          {/* Left: Horizontal Tabs (Pinned Styling + Draggable Page Sections + Separate Analytics Section) */}
+          <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
+            {/* Pinned Tab 1: Styling */}
+            <button
+              type="button"
+              onClick={() => setActiveTab("styling")}
+              className={cn(
+                "px-2.5 py-1.5 rounded border border-[#2c2c2c] bg-[#101010]  text-[11px] font-semibold flex items-center gap-1.5 whitespace-nowrap transition-all cursor-pointer shrink-0 select-none",
+                activeTab === "styling"
+                  ? "bg-white text-black font-bold shadow-sm"
+                  : "text-zinc-400 hover:text-white hover:bg-white/5"
+              )}
+            >
+              {activeTab === "styling" && <Palette className="w-3 h-3 shrink-0" />}
+              <span>Styling</span>
+            </button>
+
+            {/* Draggable Page Sections (Blocks, Social Hub, Redirects) */}
+            <Reorder.Group
+              axis="x"
+              values={draggableTabs}
+              onReorder={handleTabReorder}
+              className="flex items-center gap-1 border border-[#2c2c2c] bg-[#101010] p-0.5 rounded"
+            >
+              {draggableTabs.map((tabId) => {
+                const tabMeta: Record<string, { label: string; icon: any; count?: number }> = {
+                  blocks: { label: "Blocks", icon: Layers, count: blocks.length },
+                  social: {
+                    label: "Social Hub",
+                    icon: Share2,
+                    count: page.social_accounts?.filter((s) => s.is_active && s.url).length || 0,
+                  },
+                  redirects: { label: "Redirects", icon: Sparkles, count: redirectRules.length },
+                };
+
+                const meta = tabMeta[tabId];
+                if (!meta) return null;
+                const Icon = meta.icon;
+                const isActive = activeTab === tabId;
+
+                return (
+                  <Reorder.Item
+                    key={tabId}
+                    value={tabId}
+                    className="shrink-0"
+                    title="Drag tab to reorder public section"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab(tabId as any)}
+                      className={cn(
+                        "px-2.5 py-1 rounded text-[11px] font-semibold flex items-center gap-1.5 whitespace-nowrap transition-all cursor-grab active:cursor-grabbing shrink-0 select-none group",
+                        isActive
+                          ? "bg-white text-black font-bold shadow-sm"
+                          : "text-zinc-400 hover:text-white hover:bg-white/5"
+                      )}
+                    >
+                      <GripVertical className="w-3 h-3 text-zinc-500 opacity-60 group-hover:opacity-100 shrink-0 transition-opacity" />
+                      {isActive && <Icon className="w-3 h-3 shrink-0" />}
+                      <span>{meta.label}</span>
+                    </button>
+                  </Reorder.Item>
+                );
+              })}
+            </Reorder.Group>
+          </div>
+
+          {/* Right: Apple Device Viewport Switcher */}
+          <div className="hidden sm:flex items-center gap-0.5 bg-[#101010] p-0.5 rounded border border-[#2c2c2c] shrink-0 self-start sm:self-auto">
+            <button
+              type="button"
+              onClick={() => setPreviewDevice("mobile")}
+              className={cn(
+                "px-2.5 py-1 rounded text-[11px] font-semibold flex items-center gap-1.5 transition-all select-none cursor-pointer",
+                previewDevice === "mobile" ? "bg-white text-black font-bold shadow-sm" : "text-zinc-400 hover:text-white"
+              )}
+              title="iPhone 17 Pro Max (iOS)"
+            >
+              <Smartphone className="w-3.5 h-3.5 shrink-0" />
+              <span>iPhone</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setPreviewDevice("tablet")}
+              className={cn(
+                "px-2.5 py-1 rounded text-[11px] font-semibold flex items-center gap-1.5 transition-all select-none cursor-pointer",
+                previewDevice === "tablet" ? "bg-white text-black font-bold shadow-sm" : "text-zinc-400 hover:text-white"
+              )}
+              title="iPad Pro (iPadOS)"
+            >
+              <Tablet className="w-3.5 h-3.5 shrink-0" />
+              <span>iPad</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setPreviewDevice("desktop")}
+              className={cn(
+                "px-2.5 py-1 rounded text-[11px] font-semibold flex items-center gap-1.5 transition-all select-none cursor-pointer",
+                previewDevice === "desktop" ? "bg-white text-black font-bold shadow-sm" : "text-zinc-400 hover:text-white"
+              )}
+              title="Mac (macOS)"
+            >
+              <Monitor className="w-3.5 h-3.5 shrink-0" />
+              <span>Mac</span>
+            </button>
+          </div>
         </div>
-
-        {/* Right: Apple Device Viewport Switcher */}
-        <div className="flex items-center gap-0.5 bg-[#101010] p-0.5 rounded border border-[#2c2c2c] shrink-0 self-start sm:self-auto">
-          <button
-            type="button"
-            onClick={() => setPreviewDevice("mobile")}
-            className={cn(
-              "px-2.5 py-1 rounded text-[11px] font-semibold flex items-center gap-1.5 transition-all select-none cursor-pointer",
-              previewDevice === "mobile" ? "bg-white text-black font-bold shadow-sm" : "text-zinc-400 hover:text-white"
-            )}
-            title="iPhone 17 Pro Max (iOS)"
-          >
-            <Smartphone className="w-3.5 h-3.5 shrink-0" />
-            <span>iPhone</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setPreviewDevice("tablet")}
-            className={cn(
-              "px-2.5 py-1 rounded text-[11px] font-semibold flex items-center gap-1.5 transition-all select-none cursor-pointer",
-              previewDevice === "tablet" ? "bg-white text-black font-bold shadow-sm" : "text-zinc-400 hover:text-white"
-            )}
-            title="iPad Pro (iPadOS)"
-          >
-            <Tablet className="w-3.5 h-3.5 shrink-0" />
-            <span>iPad</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setPreviewDevice("desktop")}
-            className={cn(
-              "px-2.5 py-1 rounded text-[11px] font-semibold flex items-center gap-1.5 transition-all select-none cursor-pointer",
-              previewDevice === "desktop" ? "bg-white text-black font-bold shadow-sm" : "text-zinc-400 hover:text-white"
-            )}
-            title="Mac (macOS)"
-          >
-            <Monitor className="w-3.5 h-3.5 shrink-0" />
-            <span>Mac</span>
-          </button>
-        </div>
-      </div>
+      )}
 
       {/* Main Grid: Left Studio Panels, Right Live Preview */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-3 items-start">
@@ -1063,28 +1226,69 @@ export default function LinkInBioDashboard() {
         <div
           className={cn(
             "flex flex-col gap-3 transition-all duration-300",
-            previewDevice === "mobile"
-              ? "xl:col-span-7"
-              : previewDevice === "tablet"
-                ? "xl:col-span-6"
-                : "xl:col-span-5"
+            activeTab === "analytics"
+              ? "xl:col-span-12"
+              : previewDevice === "mobile"
+                ? "xl:col-span-7"
+                : previewDevice === "tablet"
+                  ? "xl:col-span-6"
+                  : "xl:col-span-5"
           )}
         >
           {/* TAB 1: CONTENT BLOCKS */}
           {activeTab === "blocks" && (
             <div className="bg-[#1c1b1b] p-3 rounded border border-[#20201f] space-y-3 animate-in fade-in">
               <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                <h2 className="text-xs sm:text-sm font-bold text-white">Content Blocks</h2>
-                <button
-                  onClick={() => {
-                    setEditingBlock(null);
-                    setBlockModalOpen(true);
-                  }}
-                  className="px-3 py-1.5 bg-white text-black font-bold text-xs rounded hover:bg-zinc-200 transition-all flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Add Block</span>
-                </button>
+                <h2 className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
+                  <span>Content Blocks</span>
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#c4c0ff]/10 text-[#c4c0ff] border border-[#c4c0ff]/20">
+                    {blocks.length}
+                  </span>
+                </h2>
+                <div className="flex items-center gap-2">
+                  {/* Enable / Disable Switch Toggle */}
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={page.blocks_enabled !== false}
+                    onClick={() => {
+                      const nextVal = page.blocks_enabled === false ? true : false;
+                      setPage({ ...page, blocks_enabled: nextVal });
+                      setPreviewKey((k) => k + 1);
+                    }}
+                    className="flex items-center gap-1.5 cursor-pointer select-none bg-[#141414] px-2.5 py-1 rounded border border-[#2c2c2c] hover:border-[#3d3d3d] transition-all shrink-0 h-[28px]"
+                    title={page.blocks_enabled !== false ? "Content Blocks Enabled (Click to Disable)" : "Content Blocks Disabled (Click to Enable)"}
+                  >
+                    <span className="text-xs font-semibold text-zinc-300">
+                      {page.blocks_enabled !== false ? "Enabled" : "Disabled"}
+                    </span>
+                    <div
+                      className={cn(
+                        "w-6 h-3.5 rounded-full p-0.5 transition-colors duration-200 flex items-center",
+                        page.blocks_enabled !== false ? "bg-emerald-500" : "bg-zinc-700"
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "w-2.5 h-2.5 rounded-full bg-white transition-transform duration-200 shadow-sm",
+                          page.blocks_enabled !== false ? "translate-x-2.5" : "translate-x-0"
+                        )}
+                      />
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingBlock(null);
+                      setBlockModalOpen(true);
+                    }}
+                    className="px-2.5 py-1 bg-white text-black font-bold text-xs rounded hover:bg-zinc-200 transition-all flex items-center gap-1 cursor-pointer shadow-sm shrink-0 h-[28px] select-none"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add Block</span>
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -1110,7 +1314,7 @@ export default function LinkInBioDashboard() {
                   >
                     {blocks.map((block, index) => {
                       const blockKey = block.id || index;
-                      const isExpanded = Boolean(expandedBlockIds[blockKey]);
+                      const BlockIcon = BLOCK_TYPE_ICON_MAP[block.block_type] || Link2;
 
                       return (
                         <Reorder.Item
@@ -1121,24 +1325,20 @@ export default function LinkInBioDashboard() {
                             zIndex: 50,
                           }}
                           className={cn(
-                            "group rounded-md border transition-colors select-none overflow-hidden",
+                            "group rounded-md border transition-colors select-none overflow-hidden cursor-pointer",
                             block.is_active
                               ? "bg-[#20201f] border-[#353535]/80 hover:border-zinc-500 shadow-sm"
                               : "bg-black/30 border-[#20201f] opacity-60"
                           )}
+                          onClick={() => {
+                            setEditingBlock(block);
+                            setBlockModalOpen(true);
+                          }}
                         >
                           {/* Single-line Header Row */}
-                          <div
-                            onClick={() => {
-                              setExpandedBlockIds((prev) => ({
-                                ...prev,
-                                [blockKey]: !prev[blockKey],
-                              }));
-                            }}
-                            className="flex items-center justify-between gap-2.5 p-2.5 sm:p-3 cursor-pointer hover:bg-white/[0.02] transition-colors"
-                          >
+                          <div className="flex items-center justify-between gap-2.5 p-2.5 sm:p-3 hover:bg-white/[0.02] transition-colors">
                             <div className="flex items-center gap-2 min-w-0 flex-1">
-                              {/* Drag Handle (No up/down arrows) */}
+                              {/* Drag Handle */}
                               <div
                                 onClick={(e) => e.stopPropagation()}
                                 className="p-1 rounded text-zinc-500 hover:text-white hover:bg-white/10 cursor-grab active:cursor-grabbing transition-colors shrink-0"
@@ -1147,18 +1347,30 @@ export default function LinkInBioDashboard() {
                                 <GripVertical className="w-4 h-4" />
                               </div>
 
-                              {/* Block Type Badge */}
-                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-white/10 text-zinc-300 shrink-0">
-                                {block.block_type.replace("_", " ")}
-                              </span>
+                              {/* Block Type Icon Box */}
+                              <div className="w-6 h-6 rounded bg-[#c4c0ff]/10 border border-[#c4c0ff]/20 flex items-center justify-center text-[#c4c0ff] shrink-0" title={block.block_type.replace("_", " ")}>
+                                <BlockIcon className="w-3.5 h-3.5" />
+                              </div>
 
-                              {/* Single-line Title */}
-                              <h3 className="text-xs font-semibold text-white truncate min-w-0 flex-1">
-                                {block.title || "Untitled Block"}
-                              </h3>
+                              {/* Block Type Badge */}
+                              {/* <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-white/10 text-zinc-300 shrink-0">
+                                {block.block_type.replace("_", " ")}
+                              </span> */}
+
+                              {/* Single-line Title & Subtitle */}
+                              <div className="flex items-center gap-2 min-w-0 flex-1">
+                                <h3 className="text-xs font-semibold text-white truncate">
+                                  {block.title || "Untitled Block"}
+                                </h3>
+                                {block.url && (
+                                  <span className="text-[10px] text-zinc-400 truncate hidden sm:inline font-mono">
+                                    {block.url}
+                                  </span>
+                                )}
+                              </div>
                             </div>
 
-                            {/* Right Actions & Accordion Trigger */}
+                            {/* Right Actions */}
                             <div
                               onClick={(e) => e.stopPropagation()}
                               className="flex items-center gap-1 shrink-0"
@@ -1197,80 +1409,8 @@ export default function LinkInBioDashboard() {
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
-
-                              {/* Accordion Toggle Chevron Button */}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setExpandedBlockIds((prev) => ({
-                                    ...prev,
-                                    [blockKey]: !prev[blockKey],
-                                  }));
-                                }}
-                                className="p-1.5 rounded text-zinc-400 hover:text-white hover:bg-white/10 transition-transform cursor-pointer"
-                                title={isExpanded ? "Collapse details" : "Expand details"}
-                              >
-                                <ChevronDown
-                                  className={cn(
-                                    "w-3.5 h-3.5 transition-transform duration-200",
-                                    isExpanded && "rotate-180 text-[#c4c0ff]"
-                                  )}
-                                />
-                              </button>
                             </div>
                           </div>
-
-                          {/* Accordion Expanded Details */}
-                          {isExpanded && (
-                            <div className="px-3 pb-3 pt-2 border-t border-white/5 bg-black/20 space-y-2 text-xs text-zinc-300 animate-in fade-in duration-100">
-                              {block.subtitle && (
-                                <div className="flex items-start gap-1.5 text-zinc-400">
-                                  <span className="font-semibold text-[10px] text-zinc-500 uppercase shrink-0">Subtitle:</span>
-                                  <span className="text-zinc-300 text-xs truncate">{block.subtitle}</span>
-                                </div>
-                              )}
-
-                              {block.url && (
-                                <div className="flex items-center gap-1.5">
-                                  <span className="font-semibold text-[10px] text-zinc-500 uppercase shrink-0">URL:</span>
-                                  <a
-                                    href={block.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-xs text-[#c4c0ff] hover:underline font-mono truncate flex items-center gap-1"
-                                  >
-                                    <span className="truncate">{block.url}</span>
-                                    <ExternalLink className="w-3 h-3 shrink-0" />
-                                  </a>
-                                </div>
-                              )}
-
-                              {block.media_url && (
-                                <div className="flex items-center gap-2 pt-1">
-                                  <span className="font-semibold text-[10px] text-zinc-500 uppercase shrink-0">Media:</span>
-                                  <div className="w-12 h-10 rounded border border-white/20 overflow-hidden bg-black shrink-0">
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={block.media_url} alt="Media" className="w-full h-full object-cover" />
-                                  </div>
-                                </div>
-                              )}
-
-                              <div className="flex items-center justify-between pt-1 border-t border-white/5 text-[11px] text-zinc-400">
-                                <span>Clicks: <strong className="text-white font-mono">{block.clicks_count || 0}</strong></span>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setEditingBlock(block);
-                                    setBlockModalOpen(true);
-                                  }}
-                                  className="text-[10px] text-[#c4c0ff] hover:underline font-semibold flex items-center gap-1 cursor-pointer"
-                                >
-                                  <Edit3 className="w-3 h-3" />
-                                  <span>Edit Details</span>
-                                </button>
-                              </div>
-                            </div>
-                          )}
                         </Reorder.Item>
                       );
                     })}
@@ -1286,9 +1426,9 @@ export default function LinkInBioDashboard() {
               {/* SECTION 1: PROFILE IDENTITY */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2 border-b border-white/5 pb-2">
-                  <div className="w-6 h-6 rounded bg-[#c4c0ff]/10 border border-[#c4c0ff]/20 flex items-center justify-center text-[#c4c0ff]">
+                  {/* <div className="w-6 h-6 rounded bg-[#c4c0ff]/10 border border-[#c4c0ff]/20 flex items-center justify-center text-[#c4c0ff]">
                     <User className="w-3.5 h-3.5" />
-                  </div>
+                  </div> */}
                   <h2 className="text-xs sm:text-sm font-bold text-white tracking-tight">Profile Details</h2>
                 </div>
 
@@ -1487,8 +1627,8 @@ export default function LinkInBioDashboard() {
                           : "text-zinc-400 hover:text-white hover:bg-white/5"
                       )}
                     >
-                      <Palette className="w-3 h-3 shrink-0" />
-                      <span>Preset Theme</span>
+                      {currentBgType === "preset" && <Palette className="w-3 h-3 shrink-0" />}
+                      <span>Theme</span>
                     </button>
 
                     <button
@@ -1507,8 +1647,8 @@ export default function LinkInBioDashboard() {
                           : "text-zinc-400 hover:text-white hover:bg-white/5"
                       )}
                     >
-                      <Sparkles className="w-3 h-3 shrink-0" />
-                      <span>Solid Color</span>
+                      {currentBgType === "color" && <Sparkles className="w-3 h-3 shrink-0" />}
+                      <span>Color</span>
                     </button>
 
                     <button
@@ -1527,13 +1667,13 @@ export default function LinkInBioDashboard() {
                           : "text-zinc-400 hover:text-white hover:bg-white/5"
                       )}
                     >
-                      <ImageIcon className="w-3 h-3 shrink-0" />
+                      {currentBgType === "image" && <ImageIcon className="w-3 h-3 shrink-0" />}
                       <span>Wallpaper</span>
                     </button>
                   </div>
                 </div>
 
-                {/* MODE 1: PRESET THEMES DROPDOWN */}
+                {/* MODE 1: PRESET THEMES */}
                 {currentBgType === "preset" && (
                   <div className="p-3.5 rounded-lg bg-[#20201f] border border-[#353535] space-y-2 animate-in fade-in">
                     <label className="text-xs font-semibold text-zinc-300">Preset Theme Selection</label>
@@ -1543,11 +1683,11 @@ export default function LinkInBioDashboard() {
                       <button
                         type="button"
                         onClick={() => setPresetThemeOpen(!presetThemeOpen)}
-                        className="w-full bg-[#131313] border border-[#353535] hover:border-zinc-500 rounded-md p-2 text-xs text-white flex items-center justify-between transition-all cursor-pointer select-none h-[38px]"
+                        className="w-full bg-[#131313] border border-[#353535] hover:border-zinc-500 rounded-md p-2 text-xs text-white flex items-center justify-between transition-all cursor-pointer select-none h-[36px]"
                       >
-                        <div className="flex items-center gap-2.5 truncate min-w-0">
+                        <div className="flex items-center gap-2 truncate min-w-0">
                           <div
-                            className="w-6 h-5 rounded-md overflow-hidden border border-white/20 shrink-0 flex items-center justify-center p-0.5 shadow-sm"
+                            className="w-5 h-4 rounded overflow-hidden border border-white/20 shrink-0 flex items-center justify-center p-0.5 shadow-sm"
                             style={{
                               background:
                                 PRESET_THEME_GRADIENTS[page.theme_id] ||
@@ -1556,7 +1696,7 @@ export default function LinkInBioDashboard() {
                             }}
                           >
                             <div
-                              className="w-2 h-2 rounded-full shadow-sm ring-1 ring-black/40"
+                              className="w-1.5 h-1.5 rounded-full shadow-sm ring-1 ring-black/40"
                               style={{
                                 backgroundColor:
                                   (BIO_THEMES as Record<string, any>)[page.theme_id]?.accentColor || "#c4c0ff",
@@ -1630,11 +1770,10 @@ export default function LinkInBioDashboard() {
 
                 {/* MODE 2: SOLID / GRADIENT COLOR */}
                 {currentBgType === "color" && (
-                  <div className="p-3.5 rounded-lg bg-[#20201f] border border-[#353535] space-y-3.5 animate-in fade-in">
-                    {/* Visual Color Swatches Grid */}
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-zinc-300">Quick Palette Swatches</label>
-                      <div className="flex flex-wrap items-center gap-2">
+                  <div className="p-3.5 rounded-lg bg-[#20201f] border border-[#353535] space-y-2.5 animate-in fade-in">
+                    <label className="text-xs font-semibold text-zinc-300">Quick Palette Swatches</label>
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-1 min-w-0 overflow-x-auto custom-scrollbar p-1">
                         {PRESET_BG_PALETTES.map((palette) => {
                           const isChosen = currentBgColor.toLowerCase() === palette.color.toLowerCase();
                           return (
@@ -1649,9 +1788,9 @@ export default function LinkInBioDashboard() {
                                 setPreviewKey((k) => k + 1);
                               }}
                               className={cn(
-                                "w-7 h-7 rounded-full border transition-all cursor-pointer flex items-center justify-center shadow-sm relative group",
+                                "w-7 h-7 rounded-full border transition-all cursor-pointer flex items-center justify-center shadow-sm relative group shrink-0",
                                 isChosen
-                                  ? "border-white ring-2 ring-white/30 scale-110"
+                                  ? "border-white ring-2 ring-white/40 scale-110"
                                   : "border-white/20 hover:scale-105 hover:border-white/60"
                               )}
                               style={{ background: palette.gradient }}
@@ -1664,27 +1803,11 @@ export default function LinkInBioDashboard() {
                       </div>
                     </div>
 
-                    {/* Custom Background Hex Picker */}
-                    <div className="pt-2 border-t border-[#353535]/60 space-y-1.5">
-                      <label className="text-xs font-semibold text-zinc-300">Custom Hex Code</label>
-                      <div className="flex items-center gap-2">
-                        <div className="relative w-8 h-8 rounded-md overflow-hidden border border-white/20 shrink-0 cursor-pointer shadow-sm">
-                          <input
-                            type="color"
-                            value={currentBgColor}
-                            onChange={(e) => {
-                              setPage((prev) => ({
-                                ...prev,
-                                custom_theme: { ...prev.custom_theme, background_color: e.target.value },
-                              }));
-                              setPreviewKey((k) => k + 1);
-                            }}
-                            className="absolute -inset-2 w-12 h-12 cursor-pointer opacity-0"
-                          />
-                          <div className="w-full h-full" style={{ backgroundColor: currentBgColor }} />
-                        </div>
+                    {/* Custom Hex Code */}
+                    <div className="flex items-center gap-2 pt-1">
+                      <div className="relative w-8 h-8 rounded-md overflow-hidden border border-white/20 shrink-0 cursor-pointer shadow-sm">
                         <input
-                          type="text"
+                          type="color"
                           value={currentBgColor}
                           onChange={(e) => {
                             setPage((prev) => ({
@@ -1693,82 +1816,101 @@ export default function LinkInBioDashboard() {
                             }));
                             setPreviewKey((k) => k + 1);
                           }}
-                          placeholder="#131313"
-                          className="flex-1 bg-[#131313] border border-[#353535] rounded-md px-3 py-1.5 text-xs text-white focus:outline-none focus:border-white font-mono shadow-inner"
+                          className="absolute -inset-2 w-12 h-12 cursor-pointer opacity-0"
                         />
+                        <div className="w-full h-full" style={{ backgroundColor: currentBgColor }} />
                       </div>
+                      <input
+                        type="text"
+                        value={currentBgColor}
+                        onChange={(e) => {
+                          setPage((prev) => ({
+                            ...prev,
+                            custom_theme: { ...prev.custom_theme, background_color: e.target.value },
+                          }));
+                          setPreviewKey((k) => k + 1);
+                        }}
+                        placeholder="#131313"
+                        className="flex-1 bg-[#131313] border border-[#353535] rounded-md px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-white font-mono shadow-inner"
+                      />
                     </div>
                   </div>
                 )}
 
                 {/* MODE 3: CUSTOM WALLPAPER */}
                 {currentBgType === "image" && (
-                  <div className="p-3.5 rounded-lg bg-[#20201f] border border-[#353535] space-y-3.5 animate-in fade-in">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-semibold text-zinc-300">Custom Wallpaper</label>
-                      {currentBgImage && (
-                        <button
-                          type="button"
-                          onClick={handleRemoveBgImage}
-                          disabled={isDeletingBgImage}
-                          className="text-[10px] font-semibold text-red-400 hover:text-red-300 transition-colors flex items-center gap-1 cursor-pointer"
-                        >
-                          {isDeletingBgImage ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
-                          <span>Remove</span>
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <div className="w-20 h-14 rounded-md overflow-hidden border border-white/20 shrink-0 bg-black flex items-center justify-center shadow-md">
-                        {currentBgImage ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={currentBgImage} alt="Background" className="w-full h-full object-cover" />
-                        ) : (
-                          <ImageIcon className="w-6 h-6 text-zinc-600" />
+                  <div className="p-3 rounded-lg bg-[#20201f] border border-[#353535] space-y-3 sm:space-y-0 sm:flex sm:items-center sm:gap-3.5 animate-in fade-in">
+                    {/* Left Column: Custom Wallpaper Upload */}
+                    <div className="flex-1 space-y-1.5 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-semibold text-zinc-300">Custom Wallpaper</label>
+                        {currentBgImage && (
+                          <button
+                            type="button"
+                            onClick={handleRemoveBgImage}
+                            disabled={isDeletingBgImage}
+                            className="text-[10px] font-semibold text-red-400 hover:text-red-300 transition-colors flex items-center gap-1 cursor-pointer"
+                          >
+                            {isDeletingBgImage ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                            <span>Remove</span>
+                          </button>
                         )}
                       </div>
 
-                      <div className="flex-1 min-w-0 space-y-2">
-                        <input
-                          type="file"
-                          ref={bgImageInputRef}
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) handleBgImageUpload(file);
-                          }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => bgImageInputRef.current?.click()}
-                          disabled={bgImageUploading}
-                          className="w-full py-2 px-3 rounded-md bg-[#131313] hover:bg-[#252525] border border-[#353535] text-xs font-semibold text-white flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 shadow-sm"
-                        >
-                          {bgImageUploading ? (
-                            <>
-                              <Loader2 className="w-3.5 h-3.5 animate-spin text-[#c4c0ff]" />
-                              <span>Uploading {bgImageUploadProgress}%…</span>
-                            </>
+                      <div className="flex items-center gap-2">
+                        <div className="w-12 h-9 rounded-md overflow-hidden border border-white/20 shrink-0 bg-black flex items-center justify-center shadow-md">
+                          {currentBgImage ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={currentBgImage} alt="Background" className="w-full h-full object-cover" />
                           ) : (
-                            <>
-                              <Upload className="w-3.5 h-3.5 text-zinc-400" />
-                              <span>Upload Wallpaper</span>
-                            </>
+                            <ImageIcon className="w-4 h-4 text-zinc-600" />
                           )}
-                        </button>
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <input
+                            type="file"
+                            ref={bgImageInputRef}
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleBgImageUpload(file);
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => bgImageInputRef.current?.click()}
+                            disabled={bgImageUploading}
+                            className="w-full py-1.5 px-2.5 rounded-md bg-[#131313] hover:bg-[#252525] border border-[#353535] text-xs font-semibold text-white flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 shadow-sm"
+                          >
+                            {bgImageUploading ? (
+                              <>
+                                <Loader2 className="w-3 h-3 animate-spin text-[#c4c0ff]" />
+                                <span className="truncate">{bgImageUploadProgress}%…</span>
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="w-3 h-3 text-zinc-400" />
+                                <span>Upload</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Overlay Tint Selector: Icon Pill Buttons instead of HTML Select */}
-                    <div className="pt-2 border-t border-[#353535]/60 space-y-1.5">
+                    {/* Divider Line */}
+                    <div className="hidden sm:block w-px h-10 bg-[#353535]/60 shrink-0" />
+
+                    {/* Right Column: Overlay Dark Tint */}
+                    <div className="flex-1 space-y-1.5 min-w-0">
                       <label className="text-xs font-semibold text-zinc-300">Overlay Dark Tint</label>
-                      <div className="grid grid-cols-3 gap-1.5 bg-[#131313] p-1 rounded-md border border-[#353535]">
+                      <div className="grid grid-cols-3 gap-1 bg-[#131313] p-1 rounded-md border border-[#353535]">
                         {[
-                          { id: "light", label: "Soft Dark" },
-                          { id: "dark", label: "Medium Dark" },
-                          { id: "heavy", label: "Heavy Dark" },
+                          { id: "light", label: "Soft" },
+                          { id: "dark", label: "Medium" },
+                          { id: "heavy", label: "Heavy" },
                         ].map((tint) => {
                           const isSelected = currentBgOverlay === tint.id;
                           return (
@@ -1786,7 +1928,7 @@ export default function LinkInBioDashboard() {
                                 setPreviewKey((k) => k + 1);
                               }}
                               className={cn(
-                                "py-1.5 px-2 rounded text-[10px] font-semibold text-center transition-all cursor-pointer select-none",
+                                "py-1 px-1.5 rounded text-[10px] font-semibold text-center transition-all cursor-pointer select-none truncate",
                                 isSelected
                                   ? "bg-white text-black font-bold shadow-sm"
                                   : "text-zinc-400 hover:text-white hover:bg-white/5"
@@ -1801,7 +1943,7 @@ export default function LinkInBioDashboard() {
                   </div>
                 )}
 
-                {/* SECTION 3: UNIFIED GLOBAL TEXT COLOR (UI Swatches + Hex) */}
+                {/* UNIFIED GLOBAL TEXT COLOR OVERRIDE */}
                 <div className="p-3.5 rounded-lg bg-[#20201f] border border-[#353535] space-y-2.5">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
@@ -1905,75 +2047,45 @@ export default function LinkInBioDashboard() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-white/5 pb-3">
                 {/* Label & Active Count */}
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded bg-[#c4c0ff]/10 border border-[#c4c0ff]/20 flex items-center justify-center text-[#c4c0ff]">
+                  {/* <div className="w-6 h-6 rounded bg-[#c4c0ff]/10 border border-[#c4c0ff]/20 flex items-center justify-center text-[#c4c0ff]">
                     <Share2 className="w-3.5 h-3.5" />
-                  </div>
-                  <h2 className="text-xs sm:text-sm font-bold text-white tracking-tight flex items-center gap-1.5">
+                  </div> */}
+                  <h2 className="text-xs sm:text-sm font-bold text-white tracking-tight flex items-center gap-2">
                     <span>Social Media Hub</span>
-                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-white/10 text-zinc-300 font-semibold">
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#c4c0ff]/10 text-[#c4c0ff] border border-[#c4c0ff]/20">
                       {page.social_accounts?.filter((s) => s.is_active && s.url).length || 0}
                     </span>
                   </h2>
                 </div>
 
-                {/* Right Controls in One Line: Icon Position Tabs, Show Handles, Add Custom Link */}
+                {/* Right Controls in One Line: Enable Switch, Icon Position Tabs, Show Handles, Add Custom Link */}
                 <div className="flex flex-wrap items-center gap-2">
-                  {/* Icon Position Tabs: Icon Only */}
-                  <div className="flex items-center gap-1 bg-[#141414] p-0.5 rounded border border-[#2c2c2c]">
-                    <span className="text-[10px] font-semibold text-zinc-400 pl-1.5 pr-0.5 hidden sm:inline">Position:</span>
-                    {[
-                      { id: "icons_top", label: "Top Header", icon: PanelTop },
-                      { id: "icons_bottom", label: "Bottom Footer", icon: PanelBottom },
-                      { id: "hidden", label: "Hidden", icon: EyeOff },
-                    ].map((mode) => {
-                      const Icon = mode.icon;
-                      const isSelected =
-                        page.social_display_mode === mode.id ||
-                        (!page.social_display_mode && mode.id === "icons_top");
-                      return (
-                        <button
-                          key={mode.id}
-                          type="button"
-                          onClick={() => {
-                            setPage({ ...page, social_display_mode: mode.id });
-                            setPreviewKey((k) => k + 1);
-                          }}
-                          className={cn(
-                            "p-1.5 rounded transition-all select-none cursor-pointer flex items-center justify-center",
-                            isSelected
-                              ? "bg-white text-black font-bold shadow-sm"
-                              : "text-zinc-400 hover:text-white hover:bg-white/5"
-                          )}
-                          title={mode.label}
-                        >
-                          <Icon className="w-3.5 h-3.5 shrink-0" />
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Show Handles Switch Toggle */}
+                  {/* Enable / Disable Switch Toggle for Social Hub */}
                   <button
                     type="button"
                     role="switch"
-                    aria-checked={page.show_social_usernames}
+                    aria-checked={page.social_enabled !== false}
                     onClick={() => {
-                      setPage({ ...page, show_social_usernames: !page.show_social_usernames });
+                      const nextVal = page.social_enabled === false ? true : false;
+                      setPage({ ...page, social_enabled: nextVal });
                       setPreviewKey((k) => k + 1);
                     }}
-                    className="flex items-center gap-1.5 cursor-pointer select-none bg-[#141414] px-2 py-1 rounded border border-[#2c2c2c] hover:border-[#3d3d3d] transition-all"
+                    className="flex items-center gap-1.5 cursor-pointer select-none bg-[#141414] px-2.5 py-1 rounded border border-[#2c2c2c] hover:border-[#3d3d3d] transition-all shrink-0 h-[28px]"
+                    title={page.social_enabled !== false ? "Social Hub Enabled (Click to Disable)" : "Social Hub Disabled (Click to Enable)"}
                   >
-                    <span className="text-[10px] sm:text-[11px] font-semibold text-zinc-300">Handles</span>
+                    <span className="text-xs font-semibold text-zinc-300">
+                      {page.social_enabled !== false ? "Enabled" : "Disabled"}
+                    </span>
                     <div
                       className={cn(
                         "w-6 h-3.5 rounded-full p-0.5 transition-colors duration-200 flex items-center",
-                        page.show_social_usernames ? "bg-emerald-500" : "bg-zinc-700"
+                        page.social_enabled !== false ? "bg-emerald-500" : "bg-zinc-700"
                       )}
                     >
                       <div
                         className={cn(
                           "w-2.5 h-2.5 rounded-full bg-white transition-transform duration-200 shadow-sm",
-                          page.show_social_usernames ? "translate-x-2.5" : "translate-x-0"
+                          page.social_enabled !== false ? "translate-x-2.5" : "translate-x-0"
                         )}
                       />
                     </div>
@@ -1983,10 +2095,10 @@ export default function LinkInBioDashboard() {
                   <button
                     type="button"
                     onClick={handleOpenAddCustomSocial}
-                    className="px-2.5 py-1 rounded bg-white text-black font-bold text-xs hover:bg-zinc-200 transition-all flex items-center gap-1 cursor-pointer shadow-sm"
+                    className="px-2.5 py-1 rounded bg-white text-black font-bold text-xs hover:bg-zinc-200 transition-all flex items-center gap-1 cursor-pointer shadow-sm shrink-0 h-[28px] select-none"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    <span>Link</span>
+                    <span>Add Link</span>
                   </button>
                 </div>
               </div>
@@ -2053,8 +2165,10 @@ export default function LinkInBioDashboard() {
                               ];
                             }
 
+                            const targetId = `preset_${platform.id}`;
                             setPage({ ...page, social_accounts: nextAccounts });
                             setPopularNetworkDropdownOpen(false);
+                            setEditingSocialId(targetId);
                             setPreviewKey((k) => k + 1);
                           }}
                           className={cn(
@@ -2090,6 +2204,41 @@ export default function LinkInBioDashboard() {
                   <h3 className="text-xs font-bold text-white uppercase tracking-wider">
                     Configured Social Links ({(page.social_accounts || []).filter((s) => s.is_active || s.url).length})
                   </h3>
+
+                  {/* Show Handles Switch Toggle */}
+
+                  <div className="flex items-center gap-2">
+
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={page.show_social_usernames}
+                      onClick={() => {
+                        setPage({ ...page, show_social_usernames: !page.show_social_usernames });
+                        setPreviewKey((k) => k + 1);
+                      }}
+                      className="flex items-center gap-1.5 cursor-pointer select-none  px-2 py-1 rounded  hover:border-[#3d3d3d] transition-all"
+                    >
+                      <span className="text-[12px] sm:text-[12px] font-semibold text-zinc-300">Labels</span>
+                      <div
+                        className={cn(
+                          "w-6 h-3.5 rounded-full p-0.5 transition-colors duration-200 flex items-center",
+                          page.show_social_usernames ? "bg-emerald-500" : "bg-zinc-700"
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            "w-2.5 h-2.5 rounded-full bg-white transition-transform duration-200 shadow-sm",
+                            page.show_social_usernames ? "translate-x-2.5" : "translate-x-0"
+                          )}
+                        />
+                      </div>
+                    </button>
+
+
+
+                  </div>
+
                 </div>
 
                 {(page.social_accounts || []).length === 0 ||
@@ -2098,25 +2247,39 @@ export default function LinkInBioDashboard() {
                     <p className="text-xs font-medium text-zinc-400">No active social links</p>
                   </div>
                 ) : (
-                  <div className="space-y-2">
+                  <Reorder.Group
+                    axis="y"
+                    values={(page.social_accounts || []).filter((account) => account.is_active || account.url)}
+                    onReorder={handleReorderSocialAccounts}
+                    className="space-y-2"
+                  >
                     {(page.social_accounts || [])
                       .filter((account) => account.is_active || account.url)
                       .map((account) => {
+                        const accountId = account.id || account.platform;
+                        const isEditing = editingSocialId === accountId;
                         const platformInfo = AVAILABLE_PLATFORMS.find(
                           (p) => p.id === account.platform || (p.id === "x" && account.platform === "twitter")
                         );
                         const isCustom = account.platform === "custom" || (account.id && account.id.startsWith("custom_"));
 
                         return (
-                          <div
-                            key={account.id || account.platform}
+                          <Reorder.Item
+                            key={accountId}
+                            value={account}
+                            as="div"
                             className={cn(
-                              "p-2.5 rounded border transition-all flex items-center gap-2.5 select-none",
+                              "p-2.5 rounded border transition-all flex items-center gap-2.5 select-none bg-[#20201f]",
                               account.is_active
-                                ? "bg-[#20201f] border-[#353535] hover:border-zinc-500 shadow-sm"
+                                ? "border-[#353535] hover:border-zinc-500 shadow-sm"
                                 : "bg-black/30 border-[#20201f] opacity-60"
                             )}
                           >
+                            {/* Drag Handle */}
+                            <div className="cursor-grab active:cursor-grabbing p-0.5 text-zinc-500 hover:text-white shrink-0">
+                              <GripVertical className="w-4 h-4" />
+                            </div>
+
                             {/* Icon */}
                             <div
                               className={cn(
@@ -2127,36 +2290,104 @@ export default function LinkInBioDashboard() {
                               <SocialIcon platformOrIcon={account.icon || account.platform} className="w-3.5 h-3.5" />
                             </div>
 
-                            {/* Platform Title */}
-                            <div className="w-20 sm:w-24 shrink-0 truncate">
-                              <span className="text-xs font-bold text-white truncate block">
-                                {account.label || platformInfo?.name || account.platform}
-                              </span>
-                            </div>
+                            {/* Inline Editing vs View Mode */}
+                            {isEditing ? (
+                              <>
+                                {/* Title / Label Input */}
+                                <input
+                                  type="text"
+                                  value={account.label !== undefined ? account.label : (platformInfo?.name || account.platform)}
+                                  onPointerDown={(e) => e.stopPropagation()}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    const existing = page.social_accounts || [];
+                                    const updated = existing.map((s) => {
+                                      const match = (account.id && s.id && s.id === account.id) || (!account.id && s.platform === account.platform);
+                                      return match ? { ...s, label: val } : s;
+                                    });
+                                    setPage({ ...page, social_accounts: updated });
+                                    setPreviewKey((k) => k + 1);
+                                  }}
+                                  placeholder="Title"
+                                  className="w-20 sm:w-28 bg-[#131313] border border-white/50 focus:border-white rounded px-2 py-1 text-xs text-white placeholder:text-zinc-600 focus:outline-none transition-colors shrink-0"
+                                />
 
-                            {/* URL Input */}
-                            <input
-                              type="text"
-                              disabled={!account.is_active}
-                              value={account.url || ""}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                const existing = page.social_accounts || [];
-                                const updated = existing.map((s) => {
-                                  const match =
-                                    (account.id && s.id && s.id === account.id) ||
-                                    (!account.id && s.platform === account.platform);
-                                  return match ? { ...s, url: val } : s;
-                                });
-                                setPage({ ...page, social_accounts: updated });
-                                setPreviewKey((k) => k + 1);
-                              }}
-                              placeholder={platformInfo?.placeholder || "https://..."}
-                              className="flex-1 min-w-0 bg-[#131313] border border-[#2c2c2c] focus:border-white/40 rounded px-2.5 py-1.5 text-xs text-white placeholder:text-zinc-600 focus:outline-none disabled:opacity-30 disabled:cursor-not-allowed font-mono transition-colors"
-                            />
+                                {/* URL Input */}
+                                <input
+                                  type="text"
+                                  disabled={!account.is_active}
+                                  value={account.url || ""}
+                                  onPointerDown={(e) => e.stopPropagation()}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    const existing = page.social_accounts || [];
+                                    const updated = existing.map((s) => {
+                                      const match = (account.id && s.id && s.id === account.id) || (!account.id && s.platform === account.platform);
+                                      return match ? { ...s, url: val } : s;
+                                    });
+                                    setPage({ ...page, social_accounts: updated });
+                                    setPreviewKey((k) => k + 1);
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") setEditingSocialId(null);
+                                  }}
+                                  placeholder={platformInfo?.placeholder || "https://..."}
+                                  className="flex-1 min-w-0 bg-[#131313] border border-white/50 focus:border-white rounded px-2.5 py-1.5 text-xs text-white placeholder:text-zinc-600 focus:outline-none disabled:opacity-30 disabled:cursor-not-allowed font-mono transition-colors"
+                                  autoFocus
+                                />
+                              </>
+                            ) : (
+                              <>
+                                {/* Platform Title */}
+                                <div className="w-20 sm:w-24 shrink-0 truncate">
+                                  <span className="text-xs font-bold text-white truncate block">
+                                    {account.label || platformInfo?.name || account.platform}
+                                  </span>
+                                </div>
 
-                            {/* Actions: Active toggle, Edit (if custom), Delete */}
-                            <div className="flex items-center gap-1 shrink-0">
+                                {/* URL Text Display (Clickable to Edit) */}
+                                <div
+                                  onClick={() => setEditingSocialId(accountId)}
+                                  className="flex-1 min-w-0 bg-[#131313] border border-[#2c2c2c] hover:border-zinc-500 rounded px-2.5 py-1.5 text-xs font-mono transition-colors truncate cursor-pointer select-none"
+                                  title="Click to edit link"
+                                >
+                                  {account.url ? (
+                                    <span className="text-zinc-300">{account.url}</span>
+                                  ) : (
+                                    <span className="text-zinc-600 italic">Click Edit to add link</span>
+                                  )}
+                                </div>
+                              </>
+                            )}
+
+                            {/* Actions: Edit button, Active toggle, Delete */}
+                            <div className="flex items-center gap-1 shrink-0" onPointerDown={(e) => e.stopPropagation()}>
+                              {isEditing ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingSocialId(null)}
+                                  className="p-1.5 rounded bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors cursor-pointer"
+                                  title="Done editing"
+                                >
+                                  <Check className="w-3.5 h-3.5" />
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (isCustom) {
+                                      handleOpenEditCustomSocial(account);
+                                    } else {
+                                      setEditingSocialId(accountId);
+                                    }
+                                  }}
+                                  className="p-1.5 rounded hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                                  title="Edit link"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+
                               <input
                                 type="checkbox"
                                 checked={account.is_active}
@@ -2176,17 +2407,6 @@ export default function LinkInBioDashboard() {
                                 title="Toggle active"
                               />
 
-                              {isCustom && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleOpenEditCustomSocial(account)}
-                                  className="p-1.5 rounded hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
-                                  title="Edit custom link"
-                                >
-                                  <Edit3 className="w-3.5 h-3.5" />
-                                </button>
-                              )}
-
                               <button
                                 type="button"
                                 onClick={() => {
@@ -2205,10 +2425,10 @@ export default function LinkInBioDashboard() {
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </div>
-                          </div>
+                          </Reorder.Item>
                         );
                       })}
-                  </div>
+                  </Reorder.Group>
                 )}
               </div>
             </div>
@@ -2220,8 +2440,11 @@ export default function LinkInBioDashboard() {
               <div className="flex items-center justify-between gap-3 border-b border-white/5 pb-2.5">
                 <div>
                   <h2 className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-[#c4c0ff]" />
-                    <span>Smart Reel Redirects</span>
+                    {/* <Sparkles className="w-4 h-4 text-[#c4c0ff]" /> */}
+                    <span>Smart Redirects</span>
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#c4c0ff]/10 text-[#c4c0ff] border border-[#c4c0ff]/20">
+                      {redirectRules.length}
+                    </span>
                   </h2>
                 </div>
 
@@ -2236,7 +2459,7 @@ export default function LinkInBioDashboard() {
                       setPage({ ...page, smart_redirect_enabled: nextVal });
                       setPreviewKey((k) => k + 1);
                     }}
-                    className="flex items-center gap-1.5 cursor-pointer select-none bg-[#141414] px-2.5 py-1 rounded border border-[#2c2c2c] hover:border-[#3d3d3d] transition-all shrink-0"
+                    className="flex items-center gap-1.5 cursor-pointer select-none bg-[#141414] px-2.5 py-1 rounded border border-[#2c2c2c] hover:border-[#3d3d3d] transition-all shrink-0 h-[28px]"
                     title={page.smart_redirect_enabled !== false ? "Resolver Card Enabled (Click to Disable)" : "Resolver Card Disabled (Click to Enable)"}
                   >
                     <span className="text-xs font-semibold text-zinc-300">
@@ -2259,11 +2482,12 @@ export default function LinkInBioDashboard() {
 
                   {/* Add Rule Button */}
                   <button
+                    type="button"
                     onClick={() => {
                       setEditingRule(null);
                       setRuleModalOpen(true);
                     }}
-                    className="px-3 py-1 bg-white text-black font-bold text-xs rounded hover:bg-zinc-200 transition-all flex items-center gap-1 cursor-pointer shadow-sm"
+                    className="px-2.5 py-1 bg-white text-black font-bold text-xs rounded hover:bg-zinc-200 transition-all flex items-center gap-1 cursor-pointer shadow-sm shrink-0 h-[28px] select-none"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>Add Rule</span>
@@ -2309,16 +2533,22 @@ export default function LinkInBioDashboard() {
 
                     <div className="space-y-1">
                       <label className="text-[11px] text-zinc-400 font-medium">Button Label</label>
-                      <input
-                        type="text"
-                        value={page.smart_input_button_text || ""}
-                        onChange={(e) => {
-                          setPage({ ...page, smart_input_button_text: e.target.value });
-                          setPreviewKey((k) => k + 1);
-                        }}
-                        placeholder="Go"
-                        className="w-full bg-[#131313] border border-[#353535] rounded px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-white"
-                      />
+                      <div className="relative flex items-center">
+                        <input
+                          type="text"
+                          value={page.smart_input_button_text || ""}
+                          onChange={(e) => {
+                            setPage({ ...page, smart_input_button_text: e.target.value });
+                            setPreviewKey((k) => k + 1);
+                          }}
+                          placeholder="Get Link"
+                          className={cn(
+                            "w-full rounded px-3 py-1.5 pr-7 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-white/80 transition-all shadow-sm placeholder:opacity-60",
+                            (BIO_THEMES[page.theme_id] || BIO_THEMES.glass_monochrome).buttonClass
+                          )}
+                        />
+                        <ArrowRight className="w-3.5 h-3.5 absolute right-2.5 pointer-events-none opacity-80" />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -2337,274 +2567,525 @@ export default function LinkInBioDashboard() {
                     <p className="text-xs text-zinc-400">No redirect rules set up</p>
                   </div>
                 ) : (
-                  redirectRules.map((rule) => (
-                    <div
-                      key={rule.id}
-                      className="group p-3 rounded bg-[#20201f] border border-[#353535] hover:border-zinc-500 transition-colors flex items-center justify-between gap-3"
-                    >
-                      <div className="min-w-0 flex-1 space-y-0.5">
-                        <div className="flex items-center gap-2">
-                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-[#c4c0ff]/10 text-[#c4c0ff]">
-                            {rule.destination_type}
-                          </span>
-                          <h4 className="text-xs font-bold text-white truncate">{rule.title || "Rule"}</h4>
+                  redirectRules.map((rule) => {
+                    const formatUrl = (urlStr?: string) => {
+                      if (!urlStr) return "#";
+                      if (urlStr.startsWith("http://") || urlStr.startsWith("https://")) return urlStr;
+                      if (urlStr.startsWith("www.")) return `https://${urlStr}`;
+                      if (urlStr.includes(".") && !urlStr.includes(" ")) return `https://${urlStr}`;
+                      return "#";
+                    };
+
+                    const destUrl = formatUrl(rule.destination_value);
+                    const inputUrl = formatUrl(rule.input_match_url);
+                    const targetRedirectUrl = destUrl !== "#" ? destUrl : inputUrl;
+
+                    return (
+                      <div
+                        key={rule.id}
+                        className="group p-2.5 rounded bg-[#20201f] border border-[#353535] hover:border-zinc-500 transition-colors flex items-center justify-between gap-3 select-none"
+                      >
+                        {/* Single-line Info Row */}
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                          {/* Action Type Icon Badge */}
+                          <div
+                            className="w-6 h-6 rounded bg-[#c4c0ff]/10 border border-[#c4c0ff]/20 flex items-center justify-center shrink-0"
+                            title={`Action Type: ${rule.destination_type || "URL"}`}
+                          >
+                            {rule.destination_type === "url" && <ExternalLink className="w-3.5 h-3.5 text-[#c4c0ff]" />}
+                            {rule.destination_type === "file" && <Download className="w-3.5 h-3.5 text-[#c4c0ff]" />}
+                            {rule.destination_type === "product" && <ShoppingBag className="w-3.5 h-3.5 text-[#c4c0ff]" />}
+                            {rule.destination_type === "message" && <MessageCircle className="w-3.5 h-3.5 text-[#c4c0ff]" />}
+                            {!["url", "file", "product", "message"].includes(rule.destination_type || "") && (
+                              <Link2 className="w-3.5 h-3.5 text-[#c4c0ff]" />
+                            )}
+                          </div>
+
+                          {/* Rule Title, Input URL & Destination Value in ONE LINE */}
+                          <div className="flex items-center gap-2 text-xs truncate min-w-0 font-mono">
+                            <span className="font-bold text-white font-sans shrink-0 truncate max-w-[150px]">
+                              {rule.title || "Rule"}
+                            </span>
+                            <span className="text-zinc-600 font-sans shrink-0">•</span>
+                            <span className="text-zinc-400 truncate max-w-[200px]" title={rule.input_match_url}>
+                              {rule.input_match_url}
+                            </span>
+                            <span className="text-zinc-500 shrink-0">➔</span>
+                            <span className="text-zinc-300 font-semibold truncate max-w-[220px]" title={rule.destination_value}>
+                              {rule.destination_value}
+                            </span>
+                          </div>
                         </div>
-                        <p className="text-[11px] text-zinc-400 font-mono truncate">{rule.input_match_url}</p>
-                        <p className="text-[10px] text-zinc-500 font-mono truncate">➔ {rule.destination_value}</p>
-                      </div>
 
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        {/* Test Button: Always visible on touch screens, highlighted on hover */}
-                        <button
-                          type="button"
-                          onClick={() => handleTestSingleRule(rule)}
-                          disabled={testingRuleId === rule.id}
-                          className={cn(
-                            "px-2.5 py-1 rounded bg-white/10 hover:bg-white text-white hover:text-black text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50",
-                            "opacity-100 sm:opacity-90 sm:group-hover:opacity-100"
-                          )}
-                          title="Test this redirect rule"
-                        >
-                          {testingRuleId === rule.id ? (
-                            <Loader2 className="w-3 h-3 animate-spin text-[#c4c0ff]" />
-                          ) : (
-                            <Play className="w-3 h-3 fill-current" />
-                          )}
-                          <span>Test</span>
-                        </button>
+                        {/* Action Buttons */}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {/* Test Button: Redirects to target URL in new tab when clicked */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (targetRedirectUrl && targetRedirectUrl !== "#") {
+                                window.open(targetRedirectUrl, "_blank", "noopener,noreferrer");
+                              }
+                            }}
+                            className="px-2.5 py-1 rounded bg-white/10 hover:bg-white text-white hover:text-black text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer shadow-sm"
+                            title={targetRedirectUrl !== "#" ? `Test redirect to ${targetRedirectUrl}` : "No valid URL to test"}
+                          >
+                            <Play className="w-3 h-3 fill-current text-[#c4c0ff] group-hover:text-black" />
+                            <span>Test</span>
+                          </button>
 
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditingRule(rule);
-                            setRuleModalOpen(true);
-                          }}
-                          className="p-1.5 rounded text-zinc-400 hover:text-white hover:bg-white/10 cursor-pointer transition-colors"
-                          title="Edit rule"
-                        >
-                          <Edit3 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => rule.id && handleDeleteRedirectRule(rule.id)}
-                          className="p-1.5 rounded text-zinc-400 hover:text-red-400 hover:bg-red-500/10 cursor-pointer transition-colors"
-                          title="Delete rule"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingRule(rule);
+                              setRuleModalOpen(true);
+                            }}
+                            className="p-1.5 rounded text-zinc-400 hover:text-white hover:bg-white/10 cursor-pointer transition-colors"
+                            title="Edit rule"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => rule.id && handleDeleteRedirectRule(rule.id)}
+                            className="p-1.5 rounded text-zinc-400 hover:text-red-400 hover:bg-red-500/10 cursor-pointer transition-colors"
+                            title="Delete rule"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>
           )}
 
-          {/* TAB 6: ANALYTICS */}
+          {/* TAB: ANALYTICS */}
           {activeTab === "analytics" && (
-            <div className="bg-[#1c1b1b] p-4 rounded border border-[#20201f] space-y-3 animate-in fade-in">
+            <div className="bg-[#1c1b1b] p-3.5 sm:p-4 rounded border border-[#20201f] space-y-4 animate-in fade-in">
+              {/* Header */}
               <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                <h2 className="text-xs sm:text-sm font-bold text-white">Analytics</h2>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded bg-[#c4c0ff]/10 border border-[#c4c0ff]/20 flex items-center justify-center text-[#c4c0ff]">
+                    <BarChart3 className="w-3.5 h-3.5" />
+                  </div>
+                  <h2 className="text-xs sm:text-sm font-bold text-white tracking-tight">Analytics & Button Click Performance</h2>
+                </div>
+                <span className="text-[10px] font-mono text-zinc-400 bg-white/5 px-2 py-0.5 rounded border border-white/10">
+                  Live Stats
+                </span>
               </div>
 
+              {/* Top Summary Metrics */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                 {[
-                  { label: "Views", value: analytics.views_count || page.views_count || 0, icon: Globe },
-                  { label: "Clicks", value: analytics.clicks_count || page.clicks_count || 0, icon: ExternalLink },
-                  { label: "Redirects", value: analytics.redirect_hits || 0, icon: Sparkles },
-                  { label: "Blocks", value: blocks.length, icon: Layers },
+                  { label: "Total Page Views", value: analytics.views_count || page.views_count || 0, icon: Globe, color: "text-blue-400" },
+                  { label: "Total Link Clicks", value: analytics.clicks_count || page.clicks_count || 0, icon: ExternalLink, color: "text-emerald-400" },
+                  { label: "Smart Redirect Hits", value: analytics.redirect_hits || 0, icon: Sparkles, color: "text-purple-400" },
+                  { label: "Active Buttons & Links", value: blocks.length + (page.social_accounts?.filter((s) => s.is_active && s.url).length || 0), icon: Layers, color: "text-amber-400" },
                 ].map((stat, i) => {
                   const Icon = stat.icon;
                   return (
-                    <div key={i} className="p-3 rounded bg-[#20201f] border border-[#353535] space-y-0.5">
+                    <div key={i} className="p-3 rounded bg-[#20201f] border border-[#353535] space-y-1">
                       <div className="flex items-center justify-between text-zinc-400">
-                        <span className="text-[10px] font-semibold">{stat.label}</span>
-                        <Icon className="w-3 h-3" />
+                        <span className="text-[10px] font-semibold uppercase tracking-wider">{stat.label}</span>
+                        <Icon className={cn("w-3.5 h-3.5", stat.color)} />
                       </div>
-                      <p className="text-lg font-bold text-white">{stat.value.toLocaleString()}</p>
+                      <p className="text-lg font-bold text-white font-mono">{stat.value.toLocaleString()}</p>
                     </div>
                   );
                 })}
+              </div>
+
+              {/* Configured Buttons & Links Performance Breakdown */}
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                  <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                    <Type className="w-3.5 h-3.5 text-[#c4c0ff]" />
+                    <span>Configured Buttons Click Data</span>
+                  </h3>
+                  <span className="text-[10px] font-semibold text-zinc-400">
+                    {blocks.length + (page.social_accounts?.filter((s) => s.is_active && s.url).length || 0) + redirectRules.length} items tracked
+                  </span>
+                </div>
+
+                {/* 1. Content Blocks Performance */}
+                <div className="space-y-2">
+                  <h4 className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Content Blocks ({blocks.length})</h4>
+                  {blocks.length === 0 ? (
+                    <p className="text-xs text-zinc-500 italic p-2.5 rounded bg-black/20 border border-white/5">No blocks created yet</p>
+                  ) : (
+                    blocks.map((block) => {
+                      const clicks = block.clicks_count || 0;
+                      return (
+                        <div
+                          key={block.id || block.title}
+                          className="p-2.5 rounded bg-[#20201f] border border-[#353535] flex items-center justify-between gap-3 text-xs"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                            <div className="w-6 h-6 rounded bg-white/5 border border-white/10 flex items-center justify-center shrink-0 text-white">
+                              {block.block_type === "custom_button" && <ExternalLink className="w-3 h-3 text-[#c4c0ff]" />}
+                              {block.block_type === "product_card" && <ShoppingBag className="w-3 h-3 text-amber-400" />}
+                              {block.block_type === "file_download" && <Download className="w-3 h-3 text-blue-400" />}
+                              {block.block_type === "video" && <Video className="w-3 h-3 text-red-400" />}
+                              {block.block_type === "image" && <ImageIcon className="w-3 h-3 text-emerald-400" />}
+                              {block.block_type === "contact_card" && <MessageCircle className="w-3 h-3 text-purple-400" />}
+                              {block.block_type === "header" && <Type className="w-3 h-3 text-zinc-400" />}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="font-bold text-white truncate">{block.title || block.block_type}</p>
+                              <p className="text-[10px] text-zinc-400 truncate font-mono">{block.url || block.subtitle || "Block item"}</p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="px-2 py-1 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 font-bold font-mono text-xs flex items-center gap-1">
+                              <ExternalLink className="w-3 h-3" />
+                              <span>{clicks} {clicks === 1 ? "click" : "clicks"}</span>
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* 2. Social Links Performance */}
+                <div className="space-y-2 pt-2">
+                  <h4 className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
+                    Social Hub Links ({(page.social_accounts || []).filter((s) => s.is_active && s.url).length})
+                  </h4>
+                  {(page.social_accounts || []).filter((s) => s.is_active && s.url).length === 0 ? (
+                    <p className="text-xs text-zinc-500 italic p-2.5 rounded bg-black/20 border border-white/5">No active social links</p>
+                  ) : (
+                    (page.social_accounts || [])
+                      .filter((s) => s.is_active && s.url)
+                      .map((social) => {
+                        const iconKey = social.icon || social.platform;
+                        const clicks = (social as any).clicks_count || 0;
+                        return (
+                          <div
+                            key={social.id || social.platform}
+                            className="p-2.5 rounded bg-[#20201f] border border-[#353535] flex items-center justify-between gap-3 text-xs"
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                              <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center shrink-0 text-white">
+                                <SocialIcon platformOrIcon={iconKey} className="w-3.5 h-3.5" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="font-bold text-white capitalize truncate">{social.label || social.platform}</p>
+                                <p className="text-[10px] text-zinc-400 truncate font-mono">{social.url}</p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="px-2 py-1 rounded bg-blue-500/10 border border-blue-500/20 text-blue-300 font-bold font-mono text-xs flex items-center gap-1">
+                                <Share2 className="w-3 h-3" />
+                                <span>{clicks} {clicks === 1 ? "click" : "clicks"}</span>
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })
+                  )}
+                </div>
+
+                {/* 3. Redirect Rules Hits */}
+                <div className="space-y-2 pt-2">
+                  <h4 className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Redirect Rules ({redirectRules.length})</h4>
+                  {redirectRules.length === 0 ? (
+                    <p className="text-xs text-zinc-500 italic p-2.5 rounded bg-black/20 border border-white/5">No redirect rules set up</p>
+                  ) : (
+                    redirectRules.map((rule) => {
+                      const hits = rule.hits_count || 0;
+                      return (
+                        <div
+                          key={rule.id}
+                          className="p-2.5 rounded bg-[#20201f] border border-[#353535] flex items-center justify-between gap-3 text-xs"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                            <div className="w-6 h-6 rounded bg-[#c4c0ff]/10 border border-[#c4c0ff]/20 flex items-center justify-center shrink-0">
+                              <Sparkles className="w-3.5 h-3.5 text-[#c4c0ff]" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="font-bold text-white truncate">{rule.title || "Rule"}</p>
+                              <p className="text-[10px] text-zinc-400 truncate font-mono">{rule.input_match_url} ➔ {rule.destination_value}</p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="px-2 py-1 rounded bg-purple-500/10 border border-purple-500/20 text-purple-300 font-bold font-mono text-xs flex items-center gap-1">
+                              <Sparkles className="w-3 h-3" />
+                              <span>{hits} {hits === 1 ? "hit" : "hits"}</span>
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
               </div>
             </div>
           )}
         </div>
 
-        {/* Right Column: Interactive Multi-Device Mockup Preview */}
-        <div
-          className={cn(
-            "flex flex-col sticky top-4 transition-all duration-300",
-            previewDevice === "mobile"
-              ? "xl:col-span-5"
-              : previewDevice === "tablet"
-                ? "xl:col-span-6"
-                : "xl:col-span-7"
-          )}
-        >
-          <div className="w-full flex flex-col items-center justify-center bg-[#09090b] p-2 sm:p-3 rounded border border-[#20201f] shadow-2xl relative min-h-[470px] group/mockup">
-            {/* Disabled Page Preview Glass Overlay */}
-            {!page.is_published && (
-              <div className="absolute inset-0 z-50 bg-[#09090b]/85 backdrop-blur-md rounded-lg flex flex-col items-center justify-center p-6 text-center animate-in fade-in space-y-3">
-                <div className="w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shadow-lg">
-                  <EyeOff className="w-6 h-6" />
-                </div>
-                <div className="space-y-1">
-                  <h3 className="text-sm font-bold text-white tracking-tight">Preview Disabled</h3>
-                  <p className="text-xs text-zinc-400 max-w-[240px] leading-relaxed">
-                    Your Link-in-Bio page is currently disabled. Enable your page to view the live preview.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPage((prev) => ({ ...prev, is_published: true }));
-                    handleSavePageSettings({ is_published: true });
-                  }}
-                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs rounded-full transition-all flex items-center gap-2 cursor-pointer shadow-lg shadow-emerald-500/20 active:scale-95 select-none mt-1"
-                >
-                  <div className="w-2 h-2 rounded-full bg-black animate-pulse" />
-                  <span>Enable Page Preview</span>
-                </button>
-              </div>
+        {/* Right Column: Interactive Multi-Device Mockup Preview (Desktop only >= xl) */}
+        {activeTab !== "analytics" && (
+          <div
+            className={cn(
+              "hidden xl:flex flex-col sticky top-4 transition-all duration-300",
+              previewDevice === "mobile"
+                ? "xl:col-span-5"
+                : previewDevice === "tablet"
+                  ? "xl:col-span-6"
+                  : "xl:col-span-7"
             )}
+          >
+            <div className="w-full flex flex-col items-center justify-center bg-[#09090b] p-2 sm:p-3 rounded border border-[#20201f] shadow-2xl relative min-h-[470px] group/mockup">
+              {/* Disabled Page Preview Glass Overlay */}
+              {!page.is_published && (
+                <div className="absolute inset-0 z-50 bg-[#09090b]/85 backdrop-blur-md rounded-lg flex flex-col items-center justify-center p-6 text-center animate-in fade-in space-y-3">
+                  <div className="w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shadow-lg">
+                    <EyeOff className="w-6 h-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-sm font-bold text-white tracking-tight">Preview Disabled</h3>
+                    <p className="text-xs text-zinc-400 max-w-[240px] leading-relaxed">
+                      Your Link-in-Bio page is currently disabled. Enable your page to view the live preview.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPage((prev) => ({ ...prev, is_published: true }));
+                      handleSavePageSettings({ is_published: true });
+                    }}
+                    className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-xs rounded-full transition-all flex items-center gap-2 cursor-pointer shadow-lg shadow-emerald-500/20 active:scale-95 select-none mt-1"
+                  >
+                    <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                    <span>Enable Page Preview</span>
+                  </button>
+                </div>
+              )}
 
-            {/* DEVICE 1: APPLE IPHONE 16 PRO SIMULATOR (iOS UI) */}
-            {previewDevice === "mobile" && (
-              <div key={`mobile-${previewKey}`} className="w-full flex justify-center py-1 animate-in fade-in zoom-in-95 duration-200">
-                <div className="relative w-[235px] sm:w-[245px] h-[450px] sm:h-[470px] rounded-[38px] p-[7px] shadow-[0_25px_60px_-15px_rgba(0,0,0,1),0_0_0_1px_rgba(255,255,255,0.2),0_0_0_3px_#222222,0_0_16px_rgba(0,0,0,0.8)] bg-gradient-to-b from-[#3a3a3a] via-[#1c1c1e] to-[#2a2a2a] flex flex-col shrink-0 overflow-visible">
-                  {/* Titanium Antenna Bands */}
-                  <div className="absolute top-[60px] -left-[1px] w-[2px] h-[4px] bg-[#555] rounded-full" />
-                  <div className="absolute top-[60px] -right-[1px] w-[2px] h-[4px] bg-[#555] rounded-full" />
-                  <div className="absolute bottom-[60px] -left-[1px] w-[2px] h-[4px] bg-[#555] rounded-full" />
-                  <div className="absolute bottom-[60px] -right-[1px] w-[2px] h-[4px] bg-[#555] rounded-full" />
+              {/* DEVICE 1: APPLE IPHONE 16 PRO SIMULATOR (iOS UI) */}
+              {previewDevice === "mobile" && (
+                <div key={`mobile-${previewKey}`} className="w-full flex justify-center py-1 animate-in fade-in zoom-in-95 duration-200">
+                  <div className="relative w-[235px] sm:w-[245px] h-[450px] sm:h-[470px] rounded-[38px] p-[7px] shadow-[0_25px_60px_-15px_rgba(0,0,0,1),0_0_0_1px_rgba(255,255,255,0.2),0_0_0_3px_#222222,0_0_16px_rgba(0,0,0,0.8)] bg-gradient-to-b from-[#3a3a3a] via-[#1c1c1e] to-[#2a2a2a] flex flex-col shrink-0 overflow-visible">
+                    {/* Titanium Antenna Bands */}
+                    <div className="absolute top-[60px] -left-[1px] w-[2px] h-[4px] bg-[#555] rounded-full" />
+                    <div className="absolute top-[60px] -right-[1px] w-[2px] h-[4px] bg-[#555] rounded-full" />
+                    <div className="absolute bottom-[60px] -left-[1px] w-[2px] h-[4px] bg-[#555] rounded-full" />
+                    <div className="absolute bottom-[60px] -right-[1px] w-[2px] h-[4px] bg-[#555] rounded-full" />
 
-                  {/* Left Hardware Buttons: Action Button, Volume Up, Volume Down */}
-                  <div className="absolute -left-[4px] top-[75px] w-[3px] h-[18px] bg-[#404040] border-l border-white/20 rounded-l-[3px] shadow-sm" title="Action Button" />
-                  <div className="absolute -left-[4px] top-[105px] w-[3px] h-[36px] bg-[#404040] border-l border-white/20 rounded-l-[3px] shadow-sm" title="Volume Up" />
-                  <div className="absolute -left-[4px] top-[149px] w-[3px] h-[36px] bg-[#404040] border-l border-white/20 rounded-l-[3px] shadow-sm" title="Volume Down" />
+                    {/* Left Hardware Buttons: Action Button, Volume Up, Volume Down */}
+                    <div className="absolute -left-[4px] top-[75px] w-[3px] h-[18px] bg-[#404040] border-l border-white/20 rounded-l-[3px] shadow-sm" title="Action Button" />
+                    <div className="absolute -left-[4px] top-[105px] w-[3px] h-[36px] bg-[#404040] border-l border-white/20 rounded-l-[3px] shadow-sm" title="Volume Up" />
+                    <div className="absolute -left-[4px] top-[149px] w-[3px] h-[36px] bg-[#404040] border-l border-white/20 rounded-l-[3px] shadow-sm" title="Volume Down" />
 
-                  {/* Right Hardware Buttons: Power / Siri & Camera Control */}
-                  <div className="absolute -right-[4px] top-[115px] w-[3px] h-[52px] bg-[#404040] border-r border-white/20 rounded-r-[3px] shadow-sm" title="Power" />
-                  <div className="absolute -right-[3px] top-[275px] w-[2.5px] h-[28px] bg-[#2a2a2a] border border-white/20 rounded-r-[2px] shadow-inner" title="Camera Control" />
+                    {/* Right Hardware Buttons: Power / Siri & Camera Control */}
+                    <div className="absolute -right-[4px] top-[115px] w-[3px] h-[52px] bg-[#404040] border-r border-white/20 rounded-r-[3px] shadow-sm" title="Power" />
+                    <div className="absolute -right-[3px] top-[275px] w-[2.5px] h-[28px] bg-[#2a2a2a] border border-white/20 rounded-r-[2px] shadow-inner" title="Camera Control" />
 
-                  {/* OLED Display Bezel (Super Retina XDR) */}
-                  <div className="relative w-full h-full bg-black rounded-[32px] overflow-hidden flex flex-col justify-between text-white border border-white/10 shadow-inner">
-                    {/* Top Earpiece Speaker Slit */}
-                    <div className="absolute top-1.5 left-1/2 -translate-x-1/2 z-40 w-10 h-[2px] bg-[#1a1a1a] rounded-full" />
+                    {/* OLED Display Bezel (Super Retina XDR) */}
+                    <div className="relative w-full h-full bg-black rounded-[32px] overflow-hidden flex flex-col justify-between text-white border border-white/10 shadow-inner">
+                      {/* Top Earpiece Speaker Slit */}
+                      <div className="absolute top-1.5 left-1/2 -translate-x-1/2 z-40 w-10 h-[2px] bg-[#1a1a1a] rounded-full" />
 
-                    {/* iOS 18 Top Status Bar & Dynamic Island */}
-                    <div className="absolute top-0 left-0 right-0 z-40 pt-2 px-3.5 flex items-center justify-between pointer-events-none">
-                      {/* iOS Clock */}
-                      <span className="text-[11px] font-semibold tracking-tight text-white font-sans">9:41</span>
+                      {/* iOS 18 Top Status Bar & Dynamic Island */}
+                      <div className="absolute top-0 left-0 right-0 z-40 pt-2 px-3.5 flex items-center justify-between pointer-events-none">
+                        {/* iOS Clock */}
+                        <span className="text-[11px] font-semibold tracking-tight text-white font-sans">9:41</span>
 
-                      {/* Dynamic Island */}
-                      <div className="w-[80px] h-[20px] bg-black rounded-full border border-white/10 flex items-center justify-between px-1.5 shadow-md">
-                        {/* FaceID Sensor */}
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#111] border border-[#262626] flex items-center justify-center">
-                          <div className="w-0.5 h-0.5 rounded-full bg-[#050518]" />
+                        {/* Dynamic Island */}
+                        <div className="w-[80px] h-[20px] bg-black rounded-full border border-white/10 flex items-center justify-between px-1.5 shadow-md">
+                          {/* FaceID Sensor */}
+                          <div className="w-1.5 h-1.5 rounded-full bg-[#111] border border-[#262626] flex items-center justify-center">
+                            <div className="w-0.5 h-0.5 rounded-full bg-[#050518]" />
+                          </div>
+                          {/* Front Camera Lens with Antireflective Sheen */}
+                          <div className="w-1.5 h-1.5 rounded-full bg-[#070b18] border border-[#1e293b] flex items-center justify-center shadow-inner">
+                            <div className="w-0.5 h-0.5 rounded-full bg-[#1e1b4b]" />
+                          </div>
                         </div>
-                        {/* Front Camera Lens with Antireflective Sheen */}
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#070b18] border border-[#1e293b] flex items-center justify-center shadow-inner">
-                          <div className="w-0.5 h-0.5 rounded-full bg-[#1e1b4b]" />
-                        </div>
-                      </div>
 
-                      {/* Status Icons */}
-                      <div className="flex items-center gap-1 text-white">
-                        <div className="flex items-end gap-[1px] h-2">
-                          <div className="w-[1.5px] h-[2.5px] bg-white rounded-[0.5px]" />
-                          <div className="w-[1.5px] h-[4px] bg-white rounded-[0.5px]" />
-                          <div className="w-[1.5px] h-[6px] bg-white rounded-[0.5px]" />
-                          <div className="w-[1.5px] h-[8px] bg-white rounded-[0.5px]" />
-                        </div>
-                        <span className="text-[8.5px] font-bold tracking-tight">5G</span>
-                        {/* Battery Capsule */}
-                        <div className="flex items-center">
-                          <div className="w-[15px] h-[8px] border border-white/80 rounded-[2px] p-[1px] flex items-center">
-                            <div className="w-[10px] h-full bg-[#c4c0ff] rounded-[0.5px]" />
+                        {/* Status Icons */}
+                        <div className="flex items-center gap-1 text-white">
+                          <div className="flex items-end gap-[1px] h-2">
+                            <div className="w-[1.5px] h-[2.5px] bg-white rounded-[0.5px]" />
+                            <div className="w-[1.5px] h-[4px] bg-white rounded-[0.5px]" />
+                            <div className="w-[1.5px] h-[6px] bg-white rounded-[0.5px]" />
+                            <div className="w-[1.5px] h-[8px] bg-white rounded-[0.5px]" />
+                          </div>
+                          <span className="text-[8.5px] font-bold tracking-tight">5G</span>
+                          {/* Battery Capsule */}
+                          <div className="flex items-center">
+                            <div className="w-[15px] h-[8px] border border-white/80 rounded-[2px] p-[1px] flex items-center">
+                              <div className="w-[10px] h-full bg-[#c4c0ff] rounded-[0.5px]" />
+                            </div>
                           </div>
                         </div>
                       </div>
+
+                      {/* Scrollable Screen Content */}
+                      <div className="flex-1 w-full pt-7 overflow-y-auto scrollbar-hide overflow-x-hidden relative">
+                        <div style={{ zoom: 0.725 }} className="w-full pb-2">
+                          <LinkInBioPublicView
+                            username={usernameInput || page.username}
+                            initialData={livePreviewData}
+                            isPreviewMode={true}
+                            activeTab={activeTab}
+                          />
+                        </div>
+                      </div>
+
+                      {/* iOS Safari Bottom Address Pill & Home Indicator */}
+                      <div className="bg-transparent shrink-0 z-40 flex flex-col items-center pointer-events-none pb-0.5 pt-0.5">
+                        <div className="w-[88%] bg-black/70 backdrop-blur-xl border border-white/15 rounded-full py-0.5 px-2.5 flex items-center justify-between text-[9.5px] text-zinc-300 font-sans shadow-lg mb-0.5 pointer-events-auto">
+                          <span className="font-sans font-bold text-zinc-400 text-[9px] tracking-tighter select-none">AA</span>
+                          <div className="flex items-center gap-1 text-zinc-200">
+                            <Lock className="w-2 h-2 text-zinc-400" />
+                            <span className="font-medium text-[9.5px]">{rootDomain}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setPreviewKey((k) => k + 1)}
+                            className="hover:text-white transition-colors cursor-pointer"
+                            title="Reload"
+                          >
+                            <RefreshCw className="w-2 h-2 text-zinc-400" />
+                          </button>
+                        </div>
+                        <div className="w-24 h-[2.5px] bg-white/80 rounded-full shadow-xs" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* DEVICE 2: APPLE IPAD PRO (iPadOS UI) */}
+              {previewDevice === "tablet" && (
+                <div key={`tablet-${previewKey}`} className="w-full flex justify-center py-1 animate-in fade-in zoom-in-95 duration-200">
+                  <div className="relative w-full max-w-[560px] bg-[#1c1c1e] rounded-[34px] p-3 shadow-[0_25px_70px_-15px_rgba(0,0,0,0.95),0_0_0_1px_rgba(255,255,255,0.18),inset_0_0_0_1.5px_#333336]">
+                    {/* Top TrueDepth Camera & Ambient Sensor */}
+                    <div className="absolute top-1 left-1/2 -translate-x-1/2 flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-full bg-[#121214] border border-white/10 flex items-center justify-center">
+                        <div className="w-1 h-1 rounded-full bg-blue-500/60" />
+                      </div>
+                      <div className="w-1 h-1 rounded-full bg-zinc-700" />
                     </div>
 
-                    {/* Scrollable Screen Content */}
-                    <div className="flex-1 w-full pt-7 overflow-y-auto scrollbar-hide overflow-x-hidden relative">
-                      <div className="w-[138%] origin-top-left transform scale-[0.725] min-h-full pb-8">
+                    {/* Tablet Screen Frame */}
+                    <div className="relative w-full bg-[#131313] rounded-[24px] overflow-hidden border border-[#2a2a2a] flex flex-col h-[700px] max-h-[76vh]">
+                      {/* iPadOS Top Status Bar with 3-dot Multitasking Pill */}
+                      <div className="h-7 bg-black/50 backdrop-blur-md shrink-0 z-40 px-4 flex items-center justify-between text-[10px] font-semibold text-white/90 select-none pointer-events-none">
+                        <div className="flex items-center gap-2">
+                          <span>Tuesday, Sep 6</span>
+                          <span className="font-bold">9:41 AM</span>
+                        </div>
+
+                        {/* iPadOS 3-dot Multitasking Button */}
+                        <div className="w-6 h-3 bg-white/15 rounded-full flex items-center justify-center gap-0.5 shadow-sm">
+                          <div className="w-1 h-1 rounded-full bg-white/80" />
+                          <div className="w-1 h-1 rounded-full bg-white/80" />
+                          <div className="w-1 h-1 rounded-full bg-white/80" />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className="text-[9px] font-bold tracking-tighter">5G</span>
+                          <Wifi className="w-3 h-3 text-white/90" />
+                          <span className="text-[9px] font-mono">100%</span>
+                          <div className="w-4 h-2 rounded-xs border border-white/70 p-[1px] flex items-center relative">
+                            <div className="w-full h-full bg-emerald-400 rounded-2xs" />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* iPadOS Safari Navigation Toolbar */}
+                      <div className="h-9 bg-[#1e1e20]/90 backdrop-blur-md border-b border-white/10 px-3 flex items-center justify-between shrink-0 select-none gap-2 text-zinc-300">
+                        {/* Left: Sidebar & Navigation */}
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button type="button" className="p-1 rounded hover:bg-white/10 text-zinc-400 hover:text-white transition-colors" title="Sidebar">
+                            <PanelLeft className="w-3.5 h-3.5" />
+                          </button>
+                          <button type="button" className="p-1 rounded text-zinc-600 cursor-default">
+                            <ChevronLeft className="w-3.5 h-3.5" />
+                          </button>
+                          <button type="button" className="p-1 rounded text-zinc-600 cursor-default">
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
+                        {/* Center: iPadOS Safari Omnibar */}
+                        <div className="flex-1 max-w-xs bg-black/40 border border-white/10 rounded-lg py-1 px-2.5 flex items-center justify-between text-[11px] font-mono text-zinc-300">
+                          <div className="flex items-center gap-1.5 truncate">
+                            <Lock className="w-3 h-3 text-emerald-400 shrink-0" />
+                            <span className="truncate">{rootDomain}/@{page.username}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setPreviewKey((k) => k + 1)}
+                            className="hover:text-white transition-colors cursor-pointer shrink-0 ml-1"
+                            title="Reload"
+                          >
+                            <RefreshCw className="w-2.5 h-2.5 text-zinc-400" />
+                          </button>
+                        </div>
+
+                        {/* Right: Actions */}
+                        <div className="flex items-center gap-1 shrink-0 text-zinc-400">
+                          <button type="button" onClick={handleCopyBioLink} className="p-1 rounded hover:bg-white/10 hover:text-white transition-colors cursor-pointer" title="Copy Link">
+                            {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                          </button>
+                          <a href={publicBioUrl} target="_blank" rel="noopener noreferrer" className="p-1 rounded hover:bg-white/10 hover:text-white transition-colors cursor-pointer" title="Open Public Bio">
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        </div>
+                      </div>
+
+                      {/* Scrollable Screen Content */}
+                      <div className="flex-1 w-full overflow-y-auto scrollbar-hide">
                         <LinkInBioPublicView
                           username={usernameInput || page.username}
                           initialData={livePreviewData}
                           isPreviewMode={true}
+                          activeTab={activeTab}
                         />
                       </div>
-                    </div>
 
-                    {/* iOS Safari Bottom Address Pill & Home Indicator */}
-                    <div className="bg-transparent shrink-0 z-40 flex flex-col items-center pointer-events-none pb-0.5 pt-0.5">
-                      <div className="w-[88%] bg-black/70 backdrop-blur-xl border border-white/15 rounded-full py-0.5 px-2.5 flex items-center justify-between text-[9.5px] text-zinc-300 font-sans shadow-lg mb-0.5 pointer-events-auto">
-                        <span className="font-serif font-bold text-zinc-400 text-[9px] tracking-tighter select-none">AA</span>
-                        <div className="flex items-center gap-1 text-zinc-200">
-                          <Lock className="w-2 h-2 text-zinc-400" />
-                          <span className="font-medium text-[9.5px]">{rootDomain}</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setPreviewKey((k) => k + 1)}
-                          className="hover:text-white transition-colors cursor-pointer"
-                          title="Reload"
-                        >
-                          <RefreshCw className="w-2 h-2 text-zinc-400" />
-                        </button>
+                      {/* Bottom iPadOS Home Indicator Bar */}
+                      <div className="h-4.5 bg-transparent shrink-0 z-40 flex items-center justify-center pointer-events-none">
+                        <div className="w-40 h-1 bg-white/40 rounded-full shadow-sm" />
                       </div>
-                      <div className="w-24 h-[2.5px] bg-white/80 rounded-full shadow-xs" />
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* DEVICE 2: APPLE IPAD PRO (iPadOS UI) */}
-            {previewDevice === "tablet" && (
-              <div key={`tablet-${previewKey}`} className="w-full flex justify-center py-1 animate-in fade-in zoom-in-95 duration-200">
-                <div className="relative w-full max-w-[560px] bg-[#1c1c1e] rounded-[34px] p-3 shadow-[0_25px_70px_-15px_rgba(0,0,0,0.95),0_0_0_1px_rgba(255,255,255,0.18),inset_0_0_0_1.5px_#333336]">
-                  {/* Top TrueDepth Camera & Ambient Sensor */}
-                  <div className="absolute top-1 left-1/2 -translate-x-1/2 flex items-center gap-1.5">
-                    <div className="w-2 h-2 rounded-full bg-[#121214] border border-white/10 flex items-center justify-center">
-                      <div className="w-1 h-1 rounded-full bg-blue-500/60" />
-                    </div>
-                    <div className="w-1 h-1 rounded-full bg-zinc-700" />
-                  </div>
-
-                  {/* Tablet Screen Frame */}
-                  <div className="relative w-full bg-[#131313] rounded-[24px] overflow-hidden border border-[#2a2a2a] flex flex-col h-[700px] max-h-[76vh]">
-                    {/* iPadOS Top Status Bar with 3-dot Multitasking Pill */}
-                    <div className="h-7 bg-black/50 backdrop-blur-md shrink-0 z-40 px-4 flex items-center justify-between text-[10px] font-semibold text-white/90 select-none pointer-events-none">
-                      <div className="flex items-center gap-2">
-                        <span>Tuesday, Sep 6</span>
-                        <span className="font-bold">9:41 AM</span>
-                      </div>
-
-                      {/* iPadOS 3-dot Multitasking Button */}
-                      <div className="w-6 h-3 bg-white/15 rounded-full flex items-center justify-center gap-0.5 shadow-sm">
-                        <div className="w-1 h-1 rounded-full bg-white/80" />
-                        <div className="w-1 h-1 rounded-full bg-white/80" />
-                        <div className="w-1 h-1 rounded-full bg-white/80" />
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <span className="text-[9px] font-bold tracking-tighter">5G</span>
-                        <Wifi className="w-3 h-3 text-white/90" />
-                        <span className="text-[9px] font-mono">100%</span>
-                        <div className="w-4 h-2 rounded-xs border border-white/70 p-[1px] flex items-center relative">
-                          <div className="w-full h-full bg-emerald-400 rounded-2xs" />
+              {/* DEVICE 3: APPLE MACBOOK / MACOS SAFARI UI */}
+              {previewDevice === "desktop" && (
+                <div key={`desktop-${previewKey}`} className="w-full flex justify-center py-1 animate-in fade-in zoom-in-95 duration-200">
+                  <div className="w-full bg-[#18181a] rounded-2xl overflow-hidden border border-white/15 shadow-[0_25px_70px_-15px_rgba(0,0,0,0.95)] flex flex-col h-[700px] max-h-[76vh]">
+                    {/* macOS Title Bar & Safari Toolbar */}
+                    <div className="h-10 bg-[#222225]/95 backdrop-blur-xl border-b border-white/10 px-3.5 flex items-center justify-between shrink-0 select-none gap-3">
+                      {/* Apple macOS Traffic Light Window Controls */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <div className="w-3 h-3 rounded-full bg-[#ff5f56] border border-[#e0443e]/60 shadow-sm flex items-center justify-center group/btn cursor-pointer">
+                          <span className="opacity-0 group-hover/btn:opacity-100 text-[8px] font-bold text-black/70 leading-none">✕</span>
+                        </div>
+                        <div className="w-3 h-3 rounded-full bg-[#ffbd2e] border border-[#dea123]/60 shadow-sm flex items-center justify-center group/btn cursor-pointer">
+                          <span className="opacity-0 group-hover/btn:opacity-100 text-[8px] font-bold text-black/70 leading-none">−</span>
+                        </div>
+                        <div className="w-3 h-3 rounded-full bg-[#27c93f] border border-[#1aab29]/60 shadow-sm flex items-center justify-center group/btn cursor-pointer">
+                          <span className="opacity-0 group-hover/btn:opacity-100 text-[7px] font-bold text-black/70 leading-none">⤢</span>
                         </div>
                       </div>
-                    </div>
 
-                    {/* iPadOS Safari Navigation Toolbar */}
-                    <div className="h-9 bg-[#1e1e20]/90 backdrop-blur-md border-b border-white/10 px-3 flex items-center justify-between shrink-0 select-none gap-2 text-zinc-300">
-                      {/* Left: Sidebar & Navigation */}
-                      <div className="flex items-center gap-1 shrink-0">
-                        <button type="button" className="p-1 rounded hover:bg-white/10 text-zinc-400 hover:text-white transition-colors" title="Sidebar">
+                      {/* Safari Navigation Chevrons */}
+                      <div className="flex items-center gap-1 shrink-0 text-zinc-400">
+                        <button type="button" className="p-1 rounded hover:bg-white/10 hover:text-white transition-colors cursor-pointer" title="Sidebar">
                           <PanelLeft className="w-3.5 h-3.5" />
                         </button>
                         <button type="button" className="p-1 rounded text-zinc-600 cursor-default">
@@ -2615,148 +3096,241 @@ export default function LinkInBioDashboard() {
                         </button>
                       </div>
 
-                      {/* Center: iPadOS Safari Omnibar */}
-                      <div className="flex-1 max-w-xs bg-black/40 border border-white/10 rounded-lg py-1 px-2.5 flex items-center justify-between text-[11px] font-mono text-zinc-300">
+                      {/* Centered Safari Smart Search Omnibar */}
+                      <div className="flex-1 max-w-sm bg-[#121214] border border-white/10 hover:border-white/20 rounded-lg py-1 px-3 flex items-center justify-between text-xs text-zinc-300 gap-2 transition-all shadow-inner">
                         <div className="flex items-center gap-1.5 truncate">
-                          <Lock className="w-3 h-3 text-emerald-400 shrink-0" />
-                          <span className="truncate">{rootDomain}/@{page.username}</span>
+                          <Shield className="w-3 h-3 text-emerald-400 shrink-0" />
+                          <Lock className="w-3 h-3 text-zinc-400 shrink-0" />
+                          <span className="text-zinc-200 font-medium truncate">https://{rootDomain}/@{page.username}</span>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => setPreviewKey((k) => k + 1)}
-                          className="hover:text-white transition-colors cursor-pointer shrink-0 ml-1"
-                          title="Reload"
-                        >
-                          <RefreshCw className="w-2.5 h-2.5 text-zinc-400" />
-                        </button>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => setPreviewKey((k) => k + 1)}
+                            className="text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                            title="Reload Page"
+                          >
+                            <RefreshCw className="w-3 h-3" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleCopyBioLink}
+                            className="text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                            title="Copy Link"
+                          >
+                            {copiedLink ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
                       </div>
 
-                      {/* Right: Actions */}
-                      <div className="flex items-center gap-1 shrink-0 text-zinc-400">
-                        <button type="button" onClick={handleCopyBioLink} className="p-1 rounded hover:bg-white/10 hover:text-white transition-colors cursor-pointer" title="Copy Link">
-                          {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                      {/* Safari Action Controls: Share & Open in Tab */}
+                      <div className="flex items-center gap-1.5 shrink-0 text-zinc-400">
+                        <button
+                          type="button"
+                          onClick={handleCopyBioLink}
+                          className="p-1.5 rounded hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+                          title="Share link"
+                        >
+                          <Share2 className="w-3.5 h-3.5" />
                         </button>
-                        <a href={publicBioUrl} target="_blank" rel="noopener noreferrer" className="p-1 rounded hover:bg-white/10 hover:text-white transition-colors cursor-pointer" title="Open Public Bio">
+                        <a
+                          href={publicBioUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-1.5 rounded hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+                          title="Open live link in new tab"
+                        >
                           <ExternalLink className="w-3.5 h-3.5" />
                         </a>
                       </div>
                     </div>
 
-                    {/* Scrollable Screen Content */}
-                    <div className="flex-1 w-full overflow-y-auto scrollbar-hide">
+                    {/* Desktop Viewport Body */}
+                    <div className="flex-1 w-full overflow-y-auto scrollbar-hide bg-[#131313]">
                       <LinkInBioPublicView
                         username={usernameInput || page.username}
                         initialData={livePreviewData}
                         isPreviewMode={true}
+                        activeTab={activeTab}
                       />
                     </div>
-
-                    {/* Bottom iPadOS Home Indicator Bar */}
-                    <div className="h-4.5 bg-transparent shrink-0 z-40 flex items-center justify-center pointer-events-none">
-                      <div className="w-40 h-1 bg-white/40 rounded-full shadow-sm" />
-                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-
-            {/* DEVICE 3: APPLE MACBOOK / MACOS SAFARI UI */}
-            {previewDevice === "desktop" && (
-              <div key={`desktop-${previewKey}`} className="w-full flex justify-center py-1 animate-in fade-in zoom-in-95 duration-200">
-                <div className="w-full bg-[#18181a] rounded-2xl overflow-hidden border border-white/15 shadow-[0_25px_70px_-15px_rgba(0,0,0,0.95)] flex flex-col h-[700px] max-h-[76vh]">
-                  {/* macOS Title Bar & Safari Toolbar */}
-                  <div className="h-10 bg-[#222225]/95 backdrop-blur-xl border-b border-white/10 px-3.5 flex items-center justify-between shrink-0 select-none gap-3">
-                    {/* Apple macOS Traffic Light Window Controls */}
-                    <div className="flex items-center gap-2 shrink-0">
-                      <div className="w-3 h-3 rounded-full bg-[#ff5f56] border border-[#e0443e]/60 shadow-sm flex items-center justify-center group/btn cursor-pointer">
-                        <span className="opacity-0 group-hover/btn:opacity-100 text-[8px] font-bold text-black/70 leading-none">✕</span>
-                      </div>
-                      <div className="w-3 h-3 rounded-full bg-[#ffbd2e] border border-[#dea123]/60 shadow-sm flex items-center justify-center group/btn cursor-pointer">
-                        <span className="opacity-0 group-hover/btn:opacity-100 text-[8px] font-bold text-black/70 leading-none">−</span>
-                      </div>
-                      <div className="w-3 h-3 rounded-full bg-[#27c93f] border border-[#1aab29]/60 shadow-sm flex items-center justify-center group/btn cursor-pointer">
-                        <span className="opacity-0 group-hover/btn:opacity-100 text-[7px] font-bold text-black/70 leading-none">⤢</span>
-                      </div>
-                    </div>
-
-                    {/* Safari Navigation Chevrons */}
-                    <div className="flex items-center gap-1 shrink-0 text-zinc-400">
-                      <button type="button" className="p-1 rounded hover:bg-white/10 hover:text-white transition-colors cursor-pointer" title="Sidebar">
-                        <PanelLeft className="w-3.5 h-3.5" />
-                      </button>
-                      <button type="button" className="p-1 rounded text-zinc-600 cursor-default">
-                        <ChevronLeft className="w-3.5 h-3.5" />
-                      </button>
-                      <button type="button" className="p-1 rounded text-zinc-600 cursor-default">
-                        <ChevronRight className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-
-                    {/* Centered Safari Smart Search Omnibar */}
-                    <div className="flex-1 max-w-sm bg-[#121214] border border-white/10 hover:border-white/20 rounded-lg py-1 px-3 flex items-center justify-between text-xs text-zinc-300 gap-2 transition-all shadow-inner">
-                      <div className="flex items-center gap-1.5 truncate">
-                        <Shield className="w-3 h-3 text-emerald-400 shrink-0" />
-                        <Lock className="w-3 h-3 text-zinc-400 shrink-0" />
-                        <span className="text-zinc-200 font-medium truncate">https://{rootDomain}/@{page.username}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => setPreviewKey((k) => k + 1)}
-                          className="text-zinc-400 hover:text-white transition-colors cursor-pointer"
-                          title="Reload Page"
-                        >
-                          <RefreshCw className="w-3 h-3" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleCopyBioLink}
-                          className="text-zinc-400 hover:text-white transition-colors cursor-pointer"
-                          title="Copy Link"
-                        >
-                          {copiedLink ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Safari Action Controls: Share & Open in Tab */}
-                    <div className="flex items-center gap-1.5 shrink-0 text-zinc-400">
-                      <button
-                        type="button"
-                        onClick={handleCopyBioLink}
-                        className="p-1.5 rounded hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
-                        title="Share link"
-                      >
-                        <Share2 className="w-3.5 h-3.5" />
-                      </button>
-                      <a
-                        href={publicBioUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-1.5 rounded hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
-                        title="Open live link in new tab"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </a>
-                    </div>
-                  </div>
-
-                  {/* Desktop Viewport Body */}
-                  <div className="flex-1 w-full overflow-y-auto scrollbar-hide bg-[#131313]">
-                    <LinkInBioPublicView
-                      username={usernameInput || page.username}
-                      initialData={livePreviewData}
-                      isPreviewMode={true}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
+      {/* Floating Preview Pill Button (Mobile & Tablet < xl) */}
+      {activeTab !== "analytics" && (
+        <button
+          type="button"
+          onClick={() => setMockPreviewModalOpen(true)}
+          className="fixed bottom-5 right-5 z-40 xl:hidden px-3.5 py-2.5 rounded-full bg-white text-black font-bold text-xs shadow-[0_8px_30px_rgb(0,0,0,0.5)] flex items-center gap-2 cursor-pointer transition-all hover:scale-105 active:scale-95 border border-white/20 select-none"
+        >
+          <Eye className="w-4 h-4 text-black" />
+          <span>Preview Page</span>
+        </button>
+      )}
+
       {/* MODALS RENDERED VIA PORTAL */}
+
+      {/* Mobile & Tablet Interactive Mockup Preview Modal */}
+      {mounted &&
+        mockPreviewModalOpen &&
+        createPortal(
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-2 sm:p-4 animate-in fade-in duration-200">
+            <div className="relative w-full max-w-lg bg-[#09090b] rounded-2xl border border-[#20201f] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between px-4 py-3 border-b border-[#20201f] bg-[#141414] shrink-0">
+                <div className="flex items-center gap-2">
+                  <Eye className="w-4 h-4 text-[#c4c0ff]" />
+                  <h3 className="text-xs sm:text-sm font-bold text-white">Live Mockup Preview</h3>
+                </div>
+                <div className="flex items-center gap-2">
+                  {/* QR Code Button in Mobile Preview Popup */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQrModalOpen(true);
+                    }}
+                    className="px-2.5 py-1 rounded bg-[#20201f] hover:bg-[#2c2c2c] border border-[#353535] text-xs font-semibold text-white flex items-center gap-1.5 transition-all cursor-pointer"
+                    title="View QR Code"
+                  >
+                    <QrCode className="w-3.5 h-3.5 text-[#c4c0ff]" />
+                    <span>QR Code</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setMockPreviewModalOpen(false)}
+                    className="p-1 rounded-full hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                    title="Close Preview"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Device Switcher */}
+              <div className="flex items-center justify-center gap-1 bg-[#101010] p-1.5 border-b border-[#20201f] shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setPreviewDevice("mobile")}
+                  className={cn(
+                    "px-3 py-1 rounded text-xs font-semibold flex items-center gap-1.5 transition-all select-none cursor-pointer",
+                    previewDevice === "mobile" ? "bg-white text-black font-bold shadow-sm" : "text-zinc-400 hover:text-white"
+                  )}
+                >
+                  <Smartphone className="w-3.5 h-3.5" />
+                  <span>iPhone</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewDevice("tablet")}
+                  className={cn(
+                    "px-3 py-1 rounded text-xs font-semibold flex items-center gap-1.5 transition-all select-none cursor-pointer",
+                    previewDevice === "tablet" ? "bg-white text-black font-bold shadow-sm" : "text-zinc-400 hover:text-white"
+                  )}
+                >
+                  <Tablet className="w-3.5 h-3.5" />
+                  <span>iPad</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewDevice("desktop")}
+                  className={cn(
+                    "px-3 py-1 rounded text-xs font-semibold flex items-center gap-1.5 transition-all select-none cursor-pointer",
+                    previewDevice === "desktop" ? "bg-white text-black font-bold shadow-sm" : "text-zinc-400 hover:text-white"
+                  )}
+                >
+                  <Monitor className="w-3.5 h-3.5" />
+                  <span>Mac</span>
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-3 overflow-y-auto flex items-center justify-center min-h-[460px] bg-[#09090b]">
+                {/* Disabled Page Preview Glass Overlay */}
+                {!page.is_published && (
+                  <div className="absolute inset-0 z-50 bg-[#09090b]/85 backdrop-blur-md rounded-lg flex flex-col items-center justify-center p-6 text-center animate-in fade-in space-y-3">
+                    <div className="w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shadow-lg">
+                      <EyeOff className="w-6 h-6" />
+                    </div>
+                    <div className="space-y-1">
+                      <h3 className="text-sm font-bold text-white tracking-tight">Preview Disabled</h3>
+                      <p className="text-xs text-zinc-400 max-w-[240px] leading-relaxed">
+                        Your Link-in-Bio page is currently disabled. Enable your page to view the live preview.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPage((prev) => ({ ...prev, is_published: true }));
+                        handleSavePageSettings({ is_published: true });
+                      }}
+                      className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs rounded-full transition-all flex items-center gap-2 cursor-pointer shadow-lg shadow-emerald-500/20 active:scale-95 select-none mt-1"
+                    >
+                      <div className="w-2 h-2 rounded-full bg-black animate-pulse" />
+                      <span>Enable Page Preview</span>
+                    </button>
+                  </div>
+                )}
+
+                {previewDevice === "mobile" && (
+                  <div key={`mobile-modal-${previewKey}`} className="w-full flex justify-center py-1">
+                    <div className="relative w-[235px] sm:w-[245px] h-[450px] sm:h-[470px] rounded-[38px] p-[7px] shadow-2xl bg-gradient-to-b from-[#3a3a3a] via-[#1c1c1e] to-[#2a2a2a] flex flex-col shrink-0">
+                      <div className="relative w-full h-full bg-black rounded-[32px] overflow-hidden flex flex-col justify-between text-white border border-white/10 shadow-inner">
+                        <div className="flex-1 w-full pt-7 overflow-y-auto scrollbar-hide relative">
+                          <div className="w-[138%] origin-top-left transform scale-[0.725] min-h-full pb-8">
+                            <LinkInBioPublicView
+                              username={usernameInput || page.username}
+                              initialData={livePreviewData}
+                              isPreviewMode={true}
+                              activeTab={activeTab}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {previewDevice === "tablet" && (
+                  <div key={`tablet-modal-${previewKey}`} className="w-full flex justify-center py-1">
+                    <div className="relative w-full max-w-[500px] bg-[#131313] rounded-[20px] overflow-hidden border border-[#2a2a2a] flex flex-col h-[520px]">
+                      <div className="flex-1 w-full overflow-y-auto scrollbar-hide">
+                        <LinkInBioPublicView
+                          username={usernameInput || page.username}
+                          initialData={livePreviewData}
+                          isPreviewMode={true}
+                          activeTab={activeTab}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {previewDevice === "desktop" && (
+                  <div key={`desktop-modal-${previewKey}`} className="w-full flex justify-center py-1">
+                    <div className="w-full bg-[#18181a] rounded-xl overflow-hidden border border-white/15 flex flex-col h-[520px]">
+                      <div className="flex-1 w-full overflow-y-auto scrollbar-hide bg-[#131313]">
+                        <LinkInBioPublicView
+                          username={usernameInput || page.username}
+                          initialData={livePreviewData}
+                          isPreviewMode={true}
+                          activeTab={activeTab}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
 
       {/* Block Modal */}
       {mounted &&
@@ -2794,13 +3368,31 @@ export default function LinkInBioDashboard() {
       {/* QR Code Modal */}
       {mounted &&
         createPortal(
-          <QrCodeModal
+          <QrCodeStudioModal
             isOpen={qrModalOpen}
             publicUrl={publicBioUrl}
             username={page.username}
+            profileImageUrl={page.profile_image_url}
+            initialConfig={page.custom_theme?.qr_config as any}
             onClose={() => setQrModalOpen(false)}
             onCopy={handleCopyBioLink}
             copiedLink={copiedLink}
+            onSaveConfig={(newConfig) => {
+              setPage((prev) => ({
+                ...prev,
+                custom_theme: {
+                  ...(prev.custom_theme || {}),
+                  qr_config: newConfig,
+                },
+              }));
+              handleSavePageSettings({
+                custom_theme: {
+                  ...(page.custom_theme || {}),
+                  qr_config: newConfig,
+                },
+              });
+              showToast("QR Code configuration saved to account");
+            }}
           />,
           document.body
         )}
@@ -2835,6 +3427,7 @@ export default function LinkInBioDashboard() {
             rootDomain={rootDomain}
             copiedLink={copiedLink}
             onCopy={handleCopyBioLink}
+            activeTab={activeTab}
           />,
           document.body
         )}
@@ -3043,7 +3636,7 @@ function BlockEditModal({
                   form="block-edit-form"
                   className="px-3.5 py-1 rounded bg-white text-black text-xs font-bold hover:bg-zinc-200 transition-all cursor-pointer shadow-sm"
                 >
-                  {block ? "Update Block" : "Add Block"}
+                  {block ? "Update" : "Add"}
                 </button>
 
                 {/* Mobile View Switcher */}
@@ -3071,13 +3664,13 @@ function BlockEditModal({
                   </button>
                 </div>
 
-                <button
+                {/* <button
                   type="button"
                   onClick={onClose}
                   className="p-1 rounded text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer ml-1"
                 >
                   <X className="w-4 h-4" />
-                </button>
+                </button> */}
               </div>
             </div>
 
@@ -3549,7 +4142,7 @@ function RedirectRuleEditModal({
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-zinc-300">Display Title (Optional)</label>
+                <label className="text-xs font-semibold text-zinc-300">Display Title (Optional ,Users can see this)</label>
                 <input
                   type="text"
                   value={destinationTitle}
@@ -3583,125 +4176,8 @@ function RedirectRuleEditModal({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MODAL: BIO QR CODE (WITH DOWNLOAD OPTION)
+// MODAL: BIO QR CODE (WITH CUSTOMIZABLE CREATOR STUDIO)
 // ─────────────────────────────────────────────────────────────────────────────
-
-function QrCodeModal({
-  isOpen,
-  publicUrl,
-  username,
-  onClose,
-  onCopy,
-  copiedLink,
-}: {
-  isOpen: boolean;
-  publicUrl: string;
-  username: string;
-  onClose: () => void;
-  onCopy: () => void;
-  copiedLink: boolean;
-}) {
-  const [qrDataUrl, setQrDataUrl] = useState<string>("");
-
-  useEffect(() => {
-    if (isOpen && publicUrl) {
-      QRCode.toDataURL(publicUrl, {
-        width: 480,
-        margin: 2,
-        color: {
-          dark: "#000000",
-          light: "#ffffff",
-        },
-      })
-        .then((url) => setQrDataUrl(url))
-        .catch((err) => console.error("Failed to generate QR Code:", err));
-    }
-  }, [isOpen, publicUrl]);
-
-  const handleDownload = () => {
-    if (!qrDataUrl) return;
-    const a = document.createElement("a");
-    a.href = qrDataUrl;
-    a.download = `${username || "bio"}-qr.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  };
-
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-2 sm:p-4 font-sans">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="absolute inset-0 bg-black/90 backdrop-blur-xl"
-          />
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.97, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.97, y: 10 }}
-            className="relative w-full max-w-xs bg-[#141414] border border-white/15 rounded overflow-hidden shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9)] flex flex-col text-center"
-          >
-            {/* Modal Header */}
-            <div className="p-3 px-4 border-b border-white/10 flex items-center justify-between shrink-0 bg-[#1c1b1b]">
-              <h3 className="text-xs font-bold text-white tracking-tight flex items-center gap-1.5">
-                <QrCode className="w-3.5 h-3.5 text-[#c4c0ff]" />
-                QR Code
-              </h3>
-              <button
-                onClick={onClose}
-                className="p-1 rounded text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="p-5 space-y-3.5 flex flex-col items-center">
-              {/* QR Display */}
-              <div className="p-3 bg-white rounded shadow border border-white/20 inline-block">
-                {qrDataUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={qrDataUrl} alt="QR Code" className="w-44 h-44 mx-auto rounded" />
-                ) : (
-                  <div className="w-44 h-44 flex items-center justify-center text-zinc-400">
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  </div>
-                )}
-              </div>
-
-              <p className="text-xs font-semibold text-white font-mono truncate max-w-full">{publicUrl}</p>
-
-              <div className="flex flex-col gap-2 w-full pt-1">
-                <button
-                  type="button"
-                  onClick={handleDownload}
-                  disabled={!qrDataUrl}
-                  className="w-full py-2 bg-white text-black font-bold text-xs rounded hover:bg-zinc-200 transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Download PNG</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={onCopy}
-                  className="w-full py-1.5 bg-[#20201f] text-zinc-300 font-semibold text-xs rounded hover:bg-[#2c2c2c] border border-[#353535] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copiedLink ? "Copied" : "Copy Link"}</span>
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
-  );
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MODAL: LIVE MOCKUP PREVIEW POPUP
@@ -3718,6 +4194,7 @@ function MockupPreviewModal({
   rootDomain,
   copiedLink,
   onCopy,
+  activeTab,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -3729,6 +4206,7 @@ function MockupPreviewModal({
   rootDomain: string;
   copiedLink: boolean;
   onCopy: () => void;
+  activeTab?: string;
 }) {
   const [modalDevice, setModalDevice] = useState<"mobile" | "tablet" | "desktop">("mobile");
 
@@ -3807,14 +4285,14 @@ function MockupPreviewModal({
                   </button>
                 </div>
 
-                <button
+                {/* <button
                   type="button"
                   onClick={onClose}
                   className="p-1 rounded text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer ml-1"
                   title="Close popup"
                 >
                   <X className="w-4 h-4" />
-                </button>
+                </button> */}
               </div>
             </div>
 
@@ -3874,6 +4352,7 @@ function MockupPreviewModal({
                             username={username || page.username}
                             initialData={livePreviewData}
                             isPreviewMode={true}
+                            activeTab={activeTab}
                           />
                         </div>
                       </div>
@@ -3881,7 +4360,7 @@ function MockupPreviewModal({
                       {/* Bottom Safari Pill & Home Indicator */}
                       <div className="bg-transparent shrink-0 z-40 flex flex-col items-center pointer-events-none pb-0.5 pt-0.5">
                         <div className="w-[88%] bg-black/70 backdrop-blur-xl border border-white/15 rounded-full py-0.5 px-2 flex items-center justify-between text-[9px] text-zinc-300 font-sans shadow-lg mb-0.5 pointer-events-auto">
-                          <span className="font-serif font-bold text-zinc-400 text-[8.5px] tracking-tighter select-none">AA</span>
+                          <span className="font-sans font-bold text-zinc-400 text-[8.5px] tracking-tighter select-none">AA</span>
                           <div className="flex items-center gap-1 text-zinc-200">
                             <Lock className="w-2 h-2 text-zinc-400" />
                             <span className="font-medium text-[9px]">{rootDomain}</span>
@@ -3920,6 +4399,7 @@ function MockupPreviewModal({
                           username={username || page.username}
                           initialData={livePreviewData}
                           isPreviewMode={true}
+                          activeTab={activeTab}
                         />
                       </div>
 
@@ -3954,6 +4434,7 @@ function MockupPreviewModal({
                         username={username || page.username}
                         initialData={livePreviewData}
                         isPreviewMode={true}
+                        activeTab={activeTab}
                       />
                     </div>
                   </div>

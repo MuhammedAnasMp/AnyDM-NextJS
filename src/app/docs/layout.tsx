@@ -10,21 +10,22 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <div className="min-h-screen bg-[#131313] text-[#e5e2e1] font-sans antialiased flex flex-col">
-      {/* Top Navigation */}
+      {/* Top Navigation Header */}
       <DocsHeader
         isSidebarOpen={isSidebarOpen}
         onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
       />
 
-      <div className="flex-1 flex w-full">
-        {/* Fixed Documentation Sidebar */}
+      {/* Main 3-Column Grid Container */}
+      <div className="flex-1 flex w-full max-w-[1700px] mx-auto min-w-0">
+        {/* Left Section: Sticky In-Flow Navigation Sidebar */}
         <DocsSidebar
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
         />
 
-        {/* Main Content Area */}
-        <main className="flex-1 lg:pl-64 w-full min-w-0">
+        {/* Center & Right Documentation Content Area */}
+        <main className="flex-1 min-w-0 w-full">
           {children}
         </main>
       </div>

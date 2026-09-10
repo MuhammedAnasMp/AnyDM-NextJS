@@ -92,17 +92,29 @@ export default function CustomSocialModal({
                   <h3 className="text-xs sm:text-sm font-bold text-white tracking-tight">
                     {account?.id ? "Edit Custom Social Link" : "Add Custom Social Link"}
                   </h3>
-                  <p className="text-[10px] text-zinc-400">Add any social network, creator profile, or store link</p>
+                  {/* <p className="text-[10px] text-zinc-400">Add any social network, creator profile, or store link</p> */}
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={onClose}
-                className="p-1 rounded text-zinc-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-3 py-1.5 rounded bg-[#20201f] hover:bg-[#2a2a2a] border border-[#353535] text-xs font-semibold text-zinc-300 hover:text-white transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={!url.trim()}
+                  className="px-4 py-1.5 rounded bg-white hover:bg-zinc-200 text-black font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  <span>{account?.id ? "Save" : "Add"}</span>
+                </button>
+              </div>
             </div>
 
             {/* Modal Form */}
@@ -214,24 +226,7 @@ export default function CustomSocialModal({
                   <div />
                 )}
 
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="px-3 py-1.5 rounded bg-[#20201f] hover:bg-[#2a2a2a] border border-[#353535] text-xs font-semibold text-zinc-300 hover:text-white transition-colors cursor-pointer"
-                  >
-                    Cancel
-                  </button>
 
-                  <button
-                    type="submit"
-                    disabled={!url.trim()}
-                    className="px-4 py-1.5 rounded bg-white hover:bg-zinc-200 text-black font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
-                  >
-                    <Check className="w-3.5 h-3.5" />
-                    <span>{account?.id ? "Save Link" : "Add Link"}</span>
-                  </button>
-                </div>
               </div>
             </form>
           </motion.div>
