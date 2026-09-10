@@ -446,6 +446,32 @@ export default function ProductCreatePage() {
     setToastType(type);
     setToastVisible(true);
   };
+  // System Commission Settings State (from SystemSettings table)
+  const [globalCommPct, setGlobalCommPct] = useState<number>(10.00);
+  const [instantCommPct, setInstantCommPct] = useState<number>(3.00);
+  const [payoutHoldMode, setPayoutHoldMode] = useState<string>("INSTANT");
+
+  useEffect(() => {
+    const fetchCommissionSettings = async () => {
+      try {
+        const res = await api.get("/crm/seller/orders/");
+        if (res.data) {
+          if (res.data.global_commission_pct !== undefined) {
+            setGlobalCommPct(parseFloat(res.data.global_commission_pct) || 10.00);
+          }
+          if (res.data.instant_payout_commission_pct !== undefined) {
+            setInstantCommPct(parseFloat(res.data.instant_payout_commission_pct) || 3.00);
+          }
+          if (res.data.payout_hold_mode) {
+            setPayoutHoldMode(res.data.payout_hold_mode);
+          }
+        }
+      } catch (e) {
+        console.warn("Could not fetch system commission settings:", e);
+      }
+    };
+    fetchCommissionSettings();
+  }, []);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -872,6 +898,10 @@ export default function ProductCreatePage() {
       showToast("Specify a valid price", "error");
       return;
     }
+    if (originalPrice && parseFloat(originalPrice) <= parseFloat(price)) {
+      showToast("Compare price must be greater than selling price", "error");
+      return;
+    }
     if (mediaList.length === 0) {
       showToast("Upload or select at least one media item", "error");
       return;
@@ -1163,32 +1193,25 @@ export default function ProductCreatePage() {
                   <div>
                     <label className="text-xs text-[#c4c7c8] block mb-1.5 font-medium">Currency</label>
                     <select
-                      value={currency}
-                      onChange={(e) => setCurrency(e.target.value)}
-                      className="w-full bg-[#1c1b1b] border border-[#444748]/60 rounded-[4px] px-3 py-2 text-sm focus:border-white outline-none transition-colors text-white cursor-pointer"
+                      value="INR"
+                      disabled
+                      className="w-full bg-[#1c1b1b] border border-[#444748]/60 rounded-[4px] px-3 py-2 text-sm text-white cursor-not-allowed opacity-80"
                     >
                       <option value="INR">INR (₹)</option>
-                      <option value="KWD">KWD (KWD)</option>
-                      <option value="EUR">EUR (€)</option>
-                      <option value="GBP">GBP (£)</option>
-                      <option value="AED">AED (AED)</option>
-                      <option value="SAR">SAR (SAR)</option>
-                      <option value="BHD">BHD (BHD)</option>
-                      <option value="OMR">OMR (OMR)</option>
-                      <option value="QAR">QAR (QAR)</option>
                     </select>
                   </div>
 
                   <div>
-                    <label className="text-xs text-[#c4c7c8] block mb-1.5 font-medium">Price</label>
+                    <label className="text-xs text-[#c4c7c8] block mb-1.5 font-medium">Price (includes delivery)</label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8e9192] text-xs font-semibold">{currency}</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8e9192] text-xs font-semibold">₹</span>
                       <input
                         value={price}
                         onChange={(e) => setPrice(e.target.value)}
-                        type="text"
+                        type="number"
+                        step="0.01"
                         placeholder="0.00"
-                        className="w-full bg-[#1c1b1b] border border-[#444748]/60 rounded-[4px] pl-12 pr-3 py-2 text-sm focus:border-white outline-none transition-colors text-white placeholder:text-[#8e9192]"
+                        className="w-full bg-[#1c1b1b] border border-[#444748]/60 rounded-[4px] pl-8 pr-3 py-2 text-sm focus:border-white outline-none transition-colors text-white placeholder:text-[#8e9192]"
                       />
                     </div>
                   </div>
@@ -1196,30 +1219,84 @@ export default function ProductCreatePage() {
                   <div>
                     <label className="text-xs text-[#c4c7c8] block mb-1.5 font-medium">Compare at price (original)</label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8e9192] text-xs font-semibold">{currency}</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8e9192] text-xs font-semibold">₹</span>
                       <input
                         value={originalPrice}
                         onChange={(e) => setOriginalPrice(e.target.value)}
-                        type="text"
+                        type="number"
+                        step="0.01"
                         placeholder="0.00"
-                        className="w-full bg-[#1c1b1b] border border-[#444748]/60 rounded-[4px] pl-12 pr-3 py-2 text-sm focus:border-white outline-none transition-colors text-white placeholder:text-[#8e9192]"
+                        className={cn(
+                          "w-full bg-[#1c1b1b] border rounded-[4px] pl-8 pr-3 py-2 text-sm outline-none transition-colors text-white placeholder:text-[#8e9192]",
+                          originalPrice && parseFloat(originalPrice) <= (parseFloat(price) || 0)
+                            ? "border-red-500 focus:border-red-500"
+                            : "border-[#444748]/60 focus:border-white"
+                        )}
                       />
                     </div>
+                    {originalPrice && parseFloat(originalPrice) <= (parseFloat(price) || 0) && (
+                      <p className="text-[11px] text-red-400 font-medium mt-1">
+                        Compare price must be &gt; price (₹{parseFloat(price) || 0})
+                      </p>
+                    )}
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between py-2 px-3 bg-[#1c1b1b] rounded-[4px] border border-[#444748]/30">
-                  <span className="text-xs text-[#c4c7c8]">Allow price negotiation</span>
-                  <label className="relative flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={negotiable}
-                      onChange={(e) => setNegotiable(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-9 h-5 bg-[#131313] border border-[#444748] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-[#8e9192] after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-white peer-checked:after:bg-[#131313] peer-checked:after:border-white"></div>
-                  </label>
-                </div>
+                {/* Dynamic Commission & Earnings Breakdown using DESIGN.md (Glass Monochrome & Google Inter Font) */}
+                {parseFloat(price) > 0 && (() => {
+                  const p = parseFloat(price) || 0;
+                  const activeCommRate = payoutHoldMode === "INSTANT" ? instantCommPct : globalCommPct;
+                  const platformFee = p * (activeCommRate / 100);
+                  const gatewayTax = p * 0.02;
+                  const totalFeeAndTax = platformFee + gatewayTax;
+                  const priceThatYouGet = Math.max(0, p - totalFeeAndTax);
+
+                  return (
+                    <div
+                      className="p-4 rounded-[6px] bg-[#1c1b1b] border border-[#444748] space-y-3 shadow-sm transition-all text-[#e5e2e1]"
+                      style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}
+                    >
+                      <div className="flex justify-between items-center pb-2.5 border-b border-[#444748]">
+                        <div className="flex items-center gap-2">
+                          {/* <span className="w-2 h-2 rounded-full bg-[#c4c0ff] inline-block" /> */}
+                          <span className="text-xs font-semibold text-[#e5e2e1] tracking-tight flex items-center gap-1.5">
+                            <span>Commission Breakdown</span> (Only for online payments)
+                            {/* <span className="text-[11px] text-[#c4c7c8] font-normal italic">(includes delivery)</span> */}
+                          </span>
+                        </div>
+                        <span className="text-[11px]   px-2 py-0.5 rounded-[4px]  font-semibold tracking-wide">
+                          {payoutHoldMode === "INSTANT" ? "Instant Payout" : "Standard"} Is Active ({activeCommRate.toFixed(2)}%)
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                        <div className="bg-[#131313] p-3 rounded-[4px] border border-[#ffb4ab]/30 space-y-1">
+                          <div className="text-[11px] text-[#c4c7c8] font-semibold tracking-wide uppercase">
+                            Fee and tax
+                          </div>
+                          <div className="text-base font-bold text-[#ff2f18] tracking-tight">
+                            - ₹{totalFeeAndTax.toFixed(2)}
+                          </div>
+                          <p className="text-[11px] text-[#c4c7c8] leading-normal">
+                            {activeCommRate.toFixed(2)}% Platform Commission + 2% Gateway Fee &amp; Tax
+                          </p>
+                        </div>
+
+                        <div className="bg-[#131313] p-3 rounded-[4px] border border-white/30 space-y-1">
+                          <div className="text-[11px] text-[#c4c7c8] font-semibold tracking-wide uppercase">
+                            Price that you get
+                          </div>
+                          <div className="text-base font-bold text-green-500 tracking-tight">
+                            ₹{priceThatYouGet.toFixed(2)}
+                          </div>
+                          <p className="text-[11px] text-[#c4c7c8] leading-normal">
+                            Net amount credited directly to supplier account
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 <div>
                   <label className="text-xs text-[#c4c7c8] block mb-1.5 font-medium">Description</label>
@@ -1460,7 +1537,7 @@ export default function ProductCreatePage() {
                     {createAutomation && (
                       <div className="flex items-center justify-between text-[10px]">
                         <span className="text-[#8e9192]">Auto-DM:</span>
-                        <span className="text-[#34d399] font-bold">
+                        <span className="text-white font-bold">
                           ✨ Active ({automationDmFormat === "generic_template" ? "🛍️ Product Card" : "📝 Text"})
                         </span>
                       </div>

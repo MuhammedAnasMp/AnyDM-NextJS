@@ -83,15 +83,21 @@ export default function Header({ onMenuClick }: HeaderProps) {
     }
   };
 
+  const handleReLoginInstagram = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const clientId = "1454663269228644";
+    const redirectUri = `${window.location.origin}/dashboard/settings/accounts`;
+    const scope =
+      "instagram_business_basic,instagram_business_manage_messages,instagram_business_manage_comments,instagram_business_content_publish,instagram_business_manage_insights";
+    window.location.href = `https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=${clientId}&redirect_uri=${encodeURIComponent(
+      redirectUri
+    )}&response_type=code&scope=${scope}&enable_fb_login=false`;
+  };
+
   const handleSwitchAccount = async (accountId: number) => {
     const targetAccount = instagramAccounts.find((acc: any) => acc.id === accountId);
     if (targetAccount?.is_token_expired) {
-      setToast({
-        isVisible: true,
-        message: `The Instagram session for @${targetAccount.username} has expired. Please re-login first.`,
-        type: "error"
-      });
-      router.push("/dashboard/settings/accounts");
+      handleReLoginInstagram();
       return;
     }
     try {
@@ -234,68 +240,101 @@ export default function Header({ onMenuClick }: HeaderProps) {
             >
               <div
                 onClick={() =>
-                  instagramAccounts.length > 1 &&
+                  (instagramAccounts.length > 1 || activeAccount?.is_token_expired) &&
                   setIsAccountMenuOpen(!isAccountMenuOpen)
                 }
-                className={`relative flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 bg-white/5 backdrop-blur-md cursor-pointer hover:bg-white/10 transition-all mr-1 md:mr-2 select-none ${instagramAccounts.length > 1 ? "active:scale-[0.98]" : ""
-                  }`}
+                className={`relative flex items-center gap-2 px-3 py-1.5 rounded-full border ${
+                  activeAccount?.is_token_expired ? "border-red-500/50 bg-red-500/10" : "border-white/10 bg-white/5"
+                } backdrop-blur-md cursor-pointer hover:bg-white/10 transition-all mr-1 md:mr-2 select-none ${
+                  instagramAccounts.length > 1 || activeAccount?.is_token_expired ? "active:scale-[0.98]" : ""
+                }`}
               >
-                <div className="w-5 h-5 rounded-full overflow-hidden border border-white/20 flex items-center justify-center bg-white/10 shrink-0">
+                <div className="w-5 h-5 rounded-full overflow-hidden border border-white/20 flex items-center justify-center bg-white/10 shrink-0 relative">
                   <UserAvatar
                     src={activeAccount?.profile_picture_url}
                     alt="Instagram Profile"
                     className="w-full h-full object-cover"
                     fallbackIcon={<span className="material-symbols-outlined text-[13px] text-white/70">person</span>}
                   />
+                  {activeAccount?.is_token_expired && (
+                    <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-red-500 border border-black" title="Session Expired" />
+                  )}
                 </div>
 
                 <span className="text-[10px] md:text-xs font-bold text-white hidden sm:inline">
                   @{activeAccount?.username || 'user'}
                 </span>
 
-                {instagramAccounts.length > 1 && (
-                  <span className="material-symbols-outlined text-sm text-[#c4c7c8]/60 hidden sm:inline">
-                    expand_more
+                {activeAccount?.is_token_expired ? (
+                  <span className="text-[9px] font-extrabold text-red-400 bg-red-500/20 border border-red-500/30 px-1.5 py-0.5 rounded hidden sm:inline">
+                    Expired
                   </span>
+                ) : (
+                  instagramAccounts.length > 1 && (
+                    <span className="material-symbols-outlined text-sm text-[#c4c7c8]/60 hidden sm:inline">
+                      expand_more
+                    </span>
+                  )
                 )}
               </div>
 
-              {isAccountMenuOpen && instagramAccounts.length > 1 && (
-                <div className="absolute right-0 mt-2 w-56 bg-[#1a1a19]/90 border border-white/10 rounded-xl shadow-2xl p-2 z-50">
-                  <p className="text-[10px] font-bold text-[#c4c7c8]/60 px-3 py-1.5 tracking-wider">
-                    Switch Account
+              {isAccountMenuOpen && (instagramAccounts.length > 1 || activeAccount?.is_token_expired) && (
+                <div className="absolute right-0 mt-2 w-64 bg-[#121212] border border-white/15 rounded-xl shadow-2xl p-2 z-50 backdrop-blur-xl">
+                  <p className="text-[10px] font-bold text-[#c4c7c8]/60 px-3 py-1.5 tracking-wider uppercase mb-1">
+                    {instagramAccounts.length > 1 ? "Switch Account" : "Account Status"}
                   </p>
 
-                  {instagramAccounts.map((acc: any) => (
-                    <div
-                      key={acc.id}
-                      onClick={() => handleSwitchAccount(acc.id)}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${acc.id === activeAccount?.id
-                        ? "bg-white/10 text-white font-semibold"
-                        : "hover:bg-white/5 text-[#c4c7c8]/60 hover:text-white"
-                        } ${acc.is_token_expired ? "opacity-75" : ""}`}
-                    >
-                      <UserAvatar
-                        src={acc.profile_picture_url}
-                        alt={acc.username}
-                        className="w-5 h-5 rounded-full object-cover shrink-0"
-                        fallbackIcon={<span className="material-symbols-outlined text-[13px] text-[#c4c7c8]">person</span>}
-                      />
+                  <div className="flex flex-col gap-1.5">
+                    {instagramAccounts.map((acc: any) => (
+                      <div
+                        key={acc.id}
+                        onClick={() => {
+                          if (acc.is_token_expired) {
+                            handleReLoginInstagram();
+                          } else {
+                            handleSwitchAccount(acc.id);
+                          }
+                        }}
+                        className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+                          acc.id === activeAccount?.id
+                            ? "bg-white/10 text-white font-semibold"
+                            : "hover:bg-white/5 text-[#c4c7c8]/60 hover:text-white"
+                        } ${acc.is_token_expired ? "border border-red-500/30 bg-red-500/10" : ""}`}
+                      >
+                        <UserAvatar
+                          src={acc.profile_picture_url}
+                          alt={acc.username}
+                          className="w-5 h-5 rounded-full object-cover shrink-0"
+                          fallbackIcon={<span className="material-symbols-outlined text-[13px] text-[#c4c7c8]">person</span>}
+                        />
 
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-xs truncate">@{acc.username}</span>
-                        {acc.is_token_expired && (
-                          <span className="text-[9px] text-red-500 font-bold">Session Expired</span>
+                        <div className="flex flex-col min-w-0 flex-1">
+                          <span className="text-xs truncate">@{acc.username}</span>
+                          {acc.is_token_expired && (
+                            <span className="text-[9px] text-red-400 font-bold">Session Expired</span>
+                          )}
+                        </div>
+
+                        {acc.is_token_expired ? (
+                          <button
+                            type="button"
+                            onClick={(e) => handleReLoginInstagram(e)}
+                            className="px-2.5 py-1 text-[10px] font-bold text-white bg-red-600 hover:bg-red-500 rounded-md flex items-center gap-1 transition-all shrink-0 shadow"
+                            title="Re-login to reconnect Instagram"
+                          >
+                            <span className="material-symbols-outlined text-[12px]">refresh</span>
+                            <span>Re-login</span>
+                          </button>
+                        ) : (
+                          acc.id === activeAccount?.id && (
+                            <span className="material-symbols-outlined text-sm text-white ml-auto">
+                              check
+                            </span>
+                          )
                         )}
                       </div>
-
-                      {acc.id === activeAccount.id && (
-                        <span className="material-symbols-outlined text-sm text-white ml-auto">
-                          check
-                        </span>
-                      )}
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -331,7 +370,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
             </div>
 
             {isProfileMenuOpen && (
-              <div className="absolute right-0 mt-2 w-52 bg-[#1a1a19]/90 border border-white/10 rounded-xl shadow-2xl p-2 z-50">
+              <div className="absolute right-0 mt-2 w-52 bg-[#121212] border border-white/15 rounded-xl shadow-2xl p-2 z-50 backdrop-blur-xl">
                 <div className="px-3 py-2 border-b border-white/5 mb-1.5">
                   <p className="text-xs font-bold text-white truncate">{userDisplayName}</p>
                   <p className="text-[10px] text-[#c4c7c8]/60 truncate mt-0.5">{appUser?.email || "Connected account"}</p>

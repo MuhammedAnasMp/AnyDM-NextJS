@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import api from "@/lib/services/api.service";
 import { cn } from "@/lib/utils";
 import {
@@ -20,6 +20,7 @@ import {
   AlertCircle,
   CheckCircle2,
   X,
+  EyeOff,
 } from "lucide-react";
 
 import SocialIcon, { SOCIAL_ICON_MAP } from "./SocialIcon";
@@ -241,10 +242,13 @@ export interface PublicPageData {
   social_accounts?: PublicSocialAccount[];
   social_display_mode: string;
   show_social_usernames?: boolean;
+  blocks_enabled?: boolean;
+  social_enabled?: boolean;
   smart_redirect_enabled: boolean;
   smart_input_placeholder: string;
   smart_input_button_text: string;
   smart_input_title: string;
+  section_order?: string[];
   is_published: boolean;
   views_count?: number;
   clicks_count?: number;
@@ -274,12 +278,14 @@ interface LinkInBioPublicViewProps {
   username: string;
   initialData?: PublicBioPayload;
   isPreviewMode?: boolean;
+  activeTab?: string;
 }
 
 export default function LinkInBioPublicView({
   username,
   initialData,
   isPreviewMode = false,
+  activeTab,
 }: LinkInBioPublicViewProps) {
   const [loading, setLoading] = useState(!initialData);
   const [error, setError] = useState<string | null>(null);
@@ -290,6 +296,17 @@ export default function LinkInBioPublicView({
   const [redirectResult, setRedirectResult] = useState<RedirectResultPayload | null>(null);
   const [redirectError, setRedirectError] = useState<string | null>(null);
   const [isCopied, setIsCopied] = useState(false);
+
+  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  useEffect(() => {
+    if (isPreviewMode && activeTab) {
+      const targetEl = sectionRefs.current[activeTab];
+      if (targetEl) {
+        targetEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+    }
+  }, [isPreviewMode, activeTab]);
 
   useEffect(() => {
     if (initialData) {
@@ -470,8 +487,8 @@ export default function LinkInBioPublicView({
             customOverlay === "heavy"
               ? "bg-black/80 backdrop-blur-[2px]"
               : customOverlay === "light"
-              ? "bg-black/35"
-              : "bg-black/60"
+                ? "bg-black/35"
+                : "bg-black/60"
           )}
         />
       )}
@@ -515,10 +532,18 @@ export default function LinkInBioPublicView({
       </div>
 
       {/* Main Container */}
-      <div className={cn("w-full max-w-md px-4 flex flex-col items-center z-10", isPreviewMode ? "gap-4 pb-6" : "gap-5 pb-16", page.banner_image_url ? (isPreviewMode ? "-mt-12" : "-mt-16 sm:-mt-18") : "mt-3")}>
+      <div className={cn("w-full max-w-md px-4 flex flex-col items-center z-10", isPreviewMode ? "gap-4 pb-2" : "gap-5 pb-16", page.banner_image_url ? (isPreviewMode ? "-mt-12" : "-mt-16 sm:-mt-18") : "mt-3")}>
 
         {/* Profile Header */}
-        <div className="flex flex-col items-center text-center gap-2.5 w-full">
+        <div
+          ref={(el) => {
+            sectionRefs.current["styling"] = el;
+          }}
+          className={cn(
+            "flex flex-col items-center text-center gap-2.5 w-full p-2 rounded-xl transition-all duration-300 relative",
+            isPreviewMode && activeTab === "styling" && "ring-2 ring-[#c4c0ff] shadow-[0_0_20px_rgba(196,192,255,0.4)] bg-[#c4c0ff]/10"
+          )}
+        >
           <div className="relative group flex items-center justify-center">
             <div
               className={cn("rounded-full overflow-hidden p-1 shadow-2xl border-2 bg-[#131313]", isPreviewMode ? "w-20 h-20" : "w-24 h-24 sm:w-28 sm:h-28")}
@@ -570,18 +595,134 @@ export default function LinkInBioPublicView({
               {page.bio}
             </p>
           )}
+        </div>
 
-          {socialAccounts.length > 0 && page.social_display_mode !== "icons_bottom" && page.social_display_mode !== "hidden" && (
-            <div className={cn(
-              "flex flex-wrap items-center justify-center gap-1.5 pt-0.5 w-full",
-              page.show_social_usernames ? "max-w-sm" : "max-w-xs"
-            )}>
-              {socialAccounts.map((social) => {
-                const iconKey = social.icon || social.platform;
-                const rawHandle = social.label || (social.url ? social.url.replace(/^https?:\/\/(www\.)?(instagram\.com\/|youtube\.com\/@?|tiktok\.com\/@?|x\.com\/|twitter\.com\/|t\.me\/)?/, '').replace(/\/$/, '') : '');
-                const displayHandle = rawHandle ? (rawHandle.startsWith('@') || rawHandle.includes('.') || !social.platform || social.platform === 'custom' ? rawHandle : `@${rawHandle}`) : (social.label || social.platform);
+        {/* Dynamic Section Ordering based on tab order */}
+        {(() => {
+          const defaultOrder = ["blocks", "social", "redirects"];
+          const rawOrder = page.section_order || (page.custom_theme as any)?.section_order;
+          const userOrder = (Array.isArray(rawOrder) ? rawOrder : []).filter((s) => defaultOrder.includes(s));
+          defaultOrder.forEach((s) => {
+            if (!userOrder.includes(s)) userOrder.push(s);
+          });
+          return userOrder;
+        })().map((sectionKey: string) => {
+          if (sectionKey === "social") {
+            if (page.social_enabled === false) {
+              if (!isPreviewMode) return null;
+              return (
+                <div
+                  key="social"
+                  ref={(el) => {
+                    sectionRefs.current["social"] = el;
+                  }}
+                  className={cn(
+                    "w-full py-2 px-3 rounded-xl text-center text-xs font-semibold border border-dashed border-zinc-700 text-zinc-400 bg-zinc-900/40 transition-all duration-300 relative",
+                    isPreviewMode && activeTab === "social" && "ring-2 ring-[#c4c0ff] shadow-[0_0_20px_rgba(196,192,255,0.4)] bg-[#c4c0ff]/10 text-white border-solid border-[#c4c0ff]/50"
+                  )}
+                >
+                  <div className="flex items-center justify-center gap-1.5 opacity-80">
+                    <EyeOff className="w-3.5 h-3.5" />
+                    <span>Social Hub (Disabled)</span>
+                  </div>
+                </div>
+              );
+            }
 
-                if (page.show_social_usernames) {
+
+            if (page.social_display_mode === "hidden") {
+              if (!isPreviewMode) return null;
+              return (
+                <div
+                  key="social"
+                  ref={(el) => {
+                    sectionRefs.current["social"] = el;
+                  }}
+                  className={cn(
+                    "w-full py-2 px-3 rounded-xl text-center text-xs font-semibold border border-dashed border-zinc-700 text-zinc-400 bg-zinc-900/40 transition-all duration-300 relative",
+                    isPreviewMode && activeTab === "social" && "ring-2 ring-[#c4c0ff] shadow-[0_0_20px_rgba(196,192,255,0.4)] bg-[#c4c0ff]/10 text-white border-solid border-[#c4c0ff]/50"
+                  )}
+                >
+                  <div className="flex items-center justify-center gap-1.5 opacity-80">
+                    <EyeOff className="w-3.5 h-3.5" />
+                    <span>Social Hub (Hidden on Public Bio)</span>
+                  </div>
+                </div>
+              );
+            }
+
+            if (socialAccounts.length === 0) {
+              if (!isPreviewMode) return null;
+              return (
+                <div
+                  key="social"
+                  ref={(el) => {
+                    sectionRefs.current["social"] = el;
+                  }}
+                  className={cn(
+                    "w-full py-2 px-3 rounded-xl text-center text-xs font-semibold border border-dashed border-zinc-700 text-zinc-400 bg-zinc-900/40 transition-all duration-300 relative",
+                    isPreviewMode && activeTab === "social" && "ring-2 ring-[#c4c0ff] shadow-[0_0_20px_rgba(196,192,255,0.4)] bg-[#c4c0ff]/10 text-white border-solid border-[#c4c0ff]/50"
+                  )}
+                >
+                  <div className="flex items-center justify-center gap-1.5 opacity-80">
+                    <Share2 className="w-3.5 h-3.5" />
+                    <span>Social Hub (No active links)</span>
+                  </div>
+                </div>
+              );
+            }
+
+            return (
+              <div
+                key="social"
+                ref={(el) => {
+                  sectionRefs.current["social"] = el;
+                }}
+                className={cn(
+                  "flex flex-wrap items-center justify-center gap-1.5 pt-0.5 w-full p-2 rounded-xl transition-all duration-300 relative",
+                  page.show_social_usernames ? "max-w-sm" : "max-w-xs",
+                  isPreviewMode && activeTab === "social" && "ring-2 ring-[#c4c0ff] shadow-[0_0_20px_rgba(196,192,255,0.4)] bg-[#c4c0ff]/10"
+                )}
+              >
+                {socialAccounts.map((social) => {
+                  const iconKey = social.icon || social.platform;
+                  const rawHandle =
+                    social.label ||
+                    (social.url
+                      ? social.url
+                        .replace(/^https?:\/\/(www\.)?(instagram\.com\/|youtube\.com\/@?|tiktok\.com\/@?|x\.com\/|twitter\.com\/|t\.me\/)?/, "")
+                        .replace(/\/$/, "")
+                      : "");
+                  const displayHandle = rawHandle
+                    ? rawHandle.startsWith("@") || rawHandle.includes(".") || !social.platform || social.platform === "custom"
+                      ? rawHandle
+                      : `@${rawHandle}`
+                    : social.label || social.platform;
+
+                  if (page.show_social_usernames) {
+                    return (
+                      <a
+                        key={social.id || social.platform || social.url}
+                        href={social.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => trackClick("social_click")}
+                        className={cn(
+                          "rounded-full flex items-center gap-1.5 font-semibold transition-all duration-200 hover:scale-[1.02] shadow-sm px-3 py-1 text-xs",
+                          theme.cardClass,
+                          theme.cardBorderClass
+                        )}
+                        style={primaryTextStyle}
+                        title={social.label || social.platform}
+                      >
+                        <div className="w-4 h-4 rounded-full flex items-center justify-center bg-white/10 shrink-0">
+                          <SocialIcon platformOrIcon={iconKey} className="w-2.5 h-2.5" />
+                        </div>
+                        <span className="truncate max-w-[110px]">{displayHandle}</span>
+                      </a>
+                    );
+                  }
+
                   return (
                     <a
                       key={social.id || social.platform || social.url}
@@ -589,310 +730,402 @@ export default function LinkInBioPublicView({
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => trackClick("social_click")}
+                      aria-label={social.label || social.platform}
                       className={cn(
-                        "rounded-full flex items-center gap-1.5 font-semibold transition-all duration-200 hover:scale-[1.02] shadow-sm px-3 py-1 text-xs",
+                        "rounded-full flex items-center justify-center transition-all duration-200 transform hover:scale-110 shadow-sm",
+                        isPreviewMode ? "w-9 h-9" : "w-10 h-10",
                         theme.cardClass,
                         theme.cardBorderClass
                       )}
                       style={primaryTextStyle}
                       title={social.label || social.platform}
                     >
-                      <div className="w-4 h-4 rounded-full flex items-center justify-center bg-white/10 shrink-0">
-                        <SocialIcon platformOrIcon={iconKey} className="w-2.5 h-2.5" />
-                      </div>
-                      <span className="truncate max-w-[110px]">{displayHandle}</span>
+                      <SocialIcon platformOrIcon={iconKey} className={cn(isPreviewMode ? "w-4 h-4" : "w-4.5 h-4.5")} />
                     </a>
                   );
-                }
-
-                return (
-                  <a
-                    key={social.id || social.platform || social.url}
-                    href={social.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => trackClick("social_click")}
-                    aria-label={social.label || social.platform}
-                    className={cn(
-                      "rounded-full flex items-center justify-center transition-all duration-200 transform hover:scale-110 shadow-sm",
-                      isPreviewMode ? "w-9 h-9" : "w-10 h-10",
-                      theme.cardClass,
-                      theme.cardBorderClass
-                    )}
-                    style={primaryTextStyle}
-                    title={social.label || social.platform}
-                  >
-                    <SocialIcon platformOrIcon={iconKey} className={cn(isPreviewMode ? "w-4 h-4" : "w-4.5 h-4.5")} />
-                  </a>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Smart Reel / URL Paste Input */}
-        {page.smart_redirect_enabled !== false && (
-          <div className={cn("w-full p-4 rounded relative overflow-hidden transition-all", theme.pasteCardClass)}>
-            <div className="flex items-center gap-2 mb-2.5">
-              <Sparkles className="w-4 h-4 shrink-0" style={{ color: theme.accentColor }} />
-              <span
-                className={cn("text-xs font-bold tracking-tight", !customTextColor && theme.textClass)}
-                style={primaryTextStyle}
-              >
-                {page.smart_input_title || "Have a Reel or Promo Link?"}
-              </span>
-            </div>
-
-            <form onSubmit={handleResolveRedirect} className="flex flex-col gap-2">
-              <div className="relative flex items-center">
-                <input
-                  type="text"
-                  value={pasteInput}
-                  onChange={(e) => setPasteInput(e.target.value)}
-                  placeholder={page.smart_input_placeholder || "Paste link here..."}
-                  className={cn(
-                    "w-full px-3.5 py-2.5 pr-20 text-xs rounded focus:outline-none transition-all shadow-inner",
-                    theme.inputClass
-                  )}
-                />
-                <button
-                  type="button"
-                  onClick={handleClipboardPaste}
-                  className={cn(
-                    "absolute right-2 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded transition-colors flex items-center gap-1 cursor-pointer",
-                    theme.isDark ? "bg-white/10 hover:bg-white/20 text-white" : "bg-slate-200 hover:bg-slate-300 text-slate-800"
-                  )}
-                  title="Paste"
-                >
-                  <Copy className="w-3 h-3" />
-                  Paste
-                </button>
+                })}
               </div>
+            );
+          }
 
-              <button
-                type="submit"
-                disabled={isResolving || !pasteInput.trim()}
+          if (sectionKey === "redirects") {
+            if (page.smart_redirect_enabled === false) return null;
+
+            return (
+              <div
+                key="redirects"
+                ref={(el) => {
+                  sectionRefs.current["redirects"] = el;
+                }}
                 className={cn(
-                  "w-full py-2.5 px-4 rounded text-xs font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md cursor-pointer",
-                  theme.buttonClass
+                  "w-full p-4 rounded relative overflow-hidden transition-all duration-300",
+                  theme.pasteCardClass,
+                  isPreviewMode && activeTab === "redirects" && "ring-2 ring-[#c4c0ff] shadow-[0_0_20px_rgba(196,192,255,0.4)] bg-[#c4c0ff]/10"
                 )}
               >
-                {isResolving ? (
-                  <>
-                    <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                    <span>Resolving…</span>
-                  </>
-                ) : (
-                  <>
-                    <span>{page.smart_input_button_text || "Get Link"}</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </>
-                )}
-              </button>
-            </form>
-
-            {redirectError && (
-              <div className="mt-3 p-2.5 rounded bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                <span className="leading-snug">{redirectError}</span>
-              </div>
-            )}
-
-            {redirectResult && (
-              <div className="mt-3 p-3.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 space-y-2 animate-in fade-in zoom-in-95 duration-200">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] uppercase font-black tracking-widest text-emerald-400 flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Result
-                  </span>
-                  <button
-                    onClick={() => setRedirectResult(null)}
-                    className="text-emerald-400/60 hover:text-emerald-300 cursor-pointer"
+                <div className="flex items-center gap-2 mb-2.5">
+                  {/* <Sparkles className="w-4 h-4 shrink-0" style={{ color: theme.accentColor }} /> */}
+                  <span
+                    className={cn("text-xs font-bold tracking-tight", !customTextColor && theme.textClass)}
+                    style={primaryTextStyle}
                   >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
+                    {page.smart_input_title || "Have a Reel or Promo Link?"}
+                  </span>
                 </div>
 
-                <p className="text-xs font-bold text-white leading-snug">
-                  {redirectResult.destination_title || redirectResult.rule_title || "Direct Access Link"}
-                </p>
+                <form onSubmit={handleResolveRedirect} className="flex flex-col gap-2">
+                  <div className="relative flex items-center">
+                    <input
+                      type="text"
+                      value={pasteInput}
+                      onChange={(e) => setPasteInput(e.target.value)}
+                      placeholder={page.smart_input_placeholder || "Paste link here..."}
+                      className={cn(
+                        "w-full px-3.5 py-2.5 pr-20 text-xs rounded focus:outline-none transition-all shadow-inner",
+                        theme.inputClass
+                      )}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleClipboardPaste}
+                      className={cn(
+                        "absolute right-2 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded transition-colors flex items-center gap-1 cursor-pointer",
+                        theme.isDark ? "bg-white/10 hover:bg-white/20 text-white" : "bg-slate-200 hover:bg-slate-300 text-slate-800"
+                      )}
+                      title="Paste"
+                    >
+                      <Copy className="w-3 h-3" />
+                      Paste
+                    </button>
+                  </div>
 
-                {redirectResult.destination_type === "url" && (
-                  <a
-                    href={redirectResult.destination_value}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full py-2 px-3 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs rounded flex items-center justify-center gap-1.5 transition-all"
+                  <button
+                    type="submit"
+                    disabled={isResolving || !pasteInput.trim()}
+                    className={cn(
+                      "w-full py-2.5 px-4 rounded text-xs font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md cursor-pointer",
+                      theme.buttonClass
+                    )}
                   >
-                    <span>Open Link</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
+                    {isResolving ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        <span>Resolving…</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>{page.smart_input_button_text || "Get Link"}</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </>
+                    )}
+                  </button>
+                </form>
+
+                {redirectError && (
+                  <div className="mt-3 p-2.5 rounded bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                    <span className="leading-snug">{redirectError}</span>
+                  </div>
                 )}
 
-                {redirectResult.destination_type === "file" && (
-                  <a
-                    href={redirectResult.destination_value}
-                    download
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full py-2 px-3 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs rounded flex items-center justify-center gap-1.5 transition-all"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    <span>Download File</span>
-                  </a>
-                )}
+                {redirectResult && (
+                  <div className="mt-3 p-3.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 space-y-2 animate-in fade-in zoom-in-95 duration-200">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] uppercase font-black tracking-widest text-emerald-400 flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Result
+                      </span>
+                      <button
+                        onClick={() => setRedirectResult(null)}
+                        className="text-emerald-400/60 hover:text-emerald-300 cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
 
-                {redirectResult.destination_type === "message" && (
-                  <div className="p-2.5 rounded bg-black/40 text-xs text-white leading-relaxed">
-                    {redirectResult.destination_value}
+                    <p className="text-xs font-bold text-white leading-snug">
+                      {redirectResult.destination_title || redirectResult.rule_title || "Direct Access Link"}
+                    </p>
+
+                    {redirectResult.destination_type === "url" && (
+                      <a
+                        href={redirectResult.destination_value}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full py-2 px-3 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs rounded flex items-center justify-center gap-1.5 transition-all"
+                      >
+                        <span>Open Link</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    )}
+
+                    {redirectResult.destination_type === "file" && (
+                      <a
+                        href={redirectResult.destination_value}
+                        download
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full py-2 px-3 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs rounded flex items-center justify-center gap-1.5 transition-all"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Download File</span>
+                      </a>
+                    )}
+
+                    {redirectResult.destination_type === "message" && (
+                      <div className="p-2.5 rounded bg-black/40 text-xs text-white leading-relaxed">
+                        {redirectResult.destination_value}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
-            )}
-          </div>
-        )}
+            );
+          }
 
-        {/* Content Blocks Stack */}
-        {blocks.length > 0 && (
-          <div className={cn("w-full", isPreviewMode ? "space-y-2" : "space-y-3")}>
-            {blocks.map((block) => {
-              const config = block.config || {};
-              const badge = typeof config.badge === "string" ? config.badge : "";
-              const animation = typeof config.highlight_animation === "string" ? config.highlight_animation : "";
-              const whatsappVal = typeof config.whatsapp === "string" ? config.whatsapp : "";
-              const emailVal = typeof config.email === "string" ? config.email : "";
-              const phoneVal = typeof config.phone === "string" ? config.phone : "";
-              const priceVal = typeof config.price === "string" ? config.price : "";
-              const fileSizeVal = typeof config.file_size === "string" ? config.file_size : "";
-
-              const animationClass =
-                animation === "pulse"
-                  ? "animate-pulse"
-                  : animation === "bounce"
-                  ? "animate-bounce"
-                  : animation === "shimmer"
-                  ? "relative overflow-hidden before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_2s_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/10 before:to-transparent"
-                  : "";
-
-              if (block.block_type === "header") {
-                return (
-                  <div key={block.id || block.title} className="pt-3 pb-1 text-center">
-                    <h3
-                      className={cn("text-sm sm:text-base font-black tracking-tight", !customTextColor && theme.textClass)}
-                      style={primaryTextStyle}
-                    >
-                      {block.title}
-                    </h3>
-                    {block.subtitle && (
-                      <p
-                        className={cn("text-xs mt-0.5", !customTextColor && theme.textMutedClass)}
-                        style={mutedTextStyle}
-                      >
-                        {block.subtitle}
-                      </p>
-                    )}
+          if (sectionKey === "blocks") {
+            if (page.blocks_enabled === false) {
+              if (!isPreviewMode) return null;
+              return (
+                <div
+                  key="blocks"
+                  ref={(el) => {
+                    sectionRefs.current["blocks"] = el;
+                  }}
+                  className={cn(
+                    "w-full py-2 px-3 rounded-xl text-center text-xs font-semibold border border-dashed border-zinc-700 text-zinc-400 bg-zinc-900/40 transition-all duration-300 relative",
+                    isPreviewMode && activeTab === "blocks" && "ring-2 ring-[#c4c0ff] shadow-[0_0_20px_rgba(196,192,255,0.4)] bg-[#c4c0ff]/10 text-white border-solid border-[#c4c0ff]/50"
+                  )}
+                >
+                  <div className="flex items-center justify-center gap-1.5 opacity-80">
+                    <EyeOff className="w-3.5 h-3.5" />
+                    <span>Content Blocks (Disabled)</span>
                   </div>
-                );
-              }
+                </div>
+              );
+            }
 
-              if (block.block_type === "video") {
-                const ytId = getYoutubeVideoId(block.url || block.media_url);
-                const directVideo = isDirectVideo(block.media_url || block.url);
+            if (blocks.length === 0) return null;
 
-                return (
-                  <div
-                    key={block.id || block.title}
-                    className={cn("w-full rounded overflow-hidden shadow-lg", theme.cardBorderClass)}
-                  >
-                    {ytId ? (
-                      <div className="relative aspect-video w-full bg-black">
-                        <iframe
-                          src={`https://www.youtube.com/embed/${ytId}`}
-                          title={block.title || "Video"}
-                          className="w-full h-full"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                        />
+            return (
+              <div
+                key="blocks"
+                ref={(el) => {
+                  sectionRefs.current["blocks"] = el;
+                }}
+                className={cn(
+                  "w-full p-2 rounded-xl transition-all duration-300 relative",
+                  isPreviewMode ? "space-y-2" : "space-y-3",
+                  isPreviewMode && activeTab === "blocks" && "ring-2 ring-[#c4c0ff] shadow-[0_0_20px_rgba(196,192,255,0.4)] bg-[#c4c0ff]/10"
+                )}
+              >
+                {blocks.map((block) => {
+                  const config = block.config || {};
+                  const badge = typeof config.badge === "string" ? config.badge : "";
+                  const animation = typeof config.highlight_animation === "string" ? config.highlight_animation : "";
+                  const whatsappVal = typeof config.whatsapp === "string" ? config.whatsapp : "";
+                  const emailVal = typeof config.email === "string" ? config.email : "";
+                  const phoneVal = typeof config.phone === "string" ? config.phone : "";
+                  const priceVal = typeof config.price === "string" ? config.price : "";
+                  const fileSizeVal = typeof config.file_size === "string" ? config.file_size : "";
+
+                  const animationClass =
+                    animation === "pulse"
+                      ? "animate-pulse"
+                      : animation === "bounce"
+                        ? "animate-bounce"
+                        : animation === "shimmer"
+                          ? "relative overflow-hidden before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_2s_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/10 before:to-transparent"
+                          : "";
+
+                  if (block.block_type === "header") {
+                    return (
+                      <div key={block.id || block.title} className="pt-3 pb-1 text-center">
+                        <h3
+                          className={cn("text-sm sm:text-base font-black tracking-tight", !customTextColor && theme.textClass)}
+                          style={primaryTextStyle}
+                        >
+                          {block.title}
+                        </h3>
+                        {block.subtitle && (
+                          <p
+                            className={cn("text-xs mt-0.5", !customTextColor && theme.textMutedClass)}
+                            style={mutedTextStyle}
+                          >
+                            {block.subtitle}
+                          </p>
+                        )}
                       </div>
-                    ) : directVideo ? (
-                      <div className="relative aspect-video w-full bg-black">
-                        <video
-                          src={block.media_url || block.url}
-                          controls
-                          playsInline
-                          className="w-full h-full object-cover"
-                        />
+                    );
+                  }
+
+                  if (block.block_type === "video") {
+                    const ytId = getYoutubeVideoId(block.url || block.media_url);
+                    const directVideo = isDirectVideo(block.media_url || block.url);
+
+                    return (
+                      <div
+                        key={block.id || block.title}
+                        className={cn("w-full rounded overflow-hidden shadow-lg", theme.cardBorderClass)}
+                      >
+                        {ytId ? (
+                          <div className="relative aspect-video w-full bg-black">
+                            <iframe
+                              src={`https://www.youtube.com/embed/${ytId}`}
+                              title={block.title || "Video"}
+                              className="w-full h-full"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                            />
+                          </div>
+                        ) : directVideo ? (
+                          <div className="relative aspect-video w-full bg-black">
+                            <video
+                              src={block.media_url || block.url}
+                              controls
+                              playsInline
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <a
+                            href={block.url || block.media_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => trackClick("block_click", block.id)}
+                            className={cn("flex items-center gap-3 p-4", theme.cardClass)}
+                            style={primaryTextStyle}
+                          >
+                            <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white shrink-0">
+                              <Play className="w-4 h-4 fill-current ml-0.5" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4
+                                className={cn("text-xs font-bold truncate", !customTextColor && theme.textClass)}
+                                style={primaryTextStyle}
+                              >
+                                {block.title || "Watch Video"}
+                              </h4>
+                              <p
+                                className={cn("text-[10px] truncate", !customTextColor && theme.textMutedClass)}
+                                style={mutedTextStyle}
+                              >
+                                {block.subtitle || block.url}
+                              </p>
+                            </div>
+                            <ExternalLink className="w-4 h-4 shrink-0 opacity-60" />
+                          </a>
+                        )}
+                        {block.title && ytId && (
+                          <div
+                            className={cn("p-2.5 text-xs font-bold text-center", theme.cardClass)}
+                            style={primaryTextStyle}
+                          >
+                            {block.title}
+                          </div>
+                        )}
                       </div>
-                    ) : (
+                    );
+                  }
+
+                  if (block.block_type === "image") {
+                    const Component = block.url ? "a" : "div";
+                    return (
+                      <Component
+                        key={block.id || block.title}
+                        href={block.url || undefined}
+                        target={block.url ? "_blank" : undefined}
+                        rel="noopener noreferrer"
+                        onClick={() => block.url && trackClick("block_click", block.id)}
+                        className={cn(
+                          "group block w-full rounded overflow-hidden shadow-md transition-transform hover:scale-[1.01]",
+                          theme.cardBorderClass,
+                          block.url ? "cursor-pointer" : ""
+                        )}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={block.media_url || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"}
+                          alt={block.title || "Banner"}
+                          className="w-full h-44 object-cover"
+                        />
+                        {block.title && (
+                          <div className={cn("p-3 flex items-center justify-between", theme.cardClass)}>
+                            <div>
+                              <p
+                                className={cn("text-xs font-bold", !customTextColor && theme.textClass)}
+                                style={primaryTextStyle}
+                              >
+                                {block.title}
+                              </p>
+                              {block.subtitle && (
+                                <p
+                                  className={cn("text-[10px]", !customTextColor && theme.textMutedClass)}
+                                  style={mutedTextStyle}
+                                >
+                                  {block.subtitle}
+                                </p>
+                              )}
+                            </div>
+                            {block.url && <ExternalLink className="w-3.5 h-3.5 opacity-60" />}
+                          </div>
+                        )}
+                      </Component>
+                    );
+                  }
+
+                  if (block.block_type === "file_download") {
+                    return (
                       <a
+                        key={block.id || block.title}
                         href={block.url || block.media_url}
+                        download
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={() => trackClick("block_click", block.id)}
-                        className={cn("flex items-center gap-3 p-4", theme.cardClass)}
-                        style={primaryTextStyle}
+                        className={cn(
+                          "flex items-center gap-3.5 p-3.5 rounded transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]",
+                          theme.cardClass,
+                          theme.cardBorderClass,
+                          animationClass
+                        )}
                       >
-                        <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white shrink-0">
-                          <Play className="w-4 h-4 fill-current ml-0.5" />
+                        <div className="w-10 h-10 rounded bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
+                          <Download className="w-5 h-5" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <h4
-                            className={cn("text-xs font-bold truncate", !customTextColor && theme.textClass)}
+                            className={cn("text-xs sm:text-sm font-bold truncate", !customTextColor && theme.textClass)}
                             style={primaryTextStyle}
                           >
-                            {block.title || "Watch Video"}
+                            {block.title || "Download File"}
                           </h4>
                           <p
                             className={cn("text-[10px] truncate", !customTextColor && theme.textMutedClass)}
                             style={mutedTextStyle}
                           >
-                            {block.subtitle || block.url}
+                            {block.subtitle || fileSizeVal || "File"}
                           </p>
                         </div>
-                        <ExternalLink className="w-4 h-4 shrink-0 opacity-60" />
+                        <span className="text-[10px] font-bold px-2.5 py-1 rounded bg-white/10 text-white shrink-0">
+                          GET
+                        </span>
                       </a>
-                    )}
-                    {block.title && ytId && (
-                      <div
-                        className={cn("p-2.5 text-xs font-bold text-center", theme.cardClass)}
-                        style={primaryTextStyle}
-                      >
-                        {block.title}
-                      </div>
-                    )}
-                  </div>
-                );
-              }
+                    );
+                  }
 
-              if (block.block_type === "image") {
-                const Component = block.url ? "a" : "div";
-                return (
-                  <Component
-                    key={block.id || block.title}
-                    href={block.url || undefined}
-                    target={block.url ? "_blank" : undefined}
-                    rel="noopener noreferrer"
-                    onClick={() => block.url && trackClick("block_click", block.id)}
-                    className={cn(
-                      "group block w-full rounded overflow-hidden shadow-md transition-transform hover:scale-[1.01]",
-                      theme.cardBorderClass,
-                      block.url ? "cursor-pointer" : ""
-                    )}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={block.media_url || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"}
-                      alt={block.title || "Banner"}
-                      className="w-full h-44 object-cover"
-                    />
-                    {block.title && (
-                      <div className={cn("p-3 flex items-center justify-between", theme.cardClass)}>
+                  if (block.block_type === "contact_card") {
+                    return (
+                      <div
+                        key={block.id || block.title}
+                        className={cn("p-4 rounded space-y-3", theme.cardClass, theme.cardBorderClass)}
+                      >
                         <div>
-                          <p
-                            className={cn("text-xs font-bold", !customTextColor && theme.textClass)}
+                          <h4
+                            className={cn("text-xs sm:text-sm font-bold", !customTextColor && theme.textClass)}
                             style={primaryTextStyle}
                           >
-                            {block.title}
-                          </p>
+                            {block.title || "Get In Touch"}
+                          </h4>
                           {block.subtitle && (
                             <p
                               className={cn("text-[10px]", !customTextColor && theme.textMutedClass)}
@@ -902,297 +1135,193 @@ export default function LinkInBioPublicView({
                             </p>
                           )}
                         </div>
-                        {block.url && <ExternalLink className="w-3.5 h-3.5 opacity-60" />}
+                        <div className="grid grid-cols-2 gap-2">
+                          {whatsappVal && (
+                            <a
+                              href={`https://wa.me/${whatsappVal.replace(/\D/g, "")}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={() => trackClick("block_click", block.id)}
+                              className="py-2 px-3 rounded bg-emerald-600/10 border border-emerald-500/30 text-emerald-400 font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-emerald-600/20 transition-all"
+                            >
+                              <MessageCircle className="w-3.5 h-3.5" />
+                              <span>WhatsApp</span>
+                            </a>
+                          )}
+                          {emailVal && (
+                            <a
+                              href={`mailto:${emailVal}`}
+                              onClick={() => trackClick("block_click", block.id)}
+                              className="py-2 px-3 rounded bg-white/5 border border-white/10 text-white font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-white/10 transition-all"
+                            >
+                              <Mail className="w-3.5 h-3.5" />
+                              <span>Email</span>
+                            </a>
+                          )}
+                          {phoneVal && (
+                            <a
+                              href={`tel:${phoneVal}`}
+                              onClick={() => trackClick("block_click", block.id)}
+                              className="py-2 px-3 rounded bg-white/5 border border-white/10 text-white font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-white/10 transition-all"
+                            >
+                              <Phone className="w-3.5 h-3.5" />
+                              <span>Call</span>
+                            </a>
+                          )}
+                        </div>
                       </div>
-                    )}
-                  </Component>
-                );
-              }
+                    );
+                  }
 
-              if (block.block_type === "file_download") {
-                return (
-                  <a
-                    key={block.id || block.title}
-                    href={block.url || block.media_url}
-                    download
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => trackClick("block_click", block.id)}
-                    className={cn(
-                      "flex items-center gap-3.5 p-3.5 rounded transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]",
-                      theme.cardClass,
-                      theme.cardBorderClass,
-                      animationClass
-                    )}
-                  >
-                    <div className="w-10 h-10 rounded bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
-                      <Download className="w-5 h-5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4
-                        className={cn("text-xs sm:text-sm font-bold truncate", !customTextColor && theme.textClass)}
-                        style={primaryTextStyle}
+                  if (block.block_type === "product_card") {
+                    return (
+                      <a
+                        key={block.id || block.title}
+                        href={block.url || `/${page.username}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => trackClick("block_click", block.id)}
+                        className={cn(
+                          "flex items-center gap-3 p-3 rounded transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]",
+                          theme.cardClass,
+                          theme.cardBorderClass
+                        )}
                       >
-                        {block.title || "Download File"}
-                      </h4>
-                      <p
-                        className={cn("text-[10px] truncate", !customTextColor && theme.textMutedClass)}
-                        style={mutedTextStyle}
-                      >
-                        {block.subtitle || fileSizeVal || "File"}
-                      </p>
-                    </div>
-                    <span className="text-[10px] font-bold px-2.5 py-1 rounded bg-white/10 text-white shrink-0">
-                      GET
-                    </span>
-                  </a>
-                );
-              }
-
-              if (block.block_type === "contact_card") {
-                return (
-                  <div
-                    key={block.id || block.title}
-                    className={cn("p-4 rounded space-y-3", theme.cardClass, theme.cardBorderClass)}
-                  >
-                    <div>
-                      <h4
-                        className={cn("text-xs sm:text-sm font-bold", !customTextColor && theme.textClass)}
-                        style={primaryTextStyle}
-                      >
-                        {block.title || "Get In Touch"}
-                      </h4>
-                      {block.subtitle && (
-                        <p
-                          className={cn("text-[10px]", !customTextColor && theme.textMutedClass)}
-                          style={mutedTextStyle}
-                        >
-                          {block.subtitle}
-                        </p>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {whatsappVal && (
-                        <a
-                          href={`https://wa.me/${whatsappVal.replace(/\D/g, "")}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={() => trackClick("block_click", block.id)}
-                          className="py-2 px-3 rounded bg-emerald-600/10 border border-emerald-500/30 text-emerald-400 font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-emerald-600/20 transition-all"
-                        >
-                          <MessageCircle className="w-3.5 h-3.5" />
-                          <span>WhatsApp</span>
-                        </a>
-                      )}
-                      {emailVal && (
-                        <a
-                          href={`mailto:${emailVal}`}
-                          onClick={() => trackClick("block_click", block.id)}
-                          className="py-2 px-3 rounded bg-white/5 border border-white/10 text-white font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-white/10 transition-all"
-                        >
-                          <Mail className="w-3.5 h-3.5" />
-                          <span>Email</span>
-                        </a>
-                      )}
-                      {phoneVal && (
-                        <a
-                          href={`tel:${phoneVal}`}
-                          onClick={() => trackClick("block_click", block.id)}
-                          className="py-2 px-3 rounded bg-white/5 border border-white/10 text-white font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-white/10 transition-all"
-                        >
-                          <Phone className="w-3.5 h-3.5" />
-                          <span>Call</span>
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                );
-              }
-
-              if (block.block_type === "product_card") {
-                return (
-                  <a
-                    key={block.id || block.title}
-                    href={block.url || `/${page.username}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => trackClick("block_click", block.id)}
-                    className={cn(
-                      "flex items-center gap-3 p-3 rounded transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]",
-                      theme.cardClass,
-                      theme.cardBorderClass
-                    )}
-                  >
-                    <div className="w-14 h-14 rounded overflow-hidden bg-zinc-900 shrink-0">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={block.media_url || "https://images.unsplash.com/photo-1523275335684-37898b6baf30"}
-                        alt={block.title}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4
-                        className={cn("text-xs sm:text-sm font-bold truncate", !customTextColor && theme.textClass)}
-                        style={primaryTextStyle}
-                      >
-                        {block.title || "Product"}
-                      </h4>
-                      <p
-                        className={cn("text-[10px] line-clamp-1", !customTextColor && theme.textMutedClass)}
-                        style={mutedTextStyle}
-                      >
-                        {block.subtitle}
-                      </p>
-                      {priceVal && (
-                        <span className="text-xs font-black" style={{ color: theme.accentColor }}>
-                          {priceVal}
+                        <div className="w-14 h-14 rounded overflow-hidden bg-zinc-900 shrink-0">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={block.media_url || "https://images.unsplash.com/photo-1523275335684-37898b6baf30"}
+                            alt={block.title}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4
+                            className={cn("text-xs sm:text-sm font-bold truncate", !customTextColor && theme.textClass)}
+                            style={primaryTextStyle}
+                          >
+                            {block.title || "Product"}
+                          </h4>
+                          <p
+                            className={cn("text-[10px] line-clamp-1", !customTextColor && theme.textMutedClass)}
+                            style={mutedTextStyle}
+                          >
+                            {block.subtitle}
+                          </p>
+                          {priceVal && (
+                            <span className="text-xs font-black" style={{ color: theme.accentColor }}>
+                              {priceVal}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[10px] font-bold px-2.5 py-1.5 rounded bg-white text-black shrink-0 flex items-center gap-1">
+                          <ShoppingBag className="w-3 h-3" /> Buy
                         </span>
-                      )}
-                    </div>
-                    <span className="text-[10px] font-bold px-2.5 py-1.5 rounded bg-white text-black shrink-0 flex items-center gap-1">
-                      <ShoppingBag className="w-3 h-3" /> Buy
-                    </span>
-                  </a>
-                );
-              }
+                      </a>
+                    );
+                  }
 
-              if (block.block_type === "custom_button") {
-                return (
-                  <a
-                    key={block.id || block.title}
-                    href={block.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => trackClick("block_click", block.id)}
-                    className={cn(
-                      "w-full py-3.5 px-5 rounded text-xs sm:text-sm font-black flex items-center justify-center gap-2 transition-all hover:brightness-110 active:scale-[0.98] shadow-lg cursor-pointer",
-                      theme.buttonClass,
-                      animationClass
-                    )}
-                  >
-                    <span>{block.title || "Click Here"}</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </a>
-                );
-              }
-
-              return (
-                <a
-                  key={block.id || block.title}
-                  href={block.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => trackClick("block_click", block.id)}
-                  className={cn(
-                    "group relative flex items-center gap-3.5 p-3.5 rounded transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] select-none",
-                    theme.cardClass,
-                    theme.cardBorderClass,
-                    animationClass
-                  )}
-                >
-                  {block.media_url ? (
-                    <div className="w-10 h-10 rounded overflow-hidden bg-zinc-900 shrink-0">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={block.media_url} alt="" className="w-full h-full object-cover" />
-                    </div>
-                  ) : (
-                    <div className="w-10 h-10 rounded bg-white/5 flex items-center justify-center shrink-0">
-                      <Globe className="w-4.5 h-4.5 opacity-70 group-hover:opacity-100 transition-opacity" />
-                    </div>
-                  )}
-
-                  <div className="flex-1 min-w-0 pr-2">
-                    <div className="flex items-center gap-2">
-                      <h4
-                        className={cn("text-xs sm:text-sm font-bold truncate leading-snug", !customTextColor && theme.textClass)}
-                        style={primaryTextStyle}
+                  if (block.block_type === "custom_button") {
+                    return (
+                      <a
+                        key={block.id || block.title}
+                        href={block.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => trackClick("block_click", block.id)}
+                        className={cn(
+                          "w-full py-3.5 px-5 rounded text-xs sm:text-sm font-black flex items-center justify-center gap-2 transition-all hover:brightness-110 active:scale-[0.98] shadow-lg cursor-pointer",
+                          theme.buttonClass,
+                          animationClass
+                        )}
                       >
-                        {block.title}
-                      </h4>
-                      {badge && (
-                        <span
-                          className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider shrink-0"
-                          style={{ backgroundColor: `${theme.accentColor}25`, color: theme.accentColor }}
-                        >
-                          {badge}
-                        </span>
+                        <span>{block.title || "Click Here"}</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </a>
+                    );
+                  }
+
+                  return (
+                    <a
+                      key={block.id || block.title}
+                      href={block.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => trackClick("block_click", block.id)}
+                      className={cn(
+                        "group relative flex items-center gap-3.5 p-3.5 rounded transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] select-none",
+                        theme.cardClass,
+                        theme.cardBorderClass,
+                        animationClass
                       )}
-                    </div>
-                    {block.subtitle && (
-                      <p
-                        className={cn("text-[10px] sm:text-[11px] truncate leading-normal mt-0.5", !customTextColor && theme.textMutedClass)}
-                        style={mutedTextStyle}
-                      >
-                        {block.subtitle}
-                      </p>
-                    )}
-                  </div>
+                    >
+                      {block.media_url ? (
+                        <div className="w-10 h-10 rounded overflow-hidden bg-zinc-900 shrink-0">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={block.media_url} alt="" className="w-full h-full object-cover" />
+                        </div>
+                      ) : (
+                        <div className="w-10 h-10 rounded bg-white/5 flex items-center justify-center shrink-0">
+                          <Globe className="w-4.5 h-4.5 opacity-70 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                      )}
 
-                  <ExternalLink className="w-4 h-4 shrink-0 opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
-                </a>
-              );
-            })}
-          </div>
-        )}
+                      <div className="flex-1 min-w-0 pr-2">
+                        <div className="flex items-center gap-2">
+                          <h4
+                            className={cn("text-xs sm:text-sm font-bold truncate leading-snug", !customTextColor && theme.textClass)}
+                            style={primaryTextStyle}
+                          >
+                            {block.title}
+                          </h4>
+                          {badge && (
+                            <span
+                              className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider shrink-0"
+                              style={{ backgroundColor: `${theme.accentColor}25`, color: theme.accentColor }}
+                            >
+                              {badge}
+                            </span>
+                          )}
+                        </div>
+                        {block.subtitle && (
+                          <p
+                            className={cn("text-[10px] sm:text-[11px] truncate leading-normal mt-0.5", !customTextColor && theme.textMutedClass)}
+                            style={mutedTextStyle}
+                          >
+                            {block.subtitle}
+                          </p>
+                        )}
+                      </div>
 
-        {/* Social Icons (Bottom) */}
-        {socialAccounts.length > 0 && page.social_display_mode === "icons_bottom" && (
-          <div className={cn(
-            "flex flex-wrap items-center justify-center gap-2 pt-4 w-full",
-            page.show_social_usernames ? "max-w-sm" : "max-w-xs"
-          )}>
-            {socialAccounts.map((social) => {
-              const iconKey = social.icon || social.platform;
-              const rawHandle = social.label || (social.url ? social.url.replace(/^https?:\/\/(www\.)?(instagram\.com\/|youtube\.com\/@?|tiktok\.com\/@?|x\.com\/|twitter\.com\/|t\.me\/)?/, '').replace(/\/$/, '') : '');
-              const displayHandle = rawHandle ? (rawHandle.startsWith('@') || rawHandle.includes('.') || !social.platform || social.platform === 'custom' ? rawHandle : `@${rawHandle}`) : (social.label || social.platform);
+                      <ExternalLink className="w-4 h-4 shrink-0 opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
+                    </a>
+                  );
+                })}
+              </div>
+            );
+          }
 
-              if (page.show_social_usernames) {
-                return (
-                  <a
-                    key={social.id || social.platform || social.url}
-                    href={social.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => trackClick("social_click")}
-                    className={cn(
-                      "px-3 py-1.5 rounded-full flex items-center gap-2 text-xs font-semibold backdrop-blur-md transition-all duration-200 hover:scale-[1.02] shadow-sm",
-                      theme.cardClass,
-                      theme.cardBorderClass
-                    )}
-                    style={primaryTextStyle}
-                    title={social.label || social.platform}
-                  >
-                    <div className="w-5 h-5 rounded-full flex items-center justify-center bg-white/10 shrink-0">
-                      <SocialIcon platformOrIcon={iconKey} className="w-3.5 h-3.5" />
-                    </div>
-                    <span className="truncate max-w-[120px]">{displayHandle}</span>
-                  </a>
-                );
-              }
+          return null;
+        })}
 
-              return (
-                <a
-                  key={social.id || social.platform || social.url}
-                  href={social.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => trackClick("social_click")}
-                  aria-label={social.label || social.platform}
-                  className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 shadow-sm",
-                    theme.cardClass,
-                    theme.cardBorderClass
-                  )}
-                  style={primaryTextStyle}
-                  title={social.label || social.platform}
-                >
-                  <SocialIcon platformOrIcon={iconKey} className="w-4.5 h-4.5" />
-                </a>
-              );
-            })}
-          </div>
-        )}
+
+
+        {/* AnyDM Footer Branding Badge */}
+        <div className={cn("flex flex-col items-center justify-center text-center opacity-85 hover:opacity-100 transition-opacity", isPreviewMode ? "pt-3 pb-1" : "pt-6 pb-4")}>
+          <a
+            href="https://anydm.in"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-[11px] font-semibold text-zinc-300 transition-all select-none group"
+            style={mutedTextStyle}
+          >
+            <span className="text-zinc-400 group-hover:text-white transition-colors">Powered by</span>
+            <span className="font-bold text-white tracking-tight flex items-center gap-1">
+              AnyDM
+              <span className="w-1.5 h-1.5 rounded-full bg-[#c4c0ff] animate-pulse" />
+            </span>
+          </a>
+        </div>
       </div>
     </div>
   );

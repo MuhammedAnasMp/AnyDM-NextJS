@@ -23,6 +23,7 @@ function DashboardLayoutContent({
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
 
   const appUser = useSelector((state: RootState) => state.auth.user);
+  const isHydrating = useSelector((state: RootState) => state.auth.isHydrating);
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -97,6 +98,17 @@ function DashboardLayoutContent({
       window.removeEventListener('toggle-welcome-panel', handleToggle);
     };
   }, []);
+
+  if (isHydrating) {
+    return (
+      <div className="min-h-screen bg-[#131313] text-[#e5e2e1] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 rounded-full border-4 border-white/20 border-t-white animate-spin"></div>
+          <p className="text-xs text-white/50 font-medium">Restoring session...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={cn("bg-[#131313] text-[#e5e2e1] relative", isFullBleed ? "h-screen overflow-hidden" : "min-h-screen")}>

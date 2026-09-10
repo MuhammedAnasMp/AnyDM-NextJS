@@ -151,14 +151,7 @@ export default function CreatorDashboardPage() {
       {/* Section Header */}
       <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[#20201f]">
         <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-semibold tracking-wider text-[#c4c0ff] px-2.5 py-0.5 rounded bg-[#c4c0ff]/10 border border-[#c4c0ff]/20">
-              Partner Portal
-            </span>
-            <span className="text-xs font-mono font-medium text-[#8e9192]">
-              ID: {referralCode || "Creator"}
-            </span>
-          </div>
+
           <h1 className="text-xl md:text-2xl font-bold tracking-tight text-[#e5e2e1]">
             Creator Partner Hub
           </h1>
@@ -341,11 +334,10 @@ export default function CreatorDashboardPage() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <span
-                        className={`inline-flex px-2 py-0.5 rounded text-[10px] font-medium border ${
-                          c.status === "paid"
-                            ? "bg-[#c4c0ff]/10 text-[#c4c0ff] border-[#c4c0ff]/30"
-                            : "bg-white/5 text-[#c4c7c8] border-white/10"
-                        }`}
+                        className={`inline-flex px-2 py-0.5 rounded text-[10px] font-medium border ${c.status === "paid"
+                          ? "bg-[#c4c0ff]/10 text-[#c4c0ff] border-[#c4c0ff]/30"
+                          : "bg-white/5 text-[#c4c7c8] border-white/10"
+                          }`}
                       >
                         {c.status === "paid" ? "Settled" : "Pending"}
                       </span>
