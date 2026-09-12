@@ -10,7 +10,13 @@ export function isTenantDomain(): boolean {
 
   const isMainApp =
     host === `app.${rootHost}` ||
+    host === `api.${rootHost}` ||
     host === rootHost ||
+    host === "anydm.in" ||
+    host === "www.anydm.in" ||
+    host === "zoyee.in" ||
+    host === "www.zoyee.in" ||
+    host === "locanydm.online" ||
     host === "localhost" ||
     host === "127.0.0.1" ||
     host.endsWith(".vercel.app");
