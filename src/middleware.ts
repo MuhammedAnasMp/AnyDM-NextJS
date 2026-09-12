@@ -41,6 +41,10 @@ export function middleware(request: NextRequest) {
     currentHost === `app.${rootHost}` ||
     currentHost === `api.${rootHost}` ||
     currentHost === rootHost ||
+    currentHost === 'anydm.in' ||
+    currentHost === 'www.anydm.in' ||
+    currentHost === 'zoyee.in' ||
+    currentHost === 'www.zoyee.in' ||
     currentHost === 'localhost' ||
     currentHost === '127.0.0.1' ||
     currentHost.endsWith('.vercel.app');
