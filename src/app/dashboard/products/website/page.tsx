@@ -251,6 +251,9 @@ export default function WebsiteSettingsPage() {
   const [toastType, setToastType] = useState<"success" | "error" | "info">("success");
 
   const [customDomain, setCustomDomain] = useState("");
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [cfSyncing, setCfSyncing] = useState(false);
+  const [cfStatus, setCfStatus] = useState<{ status: string; message: string } | null>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const slugInputRef = useRef<HTMLInputElement>(null);
@@ -259,6 +262,40 @@ export default function WebsiteSettingsPage() {
   const [isEditingCustomDomain, setIsEditingCustomDomain] = useState(false);
   const [bannerUploading, setBannerUploading] = useState(false);
   const [bannerUploadProgress, setBannerUploadProgress] = useState(0);
+
+  const copyToClipboard = (text: string, field: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  const handleSyncCloudflare = async () => {
+    if (!customDomain) {
+      showToast("Please enter a custom domain first.", "error");
+      return;
+    }
+    setCfSyncing(true);
+    setCfStatus(null);
+    try {
+      const res = await api.post("/accounts/website-settings/sync-cloudflare/");
+      if (res.data?.cloudflare) {
+        const cf = res.data.cloudflare;
+        if (cf.status === "success") {
+          setCfStatus({ status: "success", message: cf.message || "Custom domain registered in Cloudflare!" });
+          showToast("Cloudflare SSL provisioning initiated!", "success");
+        } else {
+          setCfStatus({ status: "info", message: cf.message || "Domain saved. Configure DNS records below." });
+          showToast(cf.message || "Domain saved. Configure DNS below.", "info");
+        }
+      } else {
+        setCfStatus({ status: "info", message: "Domain saved. Configure DNS CNAME record as shown below." });
+      }
+    } catch (err: any) {
+      setCfStatus({ status: "error", message: err.response?.data?.error || "Cloudflare sync failed." });
+    } finally {
+      setCfSyncing(false);
+    }
+  };
 
   const showToast = (message: string, type: "success" | "error" | "info" = "success") => {
     setToastMessage(message);
@@ -376,6 +413,9 @@ export default function WebsiteSettingsPage() {
     if (isEditingCustomDomain) {
       setIsEditingCustomDomain(false);
       await handleSaveSettings({ custom_domain: customDomain });
+      if (customDomain) {
+        await handleSyncCloudflare();
+      }
     } else {
       setIsEditingCustomDomain(true);
       setTimeout(() => customDomainInputRef.current?.focus(), 50);
@@ -450,6 +490,10 @@ export default function WebsiteSettingsPage() {
   const previewStyles: TemplateStyle = getTemplateStyles(templateId, themeId);
   const previewStoreName = storeName || activeAccount?.full_name || "My Store";
 
+  const sections = ['Branding', 'Settings', 'Template', 'Theme']
+  const [activeSections, setActiveSection] = useState('Branding')
+
+
   return (
     <div className="w-full space-y-6 pb-16" style={{ color: t.onSurface }}>
       <Toast message={toastMessage} isVisible={toastVisible} type={toastType} onClose={() => setToastVisible(false)} />
@@ -492,8 +536,28 @@ export default function WebsiteSettingsPage() {
           {/* Left column — settings */}
           <div className="col-span-12 lg:col-span-7 space-y-5">
 
+            <div className="w-fit flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 bg-[#151515] p-1 rounded border border-[#20201f]">
+              {sections.map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setActiveSection(cat)}
+                  className={cn(
+                    "px-2 py-0.5 rounded text-[10px] font-semibold whitespace-nowrap transition-colors cursor-pointer select-none",
+                    activeSections === cat
+                      ? "bg-white text-black font-bold"
+                      : "bg-[#1c1b1b] text-zinc-400 hover:text-white"
+                  )}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+
+
+
             {/* Branding */}
-            <section className="rounded-lg p-4 md:p-5" style={{ backgroundColor: t.surfaceContainer }}>
+            {activeSections === 'Branding' && <section className="rounded-lg p-4 md:p-5" style={{ backgroundColor: t.surfaceContainer }}>
               <SectionHeading icon={Sparkles} label="Supplier branding" />
               <div className="space-y-5">
                 <Field label="Store name">
@@ -551,7 +615,7 @@ export default function WebsiteSettingsPage() {
                           !isEditingSlug && "cursor-not-allowed opacity-70"
                         )}
                         style={{ color: t.onSurface }}
-                        placeholder="my_muscles_factory"
+                        placeholder="youre_store_name"
                       />
 
                       <button
@@ -645,7 +709,7 @@ export default function WebsiteSettingsPage() {
                             !isEditingCustomDomain && "cursor-not-allowed opacity-70"
                           )}
                           style={{ color: t.onSurface }}
-                          placeholder="my-muscles-factory.in"
+                          placeholder="your-domain.com"
                         />
 
                         <button
@@ -674,71 +738,200 @@ export default function WebsiteSettingsPage() {
                       </div>
                     </div>
 
-                  {/* DNS instruction */}
-                  <div
-                    className="px-3 py-3"
-                    style={{
-                      backgroundColor: t.surfaceContainerHigh,
-                      borderTop: `1px solid ${t.outlineVariant}`,
-                    }}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <p
-                          className="text-xs font-medium mb-1"
-                          style={{ color: t.onSurfaceVariant }}
-                        >
-                          DNS setup
-                        </p>
-
-                        <p
-                          className="text-xs"
-                          style={{ color: t.outline }}
-                        >
-                          Add a <span className="font-semibold">CNAME</span> record
-                          pointing to:
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* CNAME copy field */}
+                    {/* DNS instruction */}
                     <div
-                      className="mt-2 flex items-center gap-2 rounded-md px-2.5 py-2"
+                      className="px-3.5 py-4"
                       style={{
-                        backgroundColor: t.surfaceContainerLowest,
-                        border: `1px solid ${t.outlineVariant}`,
+                        backgroundColor: t.surfaceContainerHigh,
+                        borderTop: `1px solid ${t.outlineVariant}`,
                       }}
                     >
-                      <code
-                        className="flex-1 min-w-0 truncate text-xs font-mono"
-                        style={{ color: t.onSurface }}
-                      >
-                        cname.{baseRootDomain}
-                      </code>
+                      <div className="flex items-center justify-between gap-3 mb-3">
+                        <div>
+                          <p
+                            className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5"
+                            style={{ color: t.onSurface }}
+                          >
+                            <Globe className="w-3.5 h-3.5" style={{ color: t.accentCyan }} />
+                            DNS Setup Instructions
+                          </p>
+                          <p
+                            className="text-[11px] mt-0.5"
+                            style={{ color: t.outline }}
+                          >
+                            Add this record in your domain manager (Cloudflare, GoDaddy, Namecheap, etc.):
+                          </p>
+                        </div>
 
-                      <button
-                        type="button"
-                        onClick={() =>
-                          navigator.clipboard.writeText(`cname.${baseRootDomain}`)
-                        }
-                        title="Copy CNAME"
-                        className="shrink-0 flex items-center gap-1.5 px-2 py-1 rounded hover:bg-white/10 transition-colors cursor-pointer"
-                        style={{ color: t.accentCyan }}
+                        {customDomain && (
+                          <button
+                            type="button"
+                            disabled={cfSyncing}
+                            onClick={handleSyncCloudflare}
+                            className="px-2.5 py-1.5 rounded-md text-[11px] font-medium flex items-center gap-1.5 transition-all hover:opacity-90 cursor-pointer shadow-sm"
+                            style={{
+                              backgroundColor: t.accentCyan,
+                              color: "#000",
+                            }}
+                          >
+                            {cfSyncing ? (
+                              <RefreshCw className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <Sparkles className="w-3 h-3" />
+                            )}
+                            {cfSyncing ? "Provisioning..." : "Provision SSL"}
+                          </button>
+                        )}
+                      </div>
+
+                      {/* DNS Table */}
+                      <div
+                        className="rounded-lg overflow-hidden border text-xs font-mono"
+                        style={{
+                          backgroundColor: t.surfaceContainerLowest,
+                          borderColor: t.outlineVariant,
+                        }}
                       >
-                        <Copy className="w-3.5 h-3.5" />
-                        <span className="text-[11px] font-medium">Copy</span>
-                      </button>
+                        <div
+                          className="grid grid-cols-12 px-3 py-2 text-[11px] font-sans font-semibold border-b uppercase tracking-wider select-none"
+                          style={{
+                            backgroundColor: t.surfaceContainer,
+                            borderColor: t.outlineVariant,
+                            color: t.outline,
+                          }}
+                        >
+                          <div className="col-span-2">Type</div>
+                          <div className="col-span-3">Name</div>
+                          <div className="col-span-5">Target</div>
+                          <div className="col-span-2 text-right">Proxy</div>
+                        </div>
+
+                        <div className="grid grid-cols-12 px-3 py-2.5 items-center gap-1">
+                          {/* Type */}
+                          <div className="col-span-2 flex items-center">
+                            <span
+                              className="px-2 py-0.5 rounded text-[11px] font-bold tracking-wide"
+                              style={{
+                                backgroundColor: `${t.accentCyan}20`,
+                                color: t.accentCyan,
+                                border: `1px solid ${t.accentCyan}40`,
+                              }}
+                            >
+                              CNAME
+                            </span>
+                          </div>
+
+                          {/* Name */}
+                          <div className="col-span-3 flex items-center gap-1.5 min-w-0 pr-1">
+                            <span
+                              className="truncate font-semibold"
+                              style={{ color: t.onSurface }}
+                            >
+                              {(() => {
+                                if (!customDomain) return "@";
+                                const cleaned = customDomain.replace(/^https?:\/\//, "").replace(/\/$/, "");
+                                const parts = cleaned.split(".");
+                                return parts.length > 2 ? parts[0] : "@";
+                              })()}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const cleaned = (customDomain || "").replace(/^https?:\/\//, "").replace(/\/$/, "");
+                                const parts = cleaned ? cleaned.split(".") : [];
+                                const nameVal = parts.length > 2 ? parts[0] : "@";
+                                copyToClipboard(nameVal, "name");
+                              }}
+                              className="p-1 rounded hover:bg-white/10 transition-colors shrink-0 cursor-pointer"
+                              title="Copy Name"
+                              style={{ color: copiedField === "name" ? "#10b981" : t.outline }}
+                            >
+                              {copiedField === "name" ? (
+                                <Check className="w-3 h-3 text-emerald-400" />
+                              ) : (
+                                <Copy className="w-3 h-3" />
+                              )}
+                            </button>
+                          </div>
+
+                          {/* Target */}
+                          <div className="col-span-5 flex items-center gap-1.5 min-w-0 pr-1">
+                            <span
+                              className="truncate text-[11px]"
+                              style={{ color: t.onSurfaceVariant }}
+                            >
+                              cname.{baseRootDomain}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => copyToClipboard(`cname.${baseRootDomain}`, "target")}
+                              className="p-1 rounded hover:bg-white/10 transition-colors shrink-0 cursor-pointer"
+                              title="Copy Target"
+                              style={{ color: copiedField === "target" ? "#10b981" : t.outline }}
+                            >
+                              {copiedField === "target" ? (
+                                <Check className="w-3 h-3 text-emerald-400" />
+                              ) : (
+                                <Copy className="w-3 h-3" />
+                              )}
+                            </button>
+                          </div>
+
+                          {/* Proxy */}
+                          <div className="col-span-2 text-right">
+                            <span
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-sans font-medium"
+                              style={{
+                                backgroundColor: "rgba(107, 114, 128, 0.15)",
+                                color: t.onSurface,
+                                border: `1px solid ${t.outlineVariant}`,
+                              }}
+                              title="Set Proxy to DNS only (Grey Cloud) in Cloudflare"
+                            >
+                              ☁️ DNS only
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Instructions note */}
+                      <div
+                        className="mt-3 p-2.5 rounded-md flex items-start gap-2 text-[11px]"
+                        style={{
+                          backgroundColor: t.surfaceContainerLowest,
+                          border: `1px solid ${t.outlineVariant}`,
+                        }}
+                      >
+                        <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+                        <div className="space-y-1">
+                          <p style={{ color: t.onSurface }}>
+                            <strong className="font-semibold">Cloudflare Users:</strong> Set Proxy status to <span className="font-semibold text-amber-400">DNS only (grey cloud ☁️)</span>.
+                          </p>
+                          <p style={{ color: t.outline }}>
+                            After saving your domain, click <span className="font-semibold" style={{ color: t.accentCyan }}>"Provision SSL"</span> to auto-register your hostname on Cloudflare for automatic SSL certificate generation.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Cloudflare Sync Result Status */}
+                      {cfStatus && (
+                        <div
+                          className="mt-2.5 p-2.5 rounded-md text-[11px] flex items-center justify-between gap-2"
+                          style={{
+                            backgroundColor: cfStatus.status === "success" ? "rgba(16, 185, 129, 0.1)" : "rgba(239, 68, 68, 0.1)",
+                            border: `1px solid ${cfStatus.status === "success" ? "rgba(16, 185, 129, 0.3)" : "rgba(239, 68, 68, 0.3)"}`,
+                            color: cfStatus.status === "success" ? "#10b981" : "#ef4444",
+                          }}
+                        >
+                          <span className="font-medium">{cfStatus.message}</span>
+                          <button type="button" onClick={() => setCfStatus(null)} className="p-0.5 hover:opacity-80 cursor-pointer">
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
                     </div>
 
-                    <p
-                      className="text-[11px] mt-2"
-                      style={{ color: t.outline }}
-                    >
-                      Use your domain as the CNAME name, then paste the value above.
-                    </p>
-                  </div>
-
-                </div> </Field>
+                  </div> </Field>
 
                 <Field label="Store logo">
                   <div className="flex items-center gap-4">
@@ -779,226 +972,231 @@ export default function WebsiteSettingsPage() {
                   </p>
                 </Field>
               </div>
-            </section>
+            </section>}
 
             {/* Store Settings */}
-            <section className="rounded-lg p-4 md:p-5 space-y-5" style={{ backgroundColor: t.surfaceContainer }}>
-              <SectionHeading icon={Sliders} label="Store settings & logistics" />
+            {activeSections === 'Settings' &&
+              <section className="rounded-lg p-4 md:p-5 space-y-5" style={{ backgroundColor: t.surfaceContainer }}>
+                <SectionHeading icon={Sliders} label="Store settings & logistics" />
 
-              <Field label="Store Banner Image">
-                <div className="space-y-3">
-                  {storeBanner && (
-                    <div className="relative w-full h-32 rounded overflow-hidden border" style={{ borderColor: t.outlineVariant }}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={storeBanner} alt="Store Banner" className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                        <span className="text-white text-xs font-semibold">Banner Preview</span>
+                <Field label="Store Banner Image">
+                  <div className="space-y-3">
+                    {storeBanner && (
+                      <div className="relative w-full h-32 rounded overflow-hidden border" style={{ borderColor: t.outlineVariant }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={storeBanner} alt="Store Banner" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                          <span className="text-white text-xs font-semibold">Banner Preview</span>
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        disabled={bannerUploading}
+                        onClick={() => bannerInputRef.current?.click()}
+                        className="flex items-center gap-2 px-3 py-2 rounded text-xs font-semibold transition-all"
+                        style={{ backgroundColor: t.surfaceContainerHigh, border: `1px solid ${t.outlineVariant}`, color: t.onSurface, opacity: bannerUploading ? 0.6 : 1 }}
+                      >
+                        {bannerUploading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                        {bannerUploading ? `Uploading… ${bannerUploadProgress}%` : "Upload Banner"}
+                      </button>
+                      {storeBanner && !bannerUploading && (
+                        <button type="button" onClick={() => setStoreBanner("")} className="text-xs font-semibold" style={{ color: t.error }}>
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                    <input type="file" ref={bannerInputRef} onChange={e => { if (e.target.files?.[0]) performBannerUpload(e.target.files[0]); }} accept="image/*" className="hidden" />
+                  </div>
+                  <p className="text-xs mt-2" style={{ color: t.onSurfaceVariant }}>
+                    Recommended: 16:9 or 3:1. JPG/PNG.
+                  </p>
+                </Field>
+
+                <Field label="Store description">
+                  <textarea
+                    rows={3}
+                    value={storeDescription}
+                    onChange={(e) => setStoreDescription(e.target.value)}
+                    className="w-full rounded text-sm px-3 py-2 focus:outline-none resize-none"
+                    style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface }}
+                    placeholder="Short description of your store"
+                  />
+                </Field>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <Field label="Contact Email">
+                    <input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)}
+                      className="w-full rounded text-sm px-3 py-2 focus:outline-none"
+                      style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface }} />
+                  </Field>
+                  <Field label="Contact Phone">
+                    <input type="text" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)}
+                      className="w-full rounded text-sm px-3 py-2 focus:outline-none"
+                      style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface }} />
+                  </Field>
+                </div>
+
+                <Field label="Business Address">
+                  <textarea rows={2} value={businessAddress} onChange={(e) => setBusinessAddress(e.target.value)}
+                    className="w-full rounded text-sm px-3 py-2 focus:outline-none resize-none"
+                    style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface }} />
+                </Field>
+
+                <Field label="Shipping Address">
+                  <textarea rows={2} value={shippingAddress} onChange={(e) => setShippingAddress(e.target.value)}
+                    className="w-full rounded text-sm px-3 py-2 focus:outline-none resize-none"
+                    style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface }} />
+                </Field>
+
+                <Field label="Privacy Policy">
+                  <textarea rows={4} value={privacyPolicy} onChange={(e) => setPrivacyPolicy(e.target.value)}
+                    className="w-full rounded text-sm px-3 py-2 focus:outline-none resize-none"
+                    style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface }}
+                    placeholder="Enter Privacy Policy for your customers" />
+                </Field>
+
+                <Field label="Terms of Service">
+                  <textarea rows={4} value={termsOfService} onChange={(e) => setTermsOfService(e.target.value)}
+                    className="w-full rounded text-sm px-3 py-2 focus:outline-none resize-none"
+                    style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface }}
+                    placeholder="Enter Terms of Service for your customers" />
+                </Field>
+
+                <ToggleRow title="Allow Returns & Exchanges" description="Allow customers to request returns or exchanges." checked={returnPolicy} onChange={() => setReturnPolicy(!returnPolicy)} disabled={!adminReturnPolicyAllowed} />
+                <ToggleRow title="Allow Cancellations" description="Allow customers to cancel before shipment." checked={cancellationPolicy} onChange={() => setCancellationPolicy(!cancellationPolicy)} disabled={!adminCancellationPolicyAllowed} />
+                <ToggleRow
+                  title="Allow Cash on Delivery (COD)"
+                  description="Enable COD payments (Global policies apply)."
+                  checked={codEnabled}
+                  onChange={() => {
+                    if (kycStatus?.toUpperCase() !== "APPROVED") { showToast("Complete KYC to modify COD settings.", "error"); return; }
+                    if (!onlinePaymentEnabled && codEnabled) { showToast("Keep at least one payment method enabled.", "error"); return; }
+                    setCodEnabled(!codEnabled);
+                  }}
+                />
+
+                <div className="pt-4 border-t border-white/5 space-y-3">
+                  {kycStatus?.toUpperCase() === "APPROVED" ? (
+                    <ToggleRow
+                      title="Online Payments"
+                      description="Accept credit card, debit card, and UPI payments."
+                      checked={onlinePaymentEnabled}
+                      onChange={() => {
+                        if (!codEnabled && onlinePaymentEnabled) { showToast("Keep at least one payment method enabled.", "error"); return; }
+                        setOnlinePaymentEnabled(!onlinePaymentEnabled);
+                      }}
+                    />
+                  ) : (
+                    <div className="flex justify-between items-center text-xs font-semibold py-2">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-zinc-200">Online Payments</span>
+                        <span className="text-[10px] text-zinc-400 font-normal">Accept credit card, debit card, and UPI payments.</span>
+                      </div>
+                      <span className="px-2 py-0.5 rounded bg-red-500/10 border border-red-500/30 text-red-400 text-[10px] font-bold ">Disabled</span>
+                    </div>
+                  )}
+                  {kycStatus?.toUpperCase() !== "APPROVED" && (
+                    <div className="rounded border border-yellow-500/20 bg-yellow-500/5 p-3 flex items-start gap-3">
+                      <AlertCircle className="w-4 h-4 text-yellow-500 shrink-0 mt-0.5" />
+                      <div className="flex-1 space-y-1">
+                        <p className="text-xs font-medium text-yellow-200/90">KYC verification required</p>
+                        <p className="text-[11px] text-zinc-400 leading-relaxed">Complete your KYC to accept online payments.</p>
+                        <button type="button" onClick={() => router.push("/dashboard/settings/kyc")} className="text-[10px] font-bold text-[#b6b2ff] hover:underline mt-1">
+                          Complete KYC →
+                        </button>
                       </div>
                     </div>
                   )}
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      disabled={bannerUploading}
-                      onClick={() => bannerInputRef.current?.click()}
-                      className="flex items-center gap-2 px-3 py-2 rounded text-xs font-semibold transition-all"
-                      style={{ backgroundColor: t.surfaceContainerHigh, border: `1px solid ${t.outlineVariant}`, color: t.onSurface, opacity: bannerUploading ? 0.6 : 1 }}
-                    >
-                      {bannerUploading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-                      {bannerUploading ? `Uploading… ${bannerUploadProgress}%` : "Upload Banner"}
-                    </button>
-                    {storeBanner && !bannerUploading && (
-                      <button type="button" onClick={() => setStoreBanner("")} className="text-xs font-semibold" style={{ color: t.error }}>
-                        Remove
-                      </button>
-                    )}
-                  </div>
-                  <input type="file" ref={bannerInputRef} onChange={e => { if (e.target.files?.[0]) performBannerUpload(e.target.files[0]); }} accept="image/*" className="hidden" />
                 </div>
-                <p className="text-xs mt-2" style={{ color: t.onSurfaceVariant }}>
-                  Recommended: 16:9 or 3:1. JPG/PNG.
-                </p>
-              </Field>
 
-              <Field label="Store description">
-                <textarea
-                  rows={3}
-                  value={storeDescription}
-                  onChange={(e) => setStoreDescription(e.target.value)}
-                  className="w-full rounded text-sm px-3 py-2 focus:outline-none resize-none"
-                  style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface }}
-                  placeholder="Short description of your store"
-                />
-              </Field>
-
-              <div className="grid grid-cols-2 gap-4">
-                <Field label="Contact Email">
-                  <input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)}
-                    className="w-full rounded text-sm px-3 py-2 focus:outline-none"
-                    style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface }} />
-                </Field>
-                <Field label="Contact Phone">
-                  <input type="text" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)}
-                    className="w-full rounded text-sm px-3 py-2 focus:outline-none"
-                    style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface }} />
-                </Field>
-              </div>
-
-              <Field label="Business Address">
-                <textarea rows={2} value={businessAddress} onChange={(e) => setBusinessAddress(e.target.value)}
-                  className="w-full rounded text-sm px-3 py-2 focus:outline-none resize-none"
-                  style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface }} />
-              </Field>
-
-              <Field label="Shipping Address">
-                <textarea rows={2} value={shippingAddress} onChange={(e) => setShippingAddress(e.target.value)}
-                  className="w-full rounded text-sm px-3 py-2 focus:outline-none resize-none"
-                  style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface }} />
-              </Field>
-
-              <Field label="Privacy Policy">
-                <textarea rows={4} value={privacyPolicy} onChange={(e) => setPrivacyPolicy(e.target.value)}
-                  className="w-full rounded text-sm px-3 py-2 focus:outline-none resize-none"
-                  style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface }}
-                  placeholder="Enter Privacy Policy for your customers" />
-              </Field>
-
-              <Field label="Terms of Service">
-                <textarea rows={4} value={termsOfService} onChange={(e) => setTermsOfService(e.target.value)}
-                  className="w-full rounded text-sm px-3 py-2 focus:outline-none resize-none"
-                  style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface }}
-                  placeholder="Enter Terms of Service for your customers" />
-              </Field>
-
-              <ToggleRow title="Allow Returns & Exchanges" description="Allow customers to request returns or exchanges." checked={returnPolicy} onChange={() => setReturnPolicy(!returnPolicy)} disabled={!adminReturnPolicyAllowed} />
-              <ToggleRow title="Allow Cancellations" description="Allow customers to cancel before shipment." checked={cancellationPolicy} onChange={() => setCancellationPolicy(!cancellationPolicy)} disabled={!adminCancellationPolicyAllowed} />
-              <ToggleRow
-                title="Allow Cash on Delivery (COD)"
-                description="Enable COD payments (Global policies apply)."
-                checked={codEnabled}
-                onChange={() => {
-                  if (kycStatus?.toUpperCase() !== "APPROVED") { showToast("Complete KYC to modify COD settings.", "error"); return; }
-                  if (!onlinePaymentEnabled && codEnabled) { showToast("Keep at least one payment method enabled.", "error"); return; }
-                  setCodEnabled(!codEnabled);
-                }}
-              />
-
-              <div className="pt-4 border-t border-white/5 space-y-3">
-                {kycStatus?.toUpperCase() === "APPROVED" ? (
-                  <ToggleRow
-                    title="Online Payments"
-                    description="Accept credit card, debit card, and UPI payments."
-                    checked={onlinePaymentEnabled}
-                    onChange={() => {
-                      if (!codEnabled && onlinePaymentEnabled) { showToast("Keep at least one payment method enabled.", "error"); return; }
-                      setOnlinePaymentEnabled(!onlinePaymentEnabled);
-                    }}
-                  />
-                ) : (
-                  <div className="flex justify-between items-center text-xs font-semibold py-2">
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-zinc-200">Online Payments</span>
-                      <span className="text-[10px] text-zinc-400 font-normal">Accept credit card, debit card, and UPI payments.</span>
-                    </div>
-                    <span className="px-2 py-0.5 rounded bg-red-500/10 border border-red-500/30 text-red-400 text-[10px] font-bold ">Disabled</span>
+                <div className="pt-4 border-t border-white/5 flex justify-between items-center text-xs font-semibold py-2">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-zinc-200">Order ID Retry Limit</span>
+                    <span className="text-[10px] text-zinc-400 font-normal">Attempts before order tracking is cancelled.</span>
                   </div>
-                )}
-                {kycStatus?.toUpperCase() !== "APPROVED" && (
-                  <div className="rounded border border-yellow-500/20 bg-yellow-500/5 p-3 flex items-start gap-3">
-                    <AlertCircle className="w-4 h-4 text-yellow-500 shrink-0 mt-0.5" />
-                    <div className="flex-1 space-y-1">
-                      <p className="text-xs font-medium text-yellow-200/90">KYC verification required</p>
-                      <p className="text-[11px] text-zinc-400 leading-relaxed">Complete your KYC to accept online payments.</p>
-                      <button type="button" onClick={() => router.push("/dashboard/settings/kyc")} className="text-[10px] font-bold text-[#b6b2ff] hover:underline mt-1">
-                        Complete KYC →
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="pt-4 border-t border-white/5 flex justify-between items-center text-xs font-semibold py-2">
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-zinc-200">Order ID Retry Limit</span>
-                  <span className="text-[10px] text-zinc-400 font-normal">Attempts before order tracking is cancelled.</span>
+                  <select
+                    value={orderTrackRetryLimit}
+                    onChange={(e) => setOrderTrackRetryLimit(Number(e.target.value))}
+                    className="bg-[#131313] border border-[#444748] rounded px-3 py-1.5 text-xs text-white outline-none font-semibold cursor-pointer"
+                  >
+                    {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n} {n === 1 ? "Attempt" : "Attempts"}</option>)}
+                  </select>
                 </div>
-                <select
-                  value={orderTrackRetryLimit}
-                  onChange={(e) => setOrderTrackRetryLimit(Number(e.target.value))}
-                  className="bg-[#131313] border border-[#444748] rounded px-3 py-1.5 text-xs text-white outline-none font-semibold cursor-pointer"
-                >
-                  {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n} {n === 1 ? "Attempt" : "Attempts"}</option>)}
-                </select>
-              </div>
-            </section>
-
-            {/* Appearance */}
-            <section className="rounded-lg p-4 md:p-5" style={{ backgroundColor: t.surfaceContainer }}>
-              <SectionHeading icon={Layout} label="Website appearance template" />
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-                {TEMPLATE_PRESETS.map(tmpl => (
-                  <TemplateCard
-                    key={tmpl.id}
-                    active={templateId === tmpl.id}
-                    onClick={() => handleTemplateChange(tmpl.id)}
-                    name={tmpl.name}
-                    description={tmpl.description}
-                    previewBg={tmpl.previewBg}
-                    previewAccent={tmpl.previewAccent}
-                  />
-                ))}
-              </div>
-            </section>
-
-            {/* Theme Palette */}
-            <section className="rounded-lg p-4 md:p-5" style={{ backgroundColor: t.surfaceContainer }}>
-              <SectionHeading icon={Palette} label="Theme palette" />
-              <p className="text-xs mb-3" style={{ color: t.onSurfaceVariant }}>
-                Choose a color variation for <span style={{ color: t.onSurface, fontWeight: 500 }}>{selectedTemplate?.name}</span>.
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                {selectedTemplate?.themes.map((theme) => {
-                  const active = themeId === theme.id;
-                  return (
-                    <div
-                      key={theme.id}
-                      onClick={() => setThemeId(theme.id)}
-                      className="p-3 rounded-md cursor-pointer transition-all flex items-center gap-3"
-                      style={{
-                        border: active ? `2px solid ${t.primary}` : `1px solid ${t.outlineVariant}`,
-                        backgroundColor: active ? t.surfaceContainerHigh : "transparent",
-                      }}
-                    >
-                      {/* Color swatch showing bg + accent */}
-                      <div
-                        className="w-8 h-8 rounded-full shrink-0 border"
-                        style={{
-                          borderColor: t.outlineVariant,
-                          background: `linear-gradient(135deg, ${theme.colors.accent} 0%, ${theme.colors.accent} 40%, ${theme.colors.background} 40%, ${theme.colors.background} 100%)`,
-                        }}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium truncate" style={{ color: t.onSurface }}>{theme.name}</p>
-                        <div className="flex gap-1 mt-1">
-                          <span className="w-3 h-3 rounded-sm border border-white/10" style={{ backgroundColor: theme.colors.background }} />
-                          <span className="w-3 h-3 rounded-sm border border-white/10" style={{ backgroundColor: theme.colors.primary }} />
-                          <span className="w-3 h-3 rounded-sm border border-white/10" style={{ backgroundColor: theme.colors.accent }} />
-                        </div>
-                      </div>
-                      {active && <Check className="w-3.5 h-3.5 shrink-0" style={{ color: t.primary }} strokeWidth={3} />}
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
+              </section>}
 
             {/* Functionality */}
-            <section className="rounded-lg p-4 md:p-5" style={{ backgroundColor: t.surfaceContainer }}>
+            {activeSections === "Settings" && <section className="rounded-lg p-4 md:p-5" style={{ backgroundColor: t.surfaceContainer }}>
               <SectionHeading icon={Sliders} label="Functionality settings" />
               <ToggleRow title="Show related products" description="Display other catalog items at bottom of product page." checked={showRelatedProducts} onChange={() => setShowRelatedProducts(!showRelatedProducts)} />
               <ToggleRow title="Enable Instagram checkout" description="Direct customers to Instagram to complete purchase." checked={enableInstagramButton} onChange={() => setEnableInstagramButton(!enableInstagramButton)} />
               <ToggleRow title="Enable WhatsApp redirection" description="Let customers ask questions or order via WhatsApp." checked={enableWhatsAppButton} onChange={() => setEnableWhatsAppButton(!enableWhatsAppButton)} last />
-            </section>
+            </section>}
+
+            {/* Appearance */}
+            {activeSections === 'Template' &&
+              <section className="rounded-lg p-4 md:p-5" style={{ backgroundColor: t.surfaceContainer }}>
+                <SectionHeading icon={Layout} label="Website appearance template" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                  {TEMPLATE_PRESETS.map(tmpl => (
+                    <TemplateCard
+                      key={tmpl.id}
+                      active={templateId === tmpl.id}
+                      onClick={() => handleTemplateChange(tmpl.id)}
+                      name={tmpl.name}
+                      description={tmpl.description}
+                      previewBg={tmpl.previewBg}
+                      previewAccent={tmpl.previewAccent}
+                    />
+                  ))}
+                </div>
+              </section>}
+
+            {/* Theme Palette */}
+            {activeSections === "Theme" &&
+              <section className="rounded-lg p-4 md:p-5" style={{ backgroundColor: t.surfaceContainer }}>
+                <SectionHeading icon={Palette} label="Theme palette" />
+                <p className="text-xs mb-3" style={{ color: t.onSurfaceVariant }}>
+                  Choose a color variation for <span style={{ color: t.onSurface, fontWeight: 500 }}>{selectedTemplate?.name}</span>.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  {selectedTemplate?.themes.map((theme) => {
+                    const active = themeId === theme.id;
+                    return (
+                      <div
+                        key={theme.id}
+                        onClick={() => setThemeId(theme.id)}
+                        className="p-3 rounded-md cursor-pointer transition-all flex items-center gap-3"
+                        style={{
+                          border: active ? `2px solid ${t.primary}` : `1px solid ${t.outlineVariant}`,
+                          backgroundColor: active ? t.surfaceContainerHigh : "transparent",
+                        }}
+                      >
+                        {/* Color swatch showing bg + accent */}
+                        <div
+                          className="w-8 h-8 rounded-full shrink-0 border"
+                          style={{
+                            borderColor: t.outlineVariant,
+                            background: `linear-gradient(135deg, ${theme.colors.accent} 0%, ${theme.colors.accent} 40%, ${theme.colors.background} 40%, ${theme.colors.background} 100%)`,
+                          }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium truncate" style={{ color: t.onSurface }}>{theme.name}</p>
+                          <div className="flex gap-1 mt-1">
+                            <span className="w-3 h-3 rounded-sm border border-white/10" style={{ backgroundColor: theme.colors.background }} />
+                            <span className="w-3 h-3 rounded-sm border border-white/10" style={{ backgroundColor: theme.colors.primary }} />
+                            <span className="w-3 h-3 rounded-sm border border-white/10" style={{ backgroundColor: theme.colors.accent }} />
+                          </div>
+                        </div>
+                        {active && <Check className="w-3.5 h-3.5 shrink-0" style={{ color: t.primary }} strokeWidth={3} />}
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>}
+
+
           </div>
 
           {/* Right column — live preview */}
