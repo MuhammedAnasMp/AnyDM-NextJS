@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 import Script from "next/script";
+import { Analytics } from '@vercel/analytics/next';
 
 export const metadata: Metadata = {
   title: "AnyDM | AI Social Commerce Operating System",
@@ -41,6 +42,7 @@ export default function RootLayout({
         </div>
 
         <Providers>{children}</Providers>
+        <Analytics />
       </body>
     </html>
   );
