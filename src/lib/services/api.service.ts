@@ -140,7 +140,13 @@ api.interceptors.response.use(
                 }
             } catch (err) {
                 authService.logout();
-                if (typeof window !== 'undefined') {
+                const isAnalyticsPreview = typeof window !== 'undefined' && (
+                    window.self !== window.top ||
+                    document.referrer.includes('mysitesanalytics') ||
+                    window.location.search.includes('umami') ||
+                    window.location.search.includes('analytics')
+                );
+                if (typeof window !== 'undefined' && !isAnalyticsPreview) {
                     window.location.href = '/login?expired=true';
                 }
                 return Promise.reject(error);

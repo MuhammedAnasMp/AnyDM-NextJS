@@ -42,8 +42,9 @@ function DashboardLayoutContent({
   const isAnalyticsPreview =
     typeof window !== "undefined" &&
     (window.self !== window.top ||
-      document.referrer.includes("mysitesanalytics.vercel.app") ||
-      window.location.search.includes("umami"));
+      document.referrer.includes("mysitesanalytics") ||
+      window.location.search.includes("umami") ||
+      window.location.search.includes("analytics"));
 
   // 1. Monitor Firebase Auth State
   useEffect(() => {
