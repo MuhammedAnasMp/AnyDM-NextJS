@@ -379,6 +379,7 @@ class AuthService {
             if (typeof apiData.details === 'string' && apiData.details) return apiData.details;
             if (typeof apiData.message === 'string' && apiData.message) return apiData.message;
             if (typeof apiData.detail === 'string' && apiData.detail) return apiData.detail;
+            if (typeof apiData === 'string' && apiData && !apiData.includes('<html')) return apiData;
         }
 
         const rawMsg = String(error?.message || '');
@@ -403,12 +404,28 @@ class AuthService {
                 return 'Invalid login credentials. Please check your email and password.';
             case 'auth/popup-closed-by-user':
                 return 'The login window was closed before completing.';
+            case 'auth/popup-blocked':
+                return 'The login popup was blocked by your browser. Please allow popups for this site.';
             case 'auth/too-many-requests':
                 return 'Too many failed attempts. Please try again in a few minutes.';
+            case 'auth/unauthorized-domain':
+                return 'This domain is not authorized in Firebase Authentication. Please add anydm.in (or your domain) to Authorized Domains in Firebase Console.';
+            case 'auth/credential-already-in-use':
+            case 'auth/account-exists-with-different-credential':
+                return 'An account already exists with this email using a different sign-in method.';
+            case 'auth/network-request-failed':
+                return 'Network request failed. Please check your internet connection and try again.';
+            case 'auth/internal-error':
+                return 'Internal authentication error. Please try again.';
             default:
+                if (code) {
+                    const readableCode = code.replace(/^auth\//, '').replace(/-/g, ' ');
+                    const capitalized = readableCode.charAt(0).toUpperCase() + readableCode.slice(1);
+                    return `${capitalized}. Please check your details and try again.`;
+                }
                 if (rawMsg.startsWith('Firebase: Error')) {
-                    const cleanMsg = rawMsg.replace(/^Firebase:\s*Error\s*\(auth\/[a-z-]+\)\.?\s*/i, '');
-                    return cleanMsg || 'Authentication failed. Please check your details and try again.';
+                    const cleanMsg = rawMsg.replace(/^Firebase:\s*Error\s*\(auth\/[a-z-]+\)\.?\s*/i, '').trim();
+                    if (cleanMsg) return cleanMsg;
                 }
                 return error?.message || 'An unexpected error occurred. Please try again.';
         }

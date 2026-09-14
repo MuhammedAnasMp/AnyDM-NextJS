@@ -148,7 +148,7 @@ function LoginContent() {
       setError("Password reset link sent! Please check your inbox.");
     } catch (err: any) {
       setToastType("error");
-      setError(getFriendlyErrorMessage(err.code));
+      setError(authService.formatError(err));
     } finally {
       setIsEmailLoading(false);
     }

@@ -614,6 +614,28 @@ function AccountsContent() {
     }
   };
 
+  const handleUseInstagramAvatar = async () => {
+    const primaryAccount = accounts.find((acc: any) => acc.is_primary) || accounts[0];
+    if (!primaryAccount?.profile_picture_url) return;
+    setUploadingUserAvatar(true);
+    try {
+      const oldPhotoUrl = appUser?.photo_url;
+      await authService.updateProfile({ photo_url: primaryAccount.profile_picture_url });
+      showToast("Profile picture set to Instagram avatar", "success");
+
+      if (oldPhotoUrl && oldPhotoUrl.includes("cloudinary.com")) {
+        deleteFromCloudinary(oldPhotoUrl).catch((err) => {
+          console.error("Failed to delete old avatar from Cloudinary:", err);
+        });
+      }
+    } catch (err) {
+      console.error("Failed to update profile picture:", err);
+      showToast("Failed to set profile picture from Instagram", "error");
+    } finally {
+      setUploadingUserAvatar(false);
+    }
+  };
+
   const getFormattedExpiryDate = () => {
     const rawDate =
       stats?.expires_at ||
@@ -673,160 +695,167 @@ function AccountsContent() {
       <div className="relative mx-auto space-y-4">
 
         {/* USER INFO CARD */}
-        <div className="bg-[#1c1b1b] border border-[#2a2a2a] rounded-md p-4 md:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl">
-          <div className="flex items-center gap-3.5 sm:gap-4 min-w-0">
-            <input
-              type="file"
-              ref={userAvatarInputRef}
-              onChange={handleUserAvatarUpload}
-              accept="image/*"
-              className="hidden"
-            />
+        {(() => {
+          return (
+            <div className="bg-[#1c1b1b] border border-[#2a2a2a] rounded-md p-4 md:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl">
+              <div className="flex items-center gap-3.5 sm:gap-4 min-w-0">
+                <input
+                  type="file"
+                  ref={userAvatarInputRef}
+                  onChange={handleUserAvatarUpload}
+                  accept="image/*"
+                  className="hidden"
+                />
 
-            <div className="relative group shrink-0">
-              {(appUser?.photo_url || appUser?.profile_picture_url) ? (
-                <div className="relative w-12 h-12 rounded-full overflow-hidden border border-[#3a3a3a] bg-[#20201f]">
-                  <img
-                    src={appUser.photo_url || appUser.profile_picture_url}
-                    alt="User Profile Picture"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              ) : accounts.length > 0 ? (
-                <div className="relative w-12 h-12">
-                  <OverlappingAvatars accounts={accounts} size="md" />
-                </div>
-              ) : (
-                <div className="w-12 h-12 rounded-full bg-[#20201f] border border-[#2a2a2a] flex items-center justify-center text-[#e5e2e1] text-lg font-semibold">
-                  {(appUser?.display_name || appUser?.email || "U").slice(0, 1).toUpperCase()}
-                </div>
-              )}
-
-              <button
-                type="button"
-                onClick={() => userAvatarInputRef.current?.click()}
-                disabled={uploadingUserAvatar}
-                title="Change Profile Picture"
-                className="absolute inset-0 rounded-full bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white cursor-pointer"
-              >
-                {uploadingUserAvatar ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-purple-400" />
-                ) : (
-                  <Camera className="w-4 h-4" />
-                )}
-              </button>
-            </div>
-
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                {isEditingName ? (
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={tempName}
-                      onChange={(e) => setTempName(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          handleUpdateName();
-                        } else if (e.key === "Escape") {
-                          setIsEditingName(false);
-                          setTempName(appUser?.display_name || appUser?.full_name || "");
-                        }
-                      }}
-                      placeholder="Account / Display Name"
-                      autoFocus
-                      className="text-base font-semibold text-white bg-[#131313] border border-[#444748] rounded-md px-2 py-0.5 focus:outline-none focus:border-white transition-colors"
-                    />
-                    <button
-                      type="button"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={handleUpdateName}
-                      className="px-2.5 py-1 bg-white text-black text-xs font-bold rounded hover:bg-zinc-200 transition-colors cursor-pointer"
-                    >
-                      Save
-                    </button>
-                    <button
-                      type="button"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => {
-                        setIsEditingName(false);
-                        setTempName(appUser?.display_name || appUser?.full_name || "");
-                      }}
-                      className="px-2 py-1 text-xs text-zinc-400 hover:text-white transition-colors cursor-pointer"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                ) : (
+                <div className="flex items-center gap-3 shrink-0">
+                  {/* Main User Avatar with Pen Icon Badge */}
                   <div
-                    onClick={() => {
-                      setTempName(appUser?.display_name || appUser?.full_name || "");
-                      setIsEditingName(true);
-                    }}
-                    className="flex items-center gap-2 cursor-pointer group truncate"
-                    title="Click to edit account display name"
+                    onClick={() => userAvatarInputRef.current?.click()}
+                    className="relative group shrink-0 cursor-pointer"
+                    title="Click to set/change profile picture"
                   >
-                    <span className="text-base md:text-lg font-semibold text-[#e5e2e1] group-hover:text-[#c4c0ff] transition-colors truncate">
-                      {appUser?.display_name || appUser?.full_name || "Set Display Name"}
-                    </span>
-                    <button type="button" className="text-zinc-400 group-hover:text-white transition shrink-0">
-                      <Pencil className="w-3.5 h-3.5" />
-                    </button>
+                    {appUser?.photo_url ? (
+                      <div className="relative w-12 h-12 rounded-full overflow-hidden border border-[#3a3a3a] bg-[#20201f]">
+                        <img
+                          src={appUser.photo_url}
+                          alt="User Profile Picture"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ) : accounts.length > 0 ? (
+                      <div className="relative">
+                        <OverlappingAvatars accounts={accounts} size="md" />
+                      </div>
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-[#20201f] border border-[#2a2a2a] flex items-center justify-center text-[#e5e2e1] text-lg font-semibold">
+                        {(appUser?.display_name || appUser?.email || "U").slice(0, 1).toUpperCase()}
+                      </div>
+                    )}
+
+                    {/* Pen Icon Badge */}
+                    <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#1c1b1b] border border-[#444748] flex items-center justify-center text-[#e5e2e1] group-hover:text-white group-hover:bg-[#c4c0ff] group-hover:border-[#c4c0ff] group-hover:text-black transition-all shadow-md">
+                      {uploadingUserAvatar ? (
+                        <Loader2 className="w-3 h-3 animate-spin text-purple-400" />
+                      ) : (
+                        <Pencil className="w-2.5 h-2.5 text-zinc-300 group-hover:text-black" />
+                      )}
+                    </div>
                   </div>
-                )}
+
+                  {/* If custom photo is active, also display connected Instagram account avatars so old IG pics remain visible */}
+                  {appUser?.photo_url && accounts.length > 0 && (
+                    <div className="flex items-center gap-1.5 pl-2 border-l border-[#2a2a2a] shrink-0" title="Connected Instagram Account Avatars">
+                      <OverlappingAvatars accounts={accounts} size="sm" />
+                    </div>
+                  )}
+                </div>
+
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    {isEditingName ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={tempName}
+                          onChange={(e) => setTempName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleUpdateName();
+                            } else if (e.key === "Escape") {
+                              setIsEditingName(false);
+                              setTempName(appUser?.display_name || appUser?.full_name || "");
+                            }
+                          }}
+                          placeholder="Account / Display Name"
+                          autoFocus
+                          className="text-base font-semibold text-white bg-[#131313] border border-[#444748] rounded-md px-2 py-0.5 focus:outline-none focus:border-white transition-colors"
+                        />
+                        <button
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={handleUpdateName}
+                          className="px-2.5 py-1 bg-white text-black text-xs font-bold rounded hover:bg-zinc-200 transition-colors cursor-pointer"
+                        >
+                          Save
+                        </button>
+                        <button
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => {
+                            setIsEditingName(false);
+                            setTempName(appUser?.display_name || appUser?.full_name || "");
+                          }}
+                          className="px-2 py-1 text-xs text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <div
+                        onClick={() => {
+                          setTempName(appUser?.display_name || appUser?.full_name || "");
+                          setIsEditingName(true);
+                        }}
+                        className="flex items-center gap-2 cursor-pointer group truncate"
+                        title="Click to edit account display name"
+                      >
+                        <span className="text-base md:text-lg font-semibold text-[#e5e2e1] group-hover:text-[#c4c0ff] transition-colors truncate">
+                          {appUser?.display_name || appUser?.full_name || "Set Display Name"}
+                        </span>
+                        <button type="button" className="text-zinc-400 group-hover:text-white transition shrink-0">
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2.5 mt-0.5 flex-wrap">
+                    <p className="text-xs text-[#8e9192] truncate">
+                      {appUser?.email || firebaseUser?.email || "Workspace User"}
+                    </p>
+
+                    {appUser?.photo_url && (
+                      <button
+                        type="button"
+                        onClick={handleRemoveUserAvatar}
+                        className="text-[11px] text-red-400 hover:underline transition-all cursor-pointer shrink-0 font-medium"
+                      >
+                        Remove photo
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-2.5 mt-0.5 flex-wrap">
-                <p className="text-xs text-[#8e9192] truncate">
-                  {appUser?.email || firebaseUser?.email || "Workspace User"}
-                </p>
+
+              <div className="flex items-center gap-2.5 shrink-0 sm:ml-3 flex-wrap">
                 <button
-                  type="button"
-                  onClick={() => userAvatarInputRef.current?.click()}
-                  className="text-[11px] text-[#c4c0ff] hover:underline transition-all cursor-pointer shrink-0 font-medium"
+                  onClick={handleAddInstagram}
+                  disabled={isInstagramLinking}
+                  className="h-8 px-3 rounded-md bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 text-white font-semibold flex items-center gap-1.5 hover:brightness-110 active:scale-[0.98] transition-all text-xs cursor-pointer disabled:opacity-50 shadow-sm"
                 >
-                  {appUser?.photo_url ? "Change avatar" : "Set profile picture"}
+                  {isInstagramLinking ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                  )}
+                  <span>Connect Account</span>
                 </button>
-                {appUser?.photo_url && (
-                  <button
-                    type="button"
-                    onClick={handleRemoveUserAvatar}
-                    className="text-[11px] text-red-400 hover:underline transition-all cursor-pointer shrink-0 font-medium"
-                  >
-                    Remove avatar
-                  </button>
-                )}
+
+                <div className="border border-[#444748]/60 bg-[#20201f] text-[#c4c7c8] text-xs font-semibold px-3 py-1.5 rounded-md">
+                  {isPro ? (
+                    <span className="bg-gradient-to-r from-[#A67C00] via-[#BF9B30] via-[#FFBF00] via-[#FFCF40] to-[#FFDC73] bg-clip-text text-transparent font-bold">
+                      Creator Pro
+                    </span>
+                  ) : trialDaysLeft > 0 ? (
+                    `${trialDaysLeft} Days Remaining`
+                  ) : (
+                    <span className="text-red-400 font-medium">Trial Expired</span>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-
-          <div className="flex items-center gap-2.5 shrink-0 sm:ml-3 flex-wrap">
-            <button
-              onClick={handleAddInstagram}
-              disabled={isInstagramLinking}
-              className="h-8 px-3 rounded-md bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 text-white font-semibold flex items-center gap-1.5 hover:brightness-110 active:scale-[0.98] transition-all text-xs cursor-pointer disabled:opacity-50 shadow-sm"
-            >
-              {isInstagramLinking ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-              )}
-              <span>Connect Account</span>
-            </button>
-
-            <div className="border border-[#444748]/60 bg-[#20201f] text-[#c4c7c8] text-xs font-semibold px-3 py-1.5 rounded-md">
-              {isPro ? (
-                <span className="bg-gradient-to-r from-[#A67C00] via-[#BF9B30] via-[#FFBF00] via-[#FFCF40] to-[#FFDC73] bg-clip-text text-transparent font-bold">
-                  Creator Pro
-                </span>
-              ) : trialDaysLeft > 0 ? (
-                `${trialDaysLeft} Days Remaining`
-              ) : (
-                <span className="text-red-400 font-medium">Trial Expired</span>
-              )}
-            </div>
-          </div>
-        </div>
+          );
+        })()}
 
         {/* TWO COLUMN GRID (AUTH & INSTAGRAM) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">

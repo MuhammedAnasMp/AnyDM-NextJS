@@ -24,6 +24,7 @@ import {
   DollarSign,
   Link2,
 } from "lucide-react";
+import { UserAvatar } from "@/components/Avatar";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -82,7 +83,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const userDisplayName = appUser?.display_name || appUser?.first_name || "Alex Rivera";
   const googlePhoto = firebaseUser?.providerData?.find((p: { providerId: string; photoURL?: string | null }) => p.providerId === "google.com")?.photoURL || firebaseUser?.photoURL;
-  const userPhoto = googlePhoto || appUser?.photo_url || "https://static.vecteezy.com/system/resources/previews/002/318/271/non_2x/user-profile-icon-free-vector.jpg";
+  const userPhoto = appUser?.photo_url || appUser?.profile_picture_url || googlePhoto || "https://static.vecteezy.com/system/resources/previews/002/318/271/non_2x/user-profile-icon-free-vector.jpg";
 
   const getAccountTypeLabel = () => {
     const isPremiumActive = appUser?.is_premium_active ?? false;
@@ -222,11 +223,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             <div className="w-8 h-8 rounded-full shrink-0 p-[1.5px] bg-gradient-to-tr from-[#A67C00] via-[#BF9B30] via-[#FFBF00] via-[#FFCF40] to-[#FFDC73] flex items-center justify-center">
               {/* Inner dark separator boundary */}
               <div className="w-full h-full rounded-full overflow-hidden border border-[#131313] bg-[#20201f]">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  alt={userDisplayName}
-                  className="w-full h-full object-cover"
+                <UserAvatar
                   src={userPhoto}
+                  alt={userDisplayName}
+                  className="w-full h-full object-cover rounded-full"
                 />
               </div>
             </div>
