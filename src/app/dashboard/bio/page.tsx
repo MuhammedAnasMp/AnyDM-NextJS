@@ -361,6 +361,15 @@ export default function LinkInBioDashboard() {
   const [bgImageDeleteToken, setBgImageDeleteToken] = useState<string | null>(null);
   const [isDeletingBgImage, setIsDeletingBgImage] = useState(false);
 
+  // Cloudinary Delete & Replacement Tracking
+  const [newlyUploadedBioItems, setNewlyUploadedBioItems] = useState<
+    { publicId?: string; deleteToken?: string; resourceType?: string; url: string }[]
+  >([]);
+  const newlyUploadedBioItemsRef = useRef<
+    { publicId?: string; deleteToken?: string; resourceType?: string; url: string }[]
+  >([]);
+  const isBioSavedRef = useRef(false);
+
   const [expandedBlockIds, setExpandedBlockIds] = useState<Record<string | number, boolean>>({});
   const [bgPaletteOpen, setBgPaletteOpen] = useState(false);
   const bgPaletteRef = useRef<HTMLDivElement>(null);
@@ -387,6 +396,22 @@ export default function LinkInBioDashboard() {
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (!isBioSavedRef.current && newlyUploadedBioItemsRef.current.length > 0) {
+        const itemsToDelete = [...newlyUploadedBioItemsRef.current];
+        newlyUploadedBioItemsRef.current = [];
+        itemsToDelete.forEach((item) => {
+          deleteFromCloudinary({
+            publicId: item.publicId,
+            deleteToken: item.deleteToken,
+            resourceType: item.resourceType,
+          });
+        });
+      }
+    };
   }, []);
 
   const showToast = (message: string, type: "success" | "error" = "success") => {
@@ -482,8 +507,31 @@ export default function LinkInBioDashboard() {
       const res = await uploadToCloudinary(file, {
         onProgress: (p) => setAvatarUploadProgress(p),
       });
+
+      // Delete previously uploaded un-saved avatar if user is replacing it
+      if (page.profile_image_url && page.profile_image_url !== res.secure_url) {
+        const oldItem = newlyUploadedBioItemsRef.current.find((item) => item.url === page.profile_image_url);
+        deleteFromCloudinary({
+          publicId: oldItem?.publicId,
+          deleteToken: avatarDeleteToken || oldItem?.deleteToken,
+          resourceType: "image",
+        });
+        if (oldItem) {
+          newlyUploadedBioItemsRef.current = newlyUploadedBioItemsRef.current.filter((item) => item.url !== page.profile_image_url);
+          setNewlyUploadedBioItems((prev) => prev.filter((item) => item.url !== page.profile_image_url));
+        }
+      }
+
       setPage((prev) => ({ ...prev, profile_image_url: res.secure_url }));
       setAvatarDeleteToken(res.delete_token || null);
+      const newItem = {
+        publicId: res.public_id,
+        deleteToken: res.delete_token,
+        resourceType: "image",
+        url: res.secure_url,
+      };
+      newlyUploadedBioItemsRef.current.push(newItem);
+      setNewlyUploadedBioItems((prev) => [...prev, newItem]);
       setPreviewKey((k) => k + 1);
       showToast("Avatar updated");
     } catch (err: unknown) {
@@ -498,8 +546,16 @@ export default function LinkInBioDashboard() {
   const handleRemoveAvatar = async () => {
     setIsDeletingAvatar(true);
     try {
-      if (avatarDeleteToken) {
-        await deleteFromCloudinary(avatarDeleteToken);
+      const urlToRemove = page.profile_image_url;
+      const oldItem = newlyUploadedBioItemsRef.current.find((item) => item.url === urlToRemove);
+      await deleteFromCloudinary({
+        publicId: oldItem?.publicId,
+        deleteToken: avatarDeleteToken || oldItem?.deleteToken,
+        resourceType: "image",
+      });
+      if (oldItem) {
+        newlyUploadedBioItemsRef.current = newlyUploadedBioItemsRef.current.filter((item) => item.url !== urlToRemove);
+        setNewlyUploadedBioItems((prev) => prev.filter((item) => item.url !== urlToRemove));
       }
       setPage((prev) => ({ ...prev, profile_image_url: "" }));
       setAvatarDeleteToken(null);
@@ -522,8 +578,31 @@ export default function LinkInBioDashboard() {
       const res = await uploadToCloudinary(file, {
         onProgress: (p) => setBannerUploadProgress(p),
       });
+
+      // Delete previously uploaded un-saved banner if user is replacing it
+      if (page.banner_image_url && page.banner_image_url !== res.secure_url) {
+        const oldItem = newlyUploadedBioItemsRef.current.find((item) => item.url === page.banner_image_url);
+        deleteFromCloudinary({
+          publicId: oldItem?.publicId,
+          deleteToken: bannerDeleteToken || oldItem?.deleteToken,
+          resourceType: "image",
+        });
+        if (oldItem) {
+          newlyUploadedBioItemsRef.current = newlyUploadedBioItemsRef.current.filter((item) => item.url !== page.banner_image_url);
+          setNewlyUploadedBioItems((prev) => prev.filter((item) => item.url !== page.banner_image_url));
+        }
+      }
+
       setPage((prev) => ({ ...prev, banner_image_url: res.secure_url }));
       setBannerDeleteToken(res.delete_token || null);
+      const newItem = {
+        publicId: res.public_id,
+        deleteToken: res.delete_token,
+        resourceType: "image",
+        url: res.secure_url,
+      };
+      newlyUploadedBioItemsRef.current.push(newItem);
+      setNewlyUploadedBioItems((prev) => [...prev, newItem]);
       setPreviewKey((k) => k + 1);
       showToast("Cover updated");
     } catch (err: unknown) {
@@ -538,8 +617,16 @@ export default function LinkInBioDashboard() {
   const handleRemoveBanner = async () => {
     setIsDeletingBanner(true);
     try {
-      if (bannerDeleteToken) {
-        await deleteFromCloudinary(bannerDeleteToken);
+      const urlToRemove = page.banner_image_url;
+      const oldItem = newlyUploadedBioItemsRef.current.find((item) => item.url === urlToRemove);
+      await deleteFromCloudinary({
+        publicId: oldItem?.publicId,
+        deleteToken: bannerDeleteToken || oldItem?.deleteToken,
+        resourceType: "image",
+      });
+      if (oldItem) {
+        newlyUploadedBioItemsRef.current = newlyUploadedBioItemsRef.current.filter((item) => item.url !== urlToRemove);
+        setNewlyUploadedBioItems((prev) => prev.filter((item) => item.url !== urlToRemove));
       }
       setPage((prev) => ({ ...prev, banner_image_url: "" }));
       setBannerDeleteToken(null);
@@ -562,6 +649,21 @@ export default function LinkInBioDashboard() {
       const res = await uploadToCloudinary(file, {
         onProgress: (p) => setBgImageUploadProgress(p),
       });
+
+      const currentBgUrl = page.custom_theme?.background_image_url;
+      if (currentBgUrl && currentBgUrl !== res.secure_url) {
+        const oldItem = newlyUploadedBioItemsRef.current.find((item) => item.url === currentBgUrl);
+        deleteFromCloudinary({
+          publicId: oldItem?.publicId,
+          deleteToken: bgImageDeleteToken || oldItem?.deleteToken,
+          resourceType: "image",
+        });
+        if (oldItem) {
+          newlyUploadedBioItemsRef.current = newlyUploadedBioItemsRef.current.filter((item) => item.url !== currentBgUrl);
+          setNewlyUploadedBioItems((prev) => prev.filter((item) => item.url !== currentBgUrl));
+        }
+      }
+
       setPage((prev) => ({
         ...prev,
         custom_theme: {
@@ -571,6 +673,14 @@ export default function LinkInBioDashboard() {
         },
       }));
       setBgImageDeleteToken(res.delete_token || null);
+      const newItem = {
+        publicId: res.public_id,
+        deleteToken: res.delete_token,
+        resourceType: "image",
+        url: res.secure_url,
+      };
+      newlyUploadedBioItemsRef.current.push(newItem);
+      setNewlyUploadedBioItems((prev) => [...prev, newItem]);
       setPreviewKey((k) => k + 1);
       showToast("Background image updated");
     } catch (err: unknown) {
@@ -585,8 +695,16 @@ export default function LinkInBioDashboard() {
   const handleRemoveBgImage = async () => {
     setIsDeletingBgImage(true);
     try {
-      if (bgImageDeleteToken) {
-        await deleteFromCloudinary(bgImageDeleteToken);
+      const urlToRemove = page.custom_theme?.background_image_url;
+      const oldItem = newlyUploadedBioItemsRef.current.find((item) => item.url === urlToRemove);
+      await deleteFromCloudinary({
+        publicId: oldItem?.publicId,
+        deleteToken: bgImageDeleteToken || oldItem?.deleteToken,
+        resourceType: "image",
+      });
+      if (oldItem) {
+        newlyUploadedBioItemsRef.current = newlyUploadedBioItemsRef.current.filter((item) => item.url !== urlToRemove);
+        setNewlyUploadedBioItems((prev) => prev.filter((item) => item.url !== urlToRemove));
       }
       setPage((prev) => ({
         ...prev,
@@ -616,6 +734,9 @@ export default function LinkInBioDashboard() {
   };
 
   const handleSavePageSettings = async (overrideData?: Partial<BioPageData>) => {
+    isBioSavedRef.current = true;
+    newlyUploadedBioItemsRef.current = [];
+    setNewlyUploadedBioItems([]);
     setSaving(true);
     try {
       let finalProfileImg =

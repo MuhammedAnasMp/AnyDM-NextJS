@@ -42,6 +42,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
 import api from "@/lib/services/api.service";
+import { deleteFromCloudinary } from "@/lib/services/cloudinary.service";
 import Toast from "@/components/Toast";
 import axios from "axios";
 import { cn } from "@/lib/utils";
@@ -93,6 +94,10 @@ export default function ProductCreatePage() {
 
   // Media Management
   const [mediaList, setMediaList] = useState<MediaItem[]>([]);
+  const [newlyUploadedMediaItems, setNewlyUploadedMediaItems] = useState<
+    { publicId?: string; resourceType?: string; url: string }[]
+  >([]);
+  const isSavedRef = useRef(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -664,6 +669,15 @@ export default function ProductCreatePage() {
             thumbnailUrl = secureUrl.replace(/\.[^/.]+$/, ".jpg");
           }
 
+          setNewlyUploadedMediaItems((prev) => [
+            ...prev,
+            {
+              publicId: response.public_id,
+              resourceType: isVideo ? "video" : "image",
+              url: secureUrl,
+            },
+          ]);
+
           const newMedia: MediaItem = {
             id: response.public_id || `cloudinary_${Date.now()}`,
             url: secureUrl,
@@ -698,8 +712,53 @@ export default function ProductCreatePage() {
     xhr.send(formData);
   };
 
+  const handleDiscard = async () => {
+    if (newlyUploadedMediaItems.length > 0) {
+      const itemsToDelete = [...newlyUploadedMediaItems];
+      setNewlyUploadedMediaItems([]);
+      showToast("Cleaning up uploaded media...", "info");
+      try {
+        await Promise.all(
+          itemsToDelete.map((item) =>
+            deleteFromCloudinary({
+              publicId: item.publicId,
+              resourceType: item.resourceType,
+            })
+          )
+        );
+      } catch (e) {
+        console.warn("Cloudinary discard cleanup error:", e);
+      }
+    }
+    router.push("/dashboard/products/catalog");
+  };
+
+  useEffect(() => {
+    return () => {
+      if (!isSavedRef.current && newlyUploadedMediaItems.length > 0) {
+        newlyUploadedMediaItems.forEach((item) => {
+          deleteFromCloudinary({
+            publicId: item.publicId,
+            resourceType: item.resourceType,
+          });
+        });
+      }
+    };
+  }, [newlyUploadedMediaItems]);
+
   const removeMediaItem = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    const itemToRemove = mediaList.find((item) => item.id === id);
+    if (itemToRemove) {
+      const uploadedItem = newlyUploadedMediaItems.find((m) => m.url === itemToRemove.url || m.publicId === id);
+      if (uploadedItem) {
+        deleteFromCloudinary({
+          publicId: uploadedItem.publicId,
+          resourceType: uploadedItem.resourceType,
+        });
+        setNewlyUploadedMediaItems((prev) => prev.filter((m) => m.url !== itemToRemove.url));
+      }
+    }
     const updated = mediaList.filter(item => item.id !== id);
     if (mediaList.find(item => item.id === id)?.isMain && updated.length > 0) {
       updated[0].isMain = true;
@@ -907,6 +966,8 @@ export default function ProductCreatePage() {
       return;
     }
 
+    isSavedRef.current = true;
+    setNewlyUploadedMediaItems([]);
     setLoading(true);
     const mainMedia = mediaList.find(item => item.isMain) || mediaList[0];
 
@@ -1033,7 +1094,7 @@ export default function ProductCreatePage() {
         </div>
         <div className="flex gap-2 text-xs w-full sm:w-auto justify-end">
           <button
-            onClick={() => router.push("/dashboard/products/catalog")}
+            onClick={handleDiscard}
             className="px-4 py-2 rounded-[4px] bg-transparent border border-[#444748] text-[#e5e2e1] font-medium hover:bg-[#1c1b1b] transition-colors"
           >
             Discard
@@ -2047,7 +2108,7 @@ export default function ProductCreatePage() {
                             )}
                           </div>
                           <div className="truncate">
-                            <p className="text-xs font-bold text-white truncate">{mediaUrl}</p>
+                            {/* <p className="text-xs font-bold text-white truncate">{mediaUrl}</p> */}
                             <p className="text-[10px] text-[#c4c0ff] font-medium flex items-center gap-1 mt-0.5">
                               <CheckCircle2 className="w-3 h-3" /> Ready
                             </p>

@@ -251,6 +251,9 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
 
       const response = await api.post('/automations/', payload);
       if (response.data && response.data.success) {
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('automation-saved'));
+        }
         dispatch(setFlow({
           ...flow,
           id: String(response.data.id),

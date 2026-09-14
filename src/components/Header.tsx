@@ -201,7 +201,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
   const userDisplayName = appUser?.display_name || appUser?.first_name || "User";
   const googlePhoto = firebaseUser?.providerData?.find((p: any) => p.providerId === "google.com")?.photoURL || firebaseUser?.photoURL;
-  const userPhoto = googlePhoto || appUser?.photo_url || "https://static.vecteezy.com/system/resources/previews/002/318/271/non_2x/user-profile-icon-free-vector.jpg";
+  const userPhoto = appUser?.photo_url || appUser?.profile_picture_url || googlePhoto || "https://static.vecteezy.com/system/resources/previews/002/318/271/non_2x/user-profile-icon-free-vector.jpg";
 
   return (
     <div className="sticky top-0 z-[50] w-full flex flex-col bg-[#131313] border-b border-white/5 shrink-0 text-white">

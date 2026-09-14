@@ -216,7 +216,7 @@ class AuthService {
         }
     }
 
-    async updateProfile(data: { display_name: string }) {
+    async updateProfile(data: { display_name?: string; photo_url?: string; profile_picture_url?: string }) {
         try {
             const token = this.getAccessToken();
             const response = await axios.post(`${API_URL}/accounts/profile/update/`, data, {
@@ -224,10 +224,13 @@ class AuthService {
             });
             
             const currentUser = this.getCurrentUser() || {};
+            const photoUrl = response.data.photo_url !== undefined ? response.data.photo_url : (data.photo_url || data.profile_picture_url || currentUser.photo_url);
             const updatedUser = {
                 ...currentUser,
-                display_name: response.data.display_name || data.display_name,
-                first_name: response.data.display_name || data.display_name,
+                display_name: response.data.display_name || data.display_name || currentUser.display_name,
+                first_name: response.data.display_name || data.display_name || currentUser.first_name,
+                photo_url: photoUrl,
+                profile_picture_url: photoUrl,
             };
             store.dispatch(setUser(updatedUser));
             return response.data;

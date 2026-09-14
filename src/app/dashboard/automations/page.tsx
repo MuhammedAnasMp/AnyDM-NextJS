@@ -17,12 +17,49 @@ import { RootState } from "@/store";
 import { closeMediaPicker, updateNodeData, selectNode, setFlow } from "@/store/slices/flowSlice";
 import { useSearchParams } from "next/navigation";
 import api from "@/lib/services/api.service";
+import { deleteFromCloudinary } from "@/lib/services/cloudinary.service";
 
 export default function BuilderPage() {
   const dispatch = useDispatch();
   const [showPreview, setShowPreview] = useState(true);
   const searchParams = useSearchParams();
   const flowId = searchParams.get('id');
+
+  const sessionUploadedMediaRef = React.useRef<string[]>([]);
+  const isAutomationSavedRef = React.useRef<boolean>(false);
+
+  useEffect(() => {
+    sessionUploadedMediaRef.current = [];
+    isAutomationSavedRef.current = false;
+
+    const handleMediaUploaded = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail?.url) {
+        sessionUploadedMediaRef.current.push(customEvent.detail.url);
+      }
+    };
+
+    const handleAutomationSaved = () => {
+      isAutomationSavedRef.current = true;
+      sessionUploadedMediaRef.current = [];
+    };
+
+    window.addEventListener('cloudinary-media-uploaded', handleMediaUploaded);
+    window.addEventListener('automation-saved', handleAutomationSaved);
+
+    return () => {
+      window.removeEventListener('cloudinary-media-uploaded', handleMediaUploaded);
+      window.removeEventListener('automation-saved', handleAutomationSaved);
+
+      if (!isAutomationSavedRef.current && sessionUploadedMediaRef.current.length > 0) {
+        const itemsToDelete = [...sessionUploadedMediaRef.current];
+        sessionUploadedMediaRef.current = [];
+        itemsToDelete.forEach((url) => {
+          deleteFromCloudinary(url).catch(() => {});
+        });
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const saved = localStorage.getItem("showPreview");

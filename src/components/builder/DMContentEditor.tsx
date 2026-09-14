@@ -28,6 +28,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { deleteFromCloudinary } from '@/lib/services/cloudinary.service';
 import api from '@/lib/services/api.service';
 import { InstagramMediaPicker } from './InstagramMediaPicker';
 import { InstagramProfileCard } from './InstagramProfileCard';
@@ -1191,7 +1192,15 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
           const response = JSON.parse(xhr.responseText);
           const secureUrl = response.secure_url;
 
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('cloudinary-media-uploaded', { detail: { url: secureUrl } }));
+          }
+
           setCarouselElements(prev => {
+            const oldUrl = prev[cardIndex]?.image_url;
+            if (oldUrl && oldUrl !== secureUrl && oldUrl.includes('cloudinary.com')) {
+              deleteFromCloudinary(oldUrl).catch(() => {});
+            }
             const updated = [...prev];
             updated[cardIndex] = {
               ...updated[cardIndex],
@@ -1303,6 +1312,10 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
           try {
             const response = JSON.parse(xhr.responseText);
             const secureUrl = response.secure_url;
+
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('cloudinary-media-uploaded', { detail: { url: secureUrl } }));
+            }
 
             let detectedType: 'image' | 'video' | 'audio' | 'file' = 'image';
             const ext = file.name.split('.').pop()?.toLowerCase() || '';
@@ -1429,6 +1442,10 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
 
   const removeCarouselCard = (idx: number) => {
     if (carouselElements.length <= 1) return;
+    const cardToRemove = carouselElements[idx];
+    if (cardToRemove?.image_url && cardToRemove.image_url.includes("cloudinary.com")) {
+      deleteFromCloudinary(cardToRemove.image_url).catch(() => {});
+    }
     setCarouselElements(carouselElements.filter((_, i) => i !== idx));
     const nextIdx = Math.max(0, idx - 1);
     scrollToCard(nextIdx);
@@ -3690,7 +3707,14 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                     <h3 className="font-sora text-xs font-semibold text-white tracking-wider .">Attachments List ({attachments.length})</h3>
                     {attachments.length > 0 && (
                       <button
-                        onClick={() => setAttachments([])}
+                        onClick={() => {
+                          attachments.forEach(item => {
+                            if (item.url && item.url.includes("cloudinary.com")) {
+                              deleteFromCloudinary(item.url).catch(() => {});
+                            }
+                          });
+                          setAttachments([]);
+                        }}
                         className="text-[11px] font-bold text-red-400 hover:text-red-300 transition-colors flex items-center gap-1 cursor-pointer"
                       >
                         <Trash2 className="w-3.5 h-3.5" /> Clear All
@@ -3756,7 +3780,13 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
 
                             {/* Delete Action */}
                             <button
-                              onClick={() => setAttachments(attachments.filter((_, i) => i !== idx))}
+                              onClick={() => {
+                                const targetAtt = attachments[idx];
+                                if (targetAtt?.url && targetAtt.url.includes("cloudinary.com")) {
+                                  deleteFromCloudinary(targetAtt.url).catch(() => {});
+                                }
+                                setAttachments(attachments.filter((_, i) => i !== idx));
+                              }}
                               className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-xl text-zinc-500 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
                             >
                               <Trash2 className="w-4 h-4" />

@@ -1,6 +1,7 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { FlowState, FlowNode, FlowEdge, NodeType } from '@/lib/types';
 import templateCases from '@/lib/templateCases.json';
+import { deleteFromCloudinary } from '@/lib/services/cloudinary.service';
 
 const generateId = () => {
     return typeof crypto !== 'undefined' && crypto.randomUUID
@@ -176,12 +177,55 @@ const saveToPast = (state: FlowState) => {
         state.past.shift();
     }
     state.future = [];
-    state.lastEdit = null;
+};
+
+const extractMediaUrlsFromNode = (node: FlowNode): string[] => {
+    if (!node || !node.data) return [];
+    const urls: string[] = [];
+
+    const check = (val: any) => {
+        if (typeof val === 'string' && val.includes('cloudinary.com')) {
+            urls.push(val);
+        } else if (val && typeof val === 'object') {
+            if (val.url && typeof val.url === 'string' && val.url.includes('cloudinary.com')) {
+                urls.push(val.url);
+            }
+        }
+    };
+
+    ['image_url', 'media_url', 'video_url', 'audio_url', 'attachment_url', 'bg_image_url'].forEach(k => {
+        if (node.data[k]) check(node.data[k]);
+    });
+
+    if (Array.isArray(node.data.attachments)) {
+        node.data.attachments.forEach(att => check(att));
+    }
+
+    let elements: any[] = [];
+    const elemsJson = node.data.generic_template_elements_json;
+    if (typeof elemsJson === 'string' && elemsJson.trim()) {
+        try { elements = JSON.parse(elemsJson); } catch (e) { }
+    } else if (Array.isArray(elemsJson)) {
+        elements = elemsJson;
+    }
+    elements.forEach((elem: any) => {
+        if (elem?.image_url) check(elem.image_url);
+    });
+
+    return urls;
 };
 
 const deleteNodeRecursively = (state: FlowState, nodeId: string, visited: Set<string> = new Set()) => {
     if (visited.has(nodeId)) return;
     visited.add(nodeId);
+
+    const targetNode = state.nodes.find(n => n.id === nodeId);
+    if (targetNode) {
+        const mediaUrls = extractMediaUrlsFromNode(targetNode);
+        mediaUrls.forEach(url => {
+            deleteFromCloudinary(url).catch(() => {});
+        });
+    }
 
     // Find all outgoing non-loop downstream edges from this node
     const outgoingEdges = state.edges.filter(

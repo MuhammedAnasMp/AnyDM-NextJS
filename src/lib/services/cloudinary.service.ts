@@ -58,25 +58,105 @@ export const uploadToCloudinary = (
   });
 };
 
+export interface CloudinaryDeleteOptions {
+  cloudName?: string;
+  publicId?: string;
+  deleteToken?: string;
+  resourceType?: string;
+  url?: string;
+}
+
+export function extractPublicIdFromCloudinaryUrl(url: string): { publicId?: string; resourceType?: string } {
+  if (!url || typeof url !== "string") return {};
+  if (!url.includes("cloudinary.com")) return {};
+
+  try {
+    const parts = url.split("/");
+    const uploadIndex = parts.indexOf("upload");
+    if (uploadIndex === -1) return {};
+
+    const resourceType = parts[uploadIndex - 1] || "image";
+    let remainingParts = parts.slice(uploadIndex + 1);
+
+    if (remainingParts.length > 0 && /^v\d+$/.test(remainingParts[0])) {
+      remainingParts = remainingParts.slice(1);
+    }
+
+    if (remainingParts.length === 0) return { resourceType };
+
+    const fullPathWithExt = remainingParts.join("/");
+    const lastDotIndex = fullPathWithExt.lastIndexOf(".");
+    const publicId = lastDotIndex !== -1 ? fullPathWithExt.substring(0, lastDotIndex) : fullPathWithExt;
+
+    return { publicId, resourceType };
+  } catch (err) {
+    console.warn("Failed to extract publicId from Cloudinary URL:", err);
+    return {};
+  }
+}
+
 export const deleteFromCloudinary = async (
-  deleteToken?: string,
+  identifier?: string | CloudinaryDeleteOptions,
   options: { cloudName?: string } = {}
 ): Promise<boolean> => {
-  if (!deleteToken) return true;
-  const cloudName = options.cloudName || "dx5bqewfx";
+  if (!identifier) return true;
+
+  let cloudName = options.cloudName || "dx5bqewfx";
+  let token: string | undefined;
+  let publicId: string | undefined;
+  let resourceType = "image";
+
+  if (typeof identifier === "string") {
+    if (identifier.includes("cloudinary.com")) {
+      const extracted = extractPublicIdFromCloudinaryUrl(identifier);
+      publicId = extracted.publicId;
+      if (extracted.resourceType) resourceType = extracted.resourceType;
+    } else {
+      token = identifier;
+    }
+  } else if (typeof identifier === "object") {
+    if (identifier.cloudName) cloudName = identifier.cloudName;
+    token = identifier.deleteToken;
+    publicId = identifier.publicId;
+    if (identifier.resourceType) resourceType = identifier.resourceType;
+
+    if (!publicId && !token && identifier.url) {
+      const extracted = extractPublicIdFromCloudinaryUrl(identifier.url);
+      publicId = extracted.publicId;
+      if (extracted.resourceType) resourceType = extracted.resourceType;
+    }
+  }
+
+  if (!token && !publicId) return true;
 
   try {
     const formData = new FormData();
-    formData.append("token", deleteToken);
-
-    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/delete_by_token`, {
-      method: "POST",
-      body: formData,
-    });
-    const data = await res.json();
-    return data.result === "ok";
+    if (token) {
+      formData.append("token", token);
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/delete_by_token`, {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      return data.result === "ok";
+    } else if (publicId) {
+      const res = await fetch("/api/cloudinary/delete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          public_id: publicId,
+          resource_type: resourceType,
+        }),
+      });
+      const data = await res.json();
+      return data.success || data.result === "ok";
+    }
+    return true;
   } catch (err) {
     console.warn("Cloudinary delete failed:", err);
     return false;
   }
 };
+

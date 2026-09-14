@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { QrcodeCanvas } from "react-qrcode-pretty";
 import { cn } from "@/lib/utils";
-import { uploadToCloudinary } from "@/lib/services/cloudinary.service";
+import { uploadToCloudinary, deleteFromCloudinary } from "@/lib/services/cloudinary.service";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DESIGN.md ALIGNED MONOCHROME & LAVENDER PRESETS
@@ -310,10 +310,15 @@ export function QrCodeStudioModal({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const uploadedQrMediaItemsRef = useRef<{ public_id: string; resource_type: string; url: string }[]>([]);
+  const isQrSavedRef = useRef<boolean>(false);
 
-  // Sync initialConfig or localStorage if opened
+  // Sync initialConfig or localStorage if opened & reset refs
   useEffect(() => {
     if (isOpen) {
+      uploadedQrMediaItemsRef.current = [];
+      isQrSavedRef.current = false;
+
       let parsedLocal: any = null;
       if (typeof window !== "undefined" && username) {
         try {
@@ -340,6 +345,37 @@ export function QrCodeStudioModal({
       }
     }
   }, [isOpen, initialConfig, username]);
+
+  // Cancel and clean up unsaved Cloudinary custom logo uploads
+  const handleCancelQrModal = async () => {
+    if (!isQrSavedRef.current && uploadedQrMediaItemsRef.current.length > 0) {
+      const itemsToDelete = [...uploadedQrMediaItemsRef.current];
+      uploadedQrMediaItemsRef.current = [];
+      for (const item of itemsToDelete) {
+        if (item.public_id) {
+          deleteFromCloudinary({ publicId: item.public_id, resourceType: item.resource_type || "image" }).catch((err) =>
+            console.warn("Failed to delete QR custom logo from Cloudinary on cancel:", err)
+          );
+        }
+      }
+    }
+    onClose();
+  };
+
+  // Cleanup on component unmount
+  useEffect(() => {
+    return () => {
+      if (!isQrSavedRef.current && uploadedQrMediaItemsRef.current.length > 0) {
+        const itemsToDelete = [...uploadedQrMediaItemsRef.current];
+        uploadedQrMediaItemsRef.current = [];
+        itemsToDelete.forEach((item) => {
+          if (item.public_id) {
+            deleteFromCloudinary({ publicId: item.public_id, resourceType: item.resource_type || "image" }).catch(() => {});
+          }
+        });
+      }
+    };
+  }, []);
 
   // Reset verification messages when user changes settings
   useEffect(() => {
@@ -418,6 +454,23 @@ export function QrCodeStudioModal({
       });
 
       if (result && result.secure_url) {
+        // If replacing an existing custom logo uploaded during this session, delete previous asset
+        if (uploadedQrMediaItemsRef.current.length > 0) {
+          const prevMedia = uploadedQrMediaItemsRef.current[uploadedQrMediaItemsRef.current.length - 1];
+          if (prevMedia && prevMedia.public_id) {
+            deleteFromCloudinary({ publicId: prevMedia.public_id, resourceType: prevMedia.resource_type || "image" }).catch((err) =>
+              console.warn("Failed to delete replaced QR logo from Cloudinary:", err)
+            );
+          }
+        }
+
+        const newMedia = {
+          public_id: result.public_id,
+          resource_type: result.resource_type || "image",
+          url: result.secure_url,
+        };
+        uploadedQrMediaItemsRef.current.push(newMedia);
+
         setCustomLogoUrl(result.secure_url);
         setLogoType("custom");
       }
@@ -524,6 +577,7 @@ export function QrCodeStudioModal({
         // ONLY SAVE IF EXTERNAL API SUCCESSFULLY DECODED THE QR CODE IMAGE!
         setVerifiedDecodedText(result.decodedData);
         setIsSavedSuccess(true);
+        isQrSavedRef.current = true;
 
         const config: SavedQrConfig = {
           presetId: selectedPresetId,
@@ -574,7 +628,7 @@ export function QrCodeStudioModal({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
+            onClick={handleCancelQrModal}
             className="absolute inset-0 bg-[#0e0e0e]/85 backdrop-blur-md"
           />
 
@@ -601,7 +655,7 @@ export function QrCodeStudioModal({
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={onClose}
+                  onClick={handleCancelQrModal}
                   className="px-3 py-1.5 rounded bg-[#20201f] hover:bg-[#2c2c2c] border border-[#353535] text-xs font-semibold text-zinc-300 hover:text-white transition-all cursor-pointer select-none"
                 >
                   Cancel

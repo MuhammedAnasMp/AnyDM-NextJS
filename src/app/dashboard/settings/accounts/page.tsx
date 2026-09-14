@@ -28,7 +28,9 @@ import {
   ShieldCheck,
   Calendar,
   ArrowRight,
-  Hash
+  Hash,
+  Camera,
+  Upload
 } from "lucide-react";
 import { Avatar, OverlappingAvatars, UserAvatar } from "@/components/Avatar";
 import { motion, AnimatePresence } from "framer-motion";
@@ -46,6 +48,7 @@ import {
 import { useSearchParams, useRouter } from "next/navigation";
 import api from "@/lib/services/api.service";
 import { authService } from "@/lib/services/auth.service";
+import { uploadToCloudinary, deleteFromCloudinary } from "@/lib/services/cloudinary.service";
 import Toast from "@/components/Toast";
 import ConfirmationModal from "@/components/ConfirmationModal";
 import InstagramIcon from "@/components/ui/InstagramIcon";
@@ -271,6 +274,8 @@ function AccountsContent() {
   const [firebaseUser, setFirebaseUser] = useState<any>(null);
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState(appUser?.display_name || "");
+  const userAvatarInputRef = React.useRef<HTMLInputElement | null>(null);
+  const [uploadingUserAvatar, setUploadingUserAvatar] = useState(false);
   const [isInstagramLinking, setIsInstagramLinking] = useState(false);
   const [isLinkingEmail, setIsLinkingEmail] = useState(false);
   const [emailToLink, setEmailToLink] = useState("");
@@ -549,6 +554,66 @@ function AccountsContent() {
     setIsEditingName(false);
   };
 
+  const handleUserAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      showToast("Please select a valid image file", "error");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      showToast("Image size must be less than 5MB", "error");
+      return;
+    }
+
+    setUploadingUserAvatar(true);
+    try {
+      const oldPhotoUrl = appUser?.photo_url;
+      const uploadRes = await uploadToCloudinary(file);
+      const uploadedUrl = uploadRes.secure_url;
+
+      await authService.updateProfile({ photo_url: uploadedUrl });
+      showToast("Profile picture updated successfully", "success");
+
+      if (oldPhotoUrl && oldPhotoUrl.includes("cloudinary.com")) {
+        deleteFromCloudinary(oldPhotoUrl).catch((err) => {
+          console.error("Failed to delete old avatar from Cloudinary:", err);
+        });
+      }
+    } catch (err: any) {
+      console.error("Failed to upload profile picture:", err);
+      showToast("Failed to upload profile picture", "error");
+    } finally {
+      setUploadingUserAvatar(false);
+      if (userAvatarInputRef.current) {
+        userAvatarInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleRemoveUserAvatar = async () => {
+    if (!appUser?.photo_url) return;
+    const oldPhotoUrl = appUser.photo_url;
+    setUploadingUserAvatar(true);
+    try {
+      await authService.updateProfile({ photo_url: "" });
+      showToast("Profile picture removed", "success");
+
+      if (oldPhotoUrl && oldPhotoUrl.includes("cloudinary.com")) {
+        deleteFromCloudinary(oldPhotoUrl).catch((err) => {
+          console.error("Failed to delete avatar from Cloudinary:", err);
+        });
+      }
+    } catch (err) {
+      console.error("Failed to remove profile picture:", err);
+      showToast("Failed to remove profile picture", "error");
+    } finally {
+      setUploadingUserAvatar(false);
+    }
+  };
+
   const getFormattedExpiryDate = () => {
     const rawDate =
       stats?.expires_at ||
@@ -610,13 +675,47 @@ function AccountsContent() {
         {/* USER INFO CARD */}
         <div className="bg-[#1c1b1b] border border-[#2a2a2a] rounded-md p-4 md:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl">
           <div className="flex items-center gap-3.5 sm:gap-4 min-w-0">
-            {accounts.length > 0 ? (
-              <OverlappingAvatars accounts={accounts} size="md" />
-            ) : (
-              <div className="w-11 h-11 rounded-full bg-[#20201f] border border-[#2a2a2a] flex items-center justify-center text-[#e5e2e1] text-lg font-semibold shrink-0">
-                {(appUser?.display_name || appUser?.email || "U").slice(0, 1).toUpperCase()}
-              </div>
-            )}
+            <input
+              type="file"
+              ref={userAvatarInputRef}
+              onChange={handleUserAvatarUpload}
+              accept="image/*"
+              className="hidden"
+            />
+
+            <div className="relative group shrink-0">
+              {(appUser?.photo_url || appUser?.profile_picture_url) ? (
+                <div className="relative w-12 h-12 rounded-full overflow-hidden border border-[#3a3a3a] bg-[#20201f]">
+                  <img
+                    src={appUser.photo_url || appUser.profile_picture_url}
+                    alt="User Profile Picture"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ) : accounts.length > 0 ? (
+                <div className="relative w-12 h-12">
+                  <OverlappingAvatars accounts={accounts} size="md" />
+                </div>
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-[#20201f] border border-[#2a2a2a] flex items-center justify-center text-[#e5e2e1] text-lg font-semibold">
+                  {(appUser?.display_name || appUser?.email || "U").slice(0, 1).toUpperCase()}
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={() => userAvatarInputRef.current?.click()}
+                disabled={uploadingUserAvatar}
+                title="Change Profile Picture"
+                className="absolute inset-0 rounded-full bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white cursor-pointer"
+              >
+                {uploadingUserAvatar ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-purple-400" />
+                ) : (
+                  <Camera className="w-4 h-4" />
+                )}
+              </button>
+            </div>
 
             <div className="min-w-0">
               <div className="flex items-center gap-2">
@@ -677,9 +776,27 @@ function AccountsContent() {
                   </div>
                 )}
               </div>
-              <p className="text-xs text-[#8e9192] truncate mt-0.5">
-                {appUser?.email || firebaseUser?.email || "Workspace User"}
-              </p>
+              <div className="flex items-center gap-2.5 mt-0.5 flex-wrap">
+                <p className="text-xs text-[#8e9192] truncate">
+                  {appUser?.email || firebaseUser?.email || "Workspace User"}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => userAvatarInputRef.current?.click()}
+                  className="text-[11px] text-[#c4c0ff] hover:underline transition-all cursor-pointer shrink-0 font-medium"
+                >
+                  {appUser?.photo_url ? "Change avatar" : "Set profile picture"}
+                </button>
+                {appUser?.photo_url && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveUserAvatar}
+                    className="text-[11px] text-red-400 hover:underline transition-all cursor-pointer shrink-0 font-medium"
+                  >
+                    Remove avatar
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
