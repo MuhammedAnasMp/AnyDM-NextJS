@@ -38,6 +38,13 @@ function DashboardLayoutContent({
     };
   }, []);
 
+  // Check if page is loaded in an iframe or preview (e.g., Umami heatmap / session recorder)
+  const isAnalyticsPreview =
+    typeof window !== "undefined" &&
+    (window.self !== window.top ||
+      document.referrer.includes("mysitesanalytics.vercel.app") ||
+      window.location.search.includes("umami"));
+
   // 1. Monitor Firebase Auth State
   useEffect(() => {
     if (!auth) {
@@ -49,11 +56,13 @@ function DashboardLayoutContent({
         setFirebaseUser(currentUser);
       } else {
         dispatch(setHydrating(false));
-        router.push("/login");
+        if (!isAnalyticsPreview) {
+          router.push("/login");
+        }
       }
     });
     return () => unsubscribe();
-  }, [router, dispatch]);
+  }, [router, dispatch, isAnalyticsPreview]);
 
   const instagramAccounts = useSelector((state: RootState) => state.auth.instagramAccounts);
   const hasIgCode = searchParams ? searchParams.get("code") : null;
@@ -135,7 +144,7 @@ function DashboardLayoutContent({
             ? "flex flex-col flex-1 min-h-0 p-0 max-w-none overflow-hidden"
             : "w-full px-3 py-3 sm:px-4 sm:py-3.5"
         )}>
-          {firebaseUser ? children : null}
+          {firebaseUser || isAnalyticsPreview ? children : null}
         </main>
       </div>
     </div>

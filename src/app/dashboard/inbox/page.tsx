@@ -195,7 +195,8 @@ export default function InboxPage() {
         } catch (sysErr) {
           console.error("Error loading global system settings:", sysErr);
         }
-        const res = await api.get("/crm/ai-settings/");
+        const aiUrl = activeAccount?.id ? `/crm/ai-settings/?account_id=${activeAccount.id}` : "/crm/ai-settings/";
+        const res = await api.get(aiUrl);
         if (res.data) {
           setGlobalAIOn(res.data.is_ai_mode_on);
         }
@@ -204,7 +205,7 @@ export default function InboxPage() {
       }
     };
     fetchGlobalAIStatus();
-  }, [isPremiumActive]);
+  }, [isPremiumActive, activeAccount?.id]);
 
   // Outbound sending states
   const [inputText, setInputText] = useState("");
@@ -336,8 +337,14 @@ export default function InboxPage() {
 
 
   useEffect(() => {
-    if (!isPremiumActive) return;
-    if (!activeAccount?.id) return;
+    if (!isPremiumActive) {
+      setLoading(false);
+      return;
+    }
+    if (!activeAccount?.id) {
+      setLoading(false);
+      return;
+    }
 
     const isDifferentAccount = globalConversationsCache && globalConversationsCache.accountId !== activeAccount.id;
 
@@ -525,6 +532,11 @@ export default function InboxPage() {
 
 
   const fetchConversations = async (silent = false) => {
+    if (!activeAccount?.id) {
+      setConversations([]);
+      setLoading(false);
+      return;
+    }
     try {
       if (!silent) setLoading(true);
       const res = await api.get("/crm/conversations/", {
@@ -1230,11 +1242,6 @@ export default function InboxPage() {
               <h2 className="text-xs font-bold text-white leading-none">
                 {businessInfo?.username || activeAccount?.username || "Inbox"}
               </h2>
-              {enableAi && (
-                <span className={`text-[8px] font-bold tracking-widest mt-0.5 block ${globalAIOn ? "text-[#b6b2ff]" : "text-white/30"}`}>
-                  AI {globalAIOn ? "ON" : "OFF"}
-                </span>
-              )}
             </div>
           </div>
           <div className="flex items-center gap-1.5">
@@ -1242,8 +1249,9 @@ export default function InboxPage() {
               onClick={() => { fetchConversations(); if (selectedConversation) fetchMessages(selectedConversation.id); }}
               disabled={loading}
               className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 border border-white/[0.07] flex items-center justify-center text-white/50 hover:text-white transition-all active:scale-95 disabled:opacity-40"
+              title="Refresh conversations"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+              <RefreshCw className="w-3.5 h-3.5" />
             </button>
 
           </div>
@@ -1274,9 +1282,22 @@ export default function InboxPage() {
         {/* Conversation Items */}
         <div className="flex-1 overflow-y-auto px-2 pb-4 space-y-0.5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full">
           {loading ? (
-            <div className="flex flex-col items-center justify-center gap-3 py-20 text-white/25">
-              <div className="w-5 h-5 rounded-full border-2 border-white/20 border-t-white/60 animate-spin" />
-              <span className="text-[10px] font-semibold tracking-widest">Loading chats</span>
+            <div className="space-y-2 p-1">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="flex items-center gap-2.5 p-2 rounded-lg bg-white/[0.03] animate-pulse">
+                  <div className="w-9 h-9 rounded-full bg-white/10 shrink-0" />
+                  <div className="flex-1 space-y-1.5 min-w-0">
+                    <div className="h-3 bg-white/10 rounded w-24" />
+                    <div className="h-2 bg-white/5 rounded w-36" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : !activeAccount?.id ? (
+            <div className="flex flex-col items-center justify-center gap-2 py-20 text-white/40 text-center px-4">
+              <span className="material-symbols-outlined text-4xl text-[#c4c0ff]">account_circle</span>
+              <span className="text-xs font-semibold text-white">No Instagram Account Connected</span>
+              <span className="text-[11px] text-[#8e9192]">Connect your Instagram account in Settings to start receiving messages.</span>
             </div>
           ) : filteredConversations.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-2 py-20 text-white/20">
@@ -1412,7 +1433,7 @@ export default function InboxPage() {
                 </div>
               )}
 
-              {loadingMessages ? (
+              {loadingMessages && !loading ? (
                 <div className="flex flex-col items-center justify-center gap-3 h-full text-white/25">
                   <div className="w-6 h-6 rounded-full border-2 border-white/20 border-t-white/60 animate-spin" />
                   <span className="text-[10px] tracking-widest font-semibold">Loading messages</span>
