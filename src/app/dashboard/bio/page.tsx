@@ -1,12 +1,15 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence, Reorder } from "framer-motion";
 import QRCode from "qrcode";
 import api from "@/lib/services/api.service";
 import { uploadToCloudinary, deleteFromCloudinary } from "@/lib/services/cloudinary.service";
 import { cn } from "@/lib/utils";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store";
 import LinkInBioPublicView, {
   BIO_THEMES,
   SocialIcons,
@@ -57,6 +60,7 @@ import {
   Upload,
   Loader2,
   Type,
+  Search,
   RotateCcw,
   ChevronDown,
   ChevronLeft,
@@ -203,6 +207,15 @@ const PRESET_THEME_GRADIENTS: Record<string, string> = {
 };
 
 export default function LinkInBioDashboard() {
+  const appUser = useSelector((state: RootState) => state.auth.user);
+  const instagramAccounts = useSelector((state: RootState) => state.auth.instagramAccounts || []);
+  const activeAccount = useMemo(() => {
+    return (
+      instagramAccounts.find((acc: any) => acc.id === appUser?.active_instagram_account_id) ||
+      instagramAccounts[0]
+    );
+  }, [instagramAccounts, appUser?.active_instagram_account_id]);
+
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -242,9 +255,56 @@ export default function LinkInBioDashboard() {
     total_blocks: 0,
   });
 
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+
   const [previewDevice, setPreviewDevice] = useState<"mobile" | "tablet" | "desktop">("mobile");
   const [previewKey, setPreviewKey] = useState<number>(0);
-  const [activeTab, setActiveTab] = useState<"blocks" | "styling" | "social" | "redirects" | "settings" | "analytics">("blocks");
+  const [activeTab, setActiveTabState] = useState<"blocks" | "styling" | "social" | "redirects" | "settings" | "analytics">("analytics");
+
+  // Helper function to set active tab and sync with URL parameter (?tab=styling|blocks|social|redirects|analytics)
+  const setActiveTab = (newTab: "blocks" | "styling" | "social" | "redirects" | "settings" | "analytics") => {
+    setActiveTabState(newTab);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("tab", newTab);
+      window.history.replaceState(null, "", url.toString());
+    }
+  };
+
+  // Synchronize initial activeTab from URL search query parameter
+  useEffect(() => {
+    if (!searchParams) return;
+    const tabParam = searchParams.get("tab")?.toLowerCase();
+    if (tabParam) {
+      if (tabParam === "style" || tabParam === "styles" || tabParam === "styling") {
+        setActiveTabState("styling");
+      } else if (tabParam === "block" || tabParam === "blocks") {
+        setActiveTabState("blocks");
+      } else if (
+        tabParam === "social" ||
+        tabParam === "socialhub" ||
+        tabParam === "social-hub" ||
+        tabParam === "social_hub"
+      ) {
+        setActiveTabState("social");
+      } else if (
+        tabParam === "redirect" ||
+        tabParam === "redirects" ||
+        tabParam === "redirect-rules"
+      ) {
+        setActiveTabState("redirects");
+      } else if (tabParam === "analytics") {
+        setActiveTabState("analytics");
+      } else if (tabParam === "settings") {
+        setActiveTabState("settings");
+      }
+    }
+  }, [searchParams]);
+  const [analyticsCategory, setAnalyticsCategory] = useState<"all" | "blocks" | "social" | "redirects">("all");
+  const [analyticsSearch, setAnalyticsSearch] = useState<string>("");
+
   const [draggableTabs, setDraggableTabs] = useState<string[]>([
     "blocks",
     "social",
@@ -330,8 +390,11 @@ export default function LinkInBioDashboard() {
   }, []);
 
   const showToast = (message: string, type: "success" | "error" = "success") => {
-    setToastMessage(message);
-    setToastType(type);
+    setToastMessage(null);
+    setTimeout(() => {
+      setToastMessage(message);
+      setToastType(type);
+    }, 10);
   };
 
   useEffect(() => {
@@ -555,8 +618,30 @@ export default function LinkInBioDashboard() {
   const handleSavePageSettings = async (overrideData?: Partial<BioPageData>) => {
     setSaving(true);
     try {
+      let finalProfileImg =
+        overrideData?.profile_image_url !== undefined ? overrideData.profile_image_url : page.profile_image_url;
+
+      // If no custom profile image is provided, upload the default avatar to Cloudinary and store in data
+      if (!finalProfileImg && defaultAvatarUrl) {
+        try {
+          const avatarRes = await fetch(defaultAvatarUrl);
+          if (avatarRes.ok) {
+            const blob = await avatarRes.blob();
+            const file = new File([blob], `bio_avatar_${Date.now()}.jpg`, { type: blob.type || "image/jpeg" });
+            const cRes = await uploadToCloudinary(file);
+            if (cRes && cRes.secure_url) {
+              finalProfileImg = cRes.secure_url;
+            }
+          }
+        } catch (err) {
+          console.warn("Could not upload default avatar to Cloudinary, storing default URL:", err);
+          finalProfileImg = defaultAvatarUrl;
+        }
+      }
+
       const payload = {
         ...page,
+        profile_image_url: finalProfileImg,
         section_order: draggableTabs,
         blocks_enabled: page.blocks_enabled !== false,
         social_enabled: page.social_enabled !== false,
@@ -570,54 +655,57 @@ export default function LinkInBioDashboard() {
           show_social_usernames: page.show_social_usernames,
         },
       };
-      const res = await api.put<{ page: BioPageData }>("/accounts/link-in-bio/", payload);
-      if (res.data && res.data.page) {
-        const loaded = res.data.page;
-        const cTheme = loaded.custom_theme || {};
-        const rawLoadedOrder = loaded.section_order || cTheme.section_order;
-        const loadedOrder: string[] = Array.isArray(rawLoadedOrder) ? (rawLoadedOrder as string[]) : draggableTabs;
-        if (loadedOrder.length > 0) {
-          setDraggableTabs(loadedOrder);
+      const res = await api.put<{ page?: BioPageData }>("/accounts/link-in-bio/", payload);
+      if (res.data) {
+        const loaded = res.data.page || (res.data as unknown as BioPageData);
+        if (loaded && typeof loaded === "object") {
+          const cTheme = loaded.custom_theme || {};
+          const rawLoadedOrder = loaded.section_order || cTheme.section_order;
+          const loadedOrder: string[] = Array.isArray(rawLoadedOrder) ? (rawLoadedOrder as string[]) : draggableTabs;
+          if (loadedOrder.length > 0) {
+            setDraggableTabs(loadedOrder);
+          }
+          setPage({
+            ...loaded,
+            section_order: loadedOrder,
+            blocks_enabled:
+              loaded.blocks_enabled !== undefined
+                ? Boolean(loaded.blocks_enabled)
+                : cTheme.blocks_enabled !== undefined
+                  ? Boolean(cTheme.blocks_enabled)
+                  : true,
+            social_enabled:
+              loaded.social_enabled !== undefined
+                ? Boolean(loaded.social_enabled)
+                : cTheme.social_enabled !== undefined
+                  ? Boolean(cTheme.social_enabled)
+                  : true,
+            smart_redirect_enabled:
+              loaded.smart_redirect_enabled !== undefined
+                ? Boolean(loaded.smart_redirect_enabled)
+                : true,
+            smart_input_placeholder: loaded.smart_input_placeholder || "Paste link here...",
+            smart_input_button_text: loaded.smart_input_button_text || "Get Link",
+            smart_input_title: loaded.smart_input_title || "Have a Reel or Promo Link?",
+            custom_theme: {
+              background_type: cTheme.background_type || "preset",
+              background_color: cTheme.background_color || "#131313",
+              background_image_url: cTheme.background_image_url || "",
+              background_overlay: cTheme.background_overlay || "dark",
+              text_color: cTheme.text_color || "",
+              ...cTheme,
+            },
+            show_social_usernames:
+              loaded.show_social_usernames !== undefined
+                ? Boolean(loaded.show_social_usernames)
+                : cTheme.show_social_usernames !== undefined
+                  ? Boolean(cTheme.show_social_usernames)
+                  : true,
+          });
+          if (loaded.username) {
+            setUsernameInput(loaded.username);
+          }
         }
-        setPage({
-          ...loaded,
-          section_order: loadedOrder,
-          blocks_enabled:
-            loaded.blocks_enabled !== undefined
-              ? Boolean(loaded.blocks_enabled)
-              : cTheme.blocks_enabled !== undefined
-                ? Boolean(cTheme.blocks_enabled)
-                : true,
-          social_enabled:
-            loaded.social_enabled !== undefined
-              ? Boolean(loaded.social_enabled)
-              : cTheme.social_enabled !== undefined
-                ? Boolean(cTheme.social_enabled)
-                : true,
-          smart_redirect_enabled:
-            loaded.smart_redirect_enabled !== undefined
-              ? Boolean(loaded.smart_redirect_enabled)
-              : true,
-          smart_input_placeholder: loaded.smart_input_placeholder || "Paste link here...",
-          smart_input_button_text: loaded.smart_input_button_text || "Get Link",
-          smart_input_title: loaded.smart_input_title || "Have a Reel or Promo Link?",
-          custom_theme: {
-            background_type: cTheme.background_type || "preset",
-            background_color: cTheme.background_color || "#131313",
-            background_image_url: cTheme.background_image_url || "",
-            background_overlay: cTheme.background_overlay || "dark",
-            text_color: cTheme.text_color || "",
-            ...cTheme,
-          },
-          show_social_usernames:
-            loaded.show_social_usernames !== undefined
-              ? Boolean(loaded.show_social_usernames)
-              : cTheme.show_social_usernames !== undefined
-                ? Boolean(cTheme.show_social_usernames)
-                : true,
-        });
-        setUsernameInput(loaded.username);
-        showToast("Saved successfully");
         setPreviewKey((k) => k + 1);
       }
     } catch (err: unknown) {
@@ -841,8 +929,8 @@ export default function LinkInBioDashboard() {
   const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "zoyee.in";
   const publicBioUrl =
     typeof window !== "undefined"
-      ? `${window.location.origin}/@${page.username}`
-      : `https://${rootDomain}/@${page.username}`;
+      ? `${window.location.origin}/${page.username}`
+      : `https://${rootDomain}/${page.username}`;
 
   const handleCopyBioLink = () => {
     if (typeof navigator !== "undefined") {
@@ -873,10 +961,18 @@ export default function LinkInBioDashboard() {
   const currentBgOverlay = page.custom_theme?.background_overlay || "dark";
   const currentTextColor = page.custom_theme?.text_color || "";
 
+  const defaultAvatarUrl =
+    page.profile_image_url ||
+    activeAccount?.profile_picture_url ||
+    appUser?.photo_url ||
+    appUser?.profile_picture_url ||
+    "";
+
   // Real-time live preview data reflects form updates immediately without needing save
   const livePreviewData: PublicBioPayload = {
     page: {
       ...page,
+      profile_image_url: defaultAvatarUrl,
       section_order: draggableTabs,
       username: usernameInput || page.username,
       blocks_enabled: page.blocks_enabled !== false,
@@ -890,13 +986,13 @@ export default function LinkInBioDashboard() {
     creator: {
       username: usernameInput || page.username,
       full_name: page.title || usernameInput || page.username,
-      profile_picture_url: page.profile_image_url,
+      profile_picture_url: defaultAvatarUrl,
     },
   };
 
   return (
     <div
-      className="min-h-screen text-[#e5e2e1] pb-6 space-y-3 font-sans"
+      className="min-h-[calc(100vh+200px)] text-[#e5e2e1] pb-32 space-y-3 font-sans"
       style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}
     >
       {toastMessage && (
@@ -908,11 +1004,11 @@ export default function LinkInBioDashboard() {
         />
       )}
 
-      {/* Top Header Card (2 rows on mobile, 1 row on desktop) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-[#1c1b1b] p-2 sm:px-2.5 sm:py-1 rounded border border-[#20201f]">
-        {/* Row 1 on Mobile: User Link & Active Status Toggle */}
+      {/* Top Header Card (Sticky below dashboard header, 2 rows on mobile, 1 row on desktop) */}
+      <div className="sticky top-[64px] z-30 flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-[#1c1b1b]/95 backdrop-blur-md p-2 sm:px-2.5 sm:py-1.5 rounded border border-[#20201f] shadow-lg">
+        {/* Left Side: User Link & Edit Username */}
         <div className="flex items-center justify-between gap-2 w-full sm:w-auto min-w-0">
-          <div className="flex items-center gap-2 min-w-0 flex-1">
+          <div className="flex items-center gap-2 min-w-0">
             <div className="w-6.5 h-6.5 rounded bg-white/5 border border-white/10 flex items-center justify-center text-white shrink-0">
               <Link2 className="w-3.5 h-3.5 text-[#c4c0ff]" />
             </div>
@@ -920,7 +1016,7 @@ export default function LinkInBioDashboard() {
             <div className="flex items-center gap-2 min-w-0">
               {isEditingUsername ? (
                 <div className="flex items-center gap-1 bg-[#121214] border border-[#353535] focus-within:border-white/50 rounded px-2 py-0.5 text-xs text-white">
-                  <span className="text-zinc-500 font-mono text-[11px] select-none">{rootDomain}/@</span>
+                  <span className="text-zinc-500 font-mono text-[11px] select-none">{rootDomain}/</span>
                   <input
                     type="text"
                     value={usernameInput}
@@ -973,7 +1069,7 @@ export default function LinkInBioDashboard() {
                     title="Click to copy link"
                   >
                     <span className="text-xs font-bold text-white tracking-tight truncate">
-                      {rootDomain}/@{page.username}
+                      {rootDomain}/{page.username}
                     </span>
                     {copiedLink ? (
                       <Check className="w-3 h-3 text-emerald-400 shrink-0" />
@@ -992,104 +1088,24 @@ export default function LinkInBioDashboard() {
                 </div>
               )}
             </div>
+            {/* Open Button (hidden on mobile < sm) */}
+            <a
+              href={publicBioUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden sm:flex items-center justify-center gap-1 px-2.5 py-1 rounded bg-[#20201f] hover:bg-[#2c2c2c] border border-[#353535] text-xs font-semibold text-white transition-all"
+            >
+              <ExternalLink className="w-3.5 h-3.5 text-zinc-400" />
+              <span>Open</span>
+            </a>
           </div>
 
-          {/* Active Status Switch Toggle */}
+          {/* Mobile Save Button (Right side end of the user name edit / first line) */}
           <button
             type="button"
-            role="switch"
-            aria-checked={page.is_published}
-            onClick={() => {
-              const nextPublished = !page.is_published;
-              setPage((prev) => ({ ...prev, is_published: nextPublished }));
-              handleSavePageSettings({ is_published: nextPublished });
-            }}
-            className="flex items-center gap-2 cursor-pointer select-none bg-[#141414] px-2.5 py-1 rounded border border-[#2c2c2c] hover:border-[#3d3d3d] transition-all shrink-0"
-            title={page.is_published ? "Status: Active (Click to Disable)" : "Status: Inactive (Click to Enable)"}
-          >
-            <span className={cn("text-xs font-bold tracking-tight", page.is_published ? "text-white" : "text-zinc-400")}>
-              {page.is_published ? "Active" : "Inactive"}
-            </span>
-            <div
-              className={cn(
-                "w-7 h-4 rounded-full p-0.5 transition-colors duration-200 flex items-center",
-                page.is_published ? "bg-emerald-500" : "bg-zinc-700"
-              )}
-            >
-              <div
-                className={cn(
-                  "w-3 h-3 rounded-full bg-white transition-transform duration-200 shadow-sm",
-                  page.is_published ? "translate-x-3" : "translate-x-0"
-                )}
-              />
-            </div>
-          </button>
-        </div>
-
-        {/* Row 2 on Mobile: Action Buttons (Analytics, Preview, Save) */}
-        <div className="grid grid-cols-3 sm:flex items-center gap-1.5 w-full sm:w-auto shrink-0 border-t border-white/5 pt-2 sm:border-0 sm:pt-0">
-          <button
-            type="button"
-            onClick={() => setActiveTab(activeTab === "analytics" ? "blocks" : "analytics")}
-            className={cn(
-              "px-2 py-1.5 sm:px-2.5 sm:py-1 rounded border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none",
-              activeTab === "analytics"
-                ? "bg-white text-black font-bold border-white shadow-sm hover:bg-zinc-200"
-                : "bg-[#20201f] hover:bg-[#2c2c2c] border-[#353535] text-white"
-            )}
-            title={activeTab === "analytics" ? "Back to Bio Editor" : "View Analytics"}
-          >
-            {activeTab === "analytics" ? (
-              <>
-                <ArrowLeft className="w-3.5 h-3.5 text-black" />
-                <span>Set Bio</span>
-              </>
-            ) : (
-              <>
-                <BarChart3 className="w-3.5 h-3.5 text-zinc-400" />
-                <span>Analytics</span>
-              </>
-            )}
-          </button>
-
-          {/* Mobile Preview Button (< xl) */}
-          {activeTab !== "analytics" && (
-            <button
-              type="button"
-              onClick={() => setMockPreviewModalOpen(true)}
-              className="flex xl:hidden items-center justify-center gap-1.5 px-2 py-1.5 sm:px-2.5 sm:py-1 rounded bg-[#20201f] hover:bg-[#2c2c2c] border border-[#353535] text-xs font-semibold text-white transition-all cursor-pointer"
-              title="Preview Live Page"
-            >
-              <Eye className="w-3.5 h-3.5 text-[#c4c0ff]" />
-              <span>Preview</span>
-            </button>
-          )}
-
-          {/* QR Code Button (hidden on mobile < sm) */}
-          <button
-            type="button"
-            onClick={() => setQrModalOpen(true)}
-            className="hidden sm:flex items-center justify-center gap-1 px-2.5 py-1 rounded bg-[#20201f] hover:bg-[#2c2c2c] border border-[#353535] text-xs font-semibold text-white transition-all cursor-pointer"
-          >
-            <QrCode className="w-3.5 h-3.5 text-zinc-400" />
-            <span>QR Code</span>
-          </button>
-
-          {/* Open Button (hidden on mobile < sm) */}
-          <a
-            href={publicBioUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hidden sm:flex items-center justify-center gap-1 px-2.5 py-1 rounded bg-[#20201f] hover:bg-[#2c2c2c] border border-[#353535] text-xs font-semibold text-white transition-all"
-          >
-            <ExternalLink className="w-3.5 h-3.5 text-zinc-400" />
-            <span>Open</span>
-          </a>
-
-          <button
             onClick={() => handleSavePageSettings()}
             disabled={saving}
-            className="px-3 py-1.5 sm:py-1 rounded bg-white hover:bg-zinc-200 text-black font-bold text-xs flex items-center justify-center gap-1 transition-all cursor-pointer disabled:opacity-50"
+            className="flex sm:hidden px-3 py-1 rounded bg-white hover:bg-zinc-200 text-black font-bold text-xs items-center justify-center gap-1 transition-all cursor-pointer disabled:opacity-50 shrink-0 shadow-sm"
           >
             {saving ? (
               <>
@@ -1104,79 +1120,174 @@ export default function LinkInBioDashboard() {
             )}
           </button>
         </div>
+
+        {/* Right Side Actions & Active Status Toggle */}
+        <div className="flex items-center justify-end gap-2 w-full sm:w-auto shrink-0  border-t sm:border-0 border-white/5">
+          {/* Active Status Switch Toggle (Right side position) */}
+          <button
+            type="button"
+            role="switch"
+            aria-checked={page.is_published}
+            onClick={() => {
+              const nextPublished = !page.is_published;
+              setPage((prev) => ({ ...prev, is_published: nextPublished }));
+              handleSavePageSettings({ is_published: nextPublished });
+            }}
+            className={cn(
+              "flex items-center gap-2.5 px-1.5 pl-2 py-1 rounded-full border text-xs font-bold transition-all duration-200 cursor-pointer select-none shrink-0 shadow-sm active:scale-95",
+              page.is_published
+                ? "bg-emerald-500/10 border-emerald-500/35 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.15)] hover:bg-emerald-500/20"
+                : "bg-[#121214] border-[#2c2c2c] text-zinc-400 hover:text-zinc-200 hover:border-zinc-700"
+            )}
+            title={page.is_published ? "Status: Live & Active (Click to Disable)" : "Status: Offline & Inactive (Click to Enable)"}
+          >
+            <div className="flex items-center gap-1.5">
+
+              <span className="tracking-tight text-[11px] font-bold">
+                {page.is_published ? "Page Active" : "Page Inactive"}
+              </span>
+            </div>
+
+            <div
+              className={cn(
+                "w-8 h-4.5 rounded-full p-0.5 transition-colors duration-200 flex items-center shadow-inner",
+                page.is_published ? "bg-emerald-500" : "bg-zinc-700"
+              )}
+            >
+              <div
+                className={cn(
+                  "w-3.5 h-3.5 rounded-full bg-white transition-transform duration-200 shadow-md",
+                  page.is_published ? "translate-x-3.5" : "translate-x-0"
+                )}
+              />
+            </div>
+          </button>
+
+          {/* Action Buttons (Preview Modal Button, QR Code, Open, Save) */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {/* Mobile Mockup Preview Button (< xl) */}
+            {activeTab !== "analytics" && (
+              <button
+                type="button"
+                onClick={() => setMockPreviewModalOpen(true)}
+                className="flex xl:hidden items-center justify-center gap-1.5 px-2 py-1 rounded bg-[#20201f] hover:bg-[#2c2c2c] border border-[#353535] text-xs font-semibold text-white transition-all cursor-pointer"
+                title="Preview Live Page Mockup"
+              >
+                <Smartphone className="w-3.5 h-3.5 text-[#c4c0ff]" />
+                <span className="hidden xs:inline">Preview</span>
+              </button>
+            )}
+
+            {/* QR Code Button (hidden on mobile < sm) */}
+            <button
+              type="button"
+              onClick={() => setQrModalOpen(true)}
+              className="hidden sm:flex items-center justify-center gap-1 px-2.5 py-1 rounded bg-[#20201f] hover:bg-[#2c2c2c] border border-[#353535] text-xs font-semibold text-white transition-all cursor-pointer"
+            >
+              <QrCode className="w-3.5 h-3.5 text-zinc-400" />
+              <span>QR Code</span>
+            </button>
+
+
+
+            {/* Desktop Save Button (>= sm) */}
+            <button
+              type="button"
+              onClick={() => handleSavePageSettings()}
+              disabled={saving}
+              className="hidden sm:flex w-22 px-3 py-1 rounded bg-white hover:bg-zinc-200 text-black font-bold text-xs items-center justify-center gap-1 transition-all cursor-pointer disabled:opacity-50"
+            >
+              {saving ? (
+                <>
+                  <div className="w-3 h-3 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                  <span>Saving…</span>
+                </>
+              ) : (
+                <>
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Save</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Horizontal Tabs & Device Switcher Bar */}
-      {activeTab !== "analytics" && (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 bg-[#151515] p-1 rounded border border-[#20201f]">
-          {/* Left: Horizontal Tabs (Pinned Styling + Draggable Page Sections + Separate Analytics Section) */}
-          <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
-            {/* Pinned Tab 1: Styling */}
-            <button
-              type="button"
-              onClick={() => setActiveTab("styling")}
-              className={cn(
-                "px-2.5 py-1.5 rounded border border-[#2c2c2c] bg-[#101010]  text-[11px] font-semibold flex items-center gap-1.5 whitespace-nowrap transition-all cursor-pointer shrink-0 select-none",
-                activeTab === "styling"
-                  ? "bg-white text-black font-bold shadow-sm"
-                  : "text-zinc-400 hover:text-white hover:bg-white/5"
-              )}
-            >
-              {activeTab === "styling" && <Palette className="w-3 h-3 shrink-0" />}
-              <span>Styling</span>
-            </button>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 bg-[#151515] p-1 rounded border border-[#20201f]">
+        {/* Left: Horizontal Tabs (Analytics + Pinned Styling + Draggable Page Sections) */}
+        <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
+          {/* Analytics Tab Button (Before Styling) */}
+          <button
+            type="button"
+            onClick={() => setActiveTab("analytics")}
+            className={cn(
+              "px-2.5 py-1.5 rounded text-[11px] font-semibold flex items-center gap-1.5 whitespace-nowrap transition-all cursor-pointer shrink-0 select-none mr-2",
+              activeTab === "analytics"
+                ? "bg-white text-black font-bold shadow-sm"
+                : "border border-[#2c2c2c] bg-[#101010] text-zinc-400 hover:text-white hover:bg-white/5"
+            )}
+            title="View Analytics"
+          >
+            <BarChart3 className={cn("w-3 h-3 shrink-0", activeTab === "analytics" ? "text-black" : "text-zinc-400")} />
+            <span className="hidden sm:inline">Analytics</span>
+          </button>
 
-            {/* Draggable Page Sections (Blocks, Social Hub, Redirects) */}
-            <Reorder.Group
-              axis="x"
-              values={draggableTabs}
-              onReorder={handleTabReorder}
-              className="flex items-center gap-1 border border-[#2c2c2c] bg-[#101010] p-0.5 rounded"
-            >
-              {draggableTabs.map((tabId) => {
-                const tabMeta: Record<string, { label: string; icon: any; count?: number }> = {
-                  blocks: { label: "Blocks", icon: Layers, count: blocks.length },
-                  social: {
-                    label: "Social Hub",
-                    icon: Share2,
-                    count: page.social_accounts?.filter((s) => s.is_active && s.url).length || 0,
-                  },
-                  redirects: { label: "Redirects", icon: Sparkles, count: redirectRules.length },
-                };
+          {/* Pinned Tab 1: Styling */}
+          <button
+            type="button"
+            onClick={() => setActiveTab("styling")}
+            className={cn(
+              "px-2.5 py-1.5 rounded border border-[#2c2c2c] bg-[#101010] text-[11px] font-semibold flex items-center gap-1.5 whitespace-nowrap transition-all cursor-pointer shrink-0 select-none",
+              activeTab === "styling"
+                ? "bg-white text-black font-bold shadow-sm"
+                : "text-zinc-400 hover:text-white hover:bg-white/5"
+            )}
+          >
+            {activeTab === "styling" && <Palette className="w-3 h-3 shrink-0 hidden sm:inline-block" />}
+            <span>Styling</span>
+          </button>
 
-                const meta = tabMeta[tabId];
-                if (!meta) return null;
-                const Icon = meta.icon;
-                const isActive = activeTab === tabId;
+          {/* Page Sections (Blocks, Social Hub, Redirects) */}
+          <div className="flex items-center gap-1 border border-[#2c2c2c] bg-[#101010] p-0.5 rounded">
+            {draggableTabs.map((tabId) => {
+              const tabMeta: Record<string, { label: string; icon: any; count?: number }> = {
+                blocks: { label: "Blocks", icon: Layers, count: blocks.length },
+                social: {
+                  label: "Social Hub",
+                  icon: Share2,
+                  count: page.social_accounts?.filter((s) => s.is_active && s.url).length || 0,
+                },
+                redirects: { label: "Redirects", icon: Sparkles, count: redirectRules.length },
+              };
 
-                return (
-                  <Reorder.Item
-                    key={tabId}
-                    value={tabId}
-                    className="shrink-0"
-                    title="Drag tab to reorder public section"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab(tabId as any)}
-                      className={cn(
-                        "px-2.5 py-1 rounded text-[11px] font-semibold flex items-center gap-1.5 whitespace-nowrap transition-all cursor-grab active:cursor-grabbing shrink-0 select-none group",
-                        isActive
-                          ? "bg-white text-black font-bold shadow-sm"
-                          : "text-zinc-400 hover:text-white hover:bg-white/5"
-                      )}
-                    >
-                      <GripVertical className="w-3 h-3 text-zinc-500 opacity-60 group-hover:opacity-100 shrink-0 transition-opacity" />
-                      {isActive && <Icon className="w-3 h-3 shrink-0" />}
-                      <span>{meta.label}</span>
-                    </button>
-                  </Reorder.Item>
-                );
-              })}
-            </Reorder.Group>
+              const meta = tabMeta[tabId];
+              if (!meta) return null;
+              const Icon = meta.icon;
+              const isActive = activeTab === tabId;
+
+              return (
+                <button
+                  key={tabId}
+                  type="button"
+                  onClick={() => setActiveTab(tabId as any)}
+                  className={cn(
+                    "px-2.5 py-1 rounded text-[11px] font-semibold flex items-center gap-1.5 whitespace-nowrap transition-all cursor-pointer shrink-0 select-none",
+                    isActive
+                      ? "bg-white text-black font-bold shadow-sm"
+                      : "text-zinc-400 hover:text-white hover:bg-white/5"
+                  )}
+                >
+                  {isActive && <Icon className="w-3 h-3 shrink-0 hidden sm:inline-block" />}
+                  <span>{meta.label}</span>
+                </button>
+              );
+            })}
           </div>
+        </div>
 
-          {/* Right: Apple Device Viewport Switcher */}
+        {/* Right: Apple Device Viewport Switcher */}
+        {activeTab !== "analytics" && (
           <div className="hidden sm:flex items-center gap-0.5 bg-[#101010] p-0.5 rounded border border-[#2c2c2c] shrink-0 self-start sm:self-auto">
             <button
               type="button"
@@ -1188,7 +1299,7 @@ export default function LinkInBioDashboard() {
               title="iPhone 17 Pro Max (iOS)"
             >
               <Smartphone className="w-3.5 h-3.5 shrink-0" />
-              <span>iPhone</span>
+              <span className="hidden md:inline">iPhone</span>
             </button>
 
             <button
@@ -1201,7 +1312,7 @@ export default function LinkInBioDashboard() {
               title="iPad Pro (iPadOS)"
             >
               <Tablet className="w-3.5 h-3.5 shrink-0" />
-              <span>iPad</span>
+              <span className="hidden md:inline">iPad</span>
             </button>
 
             <button
@@ -1214,11 +1325,11 @@ export default function LinkInBioDashboard() {
               title="Mac (macOS)"
             >
               <Monitor className="w-3.5 h-3.5 shrink-0" />
-              <span>Mac</span>
+              <span className="hidden md:inline">Mac</span>
             </button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Main Grid: Left Studio Panels, Right Live Preview */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-3 items-start">
@@ -1254,7 +1365,6 @@ export default function LinkInBioDashboard() {
                     onClick={() => {
                       const nextVal = page.blocks_enabled === false ? true : false;
                       setPage({ ...page, blocks_enabled: nextVal });
-                      setPreviewKey((k) => k + 1);
                     }}
                     className="flex items-center gap-1.5 cursor-pointer select-none bg-[#141414] px-2.5 py-1 rounded border border-[#2c2c2c] hover:border-[#3d3d3d] transition-all shrink-0 h-[28px]"
                     title={page.blocks_enabled !== false ? "Content Blocks Enabled (Click to Disable)" : "Content Blocks Disabled (Click to Enable)"}
@@ -1315,6 +1425,7 @@ export default function LinkInBioDashboard() {
                     {blocks.map((block, index) => {
                       const blockKey = block.id || index;
                       const BlockIcon = BLOCK_TYPE_ICON_MAP[block.block_type] || Link2;
+                      const isCurrentlyEditing = blockModalOpen && editingBlock && ((editingBlock as any).id ? (editingBlock as any).id === block.id : editingBlock === block);
 
                       return (
                         <Reorder.Item
@@ -1325,10 +1436,12 @@ export default function LinkInBioDashboard() {
                             zIndex: 50,
                           }}
                           className={cn(
-                            "group rounded-md border transition-colors select-none overflow-hidden cursor-pointer",
-                            block.is_active
-                              ? "bg-[#20201f] border-[#353535]/80 hover:border-zinc-500 shadow-sm"
-                              : "bg-black/30 border-[#20201f] opacity-60"
+                            "group rounded-md border transition-all select-none overflow-hidden cursor-pointer",
+                            isCurrentlyEditing
+                              ? "bg-[#252336] border-[#c4c0ff] ring-1 ring-[#c4c0ff]/50 shadow-md shadow-[#c4c0ff]/10"
+                              : block.is_active
+                                ? "bg-[#20201f] border-[#353535]/80 hover:border-zinc-500 shadow-sm"
+                                : "bg-black/30 border-[#20201f] opacity-60"
                           )}
                           onClick={() => {
                             setEditingBlock(block);
@@ -1352,11 +1465,6 @@ export default function LinkInBioDashboard() {
                                 <BlockIcon className="w-3.5 h-3.5" />
                               </div>
 
-                              {/* Block Type Badge */}
-                              {/* <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-white/10 text-zinc-300 shrink-0">
-                                {block.block_type.replace("_", " ")}
-                              </span> */}
-
                               {/* Single-line Title & Subtitle */}
                               <div className="flex items-center gap-2 min-w-0 flex-1">
                                 <h3 className="text-xs font-semibold text-white truncate">
@@ -1365,6 +1473,11 @@ export default function LinkInBioDashboard() {
                                 {block.url && (
                                   <span className="text-[10px] text-zinc-400 truncate hidden sm:inline font-mono">
                                     {block.url}
+                                  </span>
+                                )}
+                                {isCurrentlyEditing && (
+                                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-[#c4c0ff] text-black shrink-0 animate-pulse">
+                                    Editing
                                   </span>
                                 )}
                               </div>
@@ -1456,9 +1569,18 @@ export default function LinkInBioDashboard() {
 
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white/20 shrink-0 bg-black flex items-center justify-center shadow-md">
-                        {page.profile_image_url ? (
+                        {page.profile_image_url || activeAccount?.profile_picture_url || appUser?.photo_url || appUser?.profile_picture_url ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={page.profile_image_url} alt="Avatar" className="w-full h-full object-cover" />
+                          <img
+                            src={
+                              page.profile_image_url ||
+                              activeAccount?.profile_picture_url ||
+                              appUser?.photo_url ||
+                              appUser?.profile_picture_url
+                            }
+                            alt="Avatar"
+                            className="w-full h-full object-cover"
+                          />
                         ) : (
                           <Globe className="w-5 h-5 text-zinc-600" />
                         )}
@@ -2059,7 +2181,7 @@ export default function LinkInBioDashboard() {
                 </div>
 
                 {/* Right Controls in One Line: Enable Switch, Icon Position Tabs, Show Handles, Add Custom Link */}
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center justify-end gap-2 ml-auto">
                   {/* Enable / Disable Switch Toggle for Social Hub */}
                   <button
                     type="button"
@@ -2068,7 +2190,6 @@ export default function LinkInBioDashboard() {
                     onClick={() => {
                       const nextVal = page.social_enabled === false ? true : false;
                       setPage({ ...page, social_enabled: nextVal });
-                      setPreviewKey((k) => k + 1);
                     }}
                     className="flex items-center gap-1.5 cursor-pointer select-none bg-[#141414] px-2.5 py-1 rounded border border-[#2c2c2c] hover:border-[#3d3d3d] transition-all shrink-0 h-[28px]"
                     title={page.social_enabled !== false ? "Social Hub Enabled (Click to Disable)" : "Social Hub Disabled (Click to Enable)"}
@@ -2185,7 +2306,7 @@ export default function LinkInBioDashboard() {
                             <span className="font-medium text-xs">{platform.name}</span>
                           </div>
                           {isAlreadyAdded ? (
-                            <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                            <span className="text-[10px] font-bold text-gray-400 bg-gray-500/10 px-1.5 py-0.5 rounded">
                               Active
                             </span>
                           ) : (
@@ -2201,7 +2322,7 @@ export default function LinkInBioDashboard() {
               {/* Configured Social Links List */}
               <div className="space-y-2 pt-2 border-t border-white/5">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+                  <h3 className="text-xs font-bold text-white  tracking-wider">
                     Configured Social Links ({(page.social_accounts || []).filter((s) => s.is_active || s.url).length})
                   </h3>
 
@@ -2214,10 +2335,9 @@ export default function LinkInBioDashboard() {
                       role="switch"
                       aria-checked={page.show_social_usernames}
                       onClick={() => {
-                        setPage({ ...page, show_social_usernames: !page.show_social_usernames });
-                        setPreviewKey((k) => k + 1);
+                        setPage((prev) => ({ ...prev, show_social_usernames: !prev.show_social_usernames }));
                       }}
-                      className="flex items-center gap-1.5 cursor-pointer select-none  px-2 py-1 rounded  hover:border-[#3d3d3d] transition-all"
+                      className="flex items-center gap-1.5 cursor-pointer select-none px-2 py-1 rounded hover:border-[#3d3d3d] transition-all"
                     >
                       <span className="text-[12px] sm:text-[12px] font-semibold text-zinc-300">Labels</span>
                       <div
@@ -2533,7 +2653,12 @@ export default function LinkInBioDashboard() {
 
                     <div className="space-y-1">
                       <label className="text-[11px] text-zinc-400 font-medium">Button Label</label>
-                      <div className="relative flex items-center">
+                      <div
+                        className={cn(
+                          "w-full rounded px-3 py-1.5 flex items-center justify-center gap-2 transition-all shadow-sm border border-white/20 focus-within:border-white focus-within:ring-1 focus-within:ring-white cursor-text",
+                          (BIO_THEMES[page.theme_id] || BIO_THEMES.glass_monochrome).buttonClass
+                        )}
+                      >
                         <input
                           type="text"
                           value={page.smart_input_button_text || ""}
@@ -2542,12 +2667,10 @@ export default function LinkInBioDashboard() {
                             setPreviewKey((k) => k + 1);
                           }}
                           placeholder="Get Link"
-                          className={cn(
-                            "w-full rounded px-3 py-1.5 pr-7 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-white/80 transition-all shadow-sm placeholder:opacity-60",
-                            (BIO_THEMES[page.theme_id] || BIO_THEMES.glass_monochrome).buttonClass
-                          )}
+                          size={Math.max((page.smart_input_button_text || "Get Link").length, 6)}
+                          className="bg-transparent text-center focus:outline-none placeholder:opacity-60 text-xs font-bold text-current max-w-[85%]"
                         />
-                        <ArrowRight className="w-3.5 h-3.5 absolute right-2.5 pointer-events-none opacity-80" />
+                        <ArrowRight className="w-3.5 h-3.5 shrink-0 text-current opacity-90" />
                       </div>
                     </div>
                   </div>
@@ -2662,180 +2785,277 @@ export default function LinkInBioDashboard() {
             </div>
           )}
 
-          {/* TAB: ANALYTICS */}
-          {activeTab === "analytics" && (
-            <div className="bg-[#1c1b1b] p-3.5 sm:p-4 rounded border border-[#20201f] space-y-4 animate-in fade-in">
-              {/* Header */}
-              <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded bg-[#c4c0ff]/10 border border-[#c4c0ff]/20 flex items-center justify-center text-[#c4c0ff]">
-                    <BarChart3 className="w-3.5 h-3.5" />
-                  </div>
-                  <h2 className="text-xs sm:text-sm font-bold text-white tracking-tight">Analytics & Button Click Performance</h2>
-                </div>
-                <span className="text-[10px] font-mono text-zinc-400 bg-white/5 px-2 py-0.5 rounded border border-white/10">
-                  Live Stats
-                </span>
-              </div>
+          {/* TAB: ANALYTICS & BUTTON PERFORMANCE */}
+          {activeTab === "analytics" && (() => {
+            const totalViews = analytics.views_count || page.views_count || 0;
+            const totalClicks = analytics.clicks_count || page.clicks_count || 0;
+            const totalRedirectHits = analytics.redirect_hits || 0;
+            const ctr = totalViews > 0 ? ((totalClicks / totalViews) * 100).toFixed(1) : "0.0";
 
-              {/* Top Summary Metrics */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                {[
-                  { label: "Total Page Views", value: analytics.views_count || page.views_count || 0, icon: Globe, color: "text-blue-400" },
-                  { label: "Total Link Clicks", value: analytics.clicks_count || page.clicks_count || 0, icon: ExternalLink, color: "text-emerald-400" },
-                  { label: "Smart Redirect Hits", value: analytics.redirect_hits || 0, icon: Sparkles, color: "text-purple-400" },
-                  { label: "Active Buttons & Links", value: blocks.length + (page.social_accounts?.filter((s) => s.is_active && s.url).length || 0), icon: Layers, color: "text-amber-400" },
-                ].map((stat, i) => {
-                  const Icon = stat.icon;
-                  return (
-                    <div key={i} className="p-3 rounded bg-[#20201f] border border-[#353535] space-y-1">
-                      <div className="flex items-center justify-between text-zinc-400">
-                        <span className="text-[10px] font-semibold uppercase tracking-wider">{stat.label}</span>
-                        <Icon className={cn("w-3.5 h-3.5", stat.color)} />
-                      </div>
-                      <p className="text-lg font-bold text-white font-mono">{stat.value.toLocaleString()}</p>
+            // Prepare unified button performance list
+            const allItems: Array<{
+              id: string | number;
+              type: "block" | "social" | "redirect";
+              title: string;
+              subtitle: string;
+              clicks: number;
+              iconKey?: string;
+              blockType?: string;
+            }> = [
+                ...blocks.map((b) => ({
+                  id: `block-${b.id || b.title}`,
+                  type: "block" as const,
+                  title: b.title || b.block_type || "Untitled Block",
+                  subtitle: b.url || b.subtitle || "Content block",
+                  clicks: b.clicks_count || 0,
+                  blockType: b.block_type,
+                })),
+                ...(page.social_accounts || [])
+                  .filter((s) => s.is_active && s.url)
+                  .map((s) => ({
+                    id: `social-${s.id || s.platform}`,
+                    type: "social" as const,
+                    title: s.label || s.platform,
+                    subtitle: s.url || "",
+                    clicks: (s as any).clicks_count || 0,
+                    iconKey: s.icon || s.platform,
+                  })),
+                ...redirectRules.map((r) => ({
+                  id: `redirect-${r.id}`,
+                  type: "redirect" as const,
+                  title: r.title || "Smart Redirect",
+                  subtitle: `${r.input_match_url} ➔ ${r.destination_value}`,
+                  clicks: r.hits_count || 0,
+                })),
+              ];
+
+            const maxClicks = Math.max(...allItems.map((i) => i.clicks), 1);
+            const sumItemClicks = Math.max(allItems.reduce((acc, i) => acc + i.clicks, 0), 1);
+
+            // Filter items based on category and search term
+            const filteredItems = allItems.filter((item) => {
+              if (analyticsCategory === "blocks" && item.type !== "block") return false;
+              if (analyticsCategory === "social" && item.type !== "social") return false;
+              if (analyticsCategory === "redirects" && item.type !== "redirect") return false;
+              if (analyticsSearch.trim()) {
+                const q = analyticsSearch.toLowerCase();
+                return (
+                  item.title.toLowerCase().includes(q) ||
+                  item.subtitle.toLowerCase().includes(q)
+                );
+              }
+              return true;
+            }).sort((a, b) => b.clicks - a.clicks);
+
+            const topPerformerId = allItems.length > 0 && Math.max(...allItems.map((i) => i.clicks)) > 0
+              ? allItems.reduce((max, item) => (item.clicks > max.clicks ? item : max), allItems[0])?.id
+              : null;
+
+            return (
+              <div className="bg-[#1c1b1b] p-3.5 sm:p-5 rounded-lg border border-[#20201f] space-y-4 animate-in fade-in">
+                {/* Header aligned with DESIGN.md Surface Container Low */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-md bg-[#c4c0ff]/10 border border-[#c4c0ff]/20 flex items-center justify-center text-[#c4c0ff]">
+                      <BarChart3 className="w-4 h-4" />
                     </div>
-                  );
-                })}
-              </div>
+                    <div>
+                      <h2 className="text-sm sm:text-base font-semibold text-[#e5e2e1] tracking-tight flex items-center gap-2">
+                        <span>Analytics & Button Performance</span>
+                      </h2>
+                      {/* <p className="text-[12px] text-[#c4c7c8]">
+                        Real-time engagement metrics, click distribution & CTR
+                      </p> */}
+                    </div>
+                  </div>
 
-              {/* Configured Buttons & Links Performance Breakdown */}
-              <div className="space-y-3 pt-2">
-                <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                  <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                    <Type className="w-3.5 h-3.5 text-[#c4c0ff]" />
-                    <span>Configured Buttons Click Data</span>
-                  </h3>
-                  <span className="text-[10px] font-semibold text-zinc-400">
-                    {blocks.length + (page.social_accounts?.filter((s) => s.is_active && s.url).length || 0) + redirectRules.length} items tracked
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="text-xs font-semibold text-white bg-gray-500/10 px-2.5 py-1 rounded .border .border-gray-500/20 flex items-center gap-1.5 select-none"
+                      title="Click-Through Rate (CTR) = (Total Clicks / Total Page Views) × 100"
+                    >
+                      <div className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-pulse" />
+                      <span>Click-Through Rate: {ctr}%</span>
+                    </span>
+                  </div>
                 </div>
 
-                {/* 1. Content Blocks Performance */}
-                <div className="space-y-2">
-                  <h4 className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Content Blocks ({blocks.length})</h4>
-                  {blocks.length === 0 ? (
-                    <p className="text-xs text-zinc-500 italic p-2.5 rounded bg-black/20 border border-white/5">No blocks created yet</p>
-                  ) : (
-                    blocks.map((block) => {
-                      const clicks = block.clicks_count || 0;
-                      return (
-                        <div
-                          key={block.id || block.title}
-                          className="p-2.5 rounded bg-[#20201f] border border-[#353535] flex items-center justify-between gap-3 text-xs"
-                        >
-                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                            <div className="w-6 h-6 rounded bg-white/5 border border-white/10 flex items-center justify-center shrink-0 text-white">
-                              {block.block_type === "custom_button" && <ExternalLink className="w-3 h-3 text-[#c4c0ff]" />}
-                              {block.block_type === "product_card" && <ShoppingBag className="w-3 h-3 text-amber-400" />}
-                              {block.block_type === "file_download" && <Download className="w-3 h-3 text-blue-400" />}
-                              {block.block_type === "video" && <Video className="w-3 h-3 text-red-400" />}
-                              {block.block_type === "image" && <ImageIcon className="w-3 h-3 text-emerald-400" />}
-                              {block.block_type === "contact_card" && <MessageCircle className="w-3 h-3 text-purple-400" />}
-                              {block.block_type === "header" && <Type className="w-3 h-3 text-zinc-400" />}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="font-bold text-white truncate">{block.title || block.block_type}</p>
-                              <p className="text-[10px] text-zinc-400 truncate font-mono">{block.url || block.subtitle || "Block item"}</p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span className="px-2 py-1 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 font-bold font-mono text-xs flex items-center gap-1">
-                              <ExternalLink className="w-3 h-3" />
-                              <span>{clicks} {clicks === 1 ? "click" : "clicks"}</span>
-                            </span>
-                          </div>
+                {/* Top Summary KPI Metrics Cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3">
+                  {[
+                    { label: "Total Page Views", value: totalViews.toLocaleString(), icon: Globe, color: "text-gray-400", bg: "bg-[#131313] border-[#353535]" },
+                    { label: "Total Link Clicks", value: totalClicks.toLocaleString(), icon: ExternalLink, color: "text-gray-400", bg: "bg-[#131313] border-[#353535]" },
+                    { label: "Click-Through Rate", value: `${ctr}%`, icon: BarChart3, color: "text-gray-400", bg: "bg-[#131313] border-[#353535]" },
+                    { label: "Smart Redirect Hits", value: totalRedirectHits.toLocaleString(), icon: Sparkles, color: "text-gray-400", bg: "bg-[#131313] border-[#353535]" },
+                    { label: "Tracked Buttons", value: allItems.length.toLocaleString(), icon: Layers, color: "text-gray-400", bg: "bg-[#131313] border-[#353535]" },
+                  ].map((stat, i) => {
+                    const Icon = stat.icon;
+                    return (
+                      <div key={i} className={cn("p-3 sm:p-3.5 rounded-lg border space-y-1.5 transition-all hover:border-zinc-500/40", stat.bg)}>
+                        <div className="flex items-center justify-between text-[#c4c7c8]">
+                          <span className="text-[11px] font-medium uppercase tracking-wider text-[#c4c7c8]">{stat.label}</span>
+                          <Icon className={cn("w-4 h-4", stat.color)} />
                         </div>
-                      );
-                    })
-                  )}
+                        <p className="text-xl sm:text-2xl font-bold text-[#e5e2e1]">{stat.value}</p>
+                      </div>
+                    );
+                  })}
                 </div>
 
-                {/* 2. Social Links Performance */}
-                <div className="space-y-2 pt-2">
-                  <h4 className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
-                    Social Hub Links ({(page.social_accounts || []).filter((s) => s.is_active && s.url).length})
-                  </h4>
-                  {(page.social_accounts || []).filter((s) => s.is_active && s.url).length === 0 ? (
-                    <p className="text-xs text-zinc-500 italic p-2.5 rounded bg-black/20 border border-white/5">No active social links</p>
-                  ) : (
-                    (page.social_accounts || [])
-                      .filter((s) => s.is_active && s.url)
-                      .map((social) => {
-                        const iconKey = social.icon || social.platform;
-                        const clicks = (social as any).clicks_count || 0;
+                {/* Performance Breakdown Section Header */}
+                <div className="space-y-3 pt-3 border-t border-white/5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    {/* Category Filter Tabs */}
+                    <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide bg-[#0e0e0e] p-1 rounded-md border border-[#353535]">
+                      {[
+                        { key: "all", label: "All Items", count: allItems.length },
+                        { key: "blocks", label: "Blocks", count: blocks.length },
+                        { key: "social", label: "Social Hub", count: (page.social_accounts || []).filter((s) => s.is_active && s.url).length },
+                        { key: "redirects", label: "Redirects", count: redirectRules.length },
+                      ].map((tab) => (
+                        <button
+                          key={tab.key}
+                          type="button"
+                          onClick={() => setAnalyticsCategory(tab.key as any)}
+                          className={cn(
+                            "px-2.5 py-1 rounded text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap select-none",
+                            analyticsCategory === tab.key
+                              ? "bg-white text-black font-semibold shadow-xs"
+                              : "text-[#c4c7c8] hover:text-white hover:bg-white/5"
+                          )}
+                        >
+                          <span>{tab.label}</span>
+                          <span className={cn("px-1.5 py-0.2 rounded text-[10px]", analyticsCategory === tab.key ? "bg-black/10 text-black font-bold" : "bg-white/10 text-[#c4c7c8]")}>
+                            {tab.count}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Search Bar */}
+                    <div className="relative w-full sm:w-64">
+                      <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[#c4c7c8]" />
+                      <input
+                        type="text"
+                        value={analyticsSearch}
+                        onChange={(e) => setAnalyticsSearch(e.target.value)}
+                        placeholder="Search buttons..."
+                        className="w-full bg-[#0e0e0e] border border-[#353535] focus:border-white/50 rounded-md pl-8 pr-3 py-1 text-xs text-[#e5e2e1] placeholder:text-zinc-500 focus:outline-none transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Performance Items Ranking List */}
+                  <div className="space-y-2 pt-1">
+                    {filteredItems.length === 0 ? (
+                      <div className="p-8 text-center bg-[#131313] rounded-lg border border-[#353535] space-y-2">
+                        <BarChart3 className="w-8 h-8 text-[#8e9192] mx-auto" />
+                        <p className="text-xs text-[#c4c7c8] font-medium">No tracking data found for this filter.</p>
+                      </div>
+                    ) : (
+                      filteredItems.map((item, index) => {
+                        const clickSharePercent = sumItemClicks > 0 ? ((item.clicks / sumItemClicks) * 100).toFixed(1) : "0.0";
+                        const barWidthPercent = maxClicks > 0 ? Math.max((item.clicks / maxClicks) * 100, 3) : 3;
+                        const isTopPerformer = item.id === topPerformerId && item.clicks > 0;
+
                         return (
                           <div
-                            key={social.id || social.platform}
-                            className="p-2.5 rounded bg-[#20201f] border border-[#353535] flex items-center justify-between gap-3 text-xs"
+                            key={item.id}
+                            className="group relative bg-[#20201f] hover:bg-[#2a2a2a] p-3 rounded-lg border border-[#353535] hover:border-[#8e9192]/50 transition-all space-y-2 shadow-xs overflow-hidden"
                           >
-                            <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                              <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center shrink-0 text-white">
-                                <SocialIcon platformOrIcon={iconKey} className="w-3.5 h-3.5" />
+                            <div className="flex items-center justify-between gap-3 text-xs relative z-10">
+                              {/* Left Icon & Info */}
+                              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                <span className="text-[11px] font-semibold text-[#8e9192] w-4 text-right shrink-0">
+                                  {index + 1}
+                                </span>
+
+                                <div className="w-7 h-7 rounded-md bg-white/5 border border-white/10 flex items-center justify-center shrink-0 text-white">
+                                  {item.type === "block" && (
+                                    <>
+                                      {item.blockType === "custom_button" && <ExternalLink className="w-3.5 h-3.5 text-[#c4c0ff]" />}
+                                      {item.blockType === "product_card" && <ShoppingBag className="w-3.5 h-3.5 text-amber-400" />}
+                                      {item.blockType === "file_download" && <Download className="w-3.5 h-3.5 text-blue-400" />}
+                                      {item.blockType === "video" && <Video className="w-3.5 h-3.5 text-red-400" />}
+                                      {item.blockType === "image" && <ImageIcon className="w-3.5 h-3.5 text-emerald-400" />}
+                                      {item.blockType === "contact_card" && <MessageCircle className="w-3.5 h-3.5 text-purple-400" />}
+                                      {(!item.blockType || item.blockType === "header" || item.blockType === "link") && <Type className="w-3.5 h-3.5 text-[#e5e2e1]" />}
+                                    </>
+                                  )}
+                                  {item.type === "social" && (
+                                    <SocialIcon platformOrIcon={item.iconKey || "globe"} className="w-3.5 h-3.5" />
+                                  )}
+                                  {item.type === "redirect" && (
+                                    <Sparkles className="w-3.5 h-3.5 text-[#c4c0ff]" />
+                                  )}
+                                </div>
+
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <p className="font-semibold text-[#e5e2e1] truncate text-xs">{item.title}</p>
+                                    {isTopPerformer && (
+                                      <span className="px-1.5 py-0.2 rounded text-[9px] font-bold .bg-amber-500/10 text-amber-300 .border .border-amber-500/20 flex items-center gap-0.5 shrink-0">
+                                        <span>🔥 Most Clicked</span>
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-[11px] text-[#c4c7c8] truncate">{item.subtitle}</p>
+                                </div>
                               </div>
-                              <div className="min-w-0 flex-1">
-                                <p className="font-bold text-white capitalize truncate">{social.label || social.platform}</p>
-                                <p className="text-[10px] text-zinc-400 truncate font-mono">{social.url}</p>
+
+                              {/* Right Clicks & Share Metrics */}
+                              <div className="flex items-center gap-2 shrink-0">
+                                <span className="text-[11px] font-medium text-[#c4c7c8]">
+                                  {clickSharePercent}% share
+                                </span>
+
+                                <span
+                                  className={cn(
+                                    "px-2.5 py-1 rounded border font-semibold text-xs flex items-center gap-1",
+                                    item.type === "block"
+                                      ? ".bg-emerald-500/10 border-emerald-500/20 text-gray-100"
+                                      : item.type === "social"
+                                        ? ".bg-blue-500/10 border-blue-500/20 text-gray-100"
+                                        : ".bg-purple-500/10 border-purple-500/20 text-gray-100"
+                                  )}
+                                >
+                                  <span>{item.clicks.toLocaleString()} {item.clicks === 1 ? "click" : "clicks"}</span>
+                                </span>
                               </div>
                             </div>
 
-                            <div className="flex items-center gap-2 shrink-0">
-                              <span className="px-2 py-1 rounded bg-blue-500/10 border border-blue-500/20 text-blue-300 font-bold font-mono text-xs flex items-center gap-1">
-                                <Share2 className="w-3 h-3" />
-                                <span>{clicks} {clicks === 1 ? "click" : "clicks"}</span>
-                              </span>
+                            {/* Visual Progress Bar */}
+                            <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden relative">
+                              <div
+                                className={cn(
+                                  "h-full rounded-full transition-all duration-500",
+                                  isTopPerformer
+                                    ? "bg-gradient-to-r from-amber-400 to-orange-400"
+                                    : item.type === "block"
+                                      ? "bg-emerald-400"
+                                      : item.type === "social"
+                                        ? "bg-blue-400"
+                                        : "bg-purple-400"
+                                )}
+                                style={{ width: `${barWidthPercent}%` }}
+                              />
                             </div>
                           </div>
                         );
                       })
-                  )}
-                </div>
-
-                {/* 3. Redirect Rules Hits */}
-                <div className="space-y-2 pt-2">
-                  <h4 className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Redirect Rules ({redirectRules.length})</h4>
-                  {redirectRules.length === 0 ? (
-                    <p className="text-xs text-zinc-500 italic p-2.5 rounded bg-black/20 border border-white/5">No redirect rules set up</p>
-                  ) : (
-                    redirectRules.map((rule) => {
-                      const hits = rule.hits_count || 0;
-                      return (
-                        <div
-                          key={rule.id}
-                          className="p-2.5 rounded bg-[#20201f] border border-[#353535] flex items-center justify-between gap-3 text-xs"
-                        >
-                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                            <div className="w-6 h-6 rounded bg-[#c4c0ff]/10 border border-[#c4c0ff]/20 flex items-center justify-center shrink-0">
-                              <Sparkles className="w-3.5 h-3.5 text-[#c4c0ff]" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="font-bold text-white truncate">{rule.title || "Rule"}</p>
-                              <p className="text-[10px] text-zinc-400 truncate font-mono">{rule.input_match_url} ➔ {rule.destination_value}</p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span className="px-2 py-1 rounded bg-purple-500/10 border border-purple-500/20 text-purple-300 font-bold font-mono text-xs flex items-center gap-1">
-                              <Sparkles className="w-3 h-3" />
-                              <span>{hits} {hits === 1 ? "hit" : "hits"}</span>
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
         </div>
 
         {/* Right Column: Interactive Multi-Device Mockup Preview (Desktop only >= xl) */}
         {activeTab !== "analytics" && (
           <div
             className={cn(
-              "hidden xl:flex flex-col sticky top-4 transition-all duration-300",
+              "hidden xl:flex flex-col sticky top-[128px] transition-all duration-300",
               previewDevice === "mobile"
                 ? "xl:col-span-5"
                 : previewDevice === "tablet"
@@ -3022,7 +3242,7 @@ export default function LinkInBioDashboard() {
                         <div className="flex-1 max-w-xs bg-black/40 border border-white/10 rounded-lg py-1 px-2.5 flex items-center justify-between text-[11px] font-mono text-zinc-300">
                           <div className="flex items-center gap-1.5 truncate">
                             <Lock className="w-3 h-3 text-emerald-400 shrink-0" />
-                            <span className="truncate">{rootDomain}/@{page.username}</span>
+                            <span className="truncate">{rootDomain}/{page.username}</span>
                           </div>
                           <button
                             type="button"
@@ -3101,7 +3321,7 @@ export default function LinkInBioDashboard() {
                         <div className="flex items-center gap-1.5 truncate">
                           <Shield className="w-3 h-3 text-emerald-400 shrink-0" />
                           <Lock className="w-3 h-3 text-zinc-400 shrink-0" />
-                          <span className="text-zinc-200 font-medium truncate">https://{rootDomain}/@{page.username}</span>
+                          <span className="text-zinc-200 font-medium truncate">https://{rootDomain}/{page.username}</span>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0">
                           <button
@@ -3372,7 +3592,13 @@ export default function LinkInBioDashboard() {
             isOpen={qrModalOpen}
             publicUrl={publicBioUrl}
             username={page.username}
-            profileImageUrl={page.profile_image_url}
+            profileImageUrl={
+              page.profile_image_url ||
+              activeAccount?.profile_picture_url ||
+              appUser?.photo_url ||
+              appUser?.profile_picture_url ||
+              ""
+            }
             initialConfig={page.custom_theme?.qr_config as any}
             onClose={() => setQrModalOpen(false)}
             onCopy={handleCopyBioLink}
@@ -3391,7 +3617,6 @@ export default function LinkInBioDashboard() {
                   qr_config: newConfig,
                 },
               });
-              showToast("QR Code configuration saved to account");
             }}
           />,
           document.body
@@ -3470,8 +3695,42 @@ function BlockEditModal({
   const [isBlockTypeOpen, setIsBlockTypeOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
   const blockMediaInputRef = useRef<HTMLInputElement>(null);
+  const mockupScrollRef = useRef<HTMLDivElement>(null);
+  const mockupContentRef = useRef<HTMLDivElement>(null);
+  const [scaledHeight, setScaledHeight] = useState<number | null>(null);
   const [mediaUploading, setMediaUploading] = useState(false);
   const [mediaProgress, setMediaProgress] = useState(0);
+
+  useEffect(() => {
+    if (!mockupContentRef.current) return;
+    const updateHeight = () => {
+      if (mockupContentRef.current) {
+        setScaledHeight(mockupContentRef.current.offsetHeight * 0.725);
+      }
+    };
+    updateHeight();
+    const ro = new ResizeObserver(() => {
+      updateHeight();
+    });
+    ro.observe(mockupContentRef.current);
+    return () => ro.disconnect();
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || !mockupScrollRef.current) return;
+    const timer = setTimeout(() => {
+      if (!mockupScrollRef.current) return;
+      const editingId = block?.id || 999999;
+      const targetEl =
+        mockupScrollRef.current.querySelector<HTMLElement>(`[data-block-id="${editingId}"]`) ||
+        mockupScrollRef.current.querySelector<HTMLElement>(`[data-block-type="${blockType}"]`);
+
+      if (targetEl) {
+        targetEl.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }, 80);
+    return () => clearTimeout(timer);
+  }, [isOpen, block?.id, blockType, title, subtitle, url, mediaUrl, badge, animation, whatsapp, email, price]);
 
   useEffect(() => {
     setIsBlockTypeOpen(false);
@@ -3561,24 +3820,41 @@ function BlockEditModal({
   }, [block, blockType, title, subtitle, url, mediaUrl, badge, animation, whatsapp, email, price]);
 
   // Combined preview payload for LinkInBioPublicView
+  const appUser = useSelector((state: RootState) => state.auth.user);
+  const instagramAccounts = useSelector((state: RootState) => state.auth.instagramAccounts || []);
+  const activeAccount = useMemo(() => {
+    return (
+      instagramAccounts.find((acc: any) => acc.id === appUser?.active_instagram_account_id) ||
+      instagramAccounts[0]
+    );
+  }, [instagramAccounts, appUser?.active_instagram_account_id]);
+
   const modalPreviewData: PublicBioPayload = useMemo(() => {
     const previewBlocks = block
       ? (blocks || []).map((b) => (String(b.id) === String(block.id) ? draftBlock : b))
       : [draftBlock, ...(blocks || [])];
 
+    const effectiveAvatar =
+      page.profile_image_url ||
+      activeAccount?.profile_picture_url ||
+      appUser?.photo_url ||
+      appUser?.profile_picture_url ||
+      "";
+
     return {
       page: {
         ...page,
+        profile_image_url: effectiveAvatar,
         blocks: previewBlocks,
       },
       blocks: previewBlocks,
       creator: {
         username: username || page.username,
         full_name: page.title || "Creator",
-        profile_picture_url: page.profile_image_url || "",
+        profile_picture_url: effectiveAvatar,
       },
     };
-  }, [block, draftBlock, blocks, page, username]);
+  }, [block, draftBlock, blocks, page, username, activeAccount, appUser]);
 
   const BLOCK_TYPES = [
     { id: "link", label: "Link", icon: Link2 },
@@ -3615,9 +3891,16 @@ function BlockEditModal({
                 <div className="w-6 h-6 rounded bg-[#c4c0ff]/10 border border-[#c4c0ff]/20 flex items-center justify-center text-[#c4c0ff]">
                   <Layers className="w-3.5 h-3.5" />
                 </div>
-                <div>
-                  <h3 className="text-xs sm:text-sm font-bold text-white tracking-tight truncate">
-                    {block ? "Edit Block" : "Add Block"}
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-xs sm:text-sm font-bold text-white tracking-tight truncate flex items-center gap-2">
+                    {block ? (
+                      <>
+                        <span>Edit {BLOCK_TYPES.find((b) => b.id === blockType)?.label || "Block"}</span>
+                        {title && <span className="text-[#c4c0ff] font-medium text-xs truncate max-w-[180px] sm:max-w-[280px]">({title})</span>}
+                      </>
+                    ) : (
+                      "Add New Block"
+                    )}
                   </h3>
                 </div>
               </div>
@@ -3727,13 +4010,22 @@ function BlockEditModal({
                       </div>
 
                       {/* Live Content */}
-                      <div className="flex-1 w-full pt-7 overflow-y-auto scrollbar-hide overflow-x-hidden relative">
-                        <div className="w-[138%] origin-top-left transform scale-[0.725] min-h-full pb-8">
-                          <LinkInBioPublicView
-                            username={username || page.username}
-                            initialData={modalPreviewData}
-                            isPreviewMode={true}
-                          />
+                      <div className="flex-1 w-full pt-7 overflow-y-auto scrollbar-hide overflow-x-hidden relative" ref={mockupScrollRef}>
+                        <div
+                          style={{ height: scaledHeight ? `${scaledHeight}px` : "auto" }}
+                          className="w-full relative overflow-hidden"
+                        >
+                          <div
+                            ref={mockupContentRef}
+                            className="w-[137.93%] origin-top-left transform scale-[0.725]"
+                          >
+                            <LinkInBioPublicView
+                              username={username || page.username}
+                              initialData={modalPreviewData}
+                              isPreviewMode={true}
+                              editingBlockId={block?.id || 999999}
+                            />
+                          </div>
                         </div>
                       </div>
 
@@ -3756,6 +4048,8 @@ function BlockEditModal({
                 )}
               >
                 <div className="space-y-3.5">
+
+
                   {/* Block Type Custom Dropdown with Icons */}
                   <div className="space-y-1.5 relative z-30">
                     <label className="text-xs font-semibold text-zinc-300">Block Type</label>
@@ -4195,6 +4489,7 @@ function MockupPreviewModal({
   copiedLink,
   onCopy,
   activeTab,
+  onOpenQrModal,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -4207,6 +4502,7 @@ function MockupPreviewModal({
   copiedLink: boolean;
   onCopy: () => void;
   activeTab?: string;
+  onOpenQrModal?: () => void;
 }) {
   const [modalDevice, setModalDevice] = useState<"mobile" | "tablet" | "desktop">("mobile");
 
@@ -4228,7 +4524,7 @@ function MockupPreviewModal({
             initial={{ opacity: 0, scale: 0.95, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
-            className="relative w-full max-w-xl bg-[#141414] border border-white/15 rounded overflow-hidden shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9)] flex flex-col max-h-[90vh] z-10"
+            className="relative w-full max-w-xl sm:max-w-2xl md:max-w-3xl bg-[#141414] border border-white/15 rounded overflow-hidden shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9)] flex flex-col max-h-[90vh] z-10"
           >
             {/* Modal Header */}
             <div className="p-3 px-4 border-b border-white/10 flex items-center justify-between shrink-0 bg-[#1c1b1b]">
@@ -4297,7 +4593,7 @@ function MockupPreviewModal({
             </div>
 
             {/* Modal Body / Mockup Viewport */}
-            <div className="flex-1 overflow-y-auto p-3 sm:p-4 bg-[#09090b] flex items-center justify-center min-h-[420px]">
+            <div className="flex-1 overflow-y-auto p-2 sm:p-4 bg-[#09090b] flex items-center justify-center min-h-[400px] sm:min-h-[440px] overflow-x-hidden">
               {/* DEVICE 1: APPLE IPHONE 16 PRO (iOS UI) */}
               {modalDevice === "mobile" && (
                 <div key={`modal-mobile-${previewKey}`} className="w-full flex justify-center py-1 animate-in fade-in zoom-in-95 duration-200">
@@ -4346,8 +4642,8 @@ function MockupPreviewModal({
                       </div>
 
                       {/* Content */}
-                      <div className="flex-1 w-full pt-6 overflow-y-auto scrollbar-hide overflow-x-hidden relative">
-                        <div className="w-[138%] origin-top-left transform scale-[0.725] min-h-full pb-8">
+                      <div className="flex-1 w-full pt-6 overflow-hidden relative">
+                        <div className="w-[138%] h-[138%] origin-top-left transform scale-[0.725] overflow-y-auto scrollbar-hide overflow-x-hidden">
                           <LinkInBioPublicView
                             username={username || page.username}
                             initialData={livePreviewData}
@@ -4377,8 +4673,8 @@ function MockupPreviewModal({
               {/* DEVICE 2: APPLE IPAD PRO (iPadOS UI) */}
               {modalDevice === "tablet" && (
                 <div key={`modal-tablet-${previewKey}`} className="w-full flex justify-center py-1 animate-in fade-in zoom-in-95 duration-200">
-                  <div className="relative w-full max-w-[500px] bg-[#1c1c1e] rounded-[30px] p-2.5 shadow-[0_25px_70px_-15px_rgba(0,0,0,0.95),0_0_0_1px_rgba(255,255,255,0.18),inset_0_0_0_1.5px_#333336]">
-                    <div className="relative w-full bg-[#131313] rounded-[22px] overflow-hidden border border-[#2a2a2a] flex flex-col h-[580px] max-h-[66vh]">
+                  <div className="relative w-full max-w-[540px] bg-[#1c1c1e] rounded-[24px] sm:rounded-[30px] p-2 sm:p-2.5 shadow-[0_25px_70px_-15px_rgba(0,0,0,0.95),0_0_0_1px_rgba(255,255,255,0.18),inset_0_0_0_1.5px_#333336]">
+                    <div className="relative w-full bg-[#131313] rounded-[18px] sm:rounded-[22px] overflow-hidden border border-[#2a2a2a] flex flex-col h-[480px] sm:h-[580px] max-h-[66vh]">
                       {/* iPadOS Status Bar */}
                       <div className="h-7 bg-black/50 backdrop-blur-md shrink-0 z-40 px-3 flex items-center justify-between text-[10px] font-semibold text-white/90 select-none pointer-events-none">
                         <span>Tuesday, Sep 6 9:41 AM</span>
@@ -4393,16 +4689,19 @@ function MockupPreviewModal({
                         </div>
                       </div>
 
-                      {/* Content */}
-                      <div className="flex-1 w-full overflow-y-auto scrollbar-hide">
-                        <LinkInBioPublicView
-                          username={username || page.username}
-                          initialData={livePreviewData}
-                          isPreviewMode={true}
-                          activeTab={activeTab}
-                        />
+                      {/* Scaled Tablet Viewport Content */}
+                      <div className="flex-1 w-full overflow-hidden relative">
+                        <div className="w-[230%] h-[230%] sm:w-[150%] sm:h-[150%] origin-top-left transform scale-[0.435] sm:scale-[0.667] overflow-y-auto scrollbar-hide overflow-x-hidden">
+                          <LinkInBioPublicView
+                            username={username || page.username}
+                            initialData={livePreviewData}
+                            isPreviewMode={true}
+                            activeTab={activeTab}
+                          />
+                        </div>
                       </div>
 
+                      {/* iPad Home Indicator */}
                       <div className="h-3.5 bg-transparent shrink-0 z-40 flex items-center justify-center pointer-events-none">
                         <div className="w-32 h-1 bg-white/40 rounded-full shadow-sm" />
                       </div>
@@ -4414,7 +4713,7 @@ function MockupPreviewModal({
               {/* DEVICE 3: APPLE MACBOOK / MACOS SAFARI UI */}
               {modalDevice === "desktop" && (
                 <div key={`modal-desktop-${previewKey}`} className="w-full flex justify-center py-1 animate-in fade-in zoom-in-95 duration-200">
-                  <div className="w-full bg-[#18181a] rounded-xl overflow-hidden border border-white/15 shadow-[0_25px_70px_-15px_rgba(0,0,0,0.95)] flex flex-col h-[580px] max-h-[66vh]">
+                  <div className="w-full max-w-[620px] bg-[#18181a] rounded-xl overflow-hidden border border-white/15 shadow-[0_25px_70px_-15px_rgba(0,0,0,0.95)] flex flex-col h-[480px] sm:h-[580px] max-h-[66vh]">
                     {/* Title Bar */}
                     <div className="h-8 bg-[#222225]/95 border-b border-white/10 px-3 flex items-center justify-between shrink-0 select-none gap-2 text-xs">
                       <div className="flex items-center gap-1.5 shrink-0">
@@ -4423,19 +4722,21 @@ function MockupPreviewModal({
                         <div className="w-2.5 h-2.5 rounded-full bg-[#27c93f]" />
                       </div>
                       <div className="flex-1 max-w-xs bg-[#121214] border border-white/10 rounded py-0.5 px-2 flex items-center justify-between text-[10px] font-mono text-zinc-300">
-                        <span className="truncate">{rootDomain}/@{username || page.username}</span>
+                        <span className="truncate">{rootDomain}/{username || page.username}</span>
                       </div>
                       <div className="w-10" />
                     </div>
 
-                    {/* Content */}
-                    <div className="flex-1 w-full overflow-y-auto scrollbar-hide bg-[#131313]">
-                      <LinkInBioPublicView
-                        username={username || page.username}
-                        initialData={livePreviewData}
-                        isPreviewMode={true}
-                        activeTab={activeTab}
-                      />
+                    {/* Scaled Desktop Viewport Content */}
+                    <div className="flex-1 w-full overflow-hidden bg-[#131313] relative">
+                      <div className="w-[310%] h-[310%] sm:w-[185%] sm:h-[185%] origin-top-left transform scale-[0.322] sm:scale-[0.54] overflow-y-auto scrollbar-hide overflow-x-hidden">
+                        <LinkInBioPublicView
+                          username={username || page.username}
+                          initialData={livePreviewData}
+                          isPreviewMode={true}
+                          activeTab={activeTab}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -4451,7 +4752,7 @@ function MockupPreviewModal({
                   className="px-2.5 py-1.5 rounded bg-[#20201f] hover:bg-[#2c2c2c] border border-[#353535] text-xs font-semibold text-white flex items-center gap-1 transition-all cursor-pointer"
                 >
                   {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-zinc-400" />}
-                  <span>{copiedLink ? "Copied" : "Copy Link"}</span>
+                  <span>{copiedLink ? "Copied" : "Copy"}</span>
                 </button>
 
                 <a
@@ -4461,8 +4762,20 @@ function MockupPreviewModal({
                   className="px-2.5 py-1.5 rounded bg-[#20201f] hover:bg-[#2c2c2c] border border-[#353535] text-xs font-semibold text-white flex items-center gap-1 transition-all"
                 >
                   <ExternalLink className="w-3.5 h-3.5 text-zinc-400" />
-                  <span>Open Live Page</span>
+                  <span>Open Live</span>
                 </a>
+
+                {onOpenQrModal && (
+                  <button
+                    type="button"
+                    onClick={onOpenQrModal}
+                    className="px-2.5 py-1.5 rounded bg-[#20201f] hover:bg-[#2c2c2c] border border-[#353535] text-xs font-semibold text-white flex items-center gap-1 transition-all cursor-pointer"
+                    title="View & Customize QR Code"
+                  >
+                    <QrCode className="w-3.5 h-3.5 text-[#c4c0ff]" />
+                    <span>QR Code</span>
+                  </button>
+                )}
               </div>
 
               <button

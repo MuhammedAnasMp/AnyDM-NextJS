@@ -429,6 +429,7 @@ export default function PricingPage() {
                 <div className="flex items-center gap-1.5 z-10 font-bold [text-shadow:0_1px_0_rgba(255,245,190,0.6)]">
                   <Star className="w-3.5 h-3.5 fill-current" />
                   <span>Subscription Active</span>
+
                 </div>
                 {formattedExpiryDate && (
                   <span className="text-[11px] text-[#131313]/90 normal-case tracking-normal font-medium z-10 [text-shadow:0_1px_0_rgba(255,245,190,0.5)]">

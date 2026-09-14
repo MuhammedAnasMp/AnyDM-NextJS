@@ -212,20 +212,20 @@ export default function ContactsPage() {
       const mins = Math.floor((contact.seconds_remaining_23h % 3600) / 60);
       return {
         text: `${hours}h ${mins}m left`,
-        badgeClass: "bg-[#c4c0ff]/10 text-[#c4c0ff] border-[#c4c0ff]/20",
+        badgeClass: ".bg-[#c4c0ff]/10 text-[#c4c0ff] border-[#c4c0ff]/20",
         indicatorClass: "bg-[#c4c0ff]",
       };
     } else if (contact.is_within_24h_window) {
       const mins = Math.floor(contact.seconds_remaining_24h / 60);
       return {
         text: `Expiring soon (${mins}m)`,
-        badgeClass: "bg-[#f59e0b]/10 text-[#fbbf24] border-[#f59e0b]/20",
+        badgeClass: ".bg-[#f59e0b]/10 text-[#fbbf24] border-[#f59e0b]/20",
         indicatorClass: "bg-[#fbbf24]",
       };
     } else {
       return {
         text: "Expired",
-        badgeClass: "bg-white/5 text-white/40 border-white/5",
+        badgeClass: ".bg-white/5 text-white/40 border-white/5",
         indicatorClass: "bg-white/20",
       };
     }
@@ -718,7 +718,7 @@ export default function ContactsPage() {
                       {/* Window Status */}
                       <td className="px-4 py-2.5">
                         <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 bg-white/5 rounded-full border text-[9px] font-semibold tracking-wider ${win.badgeClass}`}
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 .bg-white/5 rounded-full .border text-[9px] font-semibold tracking-wider ${win.badgeClass}`}
                         >
                           <span className={`w-1.5 h-1.5 rounded-full ${win.indicatorClass}`} />
                           {win.text}
@@ -730,7 +730,7 @@ export default function ContactsPage() {
                         <button
                           onClick={() => handleStartChat(contact)}
                           disabled={!contact.is_within_23h_window}
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all relative overflow-hidden group/btn ${contact.is_within_23h_window
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-semibold transition-all relative overflow-hidden group/btn ${contact.is_within_23h_window
                             ? "bg-gradient-to-r from-[#8e8aff] to-[#706bff] hover:from-[#7e7aff] hover:to-[#605bff] text-white cursor-pointer active:scale-95 shadow-md shadow-purple-900/20"
                             : "bg-white/5 border border-white/10 text-white/30 cursor-not-allowed"
                             }`}

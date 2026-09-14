@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Globe,
   Upload,
@@ -36,6 +36,7 @@ import {
   Pencil,
   ExternalLink,
   Copy,
+  Image as ImageIcon,
 } from "lucide-react";
 
 const InstagramIcon = ({ className }: { className?: string }) => (
@@ -208,6 +209,7 @@ const TEMPLATE_PRESETS: TemplateConfig[] = [
 
 export default function WebsiteSettingsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const appUser = useSelector((state: RootState) => state.auth.user);
   const instagramAccounts = useSelector((state: RootState) => state.auth.instagramAccounts);
@@ -254,6 +256,8 @@ export default function WebsiteSettingsPage() {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [cfSyncing, setCfSyncing] = useState(false);
   const [cfStatus, setCfStatus] = useState<{ status: string; message: string } | null>(null);
+  const [showDnsWarning, setShowDnsWarning] = useState(false);
+  const [showMobilePreviewModal, setShowMobilePreviewModal] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const slugInputRef = useRef<HTMLInputElement>(null);
@@ -276,13 +280,14 @@ export default function WebsiteSettingsPage() {
     }
     setCfSyncing(true);
     setCfStatus(null);
+    setShowDnsWarning(true);
     try {
       const res = await api.post("/accounts/website-settings/sync-cloudflare/");
       if (res.data?.cloudflare) {
         const cf = res.data.cloudflare;
         if (cf.status === "success") {
-          setCfStatus({ status: "success", message: cf.message || "Custom domain registered in Cloudflare!" });
-          showToast("Cloudflare SSL provisioning initiated!", "success");
+          setCfStatus({ status: "success", message: "Domain registered & SSL security certificate provisioned!" });
+          showToast("Domain connected & SSL provisioned!", "success");
         } else {
           setCfStatus({ status: "info", message: cf.message || "Domain saved. Configure DNS records below." });
           showToast(cf.message || "Domain saved. Configure DNS below.", "info");
@@ -291,7 +296,7 @@ export default function WebsiteSettingsPage() {
         setCfStatus({ status: "info", message: "Domain saved. Configure DNS CNAME record as shown below." });
       }
     } catch (err: any) {
-      setCfStatus({ status: "error", message: err.response?.data?.error || "Cloudflare sync failed." });
+      setCfStatus({ status: "error", message: err.response?.data?.error || "SSL provisioning failed. Please try again." });
     } finally {
       setCfSyncing(false);
     }
@@ -304,11 +309,11 @@ export default function WebsiteSettingsPage() {
   };
 
   useEffect(() => {
-    loadWebsiteSettings();
+    loadWebsiteSettings(true);
   }, [activeAccount]);
 
-  const loadWebsiteSettings = async () => {
-    setInitialLoading(true);
+  const loadWebsiteSettings = async (isInitial = false) => {
+    if (isInitial) setInitialLoading(true);
     try {
       const response = await api.get("/accounts/website-settings/");
       if (response.data) {
@@ -351,13 +356,15 @@ export default function WebsiteSettingsPage() {
         }
       } catch { }
     } catch (e) {
-      showToast("Using local storefront configs.", "info");
-      setStoreName(activeAccount?.full_name || activeAccount?.username || "");
-      setStoreLogo(activeAccount?.profile_picture_url || "");
-      setStoreSlug("");
-      setCustomDomain("");
+      if (isInitial) {
+        // showToast("Using local storefront configs.", "info");
+        setStoreName(activeAccount?.full_name || activeAccount?.username || "");
+        setStoreLogo(activeAccount?.profile_picture_url || "");
+        setStoreSlug("");
+        setCustomDomain("");
+      }
     } finally {
-      setInitialLoading(false);
+      if (isInitial) setInitialLoading(false);
     }
   };
 
@@ -391,7 +398,7 @@ export default function WebsiteSettingsPage() {
     try {
       await api.put("/accounts/website-settings/", payload);
       showToast("Store settings saved.", "success");
-      await loadWebsiteSettings();
+      await loadWebsiteSettings(false);
     } catch (err: any) {
       showToast(err.response?.data?.error || "Couldn't save settings. Try again.", "error");
     } finally {
@@ -490,9 +497,40 @@ export default function WebsiteSettingsPage() {
   const previewStyles: TemplateStyle = getTemplateStyles(templateId, themeId);
   const previewStoreName = storeName || activeAccount?.full_name || "My Store";
 
-  const sections = ['Branding', 'Settings', 'Template', 'Theme']
-  const [activeSections, setActiveSection] = useState('Branding')
+  const sectionIcons: Record<string, React.ComponentType<{ className?: string; strokeWidth?: number }>> = {
+    Branding: Sparkles,
+    Settings: Sliders,
+    Template: Layout,
+    Theme: Palette,
+  };
 
+  const sections = ['Settings', 'Branding', 'Template', 'Theme'];
+  const [activeSections, setActiveSectionState] = useState('Settings');
+
+  const handleSectionChange = (section: string) => {
+    setActiveSectionState(section);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("tab", section.toLowerCase());
+      window.history.replaceState(null, "", url.toString());
+    }
+  };
+
+  useEffect(() => {
+    if (!searchParams) return;
+    const tabParam = searchParams.get("tab")?.toLowerCase();
+    if (tabParam === "branding") {
+      setActiveSectionState("Branding");
+    } else if (tabParam === "template" || tabParam === "templates") {
+      setActiveSectionState("Template");
+    } else if (tabParam === "theme" || tabParam === "themes") {
+      setActiveSectionState("Theme");
+    } else if (tabParam === "settings" || tabParam === "setting") {
+      setActiveSectionState("Settings");
+    } else if (!tabParam) {
+      setActiveSectionState("Settings");
+    }
+  }, [searchParams]);
 
   return (
     <div className="w-full space-y-6 pb-16" style={{ color: t.onSurface }}>
@@ -500,15 +538,51 @@ export default function WebsiteSettingsPage() {
 
       {/* Header */}
       <div className="sticky top-[100px] z-30 flex flex-col md:flex-row md:justify-between md:items-center gap-4 pb-3 pt-4 -mt-6 -mx-4 px-4 sm:-mx-6 sm:px-6 border-b border-[#444748]/10 bg-[#131313]">
-        <div className="hidden md:block">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3.5">
           <h1 className="text-xl font-bold tracking-tight">Website configuration</h1>
+
+          {/* Horizontal Nav Tabs */}
+          <div className="inline-flex items-center gap-1 bg-[#101010] p-1 rounded border border-[#2c2c2c] overflow-x-auto scrollbar-hide shadow-inner max-w-full">
+            {sections.map((cat) => {
+              const Icon = sectionIcons[cat];
+              const isActive = activeSections === cat;
+              return (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => handleSectionChange(cat)}
+                  className={cn(
+                    "px-3.5 py-1.5 rounded text-xs font-semibold flex items-center justify-center gap-2 whitespace-nowrap transition-all duration-200 cursor-pointer select-none shrink-0",
+                    isActive
+                      ? "bg-white text-black font-bold shadow-md scale-[1.02]"
+                      : "text-zinc-400 hover:text-white hover:bg-white/5"
+                  )}
+                >
+                  {Icon && <Icon className={cn("w-3.5 h-3.5 shrink-0", isActive ? "text-black" : "text-zinc-400")} strokeWidth={1.75} />}
+                  <span>{cat}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
+
         <div className="flex items-center gap-2.5 w-full md:w-auto justify-end">
+          {/* Mobile Preview Modal Trigger */}
+          <button
+            type="button"
+            onClick={() => setShowMobilePreviewModal(true)}
+            className="lg:hidden px-3 py-2 rounded-md font-medium text-xs flex items-center gap-1.5 transition-colors hover:bg-white/5 cursor-pointer"
+            style={{ border: `1px solid ${t.outlineVariant}`, color: t.onSurface }}
+          >
+            <Smartphone className="w-4 h-4 text-emerald-400" strokeWidth={1.75} />
+            <span>Preview</span>
+          </button>
+
           <a
             href={storefrontUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-4 py-2 rounded-md font-medium text-xs flex items-center gap-1.5 transition-colors hover:bg-white/5"
+            className="hidden lg:flex px-4 py-2 rounded-md font-medium text-xs items-center gap-1.5 transition-colors hover:bg-white/5"
             style={{ border: `1px solid ${t.outlineVariant}`, color: t.onSurface }}
           >
             <Eye className="w-4 h-4" strokeWidth={1.75} />
@@ -517,7 +591,7 @@ export default function WebsiteSettingsPage() {
           <button
             onClick={handleSaveSettings}
             disabled={loading}
-            className="px-4 py-2 rounded-md font-medium text-xs flex items-center gap-1.5 transition-opacity disabled:opacity-50"
+            className="px-4 py-2 rounded-md font-medium text-xs flex items-center gap-1.5 transition-opacity disabled:opacity-50 cursor-pointer"
             style={{ backgroundColor: t.primary, color: t.onPrimary }}
           >
             {loading ? <RefreshCw className="w-4 h-4 animate-spin" strokeWidth={1.75} /> : <Save className="w-4 h-4" strokeWidth={1.75} />}
@@ -536,24 +610,6 @@ export default function WebsiteSettingsPage() {
           {/* Left column — settings */}
           <div className="col-span-12 lg:col-span-7 space-y-5">
 
-            <div className="w-fit flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 bg-[#151515] p-1 rounded border border-[#20201f]">
-              {sections.map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => setActiveSection(cat)}
-                  className={cn(
-                    "px-2 py-0.5 rounded text-[10px] font-semibold whitespace-nowrap transition-colors cursor-pointer select-none",
-                    activeSections === cat
-                      ? "bg-white text-black font-bold"
-                      : "bg-[#1c1b1b] text-zinc-400 hover:text-white"
-                  )}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-
 
 
             {/* Branding */}
@@ -571,6 +627,8 @@ export default function WebsiteSettingsPage() {
                   />
                 </Field>
 
+
+
                 {/* Subdomain Field */}
                 <Field label="Store Subdomain">
                   <div
@@ -582,7 +640,7 @@ export default function WebsiteSettingsPage() {
                     }}
                   >
                     <span
-                      className="px-3 py-2 text-xs font-mono select-none shrink-0"
+                      className="px-3 py-2 text-xs select-none shrink-0"
                       style={{
                         color: t.outline,
                         backgroundColor: t.surfaceContainerHigh,
@@ -611,7 +669,7 @@ export default function WebsiteSettingsPage() {
                           }
                         }}
                         className={cn(
-                          "w-full text-sm pl-3 pr-10 py-2 bg-transparent focus:outline-none font-mono transition-opacity",
+                          "w-full text-sm pl-3 pr-10 py-2 bg-transparent focus:outline-none transition-opacity",
                           !isEditingSlug && "cursor-not-allowed opacity-70"
                         )}
                         style={{ color: t.onSurface }}
@@ -640,7 +698,7 @@ export default function WebsiteSettingsPage() {
                     </div>
 
                     <span
-                      className="px-3 py-2 text-xs font-mono select-none shrink-0"
+                      className="px-3 py-2 text-xs select-none shrink-0"
                       style={{
                         color: t.outline,
                         backgroundColor: t.surfaceContainerHigh,
@@ -650,20 +708,22 @@ export default function WebsiteSettingsPage() {
                       .{baseRootDomain}
                     </span>
 
-                    {/* Visit button */}
+                    {/* Visit button - disabled until store subdomain is saved */}
                     <button
                       type="button"
-                      onClick={() =>
-                        window.open(subdomainUrl, "_blank", "noopener,noreferrer")
-                      }
-                      disabled={!storeSlug}
+                      onClick={() => {
+                        if (!isEditingSlug && storeSlug) {
+                          window.open(subdomainUrl, "_blank", "noopener,noreferrer");
+                        }
+                      }}
+                      disabled={isEditingSlug || !storeSlug}
                       className="px-3 py-2 text-xs font-medium flex items-center gap-1.5 shrink-0 transition-colors hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                       style={{
                         color: t.accentCyan,
                         backgroundColor: t.surfaceContainerHigh,
                         borderLeft: `1px solid ${t.outlineVariant}`,
                       }}
-                      title="Visit store"
+                      title={isEditingSlug ? "Save Store Subdomain first to visit" : !storeSlug ? "Store Subdomain not set" : "Visit live store"}
                     >
                       <ExternalLink className="w-3.5 h-3.5" strokeWidth={1.75} />
                       Visit
@@ -678,155 +738,107 @@ export default function WebsiteSettingsPage() {
                 </div>
 
                 <Field label="Custom Domain">
-                  <div className="rounded-lg overflow-hidden transition-colors" style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${isEditingCustomDomain ? t.accentCyan : t.outlineVariant}` }}>
-                    {/* Domain input */}
-                    <div className="flex items-center">
-                      <span className="px-3 py-2.5 text-xs font-mono select-none shrink-0" style={{ color: t.outline, backgroundColor: t.surfaceContainerHigh, borderRight: `1px solid ${t.outlineVariant}` }}>
-                        https://
-                      </span>
+                  <div className="space-y-3.5">
+                    {/* Step 1 Card */}
+                    <div className="p-3.5 rounded border bg-[#101010] border-[#2c2c2c] space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-400 text-[10px] font-bold flex items-center justify-center border border-cyan-500/30">
+                            1
+                          </span>
+                          <span className="text-xs font-semibold text-zinc-200">
+                            Step 1: Enter Custom Domain
+                          </span>
+                        </div>
 
-                      <div className="relative w-full flex items-center">
-                        <input
-                          ref={customDomainInputRef}
-                          type="text"
-                          disabled={!isEditingCustomDomain}
-                          value={customDomain}
-                          onChange={(e) => {
-                            const val = e.target.value
-                              .toLowerCase()
-                              .replace(/^https?:\/\//, "")
-                              .replace(/[^a-z0-9.-]/g, "");
-                            setCustomDomain(val);
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              handleConfirmCustomDomainEdit();
-                            }
-                          }}
-                          className={cn(
-                            "w-full text-sm pl-3 pr-10 py-2.5 bg-transparent focus:outline-none font-mono transition-opacity",
-                            !isEditingCustomDomain && "cursor-not-allowed opacity-70"
-                          )}
-                          style={{ color: t.onSurface }}
-                          placeholder="your-domain.com"
-                        />
+                      </div>
 
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 flex items-center rounded border border-[#2c2c2c] bg-[#161618] overflow-hidden">
+                          <span className="px-3 py-2 text-xs text-zinc-500 bg-[#121214] border-r border-[#2c2c2c] select-none shrink-0">
+                            https://
+                          </span>
+                          <input
+                            ref={customDomainInputRef}
+                            type="text"
+                            disabled={!isEditingCustomDomain && !cfSyncing}
+                            value={customDomain}
+                            onChange={(e) => {
+                              const val = e.target.value
+                                .toLowerCase()
+                                .replace(/^https?:\/\//, "")
+                                .replace(/[^a-z0-9.-]/g, "");
+                              setCustomDomain(val);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                handleConfirmCustomDomainEdit();
+                              }
+                            }}
+                            className="w-full text-xs px-3 py-2 bg-transparent focus:outline-none text-zinc-100"
+                            placeholder="yourdomain.com"
+                          />
+                        </div>
+
+                        {/* Single White Rounded Connect Button on the Right */}
                         <button
                           type="button"
+                          disabled={cfSyncing || loading}
                           onClick={handleConfirmCustomDomainEdit}
-                          title={
-                            isEditingCustomDomain
-                              ? "Confirm & Save custom domain"
-                              : "Edit custom domain"
-                          }
-                          className="absolute right-2 p-1.5 rounded-md hover:bg-white/10 transition-colors flex items-center justify-center cursor-pointer"
+                          className="px-4 py-2 text-xs font-bold rounded flex items-center justify-center gap-1.5 shrink-0 transition-all cursor-pointer whitespace-nowrap bg-white text-black hover:bg-zinc-200 shadow-sm disabled:opacity-50"
                         >
-                          {isEditingCustomDomain ? (
-                            <Check
-                              className="w-4 h-4 text-emerald-400"
-                              strokeWidth={2}
-                            />
+                          {cfSyncing ? (
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin text-black" />
+                          ) : isEditingCustomDomain ? (
+                            <Check className="w-3.5 h-3.5 text-black" strokeWidth={2.5} />
                           ) : (
-                            <Pencil
-                              className="w-4 h-4"
-                              style={{ color: t.outline }}
-                              strokeWidth={1.75}
-                            />
+                            <Pencil className="w-3.5 h-3.5 text-black" strokeWidth={1.75} />
                           )}
+                          <span>
+                            {cfSyncing
+                              ? "Connecting..."
+                              : isEditingCustomDomain
+                                ? "Connect"
+                                : "Edit Domain"}
+                          </span>
                         </button>
                       </div>
                     </div>
 
-                    {/* DNS instruction */}
-                    <div
-                      className="px-3.5 py-4"
-                      style={{
-                        backgroundColor: t.surfaceContainerHigh,
-                        borderTop: `1px solid ${t.outlineVariant}`,
-                      }}
-                    >
-                      <div className="flex items-center justify-between gap-3 mb-3">
-                        <div>
-                          <p
-                            className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5"
-                            style={{ color: t.onSurface }}
-                          >
-                            <Globe className="w-3.5 h-3.5" style={{ color: t.accentCyan }} />
-                            DNS Setup Instructions
-                          </p>
-                          <p
-                            className="text-[11px] mt-0.5"
-                            style={{ color: t.outline }}
-                          >
-                            Add this record in your domain manager (Cloudflare, GoDaddy, Namecheap, etc.):
-                          </p>
+                    {/* Step 2 Card */}
+                    <div className="p-3.5 rounded border bg-[#101010] border-[#2c2c2c] space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-400 text-[10px] font-bold flex items-center justify-center border border-cyan-500/30">
+                            2
+                          </span>
+                          <span className="text-xs font-semibold text-zinc-200">
+                            Step 2: Add DNS Record to Domain Provider
+                          </span>
                         </div>
-
-                        {customDomain && (
-                          <button
-                            type="button"
-                            disabled={cfSyncing}
-                            onClick={handleSyncCloudflare}
-                            className="px-2.5 py-1.5 rounded-md text-[11px] font-medium flex items-center gap-1.5 transition-all hover:opacity-90 cursor-pointer shadow-sm"
-                            style={{
-                              backgroundColor: t.accentCyan,
-                              color: "#000",
-                            }}
-                          >
-                            {cfSyncing ? (
-                              <RefreshCw className="w-3 h-3 animate-spin" />
-                            ) : (
-                              <Sparkles className="w-3 h-3" />
-                            )}
-                            {cfSyncing ? "Provisioning..." : "Provision SSL"}
-                          </button>
-                        )}
                       </div>
 
-                      {/* DNS Table */}
-                      <div
-                        className="rounded-lg overflow-hidden border text-xs font-mono"
-                        style={{
-                          backgroundColor: t.surfaceContainerLowest,
-                          borderColor: t.outlineVariant,
-                        }}
-                      >
-                        <div
-                          className="grid grid-cols-12 px-3 py-2 text-[11px] font-sans font-semibold border-b uppercase tracking-wider select-none"
-                          style={{
-                            backgroundColor: t.surfaceContainer,
-                            borderColor: t.outlineVariant,
-                            color: t.outline,
-                          }}
-                        >
-                          <div className="col-span-2">Type</div>
-                          <div className="col-span-3">Name</div>
+                      <p className="text-[11px] text-zinc-400">
+                        Add this CNAME record in your domain registrar DNS settings (Cloudflare, GoDaddy, Namecheap, etc.):
+                      </p>
+
+                      {/* Minimal CNAME Box */}
+                      <div className="rounded border border-[#2c2c2c] bg-[#161618] text-xs overflow-hidden">
+                        <div className="grid grid-cols-12 px-3 py-1.5 text-[10px] font-sans font-semibold border-b border-[#2c2c2c] text-zinc-500 uppercase tracking-wider select-none">
+                          <div className="col-span-3">Type</div>
+                          <div className="col-span-4">Name</div>
                           <div className="col-span-5">Target</div>
-                          <div className="col-span-2 text-right">Proxy</div>
                         </div>
 
-                        <div className="grid grid-cols-12 px-3 py-2.5 items-center gap-1">
-                          {/* Type */}
-                          <div className="col-span-2 flex items-center">
-                            <span
-                              className="px-2 py-0.5 rounded text-[11px] font-bold tracking-wide"
-                              style={{
-                                backgroundColor: `${t.accentCyan}20`,
-                                color: t.accentCyan,
-                                border: `1px solid ${t.accentCyan}40`,
-                              }}
-                            >
+                        <div className="grid grid-cols-12 px-3 py-2 items-center gap-1">
+                          <div className="col-span-3">
+                            {/* <span className="px-1.5 py-0.5 rounded text-[10px] font-bold text-cyan-400 bg-cyan-500/10 border border-cyan-500/20">
                               CNAME
-                            </span>
+                            </span> */} CNAME
                           </div>
-
-                          {/* Name */}
-                          <div className="col-span-3 flex items-center gap-1.5 min-w-0 pr-1">
-                            <span
-                              className="truncate font-semibold"
-                              style={{ color: t.onSurface }}
-                            >
+                          <div className="col-span-4 flex items-center gap-1 truncate">
+                            <span className="truncate text-zinc-200">
                               {(() => {
                                 if (!customDomain) return "@";
                                 const cleaned = customDomain.replace(/^https?:\/\//, "").replace(/\/$/, "");
@@ -842,81 +854,57 @@ export default function WebsiteSettingsPage() {
                                 const nameVal = parts.length > 2 ? parts[0] : "@";
                                 copyToClipboard(nameVal, "name");
                               }}
-                              className="p-1 rounded hover:bg-white/10 transition-colors shrink-0 cursor-pointer"
+                              className="p-1 hover:text-white text-zinc-500 transition-colors cursor-pointer"
                               title="Copy Name"
-                              style={{ color: copiedField === "name" ? "#10b981" : t.outline }}
                             >
-                              {copiedField === "name" ? (
-                                <Check className="w-3 h-3 text-emerald-400" />
-                              ) : (
-                                <Copy className="w-3 h-3" />
-                              )}
+                              {copiedField === "name" ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                             </button>
                           </div>
-
-                          {/* Target */}
-                          <div className="col-span-5 flex items-center gap-1.5 min-w-0 pr-1">
-                            <span
-                              className="truncate text-[11px]"
-                              style={{ color: t.onSurfaceVariant }}
-                            >
+                          <div className="col-span-5 flex items-center gap-1 truncate">
+                            <span className="truncate text-zinc-300 text-[11px]">
                               cname.{baseRootDomain}
                             </span>
                             <button
                               type="button"
                               onClick={() => copyToClipboard(`cname.${baseRootDomain}`, "target")}
-                              className="p-1 rounded hover:bg-white/10 transition-colors shrink-0 cursor-pointer"
+                              className="p-1 hover:text-white text-zinc-500 transition-colors cursor-pointer"
                               title="Copy Target"
-                              style={{ color: copiedField === "target" ? "#10b981" : t.outline }}
                             >
-                              {copiedField === "target" ? (
-                                <Check className="w-3 h-3 text-emerald-400" />
-                              ) : (
-                                <Copy className="w-3 h-3" />
-                              )}
+                              {copiedField === "target" ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                             </button>
                           </div>
+                        </div>
+                      </div>
 
-                          {/* Proxy */}
-                          <div className="col-span-2 text-right">
-                            <span
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-sans font-medium"
-                              style={{
-                                backgroundColor: "rgba(107, 114, 128, 0.15)",
-                                color: t.onSurface,
-                                border: `1px solid ${t.outlineVariant}`,
-                              }}
-                              title="Set Proxy to DNS only (Grey Cloud) in Cloudflare"
-                            >
-                              ☁️ DNS only
-                            </span>
+                      {/* Closable Warning Notice */}
+                      {showDnsWarning && (
+                        <div className="p-3 rounded flex items-start justify-between gap-3 text-xs border bg-amber-500/10 border-amber-500/30 text-amber-300 animate-in fade-in duration-200">
+                          <div className="flex items-start gap-2.5 min-w-0">
+                            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+                            <div className="space-y-1">
+                              <p className="font-bold text-amber-200">
+                                Action Required: Add CNAME Record to Domain DNS
+                              </p>
+                              <p className="text-[11px] text-amber-300/90 leading-relaxed">
+                                Ensure you add the CNAME record shown above in <strong>Cloudflare</strong>, <strong>GoDaddy</strong>, or <strong>Namecheap</strong> so your domain connects and SSL activates properly.
+                              </p>
+                            </div>
                           </div>
+                          <button
+                            type="button"
+                            onClick={() => setShowDnsWarning(false)}
+                            className="p-1 rounded hover:bg-white/10 text-amber-400 hover:text-white transition-colors shrink-0 cursor-pointer"
+                            title="Dismiss warning"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
                         </div>
-                      </div>
-
-                      {/* Instructions note */}
-                      <div
-                        className="mt-3 p-2.5 rounded-md flex items-start gap-2 text-[11px]"
-                        style={{
-                          backgroundColor: t.surfaceContainerLowest,
-                          border: `1px solid ${t.outlineVariant}`,
-                        }}
-                      >
-                        <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
-                        <div className="space-y-1">
-                          <p style={{ color: t.onSurface }}>
-                            <strong className="font-semibold">Cloudflare Users:</strong> Set Proxy status to <span className="font-semibold text-amber-400">DNS only (grey cloud ☁️)</span>.
-                          </p>
-                          <p style={{ color: t.outline }}>
-                            After saving your domain, click <span className="font-semibold" style={{ color: t.accentCyan }}>"Provision SSL"</span> to auto-register your hostname on Cloudflare for automatic SSL certificate generation.
-                          </p>
-                        </div>
-                      </div>
+                      )}
 
                       {/* Cloudflare Sync Result Status */}
                       {cfStatus && (
                         <div
-                          className="mt-2.5 p-2.5 rounded-md text-[11px] flex items-center justify-between gap-2"
+                          className="p-2.5 rounded text-[11px] flex items-center justify-between gap-2"
                           style={{
                             backgroundColor: cfStatus.status === "success" ? "rgba(16, 185, 129, 0.1)" : "rgba(239, 68, 68, 0.1)",
                             border: `1px solid ${cfStatus.status === "success" ? "rgba(16, 185, 129, 0.3)" : "rgba(239, 68, 68, 0.3)"}`,
@@ -930,46 +918,7 @@ export default function WebsiteSettingsPage() {
                         </div>
                       )}
                     </div>
-
-                  </div> </Field>
-
-                <Field label="Store logo">
-                  <div className="flex items-center gap-4">
-                    <div
-                      className="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center p-2 shrink-0"
-                      style={{ border: `1px solid ${t.outlineVariant}`, backgroundColor: t.surfaceContainerLowest }}
-                    >
-                      {storeLogo ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img alt="Store logo" className="w-full h-full object-contain rounded-full" src={storeLogo} />
-                      ) : (
-                        <ShoppingBag className="w-6 h-6" style={{ color: t.outline }} strokeWidth={1.75} />
-                      )}
-                    </div>
-                    <div className="flex gap-2 items-center">
-                      <button
-                        onClick={() => logoInputRef.current?.click()}
-                        className="px-4 py-2 rounded-md text-xs font-medium flex items-center gap-1.5 transition-opacity hover:opacity-90"
-                        style={{ backgroundColor: t.primary, color: t.onPrimary }}
-                      >
-                        {uploading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-                        {uploading ? `${uploadProgress}%` : "Upload logo"}
-                      </button>
-                      {storeLogo && (
-                        <button
-                          onClick={() => setStoreLogo("")}
-                          className="px-4 py-2 rounded-md text-xs font-medium transition-colors hover:bg-white/5"
-                          style={{ border: `1px solid ${t.outlineVariant}`, color: t.error }}
-                        >
-                          Remove
-                        </button>
-                      )}
-                    </div>
-                    <input type="file" ref={logoInputRef} onChange={e => { if (e.target.files?.[0]) performLogoUpload(e.target.files[0]); }} accept="image/*" className="hidden" />
                   </div>
-                  <p className="text-xs mt-2" style={{ color: t.onSurfaceVariant }}>
-                    Supports JPG and PNG. Best aspect ratio is 1:1 square.
-                  </p>
                 </Field>
               </div>
             </section>}
@@ -979,40 +928,85 @@ export default function WebsiteSettingsPage() {
               <section className="rounded-lg p-4 md:p-5 space-y-5" style={{ backgroundColor: t.surfaceContainer }}>
                 <SectionHeading icon={Sliders} label="Store settings & logistics" />
 
-                <Field label="Store Banner Image">
-                  <div className="space-y-3">
-                    {storeBanner && (
-                      <div className="relative w-full h-32 rounded overflow-hidden border" style={{ borderColor: t.outlineVariant }}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={storeBanner} alt="Store Banner" className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                          <span className="text-white text-xs font-semibold">Banner Preview</span>
-                        </div>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        disabled={bannerUploading}
-                        onClick={() => bannerInputRef.current?.click()}
-                        className="flex items-center gap-2 px-3 py-2 rounded text-xs font-semibold transition-all"
-                        style={{ backgroundColor: t.surfaceContainerHigh, border: `1px solid ${t.outlineVariant}`, color: t.onSurface, opacity: bannerUploading ? 0.6 : 1 }}
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                  <Field label="Store logo">
+                    <div className="flex flex-wrap sm:flex-nowrap items-center gap-3">
+                      <div
+                        className="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center p-2 shrink-0"
+                        style={{ border: `1px solid ${t.outlineVariant}`, backgroundColor: t.surfaceContainerLowest }}
                       >
-                        {bannerUploading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-                        {bannerUploading ? `Uploading… ${bannerUploadProgress}%` : "Upload Banner"}
-                      </button>
-                      {storeBanner && !bannerUploading && (
-                        <button type="button" onClick={() => setStoreBanner("")} className="text-xs font-semibold" style={{ color: t.error }}>
-                          Remove
+                        {storeLogo ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img alt="Store logo" className="w-full h-full object-contain rounded-full" src={storeLogo} />
+                        ) : (
+                          <ShoppingBag className="w-6 h-6" style={{ color: t.outline }} strokeWidth={1.75} />
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-2 items-center">
+                        <button
+                          type="button"
+                          onClick={() => logoInputRef.current?.click()}
+                          className="px-4 py-2 rounded-md text-xs font-medium flex items-center gap-1.5 transition-opacity hover:opacity-90 cursor-pointer"
+                          style={{ backgroundColor: t.primary, color: t.onPrimary }}
+                        >
+                          {uploading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                          {uploading ? `${uploadProgress}%` : "Upload logo"}
                         </button>
-                      )}
+                        {storeLogo && (
+                          <button
+                            type="button"
+                            onClick={() => setStoreLogo("")}
+                            className="px-4 py-2 rounded-md text-xs font-medium transition-colors hover:bg-white/5 cursor-pointer"
+                            style={{ border: `1px solid ${t.outlineVariant}`, color: t.error }}
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                      <input type="file" ref={logoInputRef} onChange={e => { if (e.target.files?.[0]) performLogoUpload(e.target.files[0]); }} accept="image/*" className="hidden" />
                     </div>
-                    <input type="file" ref={bannerInputRef} onChange={e => { if (e.target.files?.[0]) performBannerUpload(e.target.files[0]); }} accept="image/*" className="hidden" />
-                  </div>
-                  <p className="text-xs mt-2" style={{ color: t.onSurfaceVariant }}>
-                    Recommended: 16:9 or 3:1. JPG/PNG.
-                  </p>
-                </Field>
+                    <p className="text-xs mt-2" style={{ color: t.onSurfaceVariant }}>
+                      Supports JPG and PNG. Best aspect ratio is 1:1 square.
+                    </p>
+                  </Field>
+
+                  <Field label="Store Banner Image">
+                    <div className="space-y-3">
+                      {storeBanner ? (
+                        <div className="relative w-full h-24 rounded overflow-hidden border" style={{ borderColor: t.outlineVariant }}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={storeBanner} alt="Store Banner" className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                            <span className="text-white text-xs font-semibold">Banner Preview</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="relative w-full h-24 rounded border border-dashed flex flex-col items-center justify-center gap-1.5" style={{ borderColor: t.outlineVariant, backgroundColor: t.surfaceContainerLowest }}>
+                          <ImageIcon className="w-6 h-6" style={{ color: t.outline }} strokeWidth={1.75} />
+                          <span className="text-[11px]" style={{ color: t.outline }}>No banner image selected</span>
+                        </div>
+                      )}
+                      <div className="flex flex-wrap items-center gap-2.5 justify-end">
+                        {storeBanner && !bannerUploading && (
+                          <button type="button" onClick={() => setStoreBanner("")} className="px-4 py-2 rounded-md text-xs font-medium transition-colors hover:bg-white/5 cursor-pointer" style={{ border: `1px solid ${t.outlineVariant}`, color: t.error }}>
+                            Remove
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          disabled={bannerUploading}
+                          onClick={() => bannerInputRef.current?.click()}
+                          className="flex items-center gap-2 px-3 py-2 rounded text-xs font-semibold transition-all cursor-pointer"
+                          style={{ backgroundColor: t.surfaceContainerHigh, border: `1px solid ${t.outlineVariant}`, color: t.onSurface, opacity: bannerUploading ? 0.6 : 1 }}
+                        >
+                          {bannerUploading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                          {bannerUploading ? `Uploading… ${bannerUploadProgress}%` : "Upload Banner"}
+                        </button>
+                      </div>
+                      <input type="file" ref={bannerInputRef} onChange={e => { if (e.target.files?.[0]) performBannerUpload(e.target.files[0]); }} accept="image/*" className="hidden" />
+                    </div>
+                  </Field>
+                </div>
 
                 <Field label="Store description">
                   <textarea
@@ -1025,7 +1019,7 @@ export default function WebsiteSettingsPage() {
                   />
                 </Field>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Field label="Contact Email">
                     <input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)}
                       className="w-full rounded text-sm px-3 py-2 focus:outline-none"
@@ -1199,8 +1193,8 @@ export default function WebsiteSettingsPage() {
 
           </div>
 
-          {/* Right column — live preview */}
-          <div className="col-span-12 lg:col-span-5 relative">
+          {/* Right column — live preview (Desktop layout) */}
+          <div className="hidden lg:block lg:col-span-5 relative">
             <div className="lg:sticky lg:top-24">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-xs font-medium" style={{ color: t.onSurfaceVariant }}>
@@ -1430,6 +1424,154 @@ export default function WebsiteSettingsPage() {
           </div>
         </div>
       )}
+
+      {/* Mobile Preview Popup Modal */}
+      {showMobilePreviewModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="relative w-full max-w-md bg-[#121214] border border-[#2c2c2c] rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[85vh]">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[#2c2c2c] bg-[#18181b] shrink-0">
+              <div className="flex items-center gap-2">
+                <Smartphone className="w-4 h-4 text-emerald-400" />
+                <span className="text-xs font-bold text-white">Storefront Preview</span>
+              </div>
+              <div className="flex items-center gap-3">
+                {/* Device Switcher in Modal */}
+                <div className="flex items-center gap-1 rounded-md p-0.5 bg-[#101010] border border-[#2c2c2c]">
+                  <button
+                    type="button"
+                    onClick={() => setPreviewDevice("desktop")}
+                    className="p-1 rounded transition-colors cursor-pointer"
+                    style={{ backgroundColor: previewDevice === "desktop" ? t.surfaceContainerHigh : "transparent", color: previewDevice === "desktop" ? t.onSurface : t.outline }}
+                    title="Desktop View"
+                  >
+                    <Laptop className="w-3.5 h-3.5" strokeWidth={1.75} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewDevice("mobile")}
+                    className="p-1 rounded transition-colors cursor-pointer"
+                    style={{ backgroundColor: previewDevice === "mobile" ? t.surfaceContainerHigh : "transparent", color: previewDevice === "mobile" ? t.onSurface : t.outline }}
+                    title="Mobile View"
+                  >
+                    <Smartphone className="w-3.5 h-3.5" strokeWidth={1.75} />
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowMobilePreviewModal(false)}
+                  className="p-1 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Preview Body */}
+            <div className="p-3 overflow-y-auto flex-1 flex justify-center bg-[#000]">
+              <div className={cn("rounded-lg overflow-hidden transition-all duration-300 w-full flex flex-col border border-[#2c2c2c]", previewDevice === "mobile" ? "max-w-[340px] h-full mx-auto" : "w-full h-full")}>
+                {/* Browser Chrome */}
+                <div className="px-3 py-2 flex items-center justify-between shrink-0 bg-[#18181b] border-b border-[#2c2c2c]">
+                  <div className="flex gap-1.5 shrink-0">
+                    <div className="w-2 h-2 rounded-full bg-[#FF5F57]" />
+                    <div className="w-2 h-2 rounded-full bg-[#FFBD2E]" />
+                    <div className="w-2 h-2 rounded-full bg-[#27C93F]" />
+                  </div>
+                  <div className="px-2 py-0.5 rounded text-[10px] flex items-center gap-1 select-none overflow-hidden max-w-[180px] bg-[#101010] text-zinc-400 border border-[#2c2c2c]">
+                    <Lock className="w-2.5 h-2.5 shrink-0" strokeWidth={1.75} />
+                    <span className="truncate">zoyee.in/{activeAccount?.username || "mystore"}</span>
+                  </div>
+                  <div className="w-4" />
+                </div>
+
+                {/* Mode Switcher */}
+                <div className="px-3 py-1.5 flex items-center gap-2 shrink-0 bg-black/60 border-b border-[#2c2c2c]">
+                  {["catalog", "pdp"].map(mode => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setPreviewMode(mode as any)}
+                      className="px-2.5 py-1 text-[10px] font-medium rounded transition-colors cursor-pointer"
+                      style={{
+                        backgroundColor: previewMode === mode ? t.primary : "transparent",
+                        color: previewMode === mode ? t.onPrimary : t.onSurfaceVariant,
+                      }}
+                    >
+                      {mode === "catalog" ? "Catalog" : "Product page"}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Viewport Content */}
+                <div className="relative overflow-hidden flex-1">
+                  <div className={cn("h-full overflow-y-auto custom-scrollbar", previewStyles.bodyClass, previewStyles.fontBody)}>
+                    {/* Storefront Nav */}
+                    <div className={cn("px-4 h-10 flex items-center justify-between border-b shrink-0", previewStyles.navClass)}>
+                      <div className="flex items-center gap-2">
+                        <div className={cn("w-5 h-5 overflow-hidden flex items-center justify-center", previewStyles.logoWrapperClass)}>
+                          {storeLogo ? <img src={storeLogo} alt="" className="w-full h-full object-cover" /> : <ShoppingBag className="w-3 h-3" strokeWidth={1.75} />}
+                        </div>
+                        <span className={cn("text-[10px] font-bold truncate max-w-[80px]", previewStyles.textColorClass)}>{previewStoreName}</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <Search className={cn("w-3 h-3", previewStyles.textMutedClass)} />
+                        <Menu className={cn("w-3 h-3", previewStyles.textMutedClass)} />
+                      </div>
+                    </div>
+
+                    {previewMode === "catalog" ? (
+                      <div className="p-3 space-y-4">
+                        {storeBanner ? (
+                          <div className="relative w-full h-24 overflow-hidden rounded-md">
+                            <img src={storeBanner} alt="" className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col items-center justify-end pb-2 px-2 text-center">
+                              <p className={cn("text-[9px] font-black text-white leading-tight truncate w-full", previewStyles.fontHeadline)}>{previewStoreName}</p>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-center py-4 space-y-1">
+                            <h2 className={cn("text-sm font-black leading-tight", previewStyles.fontHeadline, previewStyles.textColorClass)}>{previewStoreName}</h2>
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-2">
+                          {[
+                            { seed: "prod1", name: "Summer Top", price: "2499", currency: "INR" },
+                            { seed: "prod2", name: "Denim Trouser", price: "4499", currency: "INR" },
+                          ].map((item, idx) => (
+                            <div key={idx} className={cn("flex flex-col overflow-hidden", previewStyles.cardClass)}>
+                              <div className="aspect-[3/4] w-full overflow-hidden relative bg-zinc-800">
+                                <img src={`https://picsum.photos/seed/${item.seed}/120/160`} alt="" className="w-full h-full object-cover" />
+                              </div>
+                              <div className="p-1.5 space-y-0.5">
+                                <p className={cn("text-[9px] font-semibold truncate", previewStyles.textColorClass)}>{item.name}</p>
+                                <p className={cn("text-[9px] font-bold", previewStyles.priceClass)}>{item.price} {item.currency}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-3 space-y-3">
+                        <div className="flex flex-col gap-2">
+                          <div className="w-full aspect-[3/4] overflow-hidden bg-zinc-800">
+                            <img src="https://picsum.photos/seed/preview_pdp/200/260" alt="" className="w-full h-full object-cover" />
+                          </div>
+                          <div className="space-y-1">
+                            <h2 className={cn("text-[10px] font-bold leading-tight", previewStyles.textColorClass)}>Summer Silk Wrap</h2>
+                            <p className={cn("text-[10px] font-bold", previewStyles.priceClass)}>₹4,200</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1462,35 +1604,51 @@ function TemplateCard({
   return (
     <div
       onClick={onClick}
-      className="rounded-md p-3 cursor-pointer transition-all flex flex-col justify-between hover:opacity-90"
-      style={{
-        border: active ? `2px solid ${t.primary}` : `1px solid ${t.outlineVariant}`,
-        backgroundColor: active ? t.surfaceContainerHigh : "transparent",
-      }}
+      className={cn(
+        "rounded-lg p-3.5 cursor-pointer transition-all flex flex-col justify-between group hover:border-zinc-400 select-none shadow-sm",
+        active ? "border-2 border-white bg-[#202022]" : "border border-[#333336] bg-[#141416] hover:bg-[#1a1a1d]"
+      )}
     >
-      <div className="flex items-center justify-between mb-2.5">
-        <span className="text-xs font-medium truncate pr-2" style={{ color: t.onSurface }}>{name}</span>
-        {active
-          ? <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: t.primary }}><Check className="w-2.5 h-2.5" style={{ color: t.onPrimary }} strokeWidth={3} /></div>
-          : <div className="w-4 h-4 rounded-full shrink-0" style={{ border: `1px solid ${t.outlineVariant}` }} />
-        }
-      </div>
-      {/* Mini visual preview */}
-      <div className="h-16 rounded overflow-hidden relative" style={{ backgroundColor: previewBg, border: `1px solid ${t.outlineVariant}` }}>
-        <div className="absolute inset-0 p-2 flex flex-col gap-1.5">
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: previewAccent, opacity: 0.7 }} />
-            <div className="h-1.5 rounded-full flex-1 opacity-30" style={{ backgroundColor: previewAccent }} />
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-xs font-bold truncate text-white group-hover:text-cyan-300 transition-colors">{name}</span>
+        </div>
+        {active ? (
+          <div className="w-4 h-4 rounded-full bg-white flex items-center justify-center shrink-0">
+            <Check className="w-2.5 h-2.5 text-black stroke-[3]" />
           </div>
+        ) : (
+          <div className="w-4 h-4 rounded-full border border-zinc-600 shrink-0 group-hover:border-zinc-400" />
+        )}
+      </div>
+
+      {/* Mini storefront visual mockup card */}
+      <div className="h-20 rounded-md overflow-hidden relative border border-white/10 shadow-inner flex flex-col" style={{ backgroundColor: previewBg }}>
+        {/* Nav header */}
+        <div className="h-4 border-b border-white/10 px-2 flex items-center justify-between shrink-0" style={{ backgroundColor: "rgba(0,0,0,0.3)" }}>
+          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: previewAccent }} />
+          <div className="h-1 w-8 rounded-full bg-white/20" />
+          <div className="flex gap-1">
+            <div className="w-1.5 h-1.5 rounded-full bg-white/30" />
+            <div className="w-1.5 h-1.5 rounded-full bg-white/30" />
+          </div>
+        </div>
+
+        {/* Hero banner / Content grid */}
+        <div className="p-1.5 flex-1 flex flex-col justify-between">
+          <div className="h-2.5 rounded w-3/4 opacity-90 mb-1" style={{ backgroundColor: previewAccent }} />
           <div className="grid grid-cols-3 gap-1 flex-1">
-            {[0, 1, 2].map(i => (
-              <div key={i} className="rounded-sm" style={{ backgroundColor: i === 0 ? previewAccent : `${previewAccent}22`, opacity: i === 0 ? 0.8 : 0.4 }} />
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="rounded-sm flex flex-col justify-between p-0.5" style={{ backgroundColor: i === 0 ? previewAccent : "rgba(255,255,255,0.08)", opacity: i === 0 ? 0.9 : 0.6 }}>
+                <div className="h-2 w-full rounded-xs bg-white/20" />
+                <div className="h-1 w-2/3 rounded-xs bg-white/40" />
+              </div>
             ))}
           </div>
-          <div className="h-1.5 rounded-full w-1/2" style={{ backgroundColor: previewAccent, opacity: 0.5 }} />
         </div>
       </div>
-      <p className="text-[10px] leading-normal mt-2" style={{ color: t.onSurfaceVariant }}>{description}</p>
+
+      <p className="text-[11px] text-zinc-400 mt-2.5 leading-relaxed line-clamp-2">{description}</p>
     </div>
   );
 }

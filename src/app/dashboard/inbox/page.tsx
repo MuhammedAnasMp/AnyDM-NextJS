@@ -1217,7 +1217,7 @@ export default function InboxPage() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
-      className="flex h-full overflow-hidden bg-[#0d0d0d] font-sans text-white"
+      className="flex flex-1 w-full h-full min-h-0 overflow-hidden bg-[#0d0d0d] font-sans text-white"
     >
       {/* ─── LEFT PANE: Conversation List ─────────────────────────────── */}
       <aside className={`w-full lg:w-[280px] xl:w-[300px] flex flex-col border-r border-white/[0.06] bg-[#111111] shrink-0 ${showChatOnMobile ? "hidden lg:flex" : "flex"}`}>

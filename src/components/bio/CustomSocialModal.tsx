@@ -148,7 +148,7 @@ export default function CustomSocialModal({
               <div className="space-y-2 pt-2 border-t border-white/5">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-[#c4c0ff]" />
+
                     <span>Choose Icon</span>
                   </label>
                   <span className="text-[10px] text-zinc-500 capitalize">Selected: {icon}</span>

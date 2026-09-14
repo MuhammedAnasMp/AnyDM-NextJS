@@ -98,6 +98,8 @@ export default function DashboardOverview() {
     instagramAccounts.find((acc: any) => acc.id === appUser?.active_instagram_account_id) ||
     instagramAccounts[0];
 
+  const activeAccountId = activeAccount?.id;
+
   const [rateLimits, setRateLimits] = useState<RateLimitData | null>(null);
   const [analytics, setAnalytics] = useState<AnalyticsOverviewData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -105,8 +107,12 @@ export default function DashboardOverview() {
   const fetchAll = useCallback(async () => {
     try {
       const [rateRes, analyticsRes] = await Promise.allSettled([
-        api.get("/accounts/instagram/rate-limits/"),
-        api.get("/crm/analytics/?timeframe=30d")
+        api.get("/accounts/instagram/rate-limits/", {
+          params: activeAccountId ? { account_id: activeAccountId } : {}
+        }),
+        api.get("/crm/analytics/", {
+          params: { timeframe: "30d", ...(activeAccountId ? { account_id: activeAccountId } : {}) }
+        })
       ]);
       if (rateRes.status === "fulfilled" && rateRes.value.data) setRateLimits(rateRes.value.data);
       if (analyticsRes.status === "fulfilled" && analyticsRes.value.data) setAnalytics(analyticsRes.value.data);
@@ -115,7 +121,7 @@ export default function DashboardOverview() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [activeAccountId]);
 
   useEffect(() => {
     fetchAll();

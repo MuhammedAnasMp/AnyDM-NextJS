@@ -132,7 +132,7 @@ function SignupContent() {
       router.push("/dashboard");
     } catch (err: any) {
       setToastType("error");
-      setError(err.message || "Failed to create account. Please try again.");
+      setError(authService.formatError(err));
     } finally {
       setIsEmailLoading(false);
     }

@@ -223,14 +223,13 @@ class AuthService {
                 headers: { Authorization: `Bearer ${token}` }
             });
             
-            const currentUser = this.getCurrentUser();
-            if (currentUser) {
-                store.dispatch(setUser({
-                    ...currentUser,
-                    display_name: response.data.display_name,
-                    first_name: response.data.display_name
-                }));
-            }
+            const currentUser = this.getCurrentUser() || {};
+            const updatedUser = {
+                ...currentUser,
+                display_name: response.data.display_name || data.display_name,
+                first_name: response.data.display_name || data.display_name,
+            };
+            store.dispatch(setUser(updatedUser));
             return response.data;
         } catch (error) {
             console.error('Update profile error:', error);
@@ -371,12 +370,22 @@ class AuthService {
     }
 
     formatError(error: any): string {
-        const code = error?.code || '';
+        if (error?.response?.data) {
+            const apiData = error.response.data;
+            if (typeof apiData.error === 'string' && apiData.error) return apiData.error;
+            if (typeof apiData.details === 'string' && apiData.details) return apiData.details;
+            if (typeof apiData.message === 'string' && apiData.message) return apiData.message;
+            if (typeof apiData.detail === 'string' && apiData.detail) return apiData.detail;
+        }
+
+        const rawMsg = String(error?.message || '');
+        const code = error?.code || (rawMsg.match(/auth\/[a-z-]+/)?.[0] || '');
+
         switch (code) {
             case 'auth/email-already-in-use':
-                return 'This email is already associated with an account. Please sign in instead.';
+                return 'This email address is already registered. Please sign in instead.';
             case 'auth/invalid-email':
-                return 'The email address is not valid.';
+                return 'The email address is invalid. Please check for typos and try again.';
             case 'auth/operation-not-allowed':
                 return 'Support for this login method is currently disabled.';
             case 'auth/weak-password':
@@ -388,12 +397,16 @@ class AuthService {
             case 'auth/wrong-password':
                 return 'Incorrect password. Please try again.';
             case 'auth/invalid-credential':
-                return 'The credentials provided are invalid. Please check your email and password.';
+                return 'Invalid login credentials. Please check your email and password.';
             case 'auth/popup-closed-by-user':
-                return 'The login window was closed before it could complete.';
+                return 'The login window was closed before completing.';
             case 'auth/too-many-requests':
-                return 'Too many failed login attempts. Please try again later.';
+                return 'Too many failed attempts. Please try again in a few minutes.';
             default:
+                if (rawMsg.startsWith('Firebase: Error')) {
+                    const cleanMsg = rawMsg.replace(/^Firebase:\s*Error\s*\(auth\/[a-z-]+\)\.?\s*/i, '');
+                    return cleanMsg || 'Authentication failed. Please check your details and try again.';
+                }
                 return error?.message || 'An unexpected error occurred. Please try again.';
         }
     }

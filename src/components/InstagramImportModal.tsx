@@ -69,7 +69,7 @@ export default function InstagramImportModal({ isOpen, onClose, onSelectImport }
     } catch (err: any) {
       console.error("Instagram media fetch failed:", err);
       const errMsg = err.response?.data?.error || err.response?.data?.details?.error?.message || err.message;
-      setErrorMedia(`Failed to load Instagram media: ${errMsg}`);
+      setErrorMedia(`${errMsg}`);
       setMedia([]);
     } finally {
       setLoadingMedia(false);
@@ -151,7 +151,7 @@ export default function InstagramImportModal({ isOpen, onClose, onSelectImport }
               initial={{ opacity: 0, scale: 0.96, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 15 }}
-              className="w-full bg-[#1c1b1b]/95 backdrop-blur-3xl rounded-xl p-6 md:p-8 shadow-[0_24px_60px_rgba(0,0,0,0.4)] border border-white/10 pointer-events-auto relative overflow-hidden flex flex-col transition-all duration-300 max-w-[760px] max-h-[85vh]"
+              className="w-full bg-[#1c1b1b]/95 backdrop-blur-3xl rounded p-3 md:p-4 shadow-[0_24px_60px_rgba(0,0,0,0.4)] border border-white/10 pointer-events-auto relative overflow-hidden flex flex-col transition-all duration-300 max-w-[760px] max-h-[85vh]"
             >
               {/* Top Accent Ambient Glow */}
               <div className="absolute -top-32 -right-32 w-64 h-64 bg-pink-500/5 blur-[90px] rounded-full" />
@@ -167,7 +167,7 @@ export default function InstagramImportModal({ isOpen, onClose, onSelectImport }
 
               {/* Modal Title */}
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-pink-500 to-purple-600 flex items-center justify-center text-white shadow-md">
+                <div className="w-10 h-10 rounded bg-gradient-to-tr from-pink-500 to-purple-600 flex items-center justify-center text-white shadow-md">
                   <InstagramIcon className="w-5 h-5" />
                 </div>
                 <div>
@@ -192,7 +192,7 @@ export default function InstagramImportModal({ isOpen, onClose, onSelectImport }
                     ))}
                   </div>
                 ) : errorMedia ? (
-                  <div className="p-5 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-3 text-red-400">
+                  <div className="p-5 bg-red-500/10 border border-red-500/20 rounded flex items-start gap-3 text-red-400">
                     <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
                     <div>
                       {/* <h4 className="font-bold text-sm text-white">Failed to Fetch Feed</h4> */}
@@ -285,7 +285,7 @@ export default function InstagramImportModal({ isOpen, onClose, onSelectImport }
                   <button
                     disabled={!selectedMedia}
                     onClick={handleCreateProduct}
-                    className="flex-1 sm:flex-none py-2 px-6 bg-white hover:bg-white/95 disabled:bg-white/20 disabled:text-white/40 text-black rounded-lg text-xs font-bold flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition-all duration-200 cursor-pointer disabled:cursor-not-allowed"
+                    className="flex-1 sm:flex-none py-2 px-6 bg-white hover:bg-white/95 disabled:bg-white/20 disabled:text-white/40 text-black rounded text-xs font-bold flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition-all duration-200 cursor-pointer disabled:cursor-not-allowed"
                   >
                     <span>Import to Product</span>
                     <ArrowRight className="w-3.5 h-3.5" />

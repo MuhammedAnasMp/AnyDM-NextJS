@@ -241,7 +241,7 @@ export function InstagramMediaPicker({ open, onClose, onSelect, selectedIds = []
                     ))}
                   </div>
                 ) : error ? (
-                  <div className="p-4 sm:p-5 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-3 text-red-400">
+                  <div className="p-4 sm:p-5 bg-red-500/10 border border-red-500/20 rounded flex items-start gap-3 text-red-400">
                     <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
                     <div>
                       <h4 className="font-bold text-xs sm:text-sm text-white">Failed to Fetch Feed</h4>

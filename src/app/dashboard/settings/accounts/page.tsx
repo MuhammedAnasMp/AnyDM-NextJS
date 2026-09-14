@@ -188,17 +188,8 @@ const InstagramRow = ({
       </div>
     </div>
 
-    {/* Actions Toolbar */}
-    <div className="flex items-center gap-2 flex-wrap justify-start sm:justify-end shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#2a2a2a]">
-      {!isPrimary && !account.is_token_expired && (
-        <button
-          onClick={() => onSetPrimary(account.id)}
-          className="px-2.5 py-1.5 rounded-md border border-[#2a2a2a] hover:border-[#444748] text-zinc-300 hover:text-white text-xs font-medium transition-colors bg-[#1c1b1b] active:scale-[0.98] cursor-pointer"
-          title="Set as active primary account"
-        >
-          Make Primary
-        </button>
-      )}
+    {/* Actions Toolbar - Right aligned */}
+    <div className="flex items-center gap-2 flex-wrap justify-end shrink-0 sm:ml-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-[#2a2a2a]">
 
       <button
         onClick={() => !account.is_token_expired && onToggleEnabled(account.id, !account.is_enabled)}
@@ -232,7 +223,7 @@ const InstagramRow = ({
           className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-red-500 hover:bg-red-600 text-white cursor-pointer transition-colors active:scale-[0.98]"
         >
           <RefreshCw className="w-3.5 h-3.5" />
-          <span>Re-login</span>
+          <span>Connect</span>
         </button>
       ) : (
         <button
@@ -630,25 +621,55 @@ function AccountsContent() {
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 {isEditingName ? (
-                  <input
-                    type="text"
-                    value={tempName}
-                    onChange={(e) => setTempName(e.target.value)}
-                    onBlur={handleUpdateName}
-                    onKeyDown={(e) => e.key === "Enter" && handleUpdateName()}
-                    autoFocus
-                    className="text-base font-semibold text-white bg-[#131313] border border-[#444748] rounded-md px-2 py-0.5 focus:outline-none focus:border-white transition-colors"
-                  />
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={tempName}
+                      onChange={(e) => setTempName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleUpdateName();
+                        } else if (e.key === "Escape") {
+                          setIsEditingName(false);
+                          setTempName(appUser?.display_name || appUser?.full_name || "");
+                        }
+                      }}
+                      placeholder="Account / Display Name"
+                      autoFocus
+                      className="text-base font-semibold text-white bg-[#131313] border border-[#444748] rounded-md px-2 py-0.5 focus:outline-none focus:border-white transition-colors"
+                    />
+                    <button
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={handleUpdateName}
+                      className="px-2.5 py-1 bg-white text-black text-xs font-bold rounded hover:bg-zinc-200 transition-colors cursor-pointer"
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        setIsEditingName(false);
+                        setTempName(appUser?.display_name || appUser?.full_name || "");
+                      }}
+                      className="px-2 py-1 text-xs text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 ) : (
                   <div
                     onClick={() => {
-                      setTempName(appUser?.display_name || "");
+                      setTempName(appUser?.display_name || appUser?.full_name || "");
                       setIsEditingName(true);
                     }}
                     className="flex items-center gap-2 cursor-pointer group truncate"
+                    title="Click to edit account display name"
                   >
                     <span className="text-base md:text-lg font-semibold text-[#e5e2e1] group-hover:text-[#c4c0ff] transition-colors truncate">
-                      {appUser?.email || appUser?.display_name || firebaseUser?.email || "AnyDM User"}
+                      {appUser?.display_name || appUser?.full_name || "Set Display Name"}
                     </span>
                     <button type="button" className="text-zinc-400 group-hover:text-white transition shrink-0">
                       <Pencil className="w-3.5 h-3.5" />
@@ -657,7 +678,7 @@ function AccountsContent() {
                 )}
               </div>
               <p className="text-xs text-[#8e9192] truncate mt-0.5">
-                {appUser?.display_name ? `${appUser.display_name} • ` : ""}{appUser?.email || firebaseUser?.email || "Workspace User"}
+                {appUser?.email || firebaseUser?.email || "Workspace User"}
               </p>
             </div>
           </div>

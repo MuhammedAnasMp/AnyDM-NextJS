@@ -17,6 +17,8 @@ import {
   ChevronRight
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store";
 
 /* ──────────────────────────── Types ──────────────────────────── */
 
@@ -50,6 +52,13 @@ interface RevenueData {
 /* ═══════════════════════ Main Component ═══════════════════════ */
 
 export default function RevenuePage() {
+  const appUser = useSelector((state: RootState) => state.auth.user);
+  const instagramAccounts = useSelector((state: RootState) => state.auth.instagramAccounts || []);
+  const activeAccount =
+    instagramAccounts.find((acc: any) => acc.id === appUser?.active_instagram_account_id) ||
+    instagramAccounts[0];
+  const activeAccountId = activeAccount?.id;
+
   const [timeframe, setTimeframe] = useState("30d");
   const [data, setData] = useState<RevenueData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -59,7 +68,9 @@ export default function RevenuePage() {
     if (manual) setRefreshing(true);
     else setLoading(true);
     try {
-      const res = await api.get("/crm/revenue/", { params: { timeframe: tf } });
+      const params: any = { timeframe: tf };
+      if (activeAccountId) params.account_id = activeAccountId;
+      const res = await api.get("/crm/revenue/", { params });
       if (res.data) setData(res.data);
     } catch (err) {
       console.error("Error fetching revenue:", err);
@@ -71,7 +82,7 @@ export default function RevenuePage() {
 
   useEffect(() => {
     fetchRevenue(timeframe);
-  }, [timeframe]);
+  }, [timeframe, activeAccountId]);
 
   const fmt = (v: number) => `₹${v.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
 

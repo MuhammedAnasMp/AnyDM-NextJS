@@ -21,7 +21,7 @@ const InstagramIcon = ({ className }: { className?: string }) => (
 import api from "@/lib/services/api.service";
 import { getTemplateStyles, TemplateStyle } from "@/components/templates/TemplateProvider";
 import { cn } from "@/lib/utils";
-import { getProductUrl, getTermsUrl, getPrivacyUrl } from "@/lib/utils/domain";
+import { getProductUrl, getTermsUrl, getPrivacyUrl, isTenantDomain } from "@/lib/utils/domain";
 import LinkInBioPublicView from "@/components/bio/LinkInBioPublicView";
 
 const isVideoUrl = (url: string) => {
@@ -78,14 +78,30 @@ export default function StorefrontPage({ params }: PageProps) {
   const { username } = use(params);
 
   const decodedUsername = decodeURIComponent(username || "");
-  const isBioRequest = decodedUsername.startsWith("@") || username?.startsWith("%40");
+  const cleanBioUsername = decodedUsername.replace(/^@/, "");
 
-  if (isBioRequest) {
-    const cleanBioUsername = decodedUsername.replace(/^@/, "");
-    return <LinkInBioPublicView username={cleanBioUsername} />;
+  const [isTenant, setIsTenant] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    setIsTenant(isTenantDomain());
+  }, []);
+
+  if (isTenant === null) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center gap-4">
+        <div className="relative">
+          <div className="w-12 h-12 rounded-full border-2 border-white/10 border-t-white animate-spin" />
+        </div>
+        <p className="text-xs text-zinc-500 tracking-widest font-medium">Loading store…</p>
+      </div>
+    );
   }
 
-  return <StorefrontView username={username} />;
+  if (isTenant) {
+    return <StorefrontView username={cleanBioUsername} />;
+  }
+
+  return <LinkInBioPublicView username={cleanBioUsername} />;
 }
 
 function StorefrontView({ username }: { username: string }) {

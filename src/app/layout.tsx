@@ -33,7 +33,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className="bg-background text-on-background antialiased selection:bg-primary/20 min-h-screen flex flex-col"
+        className="bg-background text-on-background antialiased min-h-screen flex flex-col"
         suppressHydrationWarning
       >
         <div className="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none -z-10">

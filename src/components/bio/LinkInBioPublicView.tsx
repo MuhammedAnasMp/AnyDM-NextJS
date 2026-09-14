@@ -279,6 +279,7 @@ interface LinkInBioPublicViewProps {
   initialData?: PublicBioPayload;
   isPreviewMode?: boolean;
   activeTab?: string;
+  editingBlockId?: number | string;
 }
 
 export default function LinkInBioPublicView({
@@ -286,6 +287,7 @@ export default function LinkInBioPublicView({
   initialData,
   isPreviewMode = false,
   activeTab,
+  editingBlockId,
 }: LinkInBioPublicViewProps) {
   const [loading, setLoading] = useState(!initialData);
   const [error, setError] = useState<string | null>(null);
@@ -298,12 +300,16 @@ export default function LinkInBioPublicView({
   const [isCopied, setIsCopied] = useState(false);
 
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const prevActiveTabRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     if (isPreviewMode && activeTab) {
-      const targetEl = sectionRefs.current[activeTab];
-      if (targetEl) {
-        targetEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      if (activeTab !== prevActiveTabRef.current) {
+        prevActiveTabRef.current = activeTab;
+        const targetEl = sectionRefs.current[activeTab];
+        if (targetEl) {
+          targetEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
       }
     }
   }, [isPreviewMode, activeTab]);
@@ -325,6 +331,11 @@ export default function LinkInBioPublicView({
             setData(res.data);
             setError(null);
             setLoading(false);
+            if (!isPreviewMode && res.data?.page?.username && res.data.page.username.toLowerCase() !== cleanHandle.toLowerCase()) {
+              if (typeof window !== "undefined") {
+                window.history.replaceState(null, "", `/${res.data.page.username}`);
+              }
+            }
           }
         })
         .catch((err: unknown) => {
@@ -803,19 +814,19 @@ export default function LinkInBioPublicView({
                     type="submit"
                     disabled={isResolving || !pasteInput.trim()}
                     className={cn(
-                      "w-full py-2.5 px-4 rounded text-xs font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md cursor-pointer",
+                      "w-full py-2.5 px-4 rounded text-xs font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md cursor-pointer whitespace-nowrap",
                       theme.buttonClass
                     )}
                   >
                     {isResolving ? (
                       <>
-                        <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                        <span>Resolving…</span>
+                        <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin shrink-0" />
+                        <span className="whitespace-nowrap">Resolving…</span>
                       </>
                     ) : (
                       <>
-                        <span>{page.smart_input_button_text || "Get Link"}</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
+                        <span className="whitespace-nowrap truncate">{page.smart_input_button_text || "Get Link"}</span>
+                        <ArrowRight className="w-3.5 h-3.5 shrink-0" />
                       </>
                     )}
                   </button>
@@ -927,6 +938,7 @@ export default function LinkInBioPublicView({
                   const phoneVal = typeof config.phone === "string" ? config.phone : "";
                   const priceVal = typeof config.price === "string" ? config.price : "";
                   const fileSizeVal = typeof config.file_size === "string" ? config.file_size : "";
+                  const isEditingThis = isPreviewMode && editingBlockId !== undefined && String(block.id) === String(editingBlockId);
 
                   const animationClass =
                     animation === "pulse"
@@ -939,7 +951,15 @@ export default function LinkInBioPublicView({
 
                   if (block.block_type === "header") {
                     return (
-                      <div key={block.id || block.title} className="pt-3 pb-1 text-center">
+                      <div
+                        key={block.id || block.title}
+                        data-block-id={block.id}
+                        data-block-type={block.block_type}
+                        className={cn(
+                          "pt-3 pb-1 text-center transition-all duration-300 rounded-lg p-1",
+                          isEditingThis && "ring-2 ring-[#c4c0ff] shadow-[0_0_20px_rgba(196,192,255,0.5)] bg-[#c4c0ff]/10 text-white"
+                        )}
+                      >
                         <h3
                           className={cn("text-sm sm:text-base font-black tracking-tight", !customTextColor && theme.textClass)}
                           style={primaryTextStyle}
@@ -965,7 +985,13 @@ export default function LinkInBioPublicView({
                     return (
                       <div
                         key={block.id || block.title}
-                        className={cn("w-full rounded overflow-hidden shadow-lg", theme.cardBorderClass)}
+                        data-block-id={block.id}
+                        data-block-type={block.block_type}
+                        className={cn(
+                          "w-full rounded overflow-hidden shadow-lg transition-all duration-300",
+                          theme.cardBorderClass,
+                          isEditingThis && "ring-2 ring-[#c4c0ff] shadow-[0_0_20px_rgba(196,192,255,0.5)]"
+                        )}
                       >
                         {ytId ? (
                           <div className="relative aspect-video w-full bg-black">
@@ -1032,14 +1058,17 @@ export default function LinkInBioPublicView({
                     return (
                       <Component
                         key={block.id || block.title}
+                        data-block-id={block.id}
+                        data-block-type={block.block_type}
                         href={block.url || undefined}
                         target={block.url ? "_blank" : undefined}
                         rel="noopener noreferrer"
                         onClick={() => block.url && trackClick("block_click", block.id)}
                         className={cn(
-                          "group block w-full rounded overflow-hidden shadow-md transition-transform hover:scale-[1.01]",
+                          "group block w-full rounded overflow-hidden shadow-md transition-all duration-300 hover:scale-[1.01]",
                           theme.cardBorderClass,
-                          block.url ? "cursor-pointer" : ""
+                          block.url ? "cursor-pointer" : "",
+                          isEditingThis && "ring-2 ring-[#c4c0ff] shadow-[0_0_20px_rgba(196,192,255,0.5)]"
                         )}
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1077,16 +1106,19 @@ export default function LinkInBioPublicView({
                     return (
                       <a
                         key={block.id || block.title}
+                        data-block-id={block.id}
+                        data-block-type={block.block_type}
                         href={block.url || block.media_url}
                         download
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={() => trackClick("block_click", block.id)}
                         className={cn(
-                          "flex items-center gap-3.5 p-3.5 rounded transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]",
+                          "flex items-center gap-3.5 p-3.5 rounded transition-all duration-300 hover:scale-[1.01] active:scale-[0.99]",
                           theme.cardClass,
                           theme.cardBorderClass,
-                          animationClass
+                          animationClass,
+                          isEditingThis && "ring-2 ring-[#c4c0ff] shadow-[0_0_20px_rgba(196,192,255,0.5)]"
                         )}
                       >
                         <div className="w-10 h-10 rounded bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
@@ -1114,10 +1146,18 @@ export default function LinkInBioPublicView({
                   }
 
                   if (block.block_type === "contact_card") {
+                    const activeContactCount = [whatsappVal, emailVal, phoneVal].filter(Boolean).length;
                     return (
                       <div
                         key={block.id || block.title}
-                        className={cn("p-4 rounded space-y-3", theme.cardClass, theme.cardBorderClass)}
+                        data-block-id={block.id}
+                        data-block-type={block.block_type}
+                        className={cn(
+                          "p-4 rounded space-y-3 transition-all duration-300",
+                          theme.cardClass,
+                          theme.cardBorderClass,
+                          isEditingThis && "ring-2 ring-[#c4c0ff] shadow-[0_0_20px_rgba(196,192,255,0.5)]"
+                        )}
                       >
                         <div>
                           <h4
@@ -1135,14 +1175,14 @@ export default function LinkInBioPublicView({
                             </p>
                           )}
                         </div>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className={cn("grid gap-2", activeContactCount === 1 ? "grid-cols-1" : "grid-cols-2")}>
                           {whatsappVal && (
                             <a
                               href={`https://wa.me/${whatsappVal.replace(/\D/g, "")}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               onClick={() => trackClick("block_click", block.id)}
-                              className="py-2 px-3 rounded bg-emerald-600/10 border border-emerald-500/30 text-emerald-400 font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-emerald-600/20 transition-all"
+                              className="py-2 px-3 rounded bg-emerald-600/10 border border-emerald-500/30 text-emerald-400 font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-emerald-600/20 transition-all w-full"
                             >
                               <MessageCircle className="w-3.5 h-3.5" />
                               <span>WhatsApp</span>
@@ -1152,7 +1192,7 @@ export default function LinkInBioPublicView({
                             <a
                               href={`mailto:${emailVal}`}
                               onClick={() => trackClick("block_click", block.id)}
-                              className="py-2 px-3 rounded bg-white/5 border border-white/10 text-white font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-white/10 transition-all"
+                              className="py-2 px-3 rounded bg-white/5 border border-white/10 text-white font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-white/10 transition-all w-full"
                             >
                               <Mail className="w-3.5 h-3.5" />
                               <span>Email</span>
@@ -1162,7 +1202,7 @@ export default function LinkInBioPublicView({
                             <a
                               href={`tel:${phoneVal}`}
                               onClick={() => trackClick("block_click", block.id)}
-                              className="py-2 px-3 rounded bg-white/5 border border-white/10 text-white font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-white/10 transition-all"
+                              className="py-2 px-3 rounded bg-white/5 border border-white/10 text-white font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-white/10 transition-all w-full"
                             >
                               <Phone className="w-3.5 h-3.5" />
                               <span>Call</span>
@@ -1177,14 +1217,17 @@ export default function LinkInBioPublicView({
                     return (
                       <a
                         key={block.id || block.title}
+                        data-block-id={block.id}
+                        data-block-type={block.block_type}
                         href={block.url || `/${page.username}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={() => trackClick("block_click", block.id)}
                         className={cn(
-                          "flex items-center gap-3 p-3 rounded transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]",
+                          "flex items-center gap-3 p-3 rounded transition-all duration-300 hover:scale-[1.01] active:scale-[0.99]",
                           theme.cardClass,
-                          theme.cardBorderClass
+                          theme.cardBorderClass,
+                          isEditingThis && "ring-2 ring-[#c4c0ff] shadow-[0_0_20px_rgba(196,192,255,0.5)]"
                         )}
                       >
                         <div className="w-14 h-14 rounded overflow-hidden bg-zinc-900 shrink-0">
@@ -1225,14 +1268,17 @@ export default function LinkInBioPublicView({
                     return (
                       <a
                         key={block.id || block.title}
+                        data-block-id={block.id}
+                        data-block-type={block.block_type}
                         href={block.url}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={() => trackClick("block_click", block.id)}
                         className={cn(
-                          "w-full py-3.5 px-5 rounded text-xs sm:text-sm font-black flex items-center justify-center gap-2 transition-all hover:brightness-110 active:scale-[0.98] shadow-lg cursor-pointer",
+                          "w-full py-3.5 px-5 rounded text-xs sm:text-sm font-black flex items-center justify-center gap-2 transition-all duration-300 hover:brightness-110 active:scale-[0.98] shadow-lg cursor-pointer",
                           theme.buttonClass,
-                          animationClass
+                          animationClass,
+                          isEditingThis && "ring-2 ring-[#c4c0ff] shadow-[0_0_20px_rgba(196,192,255,0.5)]"
                         )}
                       >
                         <span>{block.title || "Click Here"}</span>
@@ -1244,15 +1290,18 @@ export default function LinkInBioPublicView({
                   return (
                     <a
                       key={block.id || block.title}
+                      data-block-id={block.id}
+                      data-block-type={block.block_type}
                       href={block.url}
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => trackClick("block_click", block.id)}
                       className={cn(
-                        "group relative flex items-center gap-3.5 p-3.5 rounded transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] select-none",
+                        "group relative flex items-center gap-3.5 p-3.5 rounded transition-all duration-300 hover:scale-[1.01] active:scale-[0.99]",
                         theme.cardClass,
                         theme.cardBorderClass,
-                        animationClass
+                        animationClass,
+                        isEditingThis && "ring-2 ring-[#c4c0ff] shadow-[0_0_20px_rgba(196,192,255,0.5)]"
                       )}
                     >
                       {block.media_url ? (

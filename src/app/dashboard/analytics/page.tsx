@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import api from "@/lib/services/api.service";
 import {
   RefreshCw,
@@ -16,6 +16,8 @@ import {
   ChevronRight
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store";
 
 /* ──────────────────────────── Types ──────────────────────────── */
 
@@ -64,16 +66,25 @@ interface AnalyticsData {
 /* ═══════════════════════ Main Component ═══════════════════════ */
 
 export default function AnalyticsPage() {
+  const appUser = useSelector((state: RootState) => state.auth.user);
+  const instagramAccounts = useSelector((state: RootState) => state.auth.instagramAccounts || []);
+  const activeAccount =
+    instagramAccounts.find((acc: any) => acc.id === appUser?.active_instagram_account_id) ||
+    instagramAccounts[0];
+  const activeAccountId = activeAccount?.id;
+
   const [timeframe, setTimeframe] = useState("30d");
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchAnalytics = async (tf: string, manual = false) => {
+  const fetchAnalytics = useCallback(async (tf: string, manual = false) => {
     if (manual) setRefreshing(true);
     else setLoading(true);
     try {
-      const res = await api.get("/crm/analytics/", { params: { timeframe: tf } });
+      const params: any = { timeframe: tf };
+      if (activeAccountId) params.account_id = activeAccountId;
+      const res = await api.get("/crm/analytics/", { params });
       if (res.data) setData(res.data);
     } catch (err) {
       console.error("Error fetching analytics:", err);
@@ -81,11 +92,11 @@ export default function AnalyticsPage() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [activeAccountId]);
 
   useEffect(() => {
     fetchAnalytics(timeframe);
-  }, [timeframe]);
+  }, [timeframe, fetchAnalytics]);
 
   /* ── Derived funnel ── */
   const funnelSteps = useMemo(() => {

@@ -45,6 +45,17 @@
   --font-mono: 'Space Mono', monospace;
 }
 
+/* Custom Unique Global Text Selection Color */
+::selection {
+  background-color: #635bff !important;
+  color: #ffffff !important;
+}
+
+::-moz-selection {
+  background-color: #635bff !important;
+  color: #ffffff !important;
+}
+
 body {
   background-color: var(--background);
   color: var(--foreground);
@@ -258,19 +269,57 @@ body {
   }
 }
 
-.loop-back-wire-path {
-  pointer-events: auto !important;
-  cursor: pointer !important;
-}
-
 .loop-back-wire-path path {
-  pointer-events: auto !important;
-  cursor: pointer !important;
+  pointer-events: auto;
 }
 
-.loop-back-wire-path:hover path,
 .loop-back-wire-path path:hover,
-.group\/loop-wire:hover .loop-back-wire-path path,
-.group\/loop-wire:hover path {
+.group\/loop-wire:hover .loop-back-wire-path path {
+  cursor: pointer;
   animation: flowDashesRightToLeft 0.5s linear infinite !important;
+}
+
+/* Instagram Moving Glow & Shimmer Effect */
+.instagram-glow {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(
+    90deg,
+    #4F5BD5 0%,
+    #962FBF 25%,
+    #D62976 50%,
+    #FA7E1E 75%,
+    #FEDA75 100%
+  );
+  background-size: 200% 200%;
+  animation: igGlow 6s ease-in-out infinite;
+}
+
+.instagram-glow::after {
+  content: "";
+  position: absolute;
+  inset: -50%;
+  background: linear-gradient(
+    45deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.25) 48%,
+    rgba(255, 255, 255, 0.6) 50%,
+    rgba(255, 255, 255, 0.25) 52%,
+    transparent 65%
+  );
+  animation: shimmer 4s linear infinite;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+@keyframes igGlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }

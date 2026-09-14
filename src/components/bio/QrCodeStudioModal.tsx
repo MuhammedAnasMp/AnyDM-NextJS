@@ -164,20 +164,43 @@ async function convertUrlToBase64(url: string): Promise<string> {
   if (!url) return "";
   if (url.startsWith("data:")) return url;
 
-  try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const blob = await res.blob();
-    return await new Promise<string>((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve((reader.result as string) || url);
-      reader.onerror = () => resolve(url);
-      reader.readAsDataURL(blob);
-    });
-  } catch (err) {
-    console.warn("Could not convert logo URL to Base64:", err);
-    return url;
-  }
+  return new Promise<string>((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      try {
+        const tempCanvas = document.createElement("canvas");
+        tempCanvas.width = img.naturalWidth || img.width || 100;
+        tempCanvas.height = img.naturalHeight || img.height || 100;
+        const ctx = tempCanvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          resolve(tempCanvas.toDataURL("image/png"));
+          return;
+        }
+      } catch (err) {
+        console.warn("Offscreen canvas export failed:", err);
+      }
+      resolve("");
+    };
+    img.onerror = async () => {
+      try {
+        const res = await fetch(url, { mode: "cors" });
+        if (res.ok) {
+          const blob = await res.blob();
+          const reader = new FileReader();
+          reader.onloadend = () => resolve((reader.result as string) || "");
+          reader.onerror = () => resolve("");
+          reader.readAsDataURL(blob);
+          return;
+        }
+      } catch (e) {
+        console.warn("Fetch fallback failed:", e);
+      }
+      resolve("");
+    };
+    img.src = url;
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -288,23 +311,35 @@ export function QrCodeStudioModal({
   const containerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Sync initialConfig if opened
+  // Sync initialConfig or localStorage if opened
   useEffect(() => {
-    if (isOpen && initialConfig) {
-      if (initialConfig.presetId) setSelectedPresetId(initialConfig.presetId);
-      if (initialConfig.bodyColor) setBodyColor(initialConfig.bodyColor);
-      if (initialConfig.eyesColor) setEyesColor(initialConfig.eyesColor);
-      if (initialConfig.bgColor) setBgColor(initialConfig.bgColor);
-      if (initialConfig.bodyVariant) setBodyVariant(initialConfig.bodyVariant);
-      if (initialConfig.eyesVariant) setEyesVariant(initialConfig.eyesVariant);
-      if (initialConfig.bodyEffect) setBodyEffect(initialConfig.bodyEffect);
-      if (initialConfig.eyesEffect) setEyesEffect(initialConfig.eyesEffect);
-      if (initialConfig.logoType) setLogoType(initialConfig.logoType);
-      if (initialConfig.selectedAnyDmLogo) setSelectedAnyDmLogo(initialConfig.selectedAnyDmLogo);
-      if (initialConfig.customLogoUrl) setCustomLogoUrl(initialConfig.customLogoUrl);
-      if (initialConfig.logoSize) setLogoSize(initialConfig.logoSize);
+    if (isOpen) {
+      let parsedLocal: any = null;
+      if (typeof window !== "undefined" && username) {
+        try {
+          const savedLocal = localStorage.getItem("anydm_qr_config_" + username);
+          if (savedLocal) parsedLocal = JSON.parse(savedLocal);
+        } catch (e) {
+          console.error("Failed to parse local QR config:", e);
+        }
+      }
+      const config = initialConfig || parsedLocal;
+      if (config) {
+        if (config.presetId) setSelectedPresetId(config.presetId);
+        if (config.bodyColor) setBodyColor(config.bodyColor);
+        if (config.eyesColor) setEyesColor(config.eyesColor);
+        if (config.bgColor) setBgColor(config.bgColor);
+        if (config.bodyVariant) setBodyVariant(config.bodyVariant);
+        if (config.eyesVariant) setEyesVariant(config.eyesVariant);
+        if (config.bodyEffect) setBodyEffect(config.bodyEffect);
+        if (config.eyesEffect) setEyesEffect(config.eyesEffect);
+        if (config.logoType) setLogoType(config.logoType);
+        if (config.selectedAnyDmLogo) setSelectedAnyDmLogo(config.selectedAnyDmLogo);
+        if (config.customLogoUrl) setCustomLogoUrl(config.customLogoUrl);
+        if (config.logoSize) setLogoSize(config.logoSize);
+      }
     }
-  }, [isOpen, initialConfig]);
+  }, [isOpen, initialConfig, username]);
 
   // Reset verification messages when user changes settings
   useEffect(() => {
@@ -338,7 +373,7 @@ export function QrCodeStudioModal({
 
     convertUrlToBase64(activeLogoSrc).then((base64) => {
       if (isMounted) {
-        setLogoBase64(base64 || activeLogoSrc);
+        setLogoBase64(base64 || "");
       }
     });
 
@@ -505,13 +540,17 @@ export function QrCodeStudioModal({
           logoSize,
         };
 
+        if (typeof window !== "undefined" && username) {
+          try {
+            localStorage.setItem("anydm_qr_config_" + username, JSON.stringify(config));
+          } catch (e) {
+            console.error("Failed to save QR config to localStorage:", e);
+          }
+        }
+
         if (onSaveConfig) {
           onSaveConfig(config);
         }
-
-        setTimeout(() => {
-          onClose();
-        }, 1500);
       } else {
         // DO NOT SAVE IF EXTERNAL API FAILED TO SCAN THE IMAGE!
         setVerificationError(
@@ -544,172 +583,143 @@ export function QrCodeStudioModal({
             initial={{ opacity: 0, scale: 0.97, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.97, y: 12 }}
-            className="relative w-full max-w-2xl bg-[#131313] border border-[#353535] rounded-xl overflow-hidden shadow-[0_25px_70px_rgba(0,0,0,0.9)] flex flex-col md:flex-row max-h-[92vh] text-[#e5e2e1]"
+            className="relative w-full max-w-2xl bg-[#131313] border border-[#353535] rounded-xl overflow-hidden shadow-[0_25px_70px_rgba(0,0,0,0.9)] flex flex-col max-h-[92vh] text-[#e5e2e1]"
           >
-            {/* Top Bar Header (Mobile) */}
-            <div className="md:hidden p-3 px-4 bg-[#1c1b1b] border-b border-[#353535] flex items-center justify-between shrink-0 z-10">
+            {/* Top Bar Header with Cancel & Save Buttons */}
+            <div className="w-full p-3 px-4 bg-[#1c1b1b] border-b border-[#353535] flex items-center justify-between shrink-0 z-10">
               <div className="flex items-center gap-2">
                 <div className="p-1 rounded bg-[#c4c0ff]/10 text-[#c4c0ff] border border-[#c4c0ff]/20">
                   <QrCode className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-xs font-semibold text-white tracking-tight">QR Code Studio</h3>
-                  <p className="text-[10px] text-[#8e9192]">Customize & Verify</p>
-                </div>
-              </div>
-              <button
-                onClick={onClose}
-                className="p-1 rounded text-[#8e9192] hover:text-white hover:bg-[#2a2a2a] transition-colors cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Left Side: Live QR Showcase Stage */}
-            <div className="w-full md:w-1/2 p-5 bg-[#0e0e0e] flex flex-col items-center justify-between border-b md:border-b-0 md:border-r border-[#353535] relative overflow-y-auto">
-              {/* Desktop Header */}
-              <div className="hidden md:flex items-center justify-between w-full mb-2">
-                <div className="flex items-center gap-2">
-                  <div className="p-1 rounded bg-[#c4c0ff]/10 text-[#c4c0ff] border border-[#c4c0ff]/20">
-                    <QrCode className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-xs font-semibold text-white tracking-tight">QR Studio</h3>
-                    <p className="text-[10px] text-[#8e9192]">Customize & Save</p>
-                  </div>
+                  <h3 className="text-xs font-semibold text-white tracking-tight">QR Studio</h3>
+                  <p className="text-[10px] text-[#8e9192]">Customize & Save</p>
                 </div>
               </div>
 
-              {/* Error Alert Box if Scan Verification Fails */}
-              {verificationError && (
-                <div className="w-full mb-2 bg-amber-500/10 border border-amber-500/30 p-2.5 rounded-md flex items-start gap-2 text-[11px] text-amber-300">
-                  <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                  <div className="leading-tight">
-                    <p className="font-bold text-amber-400">Scan Check Failed — Not Saved</p>
-                    <p className="text-[10px] opacity-90 mt-0.5">{verificationError}</p>
-                  </div>
-                </div>
-              )}
+              {/* Top Action Buttons: Cancel & Save */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-3 py-1.5 rounded bg-[#20201f] hover:bg-[#2c2c2c] border border-[#353535] text-xs font-semibold text-zinc-300 hover:text-white transition-all cursor-pointer select-none"
+                >
+                  Cancel
+                </button>
 
-              {/* Success Badge if Verification Passed */}
-              {isSavedSuccess && (
-                <div className="w-full mb-2 bg-emerald-500/10 border border-emerald-500/30 p-2.5 rounded-md flex items-center gap-2 text-[11px] text-emerald-300">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <div className="leading-tight">
-                    <p className="font-bold text-emerald-400">QR Code Verified & Saved!</p>
-                    <p className="text-[10px] font-mono text-emerald-300/80 truncate max-w-[170px]">Decoded: {verifiedDecodedText}</p>
-                  </div>
-                </div>
-              )}
-
-              {/* QR Code Canvas Card Display */}
-              <div
-                className="w-full flex-1 flex flex-col items-center justify-center p-4 rounded-lg border border-[#353535] transition-all relative my-1 shadow-md"
-                style={{ backgroundColor: bgColor }}
-              >
-                <div ref={containerRef} className="relative group transition-all duration-300 p-1 rounded-md">
-                  <QrcodeCanvas
-                    value={publicUrl}
-                    size={210}
-                    color={{
-                      body: bodyColor,
-                      eyes: eyesColor,
-                    }}
-                    variant={{
-                      body: bodyVariant,
-                      eyes: eyesVariant,
-                    }}
-                    colorEffect={{
-                      body: bodyEffect,
-                      eyes: eyesEffect,
-                    }}
-                    image={
-                      (logoBase64 || activeLogoSrc)
-                        ? {
-                          src: logoBase64 || activeLogoSrc || "",
-                          width: Math.min(logoSize, 44),
-                          height: Math.min(logoSize, 44),
-                          overlap: true,
-                        }
-                        : undefined
-                    }
-                    margin={8}
-                    padding={8}
-                  />
-                </div>
-
-                {/* Handle & Title Display */}
-                <div className="mt-2 text-center space-y-0.5">
-                  <p className="text-xs font-semibold tracking-tight text-white">@{username}</p>
-                  <p className="text-[10px] text-[#8e9192] font-mono truncate max-w-[190px] mx-auto">{publicUrl}</p>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="w-full space-y-2 pt-2">
                 <button
                   type="button"
                   onClick={handleVerifyAndSave}
                   disabled={isVerifying}
-                  className="w-full py-2.5 px-3 bg-white hover:bg-[#e5e2e1] text-[#131313] font-bold text-xs rounded transition-all flex items-center justify-center gap-2 cursor-pointer shadow active:scale-98 disabled:opacity-50"
+                  className="px-3 py-1.5 rounded bg-white hover:bg-[#e5e2e1] text-black font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow active:scale-95 disabled:opacity-50 select-none"
                 >
                   {isVerifying ? (
                     <>
-                      <Loader2 className="w-4 h-4 text-[#131313] animate-spin" />
-                      <span>Verifying QR Code...</span>
+                      <Loader2 className="w-3.5 h-3.5 text-black animate-spin" />
+                      <span>Verifying...</span>
                     </>
                   ) : isSavedSuccess ? (
                     <>
-                      <Check className="w-4 h-4 text-emerald-600" />
-                      <span>QR Code Verified & Saved!</span>
+                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Saved</span>
                     </>
                   ) : (
                     <>
-                      <Check className="w-4 h-4 text-[#131313]" />
-                      <span>Check QR</span>
+                      <Check className="w-3.5 h-3.5 text-black" />
+                      <span>Save</span>
                     </>
                   )}
                 </button>
-
-                {isSavedSuccess && (
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={handleDownloadPng}
-                      className="py-1.5 px-2 bg-[#20201f] hover:bg-[#2a2a2a] text-[#e5e2e1] border border-[#353535] font-semibold text-[11px] rounded transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      <Download className="w-3.5 h-3.5 text-[#8e9192]" />
-                      <span>Download PNG</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={handleCopyImage}
-                      className="py-1.5 px-2 bg-[#20201f] hover:bg-[#2a2a2a] text-[#e5e2e1] border border-[#353535] font-semibold text-[11px] rounded transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      {copiedImage ? (
-                        <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      ) : (
-                        <Copy className="w-3.5 h-3.5 text-[#8e9192]" />
-                      )}
-                      <span>{copiedImage ? "Copied" : "Copy PNG"}</span>
-                    </button>
-                  </div>
-                )}
               </div>
             </div>
 
-            {/* Right Side: Creator Customization Studio Controls */}
-            <div className="w-full md:w-1/2 p-4 sm:p-5 flex flex-col justify-between bg-[#131313] overflow-y-auto max-h-[520px] md:max-h-none">
-              {/* Close Button (Desktop) */}
-              <div className="hidden md:flex justify-end mb-1">
-                <button
-                  onClick={onClose}
-                  className="p-1 rounded text-[#8e9192] hover:text-white hover:bg-[#2a2a2a] transition-colors cursor-pointer"
+            {/* Main Body Columns */}
+            <div className="flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden min-h-0">
+              {/* Left Side: Live QR Showcase Stage */}
+              <div className="w-full md:w-1/2 p-4 sm:p-5 bg-[#0e0e0e] flex flex-col items-center justify-between border-b md:border-b-0 md:border-r border-[#353535] relative overflow-y-auto">
+                {/* Error Alert Box if Scan Verification Fails */}
+                {verificationError && (
+                  <div className="w-full mb-2 bg-amber-500/10 border border-amber-500/30 p-2.5 rounded-md flex items-center justify-center gap-2 text-[11px] text-amber-300">
+                    <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                    <p className="font-bold text-amber-400">Invalid — Not Saved</p>
+                  </div>
+                )}
+
+                {/* QR Code Canvas Card Display */}
+                <div
+                  className="w-full flex-1 flex flex-col items-center justify-center p-4 rounded-lg border border-[#353535] transition-all relative my-1 shadow-md"
+                  style={{ backgroundColor: bgColor }}
                 >
-                  <X className="w-4 h-4" />
-                </button>
+                  <div ref={containerRef} className="relative group transition-all duration-300 p-1 rounded-md">
+                    <QrcodeCanvas
+                      value={publicUrl}
+                      size={210}
+                      color={{
+                        body: bodyColor,
+                        eyes: eyesColor,
+                      }}
+                      variant={{
+                        body: bodyVariant,
+                        eyes: eyesVariant,
+                      }}
+                      colorEffect={{
+                        body: bodyEffect,
+                        eyes: eyesEffect,
+                      }}
+                      image={
+                        logoBase64 && logoBase64.startsWith("data:")
+                          ? {
+                            src: logoBase64,
+                            width: Math.min(logoSize, 44),
+                            height: Math.min(logoSize, 44),
+                            overlap: true,
+                          }
+                          : undefined
+                      }
+                      margin={8}
+                      padding={8}
+                    />
+                  </div>
+
+                  {/* Handle & Title Display */}
+                  <div className="mt-2 text-center space-y-0.5">
+                    <p className="text-xs font-semibold tracking-tight text-white">@{username}</p>
+                    <p className="text-[10px] text-[#8e9192] font-mono truncate max-w-[190px] mx-auto">{publicUrl}</p>
+                  </div>
+                </div>
+
+                {/* Action Buttons (Download / Copy PNG when saved) */}
+                {isSavedSuccess && (
+                  <div className="w-full pt-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={handleDownloadPng}
+                        className="py-1.5 px-2 bg-[#20201f] hover:bg-[#2a2a2a] text-[#e5e2e1] border border-[#353535] font-semibold text-[11px] rounded transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <Download className="w-3.5 h-3.5 text-[#8e9192]" />
+                        <span>Download PNG</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleCopyImage}
+                        className="py-1.5 px-2 bg-[#20201f] hover:bg-[#2a2a2a] text-[#e5e2e1] border border-[#353535] font-semibold text-[11px] rounded transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        {copiedImage ? (
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        ) : (
+                          <Copy className="w-3.5 h-3.5 text-[#8e9192]" />
+                        )}
+                        <span>{copiedImage ? "Copied" : "Copy PNG"}</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
+
+              {/* Right Side: Creator Customization Studio Controls */}
+              <div className="w-full md:w-1/2 p-4 sm:p-5 flex flex-col justify-between bg-[#131313] overflow-y-auto max-h-[520px] md:max-h-none">
 
               {/* Navigation Tabs */}
               <div className="flex items-center gap-1 bg-[#1c1b1b] p-1 rounded-md border border-[#353535] mb-4 shrink-0">
@@ -723,7 +733,7 @@ export function QrCodeStudioModal({
                       : "text-[#8e9192] hover:text-white"
                   )}
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-[#c4c0ff]" />
+                  {/* <Sparkles className="w-3.5 h-3.5 text-[#c4c0ff]" /> */}
                   <span>Presets</span>
                 </button>
 
@@ -737,7 +747,7 @@ export function QrCodeStudioModal({
                       : "text-[#8e9192] hover:text-white"
                   )}
                 >
-                  <Palette className="w-3.5 h-3.5 text-[#c4c0ff]" />
+                  {/* <Palette className="w-3.5 h-3.5 text-[#c4c0ff]" /> */}
                   <span>Colors</span>
                 </button>
 
@@ -751,7 +761,7 @@ export function QrCodeStudioModal({
                       : "text-[#8e9192] hover:text-white"
                   )}
                 >
-                  <Shapes className="w-3.5 h-3.5 text-[#c4c0ff]" />
+                  {/* <Shapes className="w-3.5 h-3.5 text-[#c4c0ff]" /> */}
                   <span>Shapes</span>
                 </button>
 
@@ -765,7 +775,7 @@ export function QrCodeStudioModal({
                       : "text-[#8e9192] hover:text-white"
                   )}
                 >
-                  <ImageIcon className="w-3.5 h-3.5 text-[#c4c0ff]" />
+                  {/* <ImageIcon className="w-3.5 h-3.5 text-[#c4c0ff]" /> */}
                   <span>Logo</span>
                 </button>
               </div>
@@ -994,24 +1004,22 @@ export function QrCodeStudioModal({
                     <div className="space-y-2 bg-[#1c1b1b] p-3 rounded-md border border-[#353535]">
                       <label className="text-xs font-semibold text-[#e5e2e1] block">Center Logo Overlay</label>
                       <div className="grid grid-cols-2 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setLogoType("avatar")}
-                          className={cn(
-                            "p-2 rounded-md border transition-all flex items-center gap-2 cursor-pointer text-xs font-semibold",
-                            logoType === "avatar"
-                              ? "bg-[#c4c0ff]/15 border-[#c4c0ff] text-white"
-                              : "bg-[#20201f] border-[#353535] text-[#8e9192] hover:text-white"
-                          )}
-                        >
-                          {profileImageUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
+                        {profileImageUrl && (
+                          <button
+                            type="button"
+                            onClick={() => setLogoType("avatar")}
+                            className={cn(
+                              "p-2 rounded-md border transition-all flex items-center gap-2 cursor-pointer text-xs font-semibold",
+                              logoType === "avatar"
+                                ? "bg-[#c4c0ff]/15 border-[#c4c0ff] text-white"
+                                : "bg-[#20201f] border-[#353535] text-[#8e9192] hover:text-white"
+                            )}
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={profileImageUrl} alt="Avatar" className="w-4 h-4 rounded-full object-cover" />
-                          ) : (
-                            <ImageIcon className="w-4 h-4 text-[#c4c0ff]" />
-                          )}
-                          <span>Profile Avatar</span>
-                        </button>
+                            <span>Profile Avatar</span>
+                          </button>
+                        )}
 
                         <button
                           type="button"
@@ -1031,7 +1039,10 @@ export function QrCodeStudioModal({
 
                         <button
                           type="button"
-                          onClick={() => setLogoType("custom")}
+                          onClick={() => {
+                            setLogoType("custom");
+                            fileInputRef.current?.click();
+                          }}
                           className={cn(
                             "p-2 rounded-md border transition-all flex items-center gap-2 cursor-pointer text-xs font-semibold",
                             logoType === "custom"
@@ -1040,7 +1051,7 @@ export function QrCodeStudioModal({
                           )}
                         >
                           <Upload className="w-4 h-4 text-[#c4c0ff]" />
-                          <span>Custom Upload</span>
+                          <span>Upload</span>
                         </button>
 
                         <button
@@ -1106,10 +1117,7 @@ export function QrCodeStudioModal({
                             <div className="flex items-center gap-2.5">
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img src={customLogoUrl} alt="Custom Logo" className="w-8 h-8 rounded object-cover border border-[#353535]" />
-                              <div>
-                                <p className="text-xs font-semibold text-white">Custom Logo Uploaded</p>
-                                <p className="text-[10px] text-emerald-400">Cloudinary Media URL</p>
-                              </div>
+
                             </div>
                             <button
                               type="button"
@@ -1165,7 +1173,8 @@ export function QrCodeStudioModal({
                 )}
               </div>
             </div>
-          </motion.div>
+          </div>
+        </motion.div>
         </div>
       )}
     </AnimatePresence>

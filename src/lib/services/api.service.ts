@@ -104,7 +104,8 @@ const api = axios.create({
 api.interceptors.request.use(
     (config) => {
         const token = authService.getAccessToken();
-        if (token) {
+        const isPublicEndpoint = config.url?.includes('/public/') || config.headers?.['X-Skip-Auth'];
+        if (token && !isPublicEndpoint) {
             config.headers.Authorization = `Bearer ${token}`;
         }
         return config;

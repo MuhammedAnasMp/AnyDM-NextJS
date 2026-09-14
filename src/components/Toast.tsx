@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { X, AlertCircle, CheckCircle2, Info } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 interface ToastProps {
   message: string;
@@ -12,14 +12,19 @@ interface ToastProps {
 }
 
 export default function Toast({ message, type = "error", isVisible, onClose }: ToastProps) {
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
   useEffect(() => {
     if (isVisible) {
       const timer = setTimeout(() => {
-        onClose();
+        onCloseRef.current();
       }, 5000);
       return () => clearTimeout(timer);
     }
-  }, [isVisible, onClose]);
+  }, [isVisible]);
 
   const colors = {
     error: "bg-red-500",

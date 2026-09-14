@@ -10,6 +10,8 @@ import { authService } from "@/lib/services/auth.service";
 import { auth } from "@/lib/firebase";
 import Toast from "./Toast";
 import { UserAvatar } from "./Avatar";
+import InstagramIcon from "./ui/InstagramIcon";
+import InstagramAccountGuard from "./InstagramAccountGuard";
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -231,8 +233,10 @@ export default function Header({ onMenuClick }: HeaderProps) {
           {/* Instagram Account Switcher Dropdown */}
           {activeAccount && (
             <div
-              className={`relative ${pathname === "/dashboard/products/catalog/create" ||
-                pathname.startsWith("/dashboard/automations")
+              className={`relative ${
+                pathname === "/dashboard/products/catalog/create" ||
+                pathname.startsWith("/dashboard/automations") ||
+                pathname.startsWith("/dashboard/bio")
                 ? "pointer-events-none opacity-50 cursor-not-allowed"
                 : ""
                 }`}
@@ -406,6 +410,9 @@ export default function Header({ onMenuClick }: HeaderProps) {
           </div>
         </div>
       </header>
+
+      {/* Instagram Account Guard Banner — placed BEFORE Tier 2 Horizontal Sub-Nav */}
+      <InstagramAccountGuard />
 
       {/* Tier 2: Sub-Navigation Bar */}
       {!pathname.startsWith("/dashboard/automations") && !pathname.includes("/products/catalog/create") && items.length > 0 && (

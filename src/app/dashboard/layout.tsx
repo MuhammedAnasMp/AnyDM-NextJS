@@ -12,8 +12,6 @@ import { authService } from "@/lib/services/auth.service";
 import { setHydrating } from "@/store/slices/authSlice";
 import { cn } from "@/lib/utils";
 
-import InstagramAccountGuard from "@/components/InstagramAccountGuard";
-
 function DashboardLayoutContent({
   children,
 }: {
@@ -127,7 +125,7 @@ function DashboardLayoutContent({
         isRailMode ? "lg:ml-[64px]" : "lg:ml-[240px]",
         isFullBleed ? "h-screen overflow-hidden" : "min-h-screen"
       )}>
-        {/* Two-Tier Dynamic Header */}
+        {/* Two-Tier Dynamic Header (includes Tier 2 sub-nav & Instagram guard banner) */}
         <Header onMenuClick={() => setIsSidebarOpen(true)} />
 
         {/* Content Canvas — only render after Firebase resolves (~100ms) */}
@@ -137,11 +135,7 @@ function DashboardLayoutContent({
             ? "flex flex-col flex-1 min-h-0 p-0 max-w-none overflow-hidden"
             : "w-full px-3 py-3 sm:px-4 sm:py-3.5"
         )}>
-          {firebaseUser ? (
-            <InstagramAccountGuard>
-              {children}
-            </InstagramAccountGuard>
-          ) : null}
+          {firebaseUser ? children : null}
         </main>
       </div>
     </div>
