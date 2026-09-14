@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 import { Analytics } from '@vercel/analytics/next';
+import Script from "next/script";
 
 export const metadata: Metadata = {
   title: "AnyDM | AI Social Commerce Operating System",
@@ -42,6 +43,10 @@ export default function RootLayout({
 
         <Providers>{children}</Providers>
         <Analytics />
+
+
+        <Script defer src="https://mysitesanalytics.vercel.app/script.js" data-website-id="43a1419c-57e7-4438-83a3-c9afb21beb09" />
+        <Script defer src="https://mysitesanalytics.vercel.app/recorder.js" data-website-id="43a1419c-57e7-4438-83a3-c9afb21beb09" />
       </body>
     </html>
   );
