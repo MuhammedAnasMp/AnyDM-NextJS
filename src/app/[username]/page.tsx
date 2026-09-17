@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Globe, RefreshCw, ShoppingBag, ArrowRight, Star, X, Heart,
-  Search, ChevronDown, MessageCircle,
+  Search, ChevronDown, MessageCircle, User,
   Package, Shield, Truck, RotateCcw, Menu, MapPin, Phone, Mail,
   ChevronRight, ChevronLeft,
 } from "lucide-react";
@@ -21,8 +21,9 @@ const InstagramIcon = ({ className }: { className?: string }) => (
 import api from "@/lib/services/api.service";
 import { getTemplateStyles, TemplateStyle } from "@/components/templates/TemplateProvider";
 import { cn } from "@/lib/utils";
-import { getProductUrl, getStoreHomeUrl, getTermsUrl, getPrivacyUrl, isTenantDomain, CarouselSlide } from "@/lib/utils/domain";
+import { getProductUrl, getStoreHomeUrl, getAccountUrl, getTermsUrl, getPrivacyUrl, isTenantDomain, CarouselSlide } from "@/lib/utils/domain";
 import LinkInBioPublicView from "@/components/bio/LinkInBioPublicView";
+import CustomerAccountBadge from "@/components/CustomerAccountBadge";
 
 const isVideoUrl = (url: string) => {
   if (!url) return false;
@@ -323,6 +324,9 @@ function StorefrontView({ username }: { username: string }) {
               )}
             </button>
 
+            {/* Customer Account Badge (Desktop only) */}
+            <CustomerAccountBadge styles={styles} username={username} className="hidden md:flex" />
+
             {/* Mobile menu */}
             <button
               onClick={() => setMobileMenuOpen(true)}
@@ -370,7 +374,7 @@ function StorefrontView({ username }: { username: string }) {
             >
               <X className="w-4 h-4" />
             </button>
-            <div className="flex items-center gap-3 mb-8 pt-2">
+            <div className="flex items-center gap-3 mb-6 pt-2">
               <div className={styles.logoWrapperClass}>
                 {settings.store_logo ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -381,6 +385,17 @@ function StorefrontView({ username }: { username: string }) {
               </div>
               <span className={cn("text-base font-bold", styles.textColorClass)}>{storeName}</span>
             </div>
+
+            {/* Customer Account Details Badge in 3-line Mobile Drawer */}
+            <div className="mb-6 pb-4 border-b border-white/10">
+              <CustomerAccountBadge
+                styles={styles}
+                username={username}
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full justify-between py-2.5 px-3 text-xs"
+              />
+            </div>
+
             <nav className="space-y-2 flex-1">
               <button
                 onClick={() => { setActiveCategory("All"); setMobileMenuOpen(false); }}
@@ -393,6 +408,16 @@ function StorefrontView({ username }: { username: string }) {
                 className={cn("w-full text-left py-3 px-4 rounded-xl text-xs font-bold tracking-wider uppercase transition-colors hover:opacity-80 border", styles.dividerClass)}
               >
                 Track My Order
+              </button>
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  router.push(getAccountUrl(username));
+                }}
+                className={cn("w-full text-left py-3 px-4 rounded-xl text-xs font-bold tracking-wider uppercase transition-colors hover:opacity-80 border flex items-center justify-between", styles.dividerClass)}
+              >
+                <span>My Account & Orders</span>
+                <User className="w-4 h-4 opacity-70" />
               </button>
             </nav>
             <div className={cn("pt-6 border-t text-xs space-y-2", styles.dividerClass, styles.textMutedClass)}>

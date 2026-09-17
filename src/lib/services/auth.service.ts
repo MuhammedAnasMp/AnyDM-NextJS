@@ -87,6 +87,7 @@ class AuthService {
 
     async exchangeFirebaseToken(idToken: string) {
         try {
+            store.dispatch(setHydrating(true));
             const referralCode = typeof window !== 'undefined' ? sessionStorage.getItem('referral_code') : null;
             const payload: any = { id_token: idToken };
             if (referralCode) {
@@ -410,6 +411,8 @@ class AuthService {
                 return 'Too many failed attempts. Please try again in a few minutes.';
             case 'auth/unauthorized-domain':
                 return 'This domain is not authorized in Firebase Authentication. Please add anydm.in (or your domain) to Authorized Domains in Firebase Console.';
+            case 'auth/email-already-in-use':
+                return 'An account with this email address already exists. Please log in instead.';
             case 'auth/credential-already-in-use':
             case 'auth/account-exists-with-different-credential':
                 return 'An account already exists with this email using a different sign-in method.';

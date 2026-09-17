@@ -77,7 +77,7 @@ export function middleware(request: NextRequest) {
       // 3. For tenant domains (subdomains & custom domains), redirect redundant merchant username paths (e.g. /zoira_lawns on me1.zoyee.in) to store root /
       const pathParts = url.pathname.split('/').filter(Boolean);
       const firstSegment = pathParts[0];
-      const KNOWN_STORE_PATHS = ['product', 'terms', 'privacy', 'track', '_next', 'api', 'favicon.ico'];
+      const KNOWN_STORE_PATHS = ['product', 'terms', 'privacy', 'track', 'account', '_next', 'api', 'favicon.ico'];
       if (firstSegment && !KNOWN_STORE_PATHS.includes(firstSegment)) {
         const remainingPath = '/' + pathParts.slice(1).join('/');
         return NextResponse.redirect(new URL(remainingPath + url.search, request.url));

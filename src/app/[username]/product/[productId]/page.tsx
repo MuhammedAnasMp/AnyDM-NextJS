@@ -21,6 +21,7 @@ import { getTemplateStyles, TemplateStyle } from "@/components/templates/Templat
 import { cn } from "@/lib/utils";
 import { getProductUrl, getStoreHomeUrl, getTermsUrl, getPrivacyUrl } from "@/lib/utils/domain";
 import { resolveCustomerSession } from "@/lib/services/customerSession";
+import CustomerAccountBadge from "@/components/CustomerAccountBadge";
 
 const InstagramIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -2070,6 +2071,7 @@ export default function ProductDetailPage({ params }: PageProps) {
           <Link href={getStoreHomeUrl(username)} className={cn("hover:opacity-80 transition-opacity", styles.textMutedClass)}>
             Storefront
           </Link>
+          <CustomerAccountBadge styles={styles} username={username} />
         </nav>
       </header>
 

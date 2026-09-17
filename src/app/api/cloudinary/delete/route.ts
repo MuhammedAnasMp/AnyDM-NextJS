@@ -11,8 +11,8 @@ export async function POST(req: Request) {
     }
 
     const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "";
-    const apiKey = process.env.CLOUDINARY_API_KEY || "";
-    const apiSecret = process.env.CLOUDINARY_API_SECRET || "";
+    const apiKey = process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY || "";
+    const apiSecret = process.env.NEXT_PUBLIC_CLOUDINARY_API_SECRET || "";
 
     const timestamp = Math.floor(Date.now() / 1000);
     // Cloudinary signature parameters must be sorted alphabetically

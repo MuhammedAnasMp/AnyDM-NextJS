@@ -124,9 +124,16 @@ api.interceptors.response.use(
             const state = store.getState();
             const isHydrating = state?.auth?.isHydrating;
             const isAuthEndpoint = originalRequest.url?.includes('/accounts/auth/');
+            const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+            const isAuthPage = currentPath === '/login' || currentPath === '/signup';
 
-            // Don't trigger logout redirect if session is still hydrating or during initial auth exchange
-            if (isHydrating || isAuthEndpoint) {
+            // Don't trigger logout redirect if session is still hydrating, during auth exchange, or on login/signup pages
+            if (isHydrating || isAuthEndpoint || isAuthPage) {
+                return Promise.reject(error);
+            }
+
+            const refreshToken = authService.getRefreshToken();
+            if (!refreshToken) {
                 return Promise.reject(error);
             }
 
@@ -146,7 +153,7 @@ api.interceptors.response.use(
                     window.location.search.includes('umami') ||
                     window.location.search.includes('analytics')
                 );
-                if (typeof window !== 'undefined' && !isAnalyticsPreview) {
+                if (typeof window !== 'undefined' && !isAnalyticsPreview && window.location.pathname !== '/login') {
                     window.location.href = '/login?expired=true';
                 }
                 return Promise.reject(error);

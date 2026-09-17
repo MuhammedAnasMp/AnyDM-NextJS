@@ -65,6 +65,16 @@ export function getPrivacyUrl(username: string): string {
 }
 
 /**
+ * Get store Customer Account URL depending on whether user is on a tenant domain or main app path.
+ */
+export function getAccountUrl(username: string): string {
+  if (isTenantDomain()) {
+    return `/account`;
+  }
+  return `/${username}/account`;
+}
+
+/**
  * Resolves the public storefront URL for a merchant according to active domain priority:
  * Priority 1: Custom Domain (e.g. https://12.com) - if custom domain is present & verified/configured
  * Priority 2: Subdomain (e.g. https://12.zoyee.in)

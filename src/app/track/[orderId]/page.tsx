@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState, useEffect, use } from "react";
-import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Check, Truck, ArrowLeft, RefreshCw, ShoppingBag, Paperclip, Clipboard, ClipboardList } from "lucide-react";
+import { Check, Truck, ArrowLeft, RefreshCw, ShoppingBag, Copy, Check as CheckIcon, Package, MapPin, CreditCard, MessageCircle, HelpCircle } from "lucide-react";
 import Link from "next/link";
 import api from "@/lib/services/api.service";
-import { getStoreHomeUrl } from "@/lib/utils/domain";
+import { getStoreHomeUrl, getAccountUrl } from "@/lib/utils/domain";
+import { getTemplateStyles, TemplateStyle } from "@/components/templates/TemplateProvider";
 
 interface PageProps {
   params: Promise<{
@@ -15,12 +15,12 @@ interface PageProps {
 }
 
 const steps = [
-  { key: "CONFIRMED", label: "Order Confirmed" },
-  { key: "PROCESSING", label: "Processing" },
-  { key: "PACKED", label: "Packed" },
-  { key: "SHIPPED", label: "Shipped" },
-  { key: "OUT_FOR_DELIVERY", label: "Out For Delivery" },
-  { key: "DELIVERED", label: "Delivered" },
+  { key: "CONFIRMED", label: "Order Placed", desc: "Order confirmed by seller" },
+  { key: "PROCESSING", label: "Processing", desc: "Item being prepared" },
+  { key: "PACKED", label: "Packed", desc: "Ready for courier dispatch" },
+  { key: "SHIPPED", label: "Shipped", desc: "In transit to destination" },
+  { key: "OUT_FOR_DELIVERY", label: "Out for Delivery", desc: "Courier partner delivering today" },
+  { key: "DELIVERED", label: "Delivered", desc: "Package handed to recipient" },
 ];
 
 export default function OrderTrackingPage({ params }: PageProps) {
@@ -53,19 +53,6 @@ export default function OrderTrackingPage({ params }: PageProps) {
       } catch (err: any) {
         console.error("Tracking fetch error:", err);
         setError(err.response?.data?.error || "Order tracking details not found.");
-        // Remove unreachable order from local storage
-        if (typeof window !== "undefined") {
-          try {
-            const stored = localStorage.getItem("anydm_customer_orders");
-            if (stored) {
-              const ordersList = JSON.parse(stored);
-              const updatedList = ordersList.filter((o: any) => o.order_id !== orderId);
-              localStorage.setItem("anydm_customer_orders", JSON.stringify(updatedList));
-            }
-          } catch (e) {
-            console.error("Error removing invalid order from localStorage:", e);
-          }
-        }
       } finally {
         setIsLoading(false);
       }
@@ -77,248 +64,380 @@ export default function OrderTrackingPage({ params }: PageProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#101012] text-white flex flex-col items-center justify-center gap-3">
-        <RefreshCw className="w-6 h-6 animate-spin text-[#b6b2ff]" strokeWidth={1.75} />
-        <span className="text-xs text-zinc-400">Fetching delivery status…</span>
+      <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col items-center justify-center gap-3">
+        <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+        <span className="text-xs text-zinc-400">Loading Tracking Details…</span>
       </div>
     );
   }
 
   if (error || !order) {
     return (
-      <div className="min-h-screen bg-[#101012] text-white flex flex-col items-center justify-center gap-4 px-6 text-center">
-        <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 font-bold">!</div>
-        <h2 className="text-md font-bold">Tracking Details Unreachable</h2>
-        <p className="text-xs text-zinc-400 max-w-sm">{error || "Please verify your Order ID and try again."}</p>
-        <Link href={getFallbackStorefrontLink()} className="text-xs font-semibold text-[#b6b2ff] hover:underline flex items-center gap-1.5 mt-2">
+      <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col items-center justify-center gap-4 px-6 text-center">
+        <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 font-bold text-lg">!</div>
+        <h2 className="text-base font-bold">Tracking Details Unavailable</h2>
+        <p className="text-xs text-zinc-400 max-w-sm">{error || "Please check your Order ID and try again."}</p>
+        <Link href={getFallbackStorefrontLink()} className="text-xs font-semibold text-white underline flex items-center gap-1.5 mt-2">
           <ArrowLeft className="w-4 h-4" />
-          <span>Back to Storefront</span>
+          <span>Return to Storefront</span>
         </Link>
       </div>
     );
   }
 
-  // Find index of current status in steps
+  const styles: TemplateStyle = getTemplateStyles(
+    order.template_id || "glass_monochrome",
+    order.theme_id || "default",
+    order.custom_settings || {}
+  );
+
   const getCurrentStepIndex = () => {
-    const status = order.order_status;
+    const status = (order.order_status || "").toUpperCase();
     if (status === "CANCELLED" || status === "PAYMENT_FAILED") return -1;
-    if (status === "COMPLETED") return steps.length - 1;
+    if (status === "COMPLETED" || status === "DELIVERED") return steps.length - 1;
     const idx = steps.findIndex((s) => s.key === status);
     return idx !== -1 ? idx : 0;
   };
 
   const currentStepIdx = getCurrentStepIndex();
+  const storeName = order.store_name || order.store_username || "Storefront";
+  const statusStr = (order.order_status || "CONFIRMED").toUpperCase();
+  const isDelivered = statusStr === "DELIVERED" || statusStr === "COMPLETED";
+  const isCancelled = statusStr === "CANCELLED" || statusStr === "REFUNDED";
+
+  const copyToClipboard = (text: string) => {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text);
+    } else {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const instagramUrl = order.store_username
+    ? `https://instagram.com/${order.store_username.replace(/^@/, '')}`
+    : null;
 
   return (
-    <div className="min-h-screen bg-[#131313] text-[#e5e2e1] py-12 px-6 flex flex-col items-center">
-      <div className="max-w-2xl w-full space-y-8">
+    <div className={cn("min-h-screen flex flex-col transition-colors duration-300", styles.bodyClass, styles.fontBody)}>
 
-        {/* Navigation & Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <h1 className="text-lg font-black tracking-tight text-white flex items-center gap-2">
-            <Truck className="w-5 h-5 text-[#b6b2ff]" />
-            <span>Shipment Tracker</span>
-          </h1>
-          <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-            <button
-              onClick={() => {
-                const oid = order.order_id;
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                  navigator.clipboard.writeText(oid);
-                } else {
-                  const ta = document.createElement("textarea");
-                  ta.value = oid;
-                  ta.style.position = "fixed";
-                  ta.style.opacity = "0";
-                  document.body.appendChild(ta);
-                  ta.select();
-                  document.execCommand("copy");
-                  document.body.removeChild(ta);
-                }
-                setCopied(true);
-                setTimeout(() => setCopied(false), 2000);
-              }}
-              title="Click to copy Order ID"
-              className="text-[10px] font-mono bg-white/5 hover:bg-white/10 active:bg-white/20 border border-white/10 px-2.5 py-1 rounded text-zinc-400 cursor-pointer active:scale-[0.98] transition-all flex items-center gap-1.5 outline-none"
-            >
-              <span>ID: {order.order_id}</span>
-              {copied ? (
-                <span className="text-emerald-400 text-[9px] font-bold">Copied!</span>
+      {/* Top Header */}
+      <header className={cn("sticky top-0 z-40 border-b backdrop-blur-md transition-colors shadow-sm", styles.navClass, styles.dividerClass)}>
+        <div className={cn("h-12 sm:h-14 flex items-center justify-between gap-3 px-3 sm:px-6 max-w-4xl mx-auto", styles.containerClass)}>
+          
+          <Link href={getStoreHomeUrl(order.store_username)} className="flex items-center gap-2 group min-w-0">
+            <div className={cn("w-7 h-7 sm:w-8 sm:h-8 rounded-lg overflow-hidden border flex items-center justify-center shrink-0 transition-transform group-hover:scale-105", styles.logoWrapperClass)}>
+              {order.store_logo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={order.store_logo} alt={storeName} className="w-full h-full object-cover" />
               ) : (
-                <span className="opacity-50 text-[9.5px]"><ClipboardList height={15} width={15} /></span>
+                <ShoppingBag className="w-4 h-4" />
               )}
-            </button>
-            {order.store_username && (
-              <Link
-                href={getStoreHomeUrl(order.store_username)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#605ca2] text-white hover:bg-[#605ca2]/90 transition-all active:scale-[0.98]"
+            </div>
+            <span className={cn("text-xs sm:text-sm font-bold tracking-tight truncate", styles.fontHeadline, styles.textColorClass)}>
+              {storeName}
+            </span>
+          </Link>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <Link
+              href={getAccountUrl(order.store_username)}
+              className={cn("text-[11px] sm:text-xs font-semibold px-2.5 py-1 rounded-lg border hover:opacity-80 transition-all flex items-center gap-1", styles.filterPillClass)}
+            >
+              <ShoppingBag className="w-3.5 h-3.5" />
+              <span>My Orders</span>
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Container */}
+      <main className="flex-1 w-full max-w-4xl mx-auto px-3 sm:px-6 py-3.5 sm:py-4 space-y-3.5 sm:space-y-4">
+
+        {/* Status Headline Banner */}
+        <div className={cn("p-3 sm:p-4 rounded-xl border shadow-sm space-y-2", styles.cardClass)}>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+            <div className="space-y-0.5 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className={cn(
+                  "w-2.5 h-2.5 rounded-full shrink-0",
+                  isDelivered ? "bg-emerald-500" : isCancelled ? "bg-rose-500" : "bg-amber-500 animate-pulse"
+                )} />
+                <h1 className={cn("text-sm sm:text-base font-bold tracking-tight truncate", styles.fontHeadline, styles.textColorClass)}>
+                  {isDelivered ? "Package Delivered" : isCancelled ? "Order Cancelled" : `Status: ${statusStr.replace(/_/g, " ")}`}
+                </h1>
+              </div>
+              <p className={cn("text-[11px] opacity-75 pl-4.5", styles.textMutedClass)}>
+                {isDelivered ? "Handed over to recipient." : "Express Logistics • Delivery in 2-4 business days"}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 self-stretch sm:self-auto justify-between sm:justify-end shrink-0 pt-1.5 sm:pt-0 border-t sm:border-t-0 border-current/10">
+              <span className={cn("text-[11px] font-mono opacity-80", styles.textColorClass)}>Order ID:</span>
+              <button
+                onClick={() => copyToClipboard(order.order_id)}
+                className={cn("px-2 py-0.5 rounded-lg border text-[11px] font-mono font-bold flex items-center gap-1 transition-all active:scale-95 cursor-pointer", styles.inputClass)}
               >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Go to Store Home</span>
-              </Link>
-            )}
+                <span>#{order.order_id.slice(-8)}</span>
+                {copied ? (
+                  <CheckIcon className="w-3 h-3 text-emerald-400" />
+                ) : (
+                  <Copy className="w-3 h-3 opacity-50" />
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Status card */}
-        <div className="rounded-md bg-[#20201f] border border-white/5 p-6 space-y-6 shadow-md">
-          <div className="flex justify-between items-start">
-            <div className="space-y-1">
-              <span className="text-[9px] font-bold tracking-wider text-zinc-500">Estimated Delivery</span>
-              <div className="text-sm font-bold text-white">Pending dispatch schedule</div>
-            </div>
-            <div className="text-right space-y-1">
-              <span className="text-[9px] font-bold tracking-wider text-zinc-500">Carrier Status</span>
-              <div className="text-xs font-bold text-[#b6b2ff]">
-                {order.order_status.replace("_", " ")}
-              </div>
+        {/* Responsive Shipment Stepper */}
+        <div className={cn("p-3 sm:p-4 rounded-xl border shadow-sm space-y-3", styles.cardClass)}>
+          <h2 className={cn("text-[11px] font-bold tracking-wider uppercase border-b pb-1.5 opacity-80", styles.textColorClass, styles.dividerClass)}>
+            Package Journey
+          </h2>
+
+          {/* Desktop Stepper (md and up) */}
+          <div className="hidden md:block relative pt-1">
+            <div className="grid grid-cols-6 gap-2 relative z-10">
+              {steps.map((step, idx) => {
+                const isCompleted = idx <= currentStepIdx;
+                const isCurrent = idx === currentStepIdx;
+
+                return (
+                  <div key={step.key} className="flex flex-col items-center text-center space-y-1">
+                    <div
+                      className={cn(
+                        "w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300 border text-[10px] font-bold shrink-0 shadow-sm",
+                        isCompleted
+                          ? "bg-emerald-500 border-emerald-500 text-black font-black"
+                          : cn("border-current/20 opacity-40", styles.textColorClass)
+                      )}
+                    >
+                      {isCompleted ? <Check className="w-3.5 h-3.5 text-black" strokeWidth={3} /> : idx + 1}
+                    </div>
+
+                    <div className="space-y-0.5">
+                      <span
+                        className={cn(
+                          "text-[11px] font-bold block leading-tight",
+                          isCompleted ? styles.textColorClass : styles.textMutedClass,
+                          isCurrent && "text-amber-400"
+                        )}
+                      >
+                        {step.label}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
-          {/* Timeline visualization */}
-          <div className="pt-4 flex flex-col md:flex-row justify-between items-start md:items-center relative gap-6 md:gap-0">
-            {/* Horizontal Line connector (Desktop only) */}
-            <div className="hidden md:block absolute left-4 right-4 h-0.5 bg-white/10 top-[15px] z-0" />
+          {/* Mobile Stepper (Vertical list for screens < md) */}
+          <div className="md:hidden space-y-2.5 pl-1.5 relative">
+            <div className="absolute left-[13px] top-2.5 bottom-2.5 w-0.5 bg-current opacity-15" />
 
             {steps.map((step, idx) => {
               const isCompleted = idx <= currentStepIdx;
               const isCurrent = idx === currentStepIdx;
 
               return (
-                <div key={step.key} className="flex md:flex-col items-center gap-3 md:gap-2.5 z-10 flex-1 relative">
+                <div key={step.key} className="flex items-start gap-2.5 relative z-10">
                   <div
                     className={cn(
-                      "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-500 border text-xs font-bold shrink-0",
+                      "w-5.5 h-5.5 rounded-full flex items-center justify-center transition-all duration-300 border text-[10px] font-bold shrink-0 shadow-sm mt-0.5",
                       isCompleted
-                        ? "bg-[#605ca2] border-[#605ca2] text-white"
-                        : "bg-[#0e0e0e] border-white/10 text-zinc-600"
+                        ? "bg-emerald-500 border-emerald-500 text-black font-black"
+                        : cn("border-current/30 opacity-40 bg-black/40 dark:bg-white/10", styles.textColorClass)
                     )}
                   >
-                    {isCompleted ? <Check className="w-4 h-4" /> : idx + 1}
+                    {isCompleted ? <Check className="w-3 h-3 text-black" strokeWidth={3} /> : idx + 1}
                   </div>
-                  <span
-                    className={cn(
-                      "text-[10px] font-semibold text-center md:max-w-[100px] leading-tight",
-                      isCompleted ? "text-white" : "text-zinc-500",
-                      isCurrent && "text-[#b6b2ff] font-bold"
-                    )}
-                  >
-                    {step.label}
-                  </span>
+
+                  <div className="flex-1 space-y-0.5">
+                    <div className="flex items-center justify-between">
+                      <span className={cn(
+                        "text-xs font-bold",
+                        isCompleted ? styles.textColorClass : styles.textMutedClass,
+                        isCurrent && "text-amber-400"
+                      )}>
+                        {step.label}
+                      </span>
+                      {isCurrent && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-400/10 text-amber-400 border border-amber-400/20">
+                          Active
+                        </span>
+                      )}
+                    </div>
+                    <p className={cn("text-[10px] opacity-70 leading-tight", styles.textMutedClass)}>
+                      {step.desc}
+                    </p>
+                  </div>
                 </div>
               );
             })}
           </div>
+
         </div>
 
-        {/* Order Details & Summary */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Items & Delivery Details Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3.5 items-start">
 
-          {/* Order Summary */}
-          <div className="rounded-md bg-[#20201f] border border-white/5 p-6 space-y-4 shadow-md">
-            <h3 className="text-xs font-bold tracking-wider text-white">Items Details</h3>
-            <div className="space-y-3">
-              {order.items?.map((item: any, idx: number) => (
-                <div key={idx} className="flex justify-between items-start text-xs">
-                  <div>
-                    <div className="font-semibold text-zinc-300">{item.product_title}</div>
-                    {item.variant && <span className="text-[9px] text-zinc-500 mt-0.5 block">Variant: {item.variant}</span>}
+          {/* Left Column (2 cols): Items Summary */}
+          <div className="lg:col-span-2 space-y-3.5">
+            <div className={cn("p-3 sm:p-4 rounded-xl border shadow-sm space-y-3", styles.cardClass)}>
+              <h3 className={cn("text-[11px] font-bold tracking-wider uppercase border-b pb-2 opacity-80", styles.textColorClass, styles.dividerClass)}>
+                Ordered Items ({order.items?.length || 1})
+              </h3>
+
+              <div className="space-y-2">
+                {order.items && order.items.length > 0 ? (
+                  order.items.map((item: any, idx: number) => {
+                    const displayPrice = (item.price && parseFloat(item.price) > 0) ? item.price : order.total_amount;
+                    return (
+                      <div key={idx} className="flex items-center gap-2.5 py-1 border-b border-current/5 last:border-0">
+                        <div className="w-9 h-9 rounded-lg bg-black/5 dark:bg-white/5 border border-current/10 flex items-center justify-center shrink-0">
+                          <Package className="w-4 h-4 opacity-50" />
+                        </div>
+                        <div className="flex-1 min-w-0 space-y-0.5">
+                          <h4 className={cn("font-bold text-xs truncate", styles.textColorClass)}>
+                            {item.product_title || order.product_name || "Store Item"}
+                          </h4>
+                          {item.variant && (
+                            <p className={cn("text-[10px] opacity-70", styles.textMutedClass)}>
+                              Option: {item.variant}
+                            </p>
+                          )}
+                          <p className={cn("text-[10px] opacity-70", styles.textMutedClass)}>
+                            Qty: {item.quantity || 1}
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className={cn("font-bold text-xs", styles.priceClass)}>
+                            ₹{displayPrice}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="flex items-center gap-2.5 py-1">
+                    <div className="w-9 h-9 rounded-lg bg-black/5 dark:bg-white/5 border border-current/10 flex items-center justify-center shrink-0">
+                      <Package className="w-4 h-4 opacity-50" />
+                    </div>
+                    <div className="flex-1 min-w-0 space-y-0.5">
+                      <h4 className={cn("font-bold text-xs truncate", styles.textColorClass)}>
+                        {order.product_name || "Store Item Purchase"}
+                      </h4>
+                      <p className={cn("text-[10px] opacity-70", styles.textMutedClass)}>
+                        Qty: 1
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className={cn("font-bold text-xs", styles.priceClass)}>
+                        ₹{order.total_amount}
+                      </span>
+                    </div>
                   </div>
-                  <div className="text-right shrink-0 ml-4">
-                    <div className="font-bold">₹{item.price}</div>
-                    <span className="text-[10px] text-zinc-500">Qty: {item.quantity}</span>
-                  </div>
+                )}
+              </div>
+
+              {/* Total Summary */}
+              <div className={cn("pt-2 border-t space-y-1 text-xs", styles.dividerClass)}>
+                <div className="flex justify-between text-[11px]">
+                  <span className={styles.textMutedClass}>Subtotal</span>
+                  <span className={cn("font-semibold", styles.textColorClass)}>₹{order.total_amount}</span>
                 </div>
-              ))}
-              <div className="h-px bg-white/5 pt-2" />
-              <div className="flex justify-between text-xs font-bold">
-                <span className="text-zinc-400">Total Charged</span>
-                <span className="text-[#b6b2ff]">₹{order.total_amount}</span>
+                <div className="flex justify-between text-[11px]">
+                  <span className={styles.textMutedClass}>Shipping Fee</span>
+                  <span className="font-semibold text-emerald-400">FREE</span>
+                </div>
+                <div className={cn("h-px border-t pt-1 flex justify-between text-xs font-bold", styles.dividerClass)}>
+                  <span className={styles.textColorClass}>Grand Total</span>
+                  <span className={styles.priceClass}>₹{order.total_amount}</span>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Delivery & policies details */}
-          <div className="rounded-md bg-[#20201f] border border-white/5 p-6 space-y-4 shadow-md">
-            <h3 className="text-xs font-bold tracking-wider text-white">Shipping Details</h3>
-            <div className="space-y-3 text-xs leading-normal">
-              <div>
-                <span className="text-[9px] font-bold text-zinc-500">Recipient Name</span>
-                <div className="text-zinc-300 font-semibold">{order.customer_name}</div>
-              </div>
-              <div>
-                <span className="text-[9px] font-bold text-zinc-500">Shipping Destination</span>
-                <div className="text-zinc-400 whitespace-pre-wrap">
+          {/* Right Column (1 col): Delivery Destination & Payment */}
+          <div className="space-y-3.5">
+
+            {/* Delivery Destination */}
+            <div className={cn("p-3 sm:p-4 rounded-xl border shadow-sm space-y-2", styles.cardClass)}>
+              <h3 className={cn("text-[11px] font-bold tracking-wider uppercase border-b pb-2 flex items-center gap-1.5 opacity-80", styles.textColorClass, styles.dividerClass)}>
+                <MapPin className="w-3.5 h-3.5 opacity-80" />
+                <span>Shipping Destination</span>
+              </h3>
+
+              <div className="space-y-1 text-xs">
+                <span className={cn("font-bold text-xs block", styles.textColorClass)}>
+                  {order.customer_name}
+                </span>
+                <p className={cn("opacity-80 leading-relaxed text-[11px]", styles.textColorClass)}>
                   {order.shipping_address}
-                  {order.shipping_pincode && <span className="block mt-1 font-medium text-zinc-300">PIN Code: {order.shipping_pincode}</span>}
-                  {(order.shipping_place || order.shipping_district || order.shipping_state) && (
-                    <span className="block text-zinc-300">
-                      {[order.shipping_place, order.shipping_district, order.shipping_state].filter(Boolean).join(", ")}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="pt-2 border-t border-white/5 space-y-2">
-                <div>
-                  <span className="text-[9px] font-bold text-zinc-500 block">Return & Refund Policy</span>
-                  <span className={cn("text-[10px] font-bold block mt-0.5", order.return_policy ? "text-green-400" : "text-zinc-400")}>
-                    {order.return_policy ? "Returns & exchanges are accepted" : "Returns & exchanges are not accepted"}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-[9px] font-bold text-zinc-500 block">Cancellation Policy</span>
-                  <span className={cn("text-[10px] font-bold block mt-0.5", order.cancellation_policy ? "text-green-400" : "text-zinc-400")}>
-                    {order.cancellation_policy ? "Cancellations are allowed before shipment" : "Cancellations are not allowed"}
-                  </span>
-                </div>
+                </p>
+                {order.shipping_pincode && (
+                  <p className={cn("text-[11px]", styles.textMutedClass)}>
+                    Pincode: <strong className={styles.textColorClass}>{order.shipping_pincode}</strong>
+                  </p>
+                )}
               </div>
             </div>
-          </div>
 
-        </div>
+            {/* Payment Method Card */}
+            <div className={cn("p-3 sm:p-4 rounded-xl border shadow-sm space-y-2", styles.cardClass)}>
+              <h3 className={cn("text-[11px] font-bold tracking-wider uppercase border-b pb-2 flex items-center gap-1.5 opacity-80", styles.textColorClass, styles.dividerClass)}>
+                <CreditCard className="w-3.5 h-3.5 opacity-80" />
+                <span>Payment Details</span>
+              </h3>
 
-        {/* Return Refund Amount Breakdown Card */}
-        <div className="rounded-md bg-[#20201f] border border-white/5 p-6 space-y-4 shadow-md">
-          <div className="flex justify-between items-center border-b border-white/5 pb-3">
-            <h3 className="text-xs font-bold tracking-wider text-white flex items-center gap-2">
-              <RefreshCw className="w-4 h-4 text-[#b6b2ff]" />
-              <span>Return &amp; Refund Summary</span>
-            </h3>
-            <span className={cn(
-              "text-[10px] px-2 py-0.5 rounded font-bold border",
-              order.return_policy ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-zinc-800 text-zinc-400 border-white/10"
-            )}>
-              {order.return_policy ? "Return Eligible" : "Non-Returnable"}
-            </span>
-          </div>
-
-          <div className="space-y-2.5 text-xs">
-            <div className="flex justify-between text-zinc-400">
-              <span>Order Amount</span>
-              <span className="text-zinc-200 font-semibold">₹{order.total_amount}</span>
+              <div className="flex justify-between items-center text-xs">
+                <span className={styles.textMutedClass}>Payment Mode</span>
+                <span className={cn("font-bold px-2 py-0.5 rounded-md border text-[11px]", styles.badgeClass)}>
+                  {order.payment_method || "COD / Prepaid"}
+                </span>
+              </div>
             </div>
 
-            {parseFloat(order.return_deduction_charge || "0") > 0 && (
-              <div className="flex justify-between text-amber-400/90">
-                <span>Return Deduction Charge (Restocking Fee)</span>
-                <span className="font-semibold">- ₹{order.return_deduction_charge}</span>
+            {/* Contact Store Card */}
+            {instagramUrl && (
+              <div className={cn("p-3 sm:p-4 rounded-xl border shadow-sm space-y-2 text-center", styles.cardClass)}>
+                <HelpCircle className="w-4 h-4 mx-auto opacity-50" />
+                <h4 className={cn("font-bold text-xs", styles.textColorClass)}>Need help with this order?</h4>
+                <p className={cn("text-[10px] opacity-70 leading-tight", styles.textMutedClass)}>
+                  Directly message seller on Instagram.
+                </p>
+                <a
+                  href={instagramUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cn("px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-95 w-full mt-1 shadow-sm", styles.buttonClass)}
+                >
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  <span>Message Store</span>
+                </a>
               </div>
             )}
 
-            <div className="h-px bg-white/5 pt-1" />
-
-            <div className="flex justify-between items-center text-xs font-bold pt-1">
-              <span className="text-zinc-300">Estimated Refund Amount to Account</span>
-              <span className="text-[#b6b2ff] text-sm">₹{order.estimated_refund_amount || order.total_amount}</span>
-            </div>
-
-            <p className="text-[10px] text-zinc-500 leading-relaxed pt-1">
-              * Upon initiating a return request, the return deduction charge is applied to shipping &amp; handling costs. The remaining net refund amount will be credited back to your original payment method.
-            </p>
           </div>
+
         </div>
 
-      </div>
+      </main>
+
+      {/* Footer */}
+      <footer className={cn("border-t py-3 text-center text-xs mt-6 opacity-75", styles.dividerClass, styles.textMutedClass)}>
+        <p>© 2026 {storeName}. All rights reserved.</p>
+      </footer>
     </div>
   );
 }
+
