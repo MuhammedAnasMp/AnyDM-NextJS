@@ -5,30 +5,17 @@ import { useSelector, useDispatch } from "react-redux";
 import { useSearchParams, usePathname } from "next/navigation";
 import { RootState } from "@/store";
 import { authService } from "@/lib/services/auth.service";
-import { setInstagramAccounts } from "@/store/slices/authSlice";
-import { UserAvatar } from "@/components/Avatar";
 import InstagramIcon from "@/components/ui/InstagramIcon";
-import { cn } from "@/lib/utils";
-import {
-  AlertTriangle,
-  Plus,
-  Play,
-  RefreshCw,
-  Loader2,
-  ShieldAlert,
-  User,
-  CheckCircle2,
-} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface InstagramAccountGuardProps {
   children?: React.ReactNode;
 }
 
 export default function InstagramAccountGuard({ children }: InstagramAccountGuardProps) {
-  const dispatch = useDispatch();
   const searchParams = useSearchParams();
   const pathname = usePathname();
-  const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [showBannerDelayed, setShowBannerDelayed] = useState(false);
 
   const appUser = useSelector((state: RootState) => state.auth.user);
   const instagramAccounts = useSelector((state: RootState) => state.auth.instagramAccounts);
@@ -37,7 +24,7 @@ export default function InstagramAccountGuard({ children }: InstagramAccountGuar
 
   const hasIgCode = searchParams ? searchParams.get("code") : null;
 
-  // Excluded paths where the warning banner is not needed (e.g. accounts settings where user connects account)
+  // Excluded paths where the warning banner is not needed
   const isExcludedPath =
     pathname?.startsWith("/dashboard/settings") ||
     pathname?.startsWith("/dashboard/pricing") ||
@@ -66,7 +53,7 @@ export default function InstagramAccountGuard({ children }: InstagramAccountGuar
   }, [instagramAccounts, appUser?.active_instagram_account_id, isHydrating, isFetchingAccounts]);
 
   const handleConnectInstagram = () => {
-    const clientId = "1454663269228644";
+    const clientId = process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_ID;
     const redirectUri = `${window.location.origin}/dashboard/settings/accounts`;
     const scope =
       "instagram_business_basic,instagram_business_manage_messages,instagram_business_manage_comments,instagram_business_content_publish,instagram_business_manage_insights";
@@ -85,52 +72,71 @@ export default function InstagramAccountGuard({ children }: InstagramAccountGuar
 
   const mustShowBanner = !isExcludedPath && !isHydrating && !isFetchingAccounts && !hasIgCode && (hasNoAccounts || hasNoActiveAccount);
 
-  if (!mustShowBanner || bannerDismissed) {
-    return children ? <>{children}</> : null;
-  }
+  // Delay banner display by 1000ms and animate top-to-bottom
+  useEffect(() => {
+    if (!mustShowBanner) {
+      setShowBannerDelayed(false);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setShowBannerDelayed(true);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [mustShowBanner]);
 
   const bannerJsx = (
-    <div className="instagram-glow border-b border-white/10 px-4 py-2 flex items-center justify-between gap-3 text-xs shrink-0 z-20 text-white shadow-lg">
-      <div className="flex items-center gap-2.5 min-w-0 z-10">
-        <div className="w-6 h-6 rounded-full bg-black/30 p-0.5 shrink-0 flex items-center justify-center border border-white/30">
-          <InstagramIcon className="w-3.5 h-3.5 text-white" />
-        </div>
-        <p className="text-white font-medium truncate drop-shadow-sm">
-          {hasNoAccounts ? (
-            <>
-              {/* <span className="font-bold text-white">Instagram Account Required:</span> */}
-              Connect an account to enable DM automations.
-            </>
-          ) : (
-            <>
-              <span className="font-bold text-white">No Active Account:</span> Please activate an Instagram account in settings.
-            </>
-          )}
-        </p>
-      </div>
-
-      <div className="flex items-center gap-2 shrink-0 z-10">
-        <button
-          type="button"
-          onClick={handleConnectInstagram}
-          className="px-3 py-1.5 rounded-full bg-black/40 hover:bg-black/60 text-white font-bold text-[11px] border border-white/30 backdrop-blur-md transition-all cursor-pointer active:scale-95 shadow-md flex items-center gap-1.5 whitespace-nowrap"
+    <AnimatePresence>
+      {mustShowBanner && showBannerDelayed && (
+        <motion.div
+          key="instagram-account-guard-banner"
+          initial={{ height: 0, opacity: 0, y: -30 }}
+          animate={{ height: "auto", opacity: 1, y: 0 }}
+          exit={{ height: 0, opacity: 0, y: -30 }}
+          transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+          className="overflow-hidden border-b border-white/10 shrink-0 z-20 text-white shadow-lg"
         >
-          <InstagramIcon className="w-3.5 h-3.5 text-white shrink-0" />
-          {hasNoAccounts ? (
-            <>
-              <span className="sm:hidden">Connect</span>
-              <span className="hidden sm:inline">Connect Instagram</span>
-            </>
-          ) : (
-            <>
-              <span className="sm:hidden">Manage</span>
-              <span className="hidden sm:inline">Manage Instagram</span>
-            </>
-          )}
-        </button>
+          <div className="instagram-glow px-4 py-2 flex items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2.5 min-w-0 z-10">
+              <div className="w-6 h-6 rounded-full bg-black/30 p-0.5 shrink-0 flex items-center justify-center border border-white/30">
+                <InstagramIcon className="w-3.5 h-3.5 text-white" />
+              </div>
+              <p className="text-white font-medium truncate drop-shadow-sm">
+                {hasNoAccounts ? (
+                  <>Connect an account to enable DM automations.</>
+                ) : (
+                  <>
+                    <span className="font-bold text-white">No Active Account:</span> Please activate an Instagram account in settings.
+                  </>
+                )}
+              </p>
+            </div>
 
-      </div>
-    </div>
+            <div className="flex items-center gap-2 shrink-0 z-10">
+              <button
+                type="button"
+                onClick={handleConnectInstagram}
+                className="px-3 py-1.5 rounded-full bg-black/40 hover:bg-black/60 text-white font-bold text-[11px] border border-white/30 backdrop-blur-md transition-all cursor-pointer active:scale-95 shadow-md flex items-center gap-1.5 whitespace-nowrap"
+              >
+                <InstagramIcon className="w-3.5 h-3.5 text-white shrink-0" />
+                {hasNoAccounts ? (
+                  <>
+                    <span className="sm:hidden">Connect</span>
+                    <span className="hidden sm:inline">Connect Instagram</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="sm:hidden">Manage</span>
+                    <span className="hidden sm:inline">Manage Instagram</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 
   if (children) {
@@ -146,3 +152,4 @@ export default function InstagramAccountGuard({ children }: InstagramAccountGuar
 
   return bannerJsx;
 }
+

@@ -27,10 +27,11 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Exclude static assets, internal paths, and API routes
+  // Exclude static assets, internal paths, API routes, and tracking pages
   if (
     url.pathname.startsWith('/_next') ||
     url.pathname.startsWith('/api') ||
+    url.pathname.startsWith('/track') ||
     url.pathname.includes('.')
   ) {
     return NextResponse.next();
@@ -50,17 +51,40 @@ export function middleware(request: NextRequest) {
     currentHost.endsWith('.vercel.app');
 
   if (!isAppHost) {
-    // 1. Subdomain of root domain (e.g., my_muscles_factory.zoyee.in)
+    let tenantSlug = '';
     if (currentHost.endsWith(`.${rootHost}`)) {
       const subdomain = currentHost.replace(`.${rootHost}`, '');
       if (subdomain && !RESERVED_SUBDOMAINS.includes(subdomain)) {
-        url.pathname = `/${subdomain}${url.pathname}`;
-        return NextResponse.rewrite(url);
+        tenantSlug = subdomain;
       }
     } else {
-      // 2. Custom Domain (e.g., my_muscles_factory.in or www.my_muscles_factory.in)
-      const cleanCustomDomain = currentHost.replace(/^www\./, '');
-      url.pathname = `/${cleanCustomDomain}${url.pathname}`;
+      // 2. Custom Domain (e.g. 12.com or www.12.com)
+      tenantSlug = currentHost.replace(/^www\./, '');
+    }
+
+    if (tenantSlug) {
+      // 1. If pathname exactly matches redundant tenant slug (e.g. /12 or /12/ or /12.com)
+      if (url.pathname === `/${tenantSlug}` || url.pathname === `/${tenantSlug}/`) {
+        return NextResponse.redirect(new URL('/' + url.search, request.url));
+      }
+
+      // 2. If pathname starts with redundant tenant slug (e.g. /12/product/123)
+      if (url.pathname.startsWith(`/${tenantSlug}/`)) {
+        const cleanPath = url.pathname.slice(tenantSlug.length + 1) || '/';
+        return NextResponse.redirect(new URL(cleanPath + url.search, request.url));
+      }
+
+      // 3. For tenant domains (subdomains & custom domains), redirect redundant merchant username paths (e.g. /zoira_lawns on me1.zoyee.in) to store root /
+      const pathParts = url.pathname.split('/').filter(Boolean);
+      const firstSegment = pathParts[0];
+      const KNOWN_STORE_PATHS = ['product', 'terms', 'privacy', 'track', '_next', 'api', 'favicon.ico'];
+      if (firstSegment && !KNOWN_STORE_PATHS.includes(firstSegment)) {
+        const remainingPath = '/' + pathParts.slice(1).join('/');
+        return NextResponse.redirect(new URL(remainingPath + url.search, request.url));
+      }
+
+      // 4. Clean rewrite: rewrite request to `/[tenantSlug]/...`
+      url.pathname = `/${tenantSlug}${url.pathname}`;
       return NextResponse.rewrite(url);
     }
   }

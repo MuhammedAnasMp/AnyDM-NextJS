@@ -24,7 +24,7 @@ import {
   DollarSign,
   Link2,
 } from "lucide-react";
-import { UserAvatar } from "@/components/Avatar";
+import { UserAvatar, getUserDisplayName, getAvatarRingClass } from "@/components/Avatar";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -81,9 +81,9 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     ...(isAdmin ? [{ name: "Admin Panel", icon: ShieldAlert, href: "/dashboard/admin" }] : []),
   ];
 
-  const userDisplayName = appUser?.display_name || appUser?.first_name || "Alex Rivera";
+  const userDisplayName = getUserDisplayName(appUser);
   const googlePhoto = firebaseUser?.providerData?.find((p: { providerId: string; photoURL?: string | null }) => p.providerId === "google.com")?.photoURL || firebaseUser?.photoURL;
-  const userPhoto = appUser?.photo_url || appUser?.profile_picture_url || googlePhoto || "https://static.vecteezy.com/system/resources/previews/002/318/271/non_2x/user-profile-icon-free-vector.jpg";
+  const userPhoto = appUser?.photo_url || appUser?.profile_picture_url || googlePhoto || null;
 
   const getAccountTypeLabel = () => {
     const isPremiumActive = appUser?.is_premium_active ?? false;
@@ -219,8 +219,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               isRailMode ? "justify-center p-1" : "gap-2.5 px-2 py-2"
             )}
           >
-            {/* Gold Gradient Ring Outer Container */}
-            <div className="w-8 h-8 rounded-full shrink-0 p-[1.5px] bg-gradient-to-tr from-[#A67C00] via-[#BF9B30] via-[#FFBF00] via-[#FFCF40] to-[#FFDC73] flex items-center justify-center">
+            {/* Dynamic Profile Ring Outer Container */}
+            <div className={cn("w-8 h-8 rounded-full shrink-0 flex items-center justify-center", getAvatarRingClass(appUser))}>
               {/* Inner dark separator boundary */}
               <div className="w-full h-full rounded-full overflow-hidden border border-[#131313] bg-[#20201f]">
                 <UserAvatar

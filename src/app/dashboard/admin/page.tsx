@@ -64,13 +64,13 @@ export default function AdminSettingsPage() {
     // 🎁 Creator VIP Free Pro
     creator_vip_extended_trial_days: 15,
     creator_vip_points_per_paid_sub: 20,
-    creator_vip_max_redemption_months: 5,
     creator_vip_default_term_months: 3,
     // 💰 Creator Commission Earnings
     creator_commission_percent: 10.0,
     creator_min_payout_amount: 500.0,
     creator_payout_cycle_days: 30,
     creator_commission_default_term_months: 6,
+    creator_commission_points_per_paid_sub: 0,
   });
 
   const [showApiKey, setShowApiKey] = useState(false);
@@ -100,12 +100,12 @@ export default function AdminSettingsPage() {
             business_gemini_api_key: res.data.business_gemini_api_key ?? "",
             creator_vip_extended_trial_days: res.data.creator_vip_extended_trial_days ?? 15,
             creator_vip_points_per_paid_sub: res.data.creator_vip_points_per_paid_sub ?? 20,
-            creator_vip_max_redemption_months: res.data.creator_vip_max_redemption_months ?? 5,
             creator_vip_default_term_months: res.data.creator_vip_default_term_months ?? 3,
             creator_commission_percent: parseFloat(res.data.creator_commission_percent) || 10.0,
             creator_min_payout_amount: parseFloat(res.data.creator_min_payout_amount) || 500.0,
             creator_payout_cycle_days: res.data.creator_payout_cycle_days ?? 30,
             creator_commission_default_term_months: res.data.creator_commission_default_term_months ?? 6,
+            creator_commission_points_per_paid_sub: res.data.creator_commission_points_per_paid_sub ?? 0,
           });
         }
       } catch (err) {
@@ -138,12 +138,12 @@ export default function AdminSettingsPage() {
           business_gemini_api_key: res.data.settings.business_gemini_api_key ?? "",
           creator_vip_extended_trial_days: res.data.settings.creator_vip_extended_trial_days ?? 15,
           creator_vip_points_per_paid_sub: res.data.settings.creator_vip_points_per_paid_sub ?? 20,
-          creator_vip_max_redemption_months: res.data.settings.creator_vip_max_redemption_months ?? 5,
           creator_vip_default_term_months: res.data.settings.creator_vip_default_term_months ?? 3,
           creator_commission_percent: parseFloat(res.data.settings.creator_commission_percent) || 10.0,
           creator_min_payout_amount: parseFloat(res.data.settings.creator_min_payout_amount) || 500.0,
           creator_payout_cycle_days: res.data.settings.creator_payout_cycle_days ?? 30,
           creator_commission_default_term_months: res.data.settings.creator_commission_default_term_months ?? 6,
+          creator_commission_points_per_paid_sub: res.data.settings.creator_commission_points_per_paid_sub ?? 0,
         });
       }
     } catch (err: any) {
@@ -446,25 +446,6 @@ export default function AdminSettingsPage() {
                   </div>
                   <span className="text-[10px]" style={{ color: t.onSurfaceVariant }}>Credited on paid conversion during VIP</span>
                 </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium" style={{ color: t.onSurfaceVariant }}>
-                    Max Pro Redemption Cap (Months)
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-2.5 text-zinc-500">
-                      <Calendar className="w-3.5 h-3.5" />
-                    </span>
-                    <input
-                      type="number"
-                      value={globalSettings.creator_vip_max_redemption_months}
-                      onChange={(e) => setGlobalSettings({ ...globalSettings, creator_vip_max_redemption_months: parseInt(e.target.value) || 0 })}
-                      className="w-full rounded text-xs py-2 pl-9 pr-3 focus:outline-none transition-colors"
-                      style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface }}
-                    />
-                  </div>
-                  <span className="text-[10px]" style={{ color: t.onSurfaceVariant }}>Max free Pro months redeemable</span>
-                </div>
               </div>
             </div>
 
@@ -565,6 +546,25 @@ export default function AdminSettingsPage() {
                     />
                   </div>
                   <span className="text-[10px]" style={{ color: t.onSurfaceVariant }}>E.g. 7 (weekly), 30 (monthly)</span>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium" style={{ color: t.onSurfaceVariant }}>
+                    Bonus Points per Conversion
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2.5 text-zinc-500">
+                      <Coins className="w-3.5 h-3.5" />
+                    </span>
+                    <input
+                      type="number"
+                      value={globalSettings.creator_commission_points_per_paid_sub ?? 0}
+                      onChange={(e) => setGlobalSettings({ ...globalSettings, creator_commission_points_per_paid_sub: parseInt(e.target.value) || 0 })}
+                      className="w-full rounded text-xs py-2 pl-9 pr-3 focus:outline-none transition-colors"
+                      style={{ backgroundColor: t.surfaceContainerLowest, border: `1px solid ${t.outlineVariant}`, color: t.onSurface }}
+                    />
+                  </div>
+                  <span className="text-[10px]" style={{ color: t.onSurfaceVariant }}>Points in Commission Mode (Default: 0)</span>
                 </div>
               </div>
             </div>

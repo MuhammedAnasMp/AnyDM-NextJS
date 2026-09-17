@@ -20,6 +20,15 @@ import api from "@/lib/services/api.service";
 import { getTemplateStyles, TemplateStyle } from "@/components/templates/TemplateProvider";
 import { cn } from "@/lib/utils";
 import { getProductUrl, getStoreHomeUrl, getTermsUrl, getPrivacyUrl } from "@/lib/utils/domain";
+import { resolveCustomerSession } from "@/lib/services/customerSession";
+
+const InstagramIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+  </svg>
+);
 
 const isVideoUrl = (url: string) => {
   if (!url) return false;
@@ -127,6 +136,33 @@ export default function ProductDetailPage({ params }: PageProps) {
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const [activePolicyModal, setActivePolicyModal] = useState<"privacy" | "terms" | null>(null);
 
+  const [customerSessionToken, setCustomerSessionToken] = useState<string>("");
+  const [instagramProfile, setInstagramProfile] = useState<{ username?: string | null; profile_pic?: string | null } | null>(null);
+
+  useEffect(() => {
+    resolveCustomerSession().then((sess) => {
+      if (sess) {
+        setCustomerSessionToken(sess.token);
+        if (sess.instagram_username) {
+          setInstagramProfile({
+            username: sess.instagram_username,
+            profile_pic: sess.instagram_profile_pic,
+          });
+        }
+        if (sess.saved_address) {
+          if (sess.saved_address.customer_name) setCheckoutName(sess.saved_address.customer_name);
+          if (sess.saved_address.customer_email) setCheckoutEmail(sess.saved_address.customer_email);
+          if (sess.saved_address.customer_phone) setCheckoutPhone(sess.saved_address.customer_phone);
+          if (sess.saved_address.shipping_address) setCheckoutAddress(sess.saved_address.shipping_address);
+          if (sess.saved_address.shipping_pincode) setCheckoutPincode(sess.saved_address.shipping_pincode);
+          if (sess.saved_address.shipping_place) setCheckoutPlace(sess.saved_address.shipping_place);
+          if (sess.saved_address.shipping_district) setCheckoutDistrict(sess.saved_address.shipping_district);
+          if (sess.saved_address.shipping_state) setCheckoutState(sess.saved_address.shipping_state);
+        }
+      }
+    });
+  }, []);
+
   useEffect(() => {
     if (product) {
       const favs = JSON.parse(localStorage.getItem("anydm_favorites") || "[]");
@@ -199,7 +235,8 @@ export default function ProductDetailPage({ params }: PageProps) {
         shipping_place: checkoutPlace,
         shipping_district: checkoutDistrict,
         shipping_state: checkoutState,
-        payment_method: checkoutPaymentMethod
+        payment_method: checkoutPaymentMethod,
+        customer_session_token: customerSessionToken
       });
 
       if (checkoutPaymentMethod === "RAZORPAY") {
@@ -385,14 +422,7 @@ export default function ProductDetailPage({ params }: PageProps) {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#131313] text-[#e5e2e1] flex flex-col items-center justify-center font-sans">
-        <RefreshCw className="w-10 h-10 animate-spin text-white mb-4" />
-        <p className="text-sm font-semibold tracking-tight">Loading product details...</p>
-      </div>
-    );
-  }
+  if (loading) return null;
 
   if (error || !product || !supplier || !settings) {
     return (
@@ -413,7 +443,7 @@ export default function ProductDetailPage({ params }: PageProps) {
 
   const isOutOfStock = product ? (product.stock <= 0 || product.status === "OUT_OF_STOCK") : true;
 
-  const styles: TemplateStyle = getTemplateStyles(settings.template_id, settings.theme_id);
+  const styles: TemplateStyle = getTemplateStyles(settings.template_id, settings.theme_id, settings.custom_settings);
   const isLight = !styles.isDark;
 
   // Generate Social Buttons URLs
@@ -430,12 +460,12 @@ export default function ProductDetailPage({ params }: PageProps) {
       <div className="max-w-screen-2xl mx-auto px-8 md:px-16 pb-24 mt-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-24 items-start">
           {/* Gallery (7 Columns) */}
-          <div className="lg:col-span-7 space-y-8">
-            <div className="aspect-[4/5] w-full bg-[#E8F0E9]/30 overflow-hidden">
+          <div className="lg:col-span-6 space-y-6">
+            <div className="aspect-[4/5] max-h-[480px] md:max-h-[520px] w-full bg-[#E8F0E9]/30 overflow-hidden rounded-xl mx-auto flex items-center justify-center">
               {activeMediaType === "VIDEO" ? (
-                <video src={activeMediaUrl} controls autoPlay muted loop className="w-full h-full object-cover" />
+                <video src={activeMediaUrl} controls autoPlay muted loop className="w-full h-full max-h-[520px] object-contain" />
               ) : (
-                <img src={activeMediaUrl} alt={product.title} className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
+                <img src={activeMediaUrl} alt={product.title} className="w-full h-full max-h-[520px] object-contain hover:scale-105 transition-transform duration-700" />
               )}
             </div>
             <div className="grid grid-cols-2 gap-8">
@@ -564,12 +594,14 @@ export default function ProductDetailPage({ params }: PageProps) {
               <button
                 onClick={openCheckout}
                 disabled={isOutOfStock}
-                className={cn("w-full flex items-center justify-center py-5 font-bold text-xs tracking-widest rounded-none transition-all",
+                className={cn(
+                  "w-full h-11 flex items-center justify-center gap-2.5 px-4 font-bold text-xs tracking-wider transition-all",
                   isOutOfStock
                     ? "bg-[#C2C9C3]/40 text-[#6A786C] cursor-not-allowed"
-                    : "bg-[#4A5D4E] text-white hover:bg-[#4A5D4E]/90")}
+                    : "bg-[#4A5D4E] text-white hover:bg-[#4A5D4E]/90"
+                )}
               >
-                <ShoppingBag className="w-4 h-4 mr-2 shrink-0" />
+                <ShoppingBag className="w-4 h-4 shrink-0" />
                 <span>{isOutOfStock ? "Out of Stock" : "Buy Now / Checkout"}</span>
               </button>
 
@@ -578,34 +610,24 @@ export default function ProductDetailPage({ params }: PageProps) {
                   href={product.instagram_permalink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full flex items-center justify-center py-5 bg-gradient-to-r from-orange-400 via-red-400 to-pink-500 text-white font-bold text-xs tracking-widest rounded-none hover:opacity-90 transition-all shadow-sm"
+                  className="w-full h-11 flex items-center justify-center gap-2.5 px-4 bg-gradient-to-r from-orange-400 via-red-400 to-pink-500 text-white font-bold text-xs tracking-wider hover:opacity-90 transition-all shadow-sm"
                 >
-                  Acquire on Instagram
+                  <InstagramIcon className="w-4 h-4 shrink-0" />
+                  <span>Acquire on Instagram</span>
                 </a>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
-                {settings.enable_whatsapp_button && !isOutOfStock && (
-                  <a
-                    href={whatsappUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 py-4 border border-[#25D366]/40 text-[#2D362E] font-medium text-xs rounded-none hover:bg-[#25D366]/5 transition-colors tracking-widest"
-                  >
-                    WhatsApp
-                  </a>
-                )}
-                {product.instagram_permalink && !isOutOfStock && (
-                  <a
-                    href={product.instagram_permalink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 py-4 border border-[#E1306C]/40 text-[#2D362E] font-medium text-xs rounded-none hover:bg-[#E1306C]/5 transition-colors tracking-widest"
-                  >
-                    Instagram
-                  </a>
-                )}
-              </div>
+              {settings.enable_whatsapp_button && !isOutOfStock && (
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full h-11 flex items-center justify-center gap-2.5 px-4 border border-[#25D366]/40 text-[#2D362E] font-bold text-xs hover:bg-[#25D366]/10 transition-colors tracking-wider"
+                >
+                  <MessageCircle className="w-4 h-4 shrink-0 text-[#25D366]" />
+                  <span>Order via WhatsApp</span>
+                </a>
+              )}
             </section>
 
             <div className="pt-8 border-t border-[#C2C9C3]/40 grid grid-cols-2 gap-6 text-[#2D362E]">
@@ -677,11 +699,11 @@ export default function ProductDetailPage({ params }: PageProps) {
       <div className="max-w-screen-2xl mx-auto px-6 lg:px-12 grid grid-cols-1 md:grid-cols-12 gap-12 mt-8 text-[#e2e2e2] font-mono">
         {/* Left Column (7 Columns) */}
         <section className="md:col-span-7 flex flex-col gap-4">
-          <div className="aspect-[4/5] bg-[#0d0e0f] overflow-hidden relative border border-[#3b494b] group">
+          <div className="aspect-[4/5] max-h-[480px] md:max-h-[520px] bg-[#0d0e0f] overflow-hidden relative border border-[#3b494b] group rounded-xl mx-auto flex items-center justify-center">
             {activeMediaType === "VIDEO" ? (
-              <video src={activeMediaUrl} controls autoPlay muted loop className="w-full h-full object-cover" />
+              <video src={activeMediaUrl} controls autoPlay muted loop className="w-full h-full max-h-[520px] object-contain" />
             ) : (
-              <img src={activeMediaUrl} alt={product.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+              <img src={activeMediaUrl} alt={product.title} className="w-full h-full max-h-[520px] object-contain transition-transform duration-700 group-hover:scale-105" />
             )}
             <div className="absolute top-4 left-4 bg-[#00f0ff]/10 backdrop-blur-md border border-[#00f0ff]/40 px-3 py-1">
               <span className="font-mono text-[10px] tracking-widest text-[#00f0ff]">COLLECTION_024</span>
@@ -792,10 +814,12 @@ export default function ProductDetailPage({ params }: PageProps) {
             <button
               onClick={openCheckout}
               disabled={isOutOfStock}
-              className={cn("w-full py-4 text-center font-bold tracking-widest text-xs rounded-none active:scale-95 transition-transform flex items-center justify-center gap-2",
+              className={cn(
+                "w-full h-11 flex items-center justify-center gap-2.5 px-4 text-xs font-mono font-bold tracking-widest transition-all rounded-none",
                 isOutOfStock
-                  ? "bg-zinc-800 text-zinc-500 cursor-not-allowed opacity-60"
-                  : "bg-[#00f0ff] text-black hover:shadow-[0_0_15px_rgba(0,240,255,0.5)]")}
+                  ? "bg-zinc-800 text-zinc-500 cursor-not-allowed opacity-60 border border-white/5"
+                  : styles.buttonClass
+              )}
             >
               <ShoppingBag className="w-4 h-4 shrink-0" />
               <span>{isOutOfStock ? "OUT OF STOCK" : "BUY NOW / CHECKOUT"}</span>
@@ -806,9 +830,10 @@ export default function ProductDetailPage({ params }: PageProps) {
                 href={product.instagram_permalink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full py-4 text-center bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 text-white font-bold tracking-widest text-xs rounded-none active:scale-95 transition-transform hover:shadow-[0_0_15px_rgba(255,36,228,0.5)]"
+                className="w-full h-11 flex items-center justify-center gap-2.5 px-4 bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 text-white font-bold tracking-widest text-xs rounded-none active:scale-95 transition-transform hover:shadow-[0_0_15px_rgba(255,36,228,0.5)]"
               >
-                Buy on Instagram
+                <InstagramIcon className="w-4 h-4 shrink-0" />
+                <span>Buy on Instagram</span>
               </a>
             )}
 
@@ -817,9 +842,10 @@ export default function ProductDetailPage({ params }: PageProps) {
                 href={whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full py-4 text-center bg-[#25D366] text-black font-bold tracking-widest text-xs rounded-none active:scale-95 transition-transform hover:shadow-[0_0_15px_rgba(37,211,102,0.5)]"
+                className="w-full h-11 flex items-center justify-center gap-2.5 px-4 bg-[#25D366] text-black font-bold tracking-wider text-xs rounded-none active:scale-95 transition-transform hover:shadow-[0_0_15px_rgba(37,211,102,0.5)]"
               >
-                Order via WhatsApp
+                <MessageCircle className="w-4 h-4 shrink-0 text-black" />
+                <span>Order via WhatsApp</span>
               </a>
             )}
           </div>
@@ -1000,22 +1026,26 @@ export default function ProductDetailPage({ params }: PageProps) {
               <button
                 onClick={openCheckout}
                 disabled={isOutOfStock}
-                className={cn("w-full h-12 rounded-xl flex items-center justify-center gap-2 text-xs font-bold transition-all",
+                className={cn(
+                  "w-full h-11 rounded-xl flex items-center justify-center gap-2.5 px-4 text-xs font-bold transition-all shadow-lg active:scale-95",
                   isOutOfStock
-                    ? "bg-zinc-800 text-zinc-500 cursor-not-allowed opacity-60"
-                    : "bg-white text-black hover:opacity-90 active:scale-95 shadow-md")}
+                    ? "bg-gray-800 text-gray-500 cursor-not-allowed opacity-60"
+                    : "bg-white text-black hover:bg-gray-100"
+                )}
               >
                 <ShoppingBag className="w-4 h-4 shrink-0" />
                 <span>{isOutOfStock ? "Out of Stock" : "Buy Now / Checkout"}</span>
               </button>
+
               {settings.enable_instagram_button && product.instagram_permalink && !isOutOfStock && (
                 <a
                   href={product.instagram_permalink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full h-12 rounded-xl flex items-center justify-center gap-2 text-xs font-bold text-white bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 hover:opacity-90 active:scale-95 transition-all shadow-md"
+                  className="w-full h-11 rounded-xl flex items-center justify-center gap-2.5 px-4 text-xs font-bold text-white bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 hover:opacity-90 active:scale-95 transition-all shadow-md"
                 >
-                  Buy on Instagram
+                  <InstagramIcon className="w-4 h-4 shrink-0" />
+                  <span>Buy on Instagram</span>
                 </a>
               )}
               {settings.enable_whatsapp_button && !isOutOfStock && (
@@ -1023,9 +1053,10 @@ export default function ProductDetailPage({ params }: PageProps) {
                   href={whatsappUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full h-12 bg-[#25D366] text-white rounded-xl flex items-center justify-center gap-2 text-xs font-bold hover:opacity-95 active:scale-95 transition-all shadow-md"
+                  className="w-full h-11 bg-[#25D366] text-white rounded-xl flex items-center justify-center gap-2.5 px-4 text-xs font-bold hover:opacity-95 active:scale-95 transition-all shadow-md"
                 >
-                  Order via WhatsApp
+                  <MessageCircle className="w-4 h-4 shrink-0 text-white" />
+                  <span>Order via WhatsApp</span>
                 </a>
               )}
             </div>
@@ -1204,21 +1235,23 @@ export default function ProductDetailPage({ params }: PageProps) {
               <button
                 onClick={openCheckout}
                 disabled={isOutOfStock}
-                className={cn("w-full h-14 font-semibold text-xs tracking-widest flex items-center justify-center gap-2 transition-all active:scale-[0.98]",
-                  isOutOfStock
-                    ? "bg-zinc-200 dark:bg-zinc-800 text-zinc-400 cursor-not-allowed"
-                    : "bg-black dark:bg-white text-white dark:text-black hover:opacity-90")}
+                className={cn(
+                  "w-full h-11 bg-black dark:bg-white text-white dark:text-black font-semibold text-xs tracking-widest flex items-center justify-center gap-2.5 px-4 hover:opacity-90 transition-all active:scale-[0.98]",
+                  isOutOfStock && "opacity-50 cursor-not-allowed"
+                )}
               >
                 <ShoppingBag className="w-4 h-4 shrink-0" />
                 <span>{isOutOfStock ? "OUT OF STOCK" : "BUY NOW / CHECKOUT"}</span>
               </button>
+
               {settings.enable_instagram_button && product.instagram_permalink && !isOutOfStock && (
                 <a
                   href={product.instagram_permalink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full h-14 bg-black dark:bg-white text-white dark:text-black font-semibold text-xs tracking-widest flex items-center justify-center gap-2 hover:opacity-90 transition-all active:scale-[0.98]"
+                  className="w-full h-11 bg-black dark:bg-white text-white dark:text-black font-semibold text-xs tracking-widest flex items-center justify-center gap-2.5 px-4 hover:opacity-90 transition-all active:scale-[0.98]"
                 >
+                  <InstagramIcon className="w-4 h-4 shrink-0" />
                   <span>PURCHASE ON INSTAGRAM</span>
                 </a>
               )}
@@ -1227,9 +1260,9 @@ export default function ProductDetailPage({ params }: PageProps) {
                   href={whatsappUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full h-14 border border-zinc-300 dark:border-zinc-800 flex items-center justify-center gap-2 rounded-none hover:border-black dark:hover:border-white transition-all text-xs font-semibold tracking-widest text-zinc-800 dark:text-zinc-200"
+                  className="w-full h-11 border border-zinc-300 dark:border-zinc-800 flex items-center justify-center gap-2.5 px-4 rounded-none hover:border-black dark:hover:border-white transition-all text-xs font-semibold tracking-widest text-zinc-800 dark:text-zinc-200"
                 >
-                  <MessageCircle className="w-4 h-4" />
+                  <MessageCircle className="w-4 h-4 text-[#25D366] shrink-0" />
                   <span>ENQUIRE VIA WHATSAPP</span>
                 </a>
               )}
@@ -1481,22 +1514,24 @@ export default function ProductDetailPage({ params }: PageProps) {
                 <button
                   onClick={openCheckout}
                   disabled={isOutOfStock}
-                  className={cn("w-full h-12 border-2 border-black font-black text-xs tracking-wider flex items-center justify-center gap-2 transition-all",
-                    isOutOfStock
-                      ? "bg-zinc-200 text-zinc-400 cursor-not-allowed"
-                      : "bg-[#0038ff] text-white shadow-[4px_4px_0px_#000] hover:translate-y-0.5 active:translate-y-1 active:shadow-none")}
+                  className={cn(
+                    "w-full h-11 font-black text-xs tracking-wider border-2 border-black flex items-center justify-center gap-2.5 px-4 shadow-[3px_3px_0px_#000] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all",
+                    isOutOfStock ? "bg-gray-300 text-gray-600 cursor-not-allowed" : "bg-[#FFE600] text-black"
+                  )}
                 >
                   <ShoppingBag className="w-4 h-4 shrink-0" />
                   <span>{isOutOfStock ? "OUT OF STOCK" : "BUY NOW / CHECKOUT"}</span>
                 </button>
+
                 {settings.enable_instagram_button && product.instagram_permalink && !isOutOfStock && (
                   <a
                     href={product.instagram_permalink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full h-12 bg-gradient-to-r from-[#fdf497] via-[#fd5949] to-[#d6249f] text-white border-2 border-black font-black text-xs tracking-wider shadow-[4px_4px_0px_#000] hover:translate-y-0.5 active:translate-y-1 active:shadow-none flex items-center justify-center gap-2"
+                    className="w-full h-11 bg-gradient-to-r from-orange-400 via-red-400 to-pink-500 text-white border-2 border-black font-black text-xs tracking-wider shadow-[3px_3px_0px_#000] hover:translate-y-0.5 active:translate-y-1 active:shadow-none flex items-center justify-center gap-2.5 px-4"
                   >
-                    <span>BUY ON INSTAGRAM</span>
+                    <InstagramIcon className="w-4 h-4 shrink-0" />
+                    <span>PURCHASE ON INSTAGRAM</span>
                   </a>
                 )}
                 {settings.enable_whatsapp_button && !isOutOfStock && (
@@ -1504,8 +1539,9 @@ export default function ProductDetailPage({ params }: PageProps) {
                     href={whatsappUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full h-12 bg-[#25D366] text-white border-2 border-black font-black text-xs tracking-wider shadow-[4px_4px_0px_#000] hover:translate-y-0.5 active:translate-y-1 active:shadow-none flex items-center justify-center gap-2"
+                    className="w-full h-11 bg-[#25D366] text-white border-2 border-black font-black text-xs tracking-wider shadow-[3px_3px_0px_#000] hover:translate-y-0.5 active:translate-y-1 active:shadow-none flex items-center justify-center gap-2.5 px-4"
                   >
+                    <MessageCircle className="w-4 h-4 shrink-0" />
                     <span>ORDER VIA WHATSAPP</span>
                   </a>
                 )}
@@ -1638,16 +1674,16 @@ export default function ProductDetailPage({ params }: PageProps) {
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-start">
 
           {/* Left Column: Media Gallery */}
-          <div className="w-full lg:w-[55%] space-y-4 shrink-0">
+          <div className="w-full lg:w-[48%] space-y-4 shrink-0">
             {/* Active Display Panel */}
-            <div className={cn("relative overflow-hidden aspect-[4/5] bg-black/10 flex items-center justify-center rounded-2xl border border-white/5 shadow-inner")}>
+            <div className={cn("relative overflow-hidden aspect-[4/5] max-h-[480px] md:max-h-[520px] bg-black/10 flex items-center justify-center rounded-2xl border border-white/5 shadow-inner mx-auto")}>
               {activeMediaType === "VIDEO" ? (
-                <video src={activeMediaUrl} controls autoPlay muted loop className="w-full h-full object-cover" />
+                <video src={activeMediaUrl} controls autoPlay muted loop className="w-full h-full max-h-[520px] object-contain" />
               ) : (
                 <img
                   src={activeMediaUrl}
                   alt={product.title}
-                  className="w-full h-full object-cover transition-transform duration-300"
+                  className="w-full h-full max-h-[520px] object-contain transition-transform duration-300"
                 />
               )}
             </div>
@@ -1832,53 +1868,53 @@ export default function ProductDetailPage({ params }: PageProps) {
               )}
 
               {/* Purchase Trigger Actions - No Add to Cart button required */}
-              <div className="space-y-3 pt-3">
+              <div className="space-y-2.5">
+                {/* Buy Now / Checkout */}
                 <button
                   onClick={openCheckout}
                   disabled={isOutOfStock}
                   className={cn(
-                    "w-full flex items-center justify-center gap-2 h-10 rounded-lg text-xs font-bold transition-all active:scale-[0.98]",
+                    "w-full h-11 flex items-center justify-center gap-2.5 px-4 rounded-xl text-xs font-bold transition-all active:scale-[0.98] shadow-sm",
                     isOutOfStock
                       ? "bg-zinc-800 text-zinc-500 cursor-not-allowed opacity-60 border border-white/5"
-                      : "bg-[#605ca2] text-white hover:bg-[#605ca2]/90"
+                      : styles.buttonClass || "bg-[#605ca2] text-white hover:bg-[#605ca2]/90"
                   )}
                 >
-                  <ShoppingBag className="w-5 h-5 shrink-0" />
+                  <ShoppingBag className="w-4 h-4 shrink-0" />
                   <span>{isOutOfStock ? "Out of Stock" : "Buy Now / Checkout"}</span>
                 </button>
 
+                {/* Purchase on Instagram */}
                 {settings.enable_instagram_button && product.instagram_permalink && !isOutOfStock && (
                   <a
                     href={product.instagram_permalink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={cn("w-full flex items-center justify-center gap-2", styles.instagramButtonClass)}
+                    className="w-full h-11 flex items-center justify-center gap-2.5 px-4 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 hover:opacity-90 transition-all active:scale-[0.98] shadow-sm"
                   >
-                    <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
-                      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-                      <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
-                    </svg>
+                    <InstagramIcon className="w-4 h-4 shrink-0" />
                     <span>Purchase on Instagram</span>
                   </a>
                 )}
 
+                {/* Order via WhatsApp */}
                 {settings.enable_whatsapp_button && !isOutOfStock && (
                   <a
                     href={whatsappUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={cn("w-full flex items-center justify-center gap-2", styles.whatsappButtonClass)}
+                    className="w-full h-11 flex items-center justify-center gap-2.5 px-4 rounded-xl text-xs font-bold text-[#25D366] bg-[#25D366]/10 border border-[#25D366]/30 hover:bg-[#25D366]/20 transition-all active:scale-[0.98] shadow-sm"
                   >
-                    <MessageCircle className="w-5 h-5 shrink-0" />
+                    <MessageCircle className="w-4 h-4 shrink-0 text-[#25D366]" />
                     <span>Order via WhatsApp</span>
                   </a>
                 )}
 
+                {/* Add to Favorites */}
                 <button
                   onClick={toggleFavorite}
                   className={cn(
-                    "w-full flex items-center justify-center gap-2 h-10 rounded-lg text-xs font-bold border transition-all active:scale-[0.98]",
+                    "w-full h-11 flex items-center justify-center gap-2.5 px-4 rounded-xl text-xs font-bold border transition-all active:scale-[0.98]",
                     isFavorited
                       ? "bg-rose-500/10 border-rose-500/30 text-rose-500 hover:bg-rose-500/20"
                       : isLight
@@ -1996,6 +2032,19 @@ export default function ProductDetailPage({ params }: PageProps) {
 
   return (
     <div className={cn("min-h-screen flex flex-col transition-colors duration-500 pb-16", styles.bodyClass, styles.fontBody)}>
+      {/* ── Top Announcement Bar ───────────────────────────────── */}
+      {(() => {
+        const annText = settings?.custom_settings?.announcement_text !== undefined
+          ? settings.custom_settings.announcement_text
+          : "✦ Fast Doorstep Delivery & Easy Returns | 100% Genuine Products";
+        if (!annText || !annText.trim()) return null;
+        return (
+          <div className={cn("w-full text-center py-2 px-4 text-[11px] font-semibold tracking-wide border-b transition-colors select-none", styles.dividerClass)} style={{ backgroundColor: `${styles.accentColor}12` }}>
+            <span>{annText}</span>
+          </div>
+        );
+      })()}
+
       {/* Top Navbar */}
       <header className={cn("sticky top-0 z-40 px-6 h-16 flex items-center justify-between w-full max-w-full mx-auto", styles.navClass)}>
         <button onClick={() => router.push(getStoreHomeUrl(username))} className="flex items-center gap-1.5 text-xs font-bold hover:opacity-80 transition-opacity">
@@ -2018,7 +2067,7 @@ export default function ProductDetailPage({ params }: PageProps) {
 
         {/* Navigation links - Login and Signup hidden for visitors */}
         <nav className="flex items-center gap-4 text-xs font-semibold">
-          <Link href={`/${username}`} className={cn("hover:opacity-80 transition-opacity", styles.textMutedClass)}>
+          <Link href={getStoreHomeUrl(username)} className={cn("hover:opacity-80 transition-opacity", styles.textMutedClass)}>
             Storefront
           </Link>
         </nav>
@@ -2126,88 +2175,102 @@ export default function ProductDetailPage({ params }: PageProps) {
       {/* ── Global Checkout Modal ── */}
       {isCheckoutOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4"
           onClick={() => setIsCheckoutOpen(false)}
         >
           <div
             className={cn(
               "w-full max-w-lg rounded-2xl p-6 md:p-8 shadow-2xl overflow-y-auto max-h-[90vh] relative border text-left",
-              styles.bodyClass,
-              styles.cardClass
+              styles.modalClass
             )}
             onClick={e => e.stopPropagation()}
           >
             {/* Close Button */}
             <button
               onClick={() => setIsCheckoutOpen(false)}
-              className={cn("absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors", styles.textMutedClass)}
+              className={cn("absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full border hover:opacity-80 transition-colors", styles.dividerClass)}
             >
               <X className="w-4 h-4" />
             </button>
 
-            <h3 className={cn("text-base font-bold tracking-tight mb-4", styles.fontHeadline, styles.textColorClass)}>Checkout Order</h3>
+            <h3 className={cn("text-lg font-bold tracking-tight mb-4", styles.fontHeadline, styles.textColorClass)}>Checkout Order</h3>
+
+            {instagramProfile?.username && (
+              <div className="flex items-center gap-2.5 p-3 rounded-xl mb-4 bg-[#131313] border border-[#444748] text-xs text-[#e5e2e1]">
+                {instagramProfile.profile_pic ? (
+                  <img src={instagramProfile.profile_pic} alt={instagramProfile.username} className="w-7 h-7 rounded-full object-cover border border-[#444748] shrink-0" />
+                ) : (
+                  <InstagramIcon className="w-5 h-5 text-[#c4c0ff] shrink-0" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <span className="text-[9px] text-[#8e9192] block font-semibold uppercase tracking-wider">Instagram Customer Session</span>
+                  <span className="font-bold text-white text-xs truncate">@{instagramProfile.username}</span>
+                </div>
+                <span className="text-[9px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold shrink-0">Auto-Linked</span>
+              </div>
+            )}
 
             {/* Order summary */}
-            <div className={cn("flex items-center gap-3 p-3 rounded-lg mb-4", isLight ? "bg-black/[0.03] border border-black/10" : "bg-white/[0.03] border border-white/10")}>
+            <div className={cn("flex items-center gap-3 p-3.5 rounded-xl mb-4 border", styles.cardClass)}>
               {activeMediaUrl && (
-                <img src={activeMediaUrl} alt={product.title} className="w-14 h-14 object-cover rounded shrink-0" />
+                <img src={activeMediaUrl} alt={product.title} className="w-14 h-14 object-cover rounded-lg shrink-0 bg-zinc-900" />
               )}
               <div className="flex-1 min-w-0">
                 <p className={cn("text-xs font-bold truncate", styles.textColorClass)}>{product.title}</p>
-                {selectedVariant && <p className={cn("text-[10px] mt-0.5", styles.textMutedClass)}>Size: {selectedVariant}</p>}
-                <p className={cn("text-xs font-black mt-0.5", styles.priceClass)}>{product.price ? `${product.price} ${product.currency}` : "Price TBD"}</p>
+                {selectedVariant && <p className={cn("text-[10px] font-semibold opacity-75 mt-0.5", styles.textMutedClass)}>Option: {selectedVariant}</p>}
+                <p className={cn("text-xs font-extrabold mt-0.5", styles.priceClass)}>{product.price ? `${product.price} ${product.currency}` : "Price TBD"}</p>
               </div>
-              <span className={cn("text-[10px] font-bold px-2 py-1 rounded", isLight ? "bg-black/5 text-black" : "bg-white/5 text-white")}>×{quantity}</span>
+              <span className={cn("text-[10px] font-bold px-2.5 py-1 rounded-full border", styles.badgeClass)}>×{quantity}</span>
             </div>
 
             <form onSubmit={handleCheckout} className="space-y-4">
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold tracking-wider opacity-60">Full Name</label>
-                <input type="text" required value={checkoutName} onChange={(e) => setCheckoutName(e.target.value)} placeholder="Enter your name"
-                  className={cn("w-full px-3 py-2 text-xs rounded border outline-none", styles.inputClass)} />
+                <label className={cn("text-[10px] font-bold tracking-wider uppercase opacity-75", styles.textMutedClass)}>Full Name</label>
+                <input type="text" required value={checkoutName} onChange={(e) => setCheckoutName(e.target.value)} placeholder="Enter your full name"
+                  className={cn("w-full px-3.5 py-2.5 text-xs rounded-xl border outline-none", styles.inputClass)} />
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold tracking-wider opacity-60">Email Address</label>
+                <label className={cn("text-[10px] font-bold tracking-wider uppercase opacity-75", styles.textMutedClass)}>Email Address</label>
                 <input type="email" required value={checkoutEmail} onChange={(e) => setCheckoutEmail(e.target.value)} placeholder="Enter email address"
-                  className={cn("w-full px-3 py-2 text-xs rounded border outline-none", styles.inputClass)} />
+                  className={cn("w-full px-3.5 py-2.5 text-xs rounded-xl border outline-none", styles.inputClass)} />
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold tracking-wider opacity-60">Phone Number</label>
-                <input type="tel" required value={checkoutPhone} onChange={(e) => setCheckoutPhone(e.target.value)} placeholder="Enter phone number"
-                  className={cn("w-full px-3 py-2 text-xs rounded border outline-none", styles.inputClass)} />
+                <label className={cn("text-[10px] font-bold tracking-wider uppercase opacity-75", styles.textMutedClass)}>Phone Number</label>
+                <input type="tel" required value={checkoutPhone} onChange={(e) => setCheckoutPhone(e.target.value)} placeholder="Enter mobile number"
+                  className={cn("w-full px-3.5 py-2.5 text-xs rounded-xl border outline-none", styles.inputClass)} />
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold tracking-wider opacity-60">Shipping Address</label>
-                <textarea required rows={2} value={checkoutAddress} onChange={(e) => setCheckoutAddress(e.target.value)} placeholder="Detailed shipping address"
-                  className={cn("w-full px-3 py-2 text-xs rounded border outline-none resize-none", styles.inputClass)} />
+                <label className={cn("text-[10px] font-bold tracking-wider uppercase opacity-75", styles.textMutedClass)}>Delivery Address</label>
+                <textarea required rows={2} value={checkoutAddress} onChange={(e) => setCheckoutAddress(e.target.value)} placeholder="House/Flat No., Street, Area"
+                  className={cn("w-full px-3.5 py-2.5 text-xs rounded-xl border outline-none resize-none", styles.inputClass)} />
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold tracking-wider opacity-60">Pin Code</label>
-                  <input type="text" required value={checkoutPincode} onChange={(e) => setCheckoutPincode(e.target.value)} placeholder="Pin Code"
-                    className={cn("w-full px-3 py-2 text-xs rounded border outline-none", styles.inputClass)} />
+                  <label className={cn("text-[10px] font-bold tracking-wider uppercase opacity-75", styles.textMutedClass)}>Pincode</label>
+                  <input type="text" required value={checkoutPincode} onChange={(e) => setCheckoutPincode(e.target.value)} placeholder="6-digit Pincode"
+                    className={cn("w-full px-3.5 py-2.5 text-xs rounded-xl border outline-none", styles.inputClass)} />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold tracking-wider opacity-60">Place / City</label>
-                  <input type="text" required value={checkoutPlace} onChange={(e) => setCheckoutPlace(e.target.value)} placeholder="Place / City"
-                    className={cn("w-full px-3 py-2 text-xs rounded border outline-none", styles.inputClass)} />
+                  <label className={cn("text-[10px] font-bold tracking-wider uppercase opacity-75", styles.textMutedClass)}>City / Place</label>
+                  <input type="text" required value={checkoutPlace} onChange={(e) => setCheckoutPlace(e.target.value)} placeholder="City / Town"
+                    className={cn("w-full px-3.5 py-2.5 text-xs rounded-xl border outline-none", styles.inputClass)} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold tracking-wider opacity-60">District</label>
+                  <label className={cn("text-[10px] font-bold tracking-wider uppercase opacity-75", styles.textMutedClass)}>District</label>
                   <input type="text" required value={checkoutDistrict} onChange={(e) => setCheckoutDistrict(e.target.value)} placeholder="District"
-                    className={cn("w-full px-3 py-2 text-xs rounded border outline-none", styles.inputClass)} />
+                    className={cn("w-full px-3.5 py-2.5 text-xs rounded-xl border outline-none", styles.inputClass)} />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold tracking-wider opacity-60">State</label>
+                  <label className={cn("text-[10px] font-bold tracking-wider uppercase opacity-75", styles.textMutedClass)}>State</label>
                   <input type="text" required value={checkoutState} onChange={(e) => setCheckoutState(e.target.value)} placeholder="State"
-                    className={cn("w-full px-3 py-2 text-xs rounded border outline-none", styles.inputClass)} />
+                    className={cn("w-full px-3.5 py-2.5 text-xs rounded-xl border outline-none", styles.inputClass)} />
                 </div>
               </div>
 
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-[10px] font-bold tracking-wider opacity-60">Payment Method</label>
+                <label className={cn("text-[10px] font-bold tracking-wider uppercase opacity-75", styles.textMutedClass)}>Payment Method</label>
                 {(() => {
                   const isCodAvailable = settings?.cod_enabled && product?.cod_enabled;
                   const isOnlineAvailable = !!settings?.online_payment_enabled;
@@ -2215,30 +2278,28 @@ export default function ProductDetailPage({ params }: PageProps) {
                     return (
                       <div className="grid grid-cols-2 gap-2">
                         <button type="button" onClick={() => setCheckoutPaymentMethod("COD")}
-                          className={cn("py-2 rounded border text-xs font-semibold transition-all",
-                            checkoutPaymentMethod === "COD" ? "border-[#605ca2] bg-[#605ca2]/15 text-[#b6b2ff]" : isLight ? "border-zinc-300 hover:border-zinc-400 text-black" : "border-white/10 hover:border-white/20 text-white")}
-                          style={{ borderColor: checkoutPaymentMethod === "COD" ? styles.accentColor : undefined }}
+                          className={cn("py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer",
+                            checkoutPaymentMethod === "COD" ? styles.filterPillActiveClass : styles.filterPillClass)}
                         >
                           Cash on Delivery
                         </button>
                         <button type="button" onClick={() => setCheckoutPaymentMethod("RAZORPAY")}
-                          className={cn("py-2 rounded border text-xs font-semibold transition-all",
-                            checkoutPaymentMethod === "RAZORPAY" ? "border-[#605ca2] bg-[#605ca2]/15 text-[#b6b2ff]" : isLight ? "border-zinc-300 hover:border-zinc-400 text-black" : "border-white/10 hover:border-white/20 text-white")}
-                          style={{ borderColor: checkoutPaymentMethod === "RAZORPAY" ? styles.accentColor : undefined }}
+                          className={cn("py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer",
+                            checkoutPaymentMethod === "RAZORPAY" ? styles.filterPillActiveClass : styles.filterPillClass)}
                         >
-                          Online
+                          Online Payment
                         </button>
                       </div>
                     );
                   } else if (isCodAvailable) {
-                    return <button type="button" onClick={() => setCheckoutPaymentMethod("COD")} className="py-2 rounded text-xs font-semibold border-[#605ca2] bg-[#605ca2]/15 text-[#5047ff] text-center w-full">Cash on Delivery</button>;
+                    return <button type="button" onClick={() => setCheckoutPaymentMethod("COD")} className={cn("py-2.5 rounded-xl text-xs font-bold border text-center w-full", styles.filterPillActiveClass)}>Cash on Delivery</button>;
                   } else if (isOnlineAvailable) {
-                    return <button type="button" onClick={() => setCheckoutPaymentMethod("RAZORPAY")} className="py-2 rounded text-xs font-semibold border-[#605ca2] bg-[#605ca2]/15 text-[#5047ff] text-center w-full">Online</button>;
+                    return <button type="button" onClick={() => setCheckoutPaymentMethod("RAZORPAY")} className={cn("py-2.5 rounded-xl text-xs font-bold border text-center w-full", styles.filterPillActiveClass)}>Online Payment</button>;
                   } else {
                     return (
-                      <div className="rounded border border-red-500/20 bg-red-500/5 p-3 text-center">
-                        <p className="text-xs font-bold text-red-400">No Payment Methods Available</p>
-                        <p className="text-[10px] text-zinc-400 mt-1">This store is currently not accepting any orders.</p>
+                      <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-center">
+                        <p className="text-xs font-bold text-red-500">No Payment Methods Available</p>
+                        <p className={cn("text-[10px] mt-1", styles.textMutedClass)}>This store is currently not accepting new orders.</p>
                       </div>
                     );
                   }
@@ -2248,9 +2309,9 @@ export default function ProductDetailPage({ params }: PageProps) {
               <button
                 type="submit"
                 disabled={isSubmittingOrder}
-                className={cn("w-full mt-2 py-3 rounded-lg text-xs font-bold transition-all disabled:opacity-50", styles.buttonClass)}
+                className={cn("w-full mt-3 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50 shadow-lg cursor-pointer", styles.buttonClass)}
               >
-                {isSubmittingOrder ? "Placing Order..." : "Confirm & Place Order"}
+                {isSubmittingOrder ? "Processing Order..." : "Confirm & Place Order"}
               </button>
             </form>
           </div>
@@ -2260,16 +2321,16 @@ export default function ProductDetailPage({ params }: PageProps) {
       {/* Policy Modal */}
       {activePolicyModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg rounded-xl border border-white/10 p-6 shadow-2xl bg-[#1e1e24] text-white space-y-4 max-h-[80vh] overflow-y-auto">
-            <div className="flex justify-between items-center pb-2 border-b border-white/5">
-              <span className="text-sm font-bold tracking-wider text-[#b6b2ff]">
+          <div className={cn("w-full max-w-lg rounded-2xl p-6 shadow-2xl space-y-4 max-h-[80vh] overflow-y-auto border", styles.modalClass)}>
+            <div className={cn("flex justify-between items-center pb-3 border-b", styles.dividerClass)}>
+              <span className={cn("text-sm font-bold tracking-wider uppercase", styles.textColorClass)}>
                 {activePolicyModal === "privacy" ? "Privacy Policy" : "Terms of Service"}
               </span>
-              <button onClick={() => setActivePolicyModal(null)} className="p-1 rounded hover:bg-white/10 text-zinc-400 hover:text-white transition-colors">
+              <button onClick={() => setActivePolicyModal(null)} className={cn("w-8 h-8 flex items-center justify-center rounded-full border hover:opacity-80 transition-colors", styles.dividerClass)}>
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="text-xs text-zinc-400 leading-relaxed whitespace-pre-wrap pt-2 text-left">
+            <div className={cn("text-xs leading-relaxed whitespace-pre-wrap pt-2 text-left opacity-90", styles.textColorClass)}>
               {activePolicyModal === "privacy"
                 ? (settings.privacy_policy || "We value your privacy. Your personal information is exclusively used to fulfill your orders.")
                 : (settings.terms_of_service || "By browsing this store and placing orders, you agree to comply with our terms and conditions.")

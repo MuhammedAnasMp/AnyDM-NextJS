@@ -33,6 +33,7 @@ import {
   Wallet,
   Landmark,
   CheckCircle2,
+  Coins,
 } from "lucide-react";
 import Link from "next/link";
 import api from "@/lib/services/api.service";
@@ -43,10 +44,8 @@ import { RootState } from "@/store";
 const t = {
   primary: "#b6b2ff",
   onPrimary: "#111",
-  surfaceContainer: "#1e1e24",
-  surfaceContainerLowest: "#101012",
-  surfaceContainerHigh: "#2a2a30",
-  outline: "#8e9192",
+  surfaceContainerLowest: "#0e0e11",
+  surfaceContainer: "#17171a",
   outlineVariant: "#444748",
   onSurface: "#e5e2e1",
   onSurfaceVariant: "#c4c7c8",
@@ -59,6 +58,7 @@ export default function AdminUsersPage() {
   const isAdmin = !!(appUser?.is_superuser || appUser?.is_staff);
 
   const [users, setUsers] = useState<any[]>([]);
+  const [sysSettings, setSysSettings] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<"all" | "vip" | "pro" | "trial">("all");
@@ -77,6 +77,7 @@ export default function AdminUsersPage() {
   });
   const [rewardType, setRewardType] = useState<"vip" | "commission">("vip");
   const [commissionPercent, setCommissionPercent] = useState(10);
+  const [customPointsPerSub, setCustomPointsPerSub] = useState<string>("");
   const [isGranting, setIsGranting] = useState(false);
   const [showGrantModal, setShowGrantModal] = useState(false);
   const [showSettleModal, setShowSettleModal] = useState(false);
@@ -111,6 +112,15 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     fetchUsers();
+    const fetchSysSettings = async () => {
+      try {
+        const res = await api.get("/accounts/settings/system/");
+        if (res.data) setSysSettings(res.data);
+      } catch (err) {
+        console.error("Error fetching system settings:", err);
+      }
+    };
+    fetchSysSettings();
   }, []);
 
   const handleSettleCommission = async () => {
@@ -146,6 +156,7 @@ export default function AdminUsersPage() {
         reward_type: rewardType,
         months: grantMonths,
         commission_percent: commissionPercent,
+        custom_points_per_paid_sub: customPointsPerSub.trim() !== "" ? parseInt(customPointsPerSub.trim()) : null,
       };
       if (durationMode === "custom_date" && customEndDate) {
         payload.end_date = customEndDate;
@@ -160,10 +171,12 @@ export default function AdminUsersPage() {
           is_creator_vip: true,
           creator_reward_type: rewardType,
           creator_commission_percent: commissionPercent,
+          creator_custom_points_per_paid_sub: customPointsPerSub.trim() !== "" ? parseInt(customPointsPerSub.trim()) : null,
           is_premium_active: rewardType === 'vip' ? true : prev.is_premium_active,
         }));
       }
       setTargetEmail("");
+      setCustomPointsPerSub("");
       fetchUsers();
     } catch (err: any) {
       const msg = err.response?.data?.error || err.response?.data?.details || "Failed to set creator reward.";
@@ -438,11 +451,26 @@ export default function AdminUsersPage() {
                       className="hover:bg-white/[0.03] transition-colors cursor-pointer group"
                     >
                       <td className="py-3 font-medium text-white">
-                        <div className="flex flex-col">
-                          <span className="font-semibold text-white group-hover:text-[#c4c0ff] transition-colors">
-                            {user.email || user.username}
-                          </span>
-                          <span className="text-[10px] text-zinc-500">@{user.username} • Joined {new Date(user.date_joined).toLocaleDateString()}</span>
+                        <div className="flex items-center gap-3">
+                          {/* Profile Picture Avatar */}
+                          {user.photo_url || user.profile_picture_url || (user.ig_accounts && user.ig_accounts[0]?.profile_picture_url) ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={user.photo_url || user.profile_picture_url || user.ig_accounts[0]?.profile_picture_url}
+                              alt={user.username}
+                              className="w-9 h-9 rounded-full object-cover border border-white/10 shrink-0 bg-zinc-800 shadow-sm"
+                            />
+                          ) : (
+                            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#c4c0ff]/20 to-indigo-500/20 border border-white/10 flex items-center justify-center text-[#c4c0ff] font-bold text-xs shrink-0 shadow-sm">
+                              {(user.display_name || user.username || 'U').slice(0, 2).toUpperCase()}
+                            </div>
+                          )}
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-semibold text-white group-hover:text-[#c4c0ff] transition-colors truncate">
+                              {user.display_name || user.email || user.username}
+                            </span>
+                            <span className="text-[10px] text-zinc-500 truncate">@{user.username} • Joined {new Date(user.date_joined).toLocaleDateString()}</span>
+                          </div>
                         </div>
                       </td>
 
@@ -484,11 +512,40 @@ export default function AdminUsersPage() {
                       </td>
 
                       <td className="py-3 text-center">
-                        <div className="flex flex-col items-center gap-0.5">
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-white/5 border border-white/10 text-zinc-300 font-medium text-xs">
-                            <Camera className="w-3 h-3 text-pink-400" />
-                            <span>{user.ig_accounts_count}</span>
-                          </span>
+                        <div className="flex flex-col items-center gap-1">
+                          {user.ig_accounts && user.ig_accounts.length > 0 ? (
+                            <div className="flex items-center -space-x-1.5 overflow-hidden">
+                              {user.ig_accounts.slice(0, 3).map((acc: any, i: number) => (
+                                acc.profile_picture_url ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img
+                                    key={acc.id || i}
+                                    src={acc.profile_picture_url}
+                                    alt={acc.username}
+                                    title={`@${acc.username}`}
+                                    className="w-6 h-6 rounded-full border border-zinc-900 object-cover shrink-0"
+                                  />
+                                ) : (
+                                  <div
+                                    key={acc.id || i}
+                                    title={`@${acc.username}`}
+                                    className="w-6 h-6 rounded-full bg-pink-500/20 border border-zinc-900 flex items-center justify-center text-[9px] font-bold text-pink-300 shrink-0"
+                                  >
+                                    {acc.username.slice(0, 1).toUpperCase()}
+                                  </div>
+                                )
+                              ))}
+                              {user.ig_accounts.length > 3 && (
+                                <div className="w-5 h-5 rounded-full bg-zinc-800 border border-zinc-900 flex items-center justify-center text-[8px] text-zinc-400 font-bold">
+                                  +{user.ig_accounts.length - 3}
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-white/5 border border-white/10 text-zinc-400 font-medium text-[11px]">
+                              0 Accounts
+                            </span>
+                          )}
                           {user.ig_accounts && user.ig_accounts.length > 0 && (
                             <span className="text-[9px] text-zinc-400 max-w-[120px] truncate">
                               {user.ig_accounts.map((a: any) => `@${a.username}`).join(", ")}
@@ -652,9 +709,18 @@ export default function AdminUsersPage() {
               {/* Modal Header */}
               <div className="flex items-center justify-between border-b border-white/10 pb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[#c4c0ff] font-bold text-sm">
-                    {selectedUser.username.slice(0, 2).toUpperCase()}
-                  </div>
+                  {selectedUser.photo_url || selectedUser.profile_picture_url || (selectedUser.ig_accounts && selectedUser.ig_accounts[0]?.profile_picture_url) ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={selectedUser.photo_url || selectedUser.profile_picture_url || selectedUser.ig_accounts[0]?.profile_picture_url}
+                      alt={selectedUser.username}
+                      className="w-11 h-11 rounded-full object-cover border border-white/20 shadow-md bg-zinc-800 shrink-0"
+                    />
+                  ) : (
+                    <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-[#c4c0ff]/20 to-indigo-500/20 border border-white/10 flex items-center justify-center text-[#c4c0ff] font-bold text-sm shrink-0 shadow-md">
+                      {(selectedUser.display_name || selectedUser.username || 'U').slice(0, 2).toUpperCase()}
+                    </div>
+                  )}
                   <div>
                     <h3 className="text-base font-bold text-white flex items-center gap-2">
                       <span>{selectedUser.email || selectedUser.username}</span>
@@ -907,8 +973,8 @@ export default function AdminUsersPage() {
                           <span className="font-medium text-white">{ref.display_name || ref.username}</span>
                           <span className="text-[10px] text-zinc-500">Joined {new Date(ref.date_joined).toLocaleDateString()}</span>
                         </div>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${ref.is_premium_active ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-white/5 text-zinc-400"}`}>
-                          {ref.is_premium_active ? "Paid Pro" : "Extended Trial"}
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${ref.is_premium_active ? (ref.plan === 'pro' ? "bg-purple-500/10 text-purple-400 border border-purple-500/20" : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20") : "bg-red-500/10 text-red-400 border border-red-500/20"}`}>
+                          {ref.is_premium_active ? (ref.plan === 'pro' ? "Paid Pro" : "Trial Active") : "Expired"}
                         </span>
                       </div>
                     ))}
@@ -932,6 +998,11 @@ export default function AdminUsersPage() {
                       setRewardType(type);
                       setGrantMonths(type === 'commission' ? 6 : 3);
                       setCommissionPercent(selectedUser.creator_commission_percent || 10);
+                      setCustomPointsPerSub(
+                        selectedUser.creator_custom_points_per_paid_sub !== null && selectedUser.creator_custom_points_per_paid_sub !== undefined
+                          ? String(selectedUser.creator_custom_points_per_paid_sub)
+                          : ""
+                      );
                       setShowGrantModal(true);
                     }}
                     className="px-4 py-2 rounded font-bold text-xs bg-[#c4c0ff] text-black hover:bg-[#c4c0ff]/90 transition-colors cursor-pointer flex items-center gap-1.5 shadow-md"
@@ -1007,6 +1078,59 @@ export default function AdminUsersPage() {
                   >
                     💰 Commission Earnings
                   </button>
+                </div>
+
+                {/* Custom Points per Paid Conversion Field */}
+                <div className="flex flex-col gap-1.5 pt-2 border-t border-white/5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-zinc-300">Custom Points per Paid Conversion</label>
+                    <span className="text-[10px] text-zinc-400 font-normal">(Optional Override)</span>
+                  </div>
+                  <input
+                    type="number"
+                    placeholder={`System Default (${rewardType === "vip" ? sysSettings?.creator_vip_points_per_paid_sub ?? 20 : sysSettings?.creator_commission_points_per_paid_sub ?? 0} pts)`}
+                    value={customPointsPerSub}
+                    onChange={(e) => setCustomPointsPerSub(e.target.value)}
+                    className="w-full bg-[#101012] border border-[#444748] rounded text-xs py-2 px-3 text-white focus:outline-none focus:border-[#c4c0ff]"
+                  />
+                  <p className="text-[10px] text-zinc-400">
+                    {customPointsPerSub.trim() !== ""
+                      ? `✨ Overridden: Creator gets +${customPointsPerSub.trim()} pts per paid conversion.`
+                      : `Currently using system default (${rewardType === "vip" ? sysSettings?.creator_vip_points_per_paid_sub ?? 20 : sysSettings?.creator_commission_points_per_paid_sub ?? 0} pts per paid conversion).`}
+                  </p>
+                </div>
+
+                {/* Information Callout showing Points per Paid Conversion for selected mode */}
+                <div className="p-3 rounded bg-[#101012] border border-white/10 text-xs space-y-1 mt-1">
+                  <div className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">
+                    Effective Points Rule per Paid Conversion
+                  </div>
+                  {rewardType === "vip" ? (
+                    <div className="flex items-center gap-2 text-emerald-400 font-medium">
+                      <Coins className="w-3.5 h-3.5 shrink-0 text-emerald-400" />
+                      <span>
+                        Effective Conversion Points:{" "}
+                        <strong className="text-white font-mono">
+                          +{customPointsPerSub.trim() !== "" ? customPointsPerSub.trim() : (sysSettings?.creator_vip_points_per_paid_sub ?? 20)} pts
+                        </strong>
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-amber-400 font-medium">
+                      <Coins className="w-3.5 h-3.5 shrink-0 text-amber-400" />
+                      <span>
+                        Effective Conversion Points:{" "}
+                        <strong className="text-white font-mono">
+                          +{customPointsPerSub.trim() !== "" ? customPointsPerSub.trim() : (sysSettings?.creator_commission_points_per_paid_sub ?? 0)} pts
+                        </strong>
+                      </span>
+                    </div>
+                  )}
+                  <p className="text-[10px] text-zinc-400 leading-tight">
+                    {rewardType === "vip"
+                      ? "Creator gets complimentary Pro access + conversion points when invitees purchase."
+                      : "Creator earns cash commission payouts. Points per paid conversion defaults to 0 to prevent dual payouts unless customized."}
+                  </p>
                 </div>
               </div>
 

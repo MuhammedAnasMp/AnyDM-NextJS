@@ -30,6 +30,7 @@ import {
 import { cn } from '@/lib/utils';
 import { deleteFromCloudinary } from '@/lib/services/cloudinary.service';
 import api from '@/lib/services/api.service';
+import { getStorefrontPreviewUrl, getAbsoluteProductUrl } from '@/lib/utils/domain';
 import { InstagramMediaPicker } from './InstagramMediaPicker';
 import { InstagramProfileCard } from './InstagramProfileCard';
 
@@ -220,6 +221,42 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
   const [openDropdownId, setOpenDropdownId] = React.useState<string | null>(null);
   const [validationError, setValidationError] = React.useState<string | null>(null);
   const [mobileView, setMobileView] = React.useState<'edit' | 'preview'>('edit');
+
+  // --- Storefront Settings for Dynamic Domain Resolution ---
+  const [storefrontSettings, setStorefrontSettings] = React.useState<{
+    store_slug?: string;
+    custom_domain?: string;
+    custom_domain_verified?: boolean;
+  } | null>(null);
+
+  React.useEffect(() => {
+    const fetchStorefrontSettings = async () => {
+      try {
+        const res = await api.get('/accounts/website-settings/');
+        if (res.data) {
+          setStorefrontSettings(res.data);
+        }
+      } catch (err) {
+        console.error("Error loading storefront settings in DMContentEditor:", err);
+      }
+    };
+    fetchStorefrontSettings();
+  }, []);
+
+  const storefrontOptions = React.useMemo(() => ({
+    username: activeAccount?.username || appUser?.username,
+    storeSlug: storefrontSettings?.store_slug,
+    customDomain: storefrontSettings?.custom_domain,
+    isCustomDomainVerified: storefrontSettings?.custom_domain_verified,
+  }), [activeAccount?.username, appUser?.username, storefrontSettings]);
+
+  const storefrontUrl = React.useMemo(() => {
+    return getStorefrontPreviewUrl(storefrontOptions);
+  }, [storefrontOptions]);
+
+  const getMerchantProductUrl = React.useCallback((productId: number | string) => {
+    return getAbsoluteProductUrl(productId, storefrontOptions);
+  }, [storefrontOptions]);
 
   // --- Show Profile States ---
   const [profileUrl, setProfileUrl] = React.useState<string>('');
@@ -574,11 +611,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
           prod = products[0];
         }
 
-        const prodUrl = prod
-          ? (typeof window !== 'undefined'
-            ? `${window.location.origin}/${username}/product/${prod.id}`
-            : `https://anydm.com/${username}/product/${prod.id}`)
-          : 'https://'; // User selects manually if no product matches
+        const prodUrl = prod ? getMerchantProductUrl(prod.id) : storefrontUrl;
 
         const titleText = prod ? (prod.title || prod.name || 'Product') : `Product ${idx + 1}`;
         const title = `🛍️ Buy ${titleText}`.slice(0, 20);
@@ -740,11 +773,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
             ? (mediaDetail?.thumbnail_url || mediaDetail?.media_url || '')
             : (mediaDetail?.media_url || mediaDetail?.thumbnail_url || ''));
 
-        const prodUrl = prod
-          ? (typeof window !== 'undefined'
-            ? `${window.location.origin}/${username}/product/${prod.id}`
-            : `https://anydm.com/${username}/product/${prod.id}`)
-          : 'https://';
+        const prodUrl = prod ? getMerchantProductUrl(prod.id) : storefrontUrl;
 
         const titleText = prod
           ? (prod.title || prod.name || 'Product')
@@ -1171,12 +1200,14 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
     setUploadingMap(prev => ({ ...prev, [cardIndex]: true }));
     setUploadProgressMap(prev => ({ ...prev, [cardIndex]: 0 }));
 
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "";
+    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "any_dm_product_upload";
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('upload_preset', 'any_dm_product_upload');
+    formData.append('upload_preset', uploadPreset);
 
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', 'https://api.cloudinary.com/v1_1/dx5bqewfx/auto/upload', true);
+    xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, true);
 
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) {
@@ -1199,7 +1230,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
           setCarouselElements(prev => {
             const oldUrl = prev[cardIndex]?.image_url;
             if (oldUrl && oldUrl !== secureUrl && oldUrl.includes('cloudinary.com')) {
-              deleteFromCloudinary(oldUrl).catch(() => {});
+              deleteFromCloudinary(oldUrl).catch(() => { });
             }
             const updated = [...prev];
             updated[cardIndex] = {
@@ -1289,12 +1320,14 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
 
       setUploadingFiles(prev => [...prev, { id: fileId, name: file.name, progress: 0 }]);
 
+      const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "";
+      const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "any_dm_product_upload";
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('upload_preset', 'any_dm_product_upload');
+      formData.append('upload_preset', uploadPreset);
 
       const xhr = new XMLHttpRequest();
-      xhr.open('POST', 'https://api.cloudinary.com/v1_1/dx5bqewfx/auto/upload', true);
+      xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, true);
 
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable) {
@@ -1370,7 +1403,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
   const addButton = () => {
     if (buttonTemplateButtons.length >= 3) return;
     const newIdx = buttonTemplateButtons.length;
-    setButtonTemplateButtons([...buttonTemplateButtons, { type: 'web_url', title: 'New Button', url: 'https://anydm.in' }]);
+    setButtonTemplateButtons([...buttonTemplateButtons, { type: 'web_url', title: 'New Button', url: storefrontUrl }]);
     setActiveButtonTemplateButtonIndex(newIdx);
   };
 
@@ -1413,7 +1446,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
       if (field === 'type') {
         if (val === 'web_url' || val === 'product') {
           copy[idx].payload = undefined;
-          copy[idx].url = 'https://anydm.in';
+          copy[idx].url = storefrontUrl;
         } else {
           copy[idx].url = undefined;
           const uniqueId = Math.random().toString(36).substring(2, 7).toUpperCase();
@@ -1424,7 +1457,6 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
     }
     setButtonTemplateButtons(copy);
   };
-  const storefrontUrl = typeof window !== "undefined" ? `${window.location.origin}/${activeAccount?.username}` : `/${activeAccount?.username}`;
 
   // Carousel Cards
   const addCarouselCard = () => {
@@ -1444,7 +1476,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
     if (carouselElements.length <= 1) return;
     const cardToRemove = carouselElements[idx];
     if (cardToRemove?.image_url && cardToRemove.image_url.includes("cloudinary.com")) {
-      deleteFromCloudinary(cardToRemove.image_url).catch(() => {});
+      deleteFromCloudinary(cardToRemove.image_url).catch(() => { });
     }
     setCarouselElements(carouselElements.filter((_, i) => i !== idx));
     const nextIdx = Math.max(0, idx - 1);
@@ -1492,7 +1524,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
       if (field === 'type') {
         if (val === 'web_url' || val === 'product') {
           btns[btnIdx].payload = undefined;
-          btns[btnIdx].url = 'https://anydm.in';
+          btns[btnIdx].url = storefrontUrl;
         } else {
           btns[btnIdx].url = undefined;
           const uniqueId = Math.random().toString(36).substring(2, 7).toUpperCase();
@@ -1685,11 +1717,17 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                         <span>Replied to story</span>
                       </div>
                       <div className="w-20 sm:w-24 h-30 sm:h-36 rounded-lg sm:rounded-xl overflow-hidden border border-white/10 shadow-lg relative bg-zinc-900 group">
-                        <img
-                          src={storyImageUrl || 'https://static.vecteezy.com/system/resources/previews/002/318/271/non_2x/user-profile-icon-free-vector.jpg'}
-                          alt="Story Preview"
-                          className="w-full h-full object-cover"
-                        />
+                        {storyImageUrl ? (
+                          <img
+                            src={storyImageUrl}
+                            alt="Story Preview"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-tr from-purple-900/60 via-pink-900/40 to-amber-900/40 flex items-center justify-center">
+                            <span className="text-[10px] text-white/50 font-medium">Story</span>
+                          </div>
+                        )}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
                         <div className="absolute top-1.5 left-1.5 flex items-center gap-1">
                           <div className="w-3 sm:w-3.5 h-3 sm:h-3.5 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 p-[1px]">
@@ -2503,7 +2541,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                             <button
                               onClick={() => setActiveButtonTemplateButtonIndex(idx)}
                               className={cn(
-                                "px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border",
+                                "px-3.5 py-2 rounded text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border",
                                 isSelected
                                   ? "bg-white text-black border-white shadow-lg"
                                   : "bg-white/5 text-zinc-400 border-white/10 hover:bg-white/10 hover:text-white"
@@ -2611,7 +2649,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                 <p className="text-[11px] text-zinc-300 leading-relaxed">
                                   When customers tap this button in Instagram DM, the system checks if they follow your account before continuing the flow.
                                 </p>
-                                <div>
+                                {/* <div>
                                   <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider block mb-1">Instagram Profile / Follow Link</label>
                                   <input
                                     type="text"
@@ -2619,13 +2657,13 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                     onChange={(e) => updateButton(idx, 'url', e.target.value)}
                                     className="w-full bg-[#121212] border border-white/10 rounded px-3 py-2 text-xs text-white focus:outline-none font-mono"
                                   />
-                                </div>
+                                </div> */}
                               </div>
                             )}
 
                             {((btn.type as string) === 'show_profile' || (btn.type === 'web_url' && btn.url?.includes('instagram.com'))) && (
                               <div className="space-y-3 bg-[#1c1b1b]/60 border border-white/10 rounded-xl p-3.5 animate-fadeIn">
-                                <div className="flex items-center justify-between">
+                                {/* <div className="flex items-center justify-between">
                                   <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider block">Instagram Profile Link</label>
                                   <button
                                     type="button"
@@ -2634,10 +2672,11 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                   >
                                     Use My Profile (@{activeAccount?.username || appUser?.username || 'shop'})
                                   </button>
-                                </div>
+                                </div> */}
                                 <div className="flex items-center bg-[#121212] border border-white/10 rounded px-3 text-xs">
                                   <LinkIcon className="w-4 h-4 text-zinc-500 mr-2.5 shrink-0" />
                                   <input
+                                    disabled
                                     type="text"
                                     value={btn.url || `https://instagram.com/${activeAccount?.username || appUser?.username || 'shop'}`}
                                     onChange={(e) => updateButton(idx, 'url', e.target.value)}
@@ -2726,10 +2765,8 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                         </div>
                                       ) : (
                                         products.map(p => {
-                                          const prodUrl = typeof window !== 'undefined'
-                                            ? `${window.location.origin}/${username}/product/${p.id}`
-                                            : `https://anydm.com/${username}/product/${p.id}`;
-                                          const isSelected = btn.url === prodUrl;
+                                          const prodUrl = getMerchantProductUrl(p.id);
+                                          const isSelected = btn.url === prodUrl || (btn.url ? (btn.url.endsWith(`/product/${p.id}`) || btn.url.includes(`/product/${p.id}`)) : false);
 
                                           const mediaUrl = p.media_url || p.main_media_url || p.thumbnail_url || p.gallery?.[0]?.thumbnail_url || p.gallery?.[0]?.media_url || p.image || p.thumbnail;
                                           const isVideo =
@@ -3017,11 +3054,9 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                       </div>
                                     ) : (
                                       products.map(p => {
-                                        const username = activeAccount?.username || appUser?.username || 'shop';
-                                        const prodUrl = typeof window !== 'undefined'
-                                          ? `${window.location.origin}/${username}/product/${p.id}`
-                                          : `https://anydm.com/${username}/product/${p.id}`;
-                                        const isSelected = carouselElements[activeCardIndex].default_action?.url === prodUrl;
+                                        const prodUrl = getMerchantProductUrl(p.id);
+                                        const defaultUrl = carouselElements[activeCardIndex].default_action?.url;
+                                        const isSelected = defaultUrl === prodUrl || (defaultUrl ? (defaultUrl.endsWith(`/product/${p.id}`) || defaultUrl.includes(`/product/${p.id}`)) : false);
 
                                         const mediaUrl = p.media_url || p.main_media_url || p.thumbnail_url || p.gallery?.[0]?.thumbnail_url || p.gallery?.[0]?.media_url || p.image || p.thumbnail;
                                         const isVideo =
@@ -3121,7 +3156,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                         >
                           {uploadingMap[activeCardIndex] ? (
                             <div className="space-y-2 w-full px-4">
-                              <span className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider block">Uploading to Cloudinary...</span>
+                              <span className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider block">Uploading image...</span>
                               <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
                                 <div className="h-full bg-white transition-all duration-150" style={{ width: `${uploadProgressMap[activeCardIndex] || 0}%` }} />
                               </div>
@@ -3134,14 +3169,14 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                               </div>
                               <div className="min-w-0 flex-1">
                                 <span className="text-[11px] font-bold text-white block">Replace Image</span>
-                                <span className="text-[9px] text-zinc-500 block truncate mt-1">{carouselElements[activeCardIndex].image_url}</span>
+                                {/* <span className="text-[9px] text-zinc-500 block truncate mt-1">{carouselElements[activeCardIndex].image_url}</span> */}
                               </div>
                             </div>
                           ) : (
                             <>
                               <Upload className="w-6 h-6 text-zinc-400 mb-1.5" />
                               <span className="font-sora text-[10px] font-bold text-white tracking-wide">Upload Custom Image</span>
-                              <span className="text-[9px] text-zinc-500 mt-1">JPG, PNG to Cloudinary preset</span>
+                              <span className="text-[9px] text-zinc-500 mt-1">JPG, PNG, WebP supported</span>
                             </>
                           )}
                         </button>
@@ -3223,7 +3258,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                   type="button"
                                   onClick={() => setActiveButtonIndex(bi)}
                                   className={cn(
-                                    "px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border",
+                                    "px-3.5 py-2 rounded text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border",
                                     isSelected
                                       ? "bg-white text-black border-white shadow-lg"
                                       : "bg-white/5 text-zinc-400 border-white/10 hover:bg-white/10 hover:text-white"
@@ -3412,10 +3447,8 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                               </div>
                                             ) : (
                                               products.map(p => {
-                                                const prodUrl = typeof window !== 'undefined'
-                                                  ? `${window.location.origin}/${username}/product/${p.id}`
-                                                  : `https://anydm.com/${username}/product/${p.id}`;
-                                                const isSelected = btn.url === prodUrl;
+                                                const prodUrl = getMerchantProductUrl(p.id);
+                                                const isSelected = btn.url === prodUrl || (btn.url ? (btn.url.endsWith(`/product/${p.id}`) || btn.url.includes(`/product/${p.id}`)) : false);
 
                                                 const mediaUrl = p.media_url || p.main_media_url || p.thumbnail_url || p.gallery?.[0]?.thumbnail_url || p.gallery?.[0]?.media_url || p.image || p.thumbnail;
                                                 const isVideo =
@@ -3710,7 +3743,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                         onClick={() => {
                           attachments.forEach(item => {
                             if (item.url && item.url.includes("cloudinary.com")) {
-                              deleteFromCloudinary(item.url).catch(() => {});
+                              deleteFromCloudinary(item.url).catch(() => { });
                             }
                           });
                           setAttachments([]);
@@ -3783,7 +3816,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                               onClick={() => {
                                 const targetAtt = attachments[idx];
                                 if (targetAtt?.url && targetAtt.url.includes("cloudinary.com")) {
-                                  deleteFromCloudinary(targetAtt.url).catch(() => {});
+                                  deleteFromCloudinary(targetAtt.url).catch(() => { });
                                 }
                                 setAttachments(attachments.filter((_, i) => i !== idx));
                               }}

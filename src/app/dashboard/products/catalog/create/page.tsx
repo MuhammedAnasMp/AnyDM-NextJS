@@ -79,6 +79,7 @@ export default function ProductCreatePage() {
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [originalPrice, setOriginalPrice] = useState("");
+  const [returnDeductionCharge, setReturnDeductionCharge] = useState("0");
   const [currency, setCurrency] = useState("₹");
   const [category, setCategory] = useState("Apparel");
   const [stock, setStock] = useState("10");
@@ -287,12 +288,14 @@ export default function ProductCreatePage() {
 
   const uploadSingleFile = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
+      const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "";
+      const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "any_dm_product_upload";
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("upload_preset", "any_dm_product_upload");
+      formData.append("upload_preset", uploadPreset);
 
       const xhr = new XMLHttpRequest();
-      xhr.open("POST", "https://api.cloudinary.com/v1_1/dx5bqewfx/auto/upload", true);
+      xhr.open("POST", `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, true);
       xhr.onload = () => {
         if (xhr.status === 200) {
           try {
@@ -369,12 +372,14 @@ export default function ProductCreatePage() {
       setMediaUploadProgress(0);
     }
 
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "";
+    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "any_dm_product_upload";
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("upload_preset", "any_dm_product_upload");
+    formData.append("upload_preset", uploadPreset);
 
     const xhr = new XMLHttpRequest();
-    xhr.open("POST", "https://api.cloudinary.com/v1_1/dx5bqewfx/auto/upload", true);
+    xhr.open("POST", `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, true);
 
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) {
@@ -558,6 +563,7 @@ export default function ProductCreatePage() {
       setDescription(product.description || "");
       setPrice(product.price ? product.price.toString() : "");
       setOriginalPrice(product.original_price ? product.original_price.toString() : "");
+      setReturnDeductionCharge(product.return_deduction_charge ? product.return_deduction_charge.toString() : "0");
       setCurrency(product.currency || "₹");
       setCategory(product.category || "Apparel");
       setStock(product.stock ? product.stock.toString() : "10");
@@ -642,12 +648,14 @@ export default function ProductCreatePage() {
     setUploading(true);
     setUploadProgress(0);
 
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "";
+    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "any_dm_product_upload";
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("upload_preset", "any_dm_product_upload");
+    formData.append("upload_preset", uploadPreset);
 
     const xhr = new XMLHttpRequest();
-    xhr.open("POST", "https://api.cloudinary.com/v1_1/dx5bqewfx/auto/upload", true);
+    xhr.open("POST", `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, true);
 
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) {
@@ -824,11 +832,13 @@ export default function ProductCreatePage() {
   };
 
   const uploadBlobToCDN = async (blob: Blob, filename: string): Promise<string> => {
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "";
+    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "any_dm_product_upload";
     const formData = new FormData();
     formData.append("file", blob, filename);
-    formData.append("upload_preset", "any_dm_product_upload");
+    formData.append("upload_preset", uploadPreset);
 
-    const response = await fetch("https://api.cloudinary.com/v1_1/dx5bqewfx/auto/upload", {
+    const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, {
       method: "POST",
       body: formData
     });
@@ -982,6 +992,7 @@ export default function ProductCreatePage() {
       description,
       price: parseFloat(price),
       original_price: originalPrice ? parseFloat(originalPrice) : null,
+      return_deduction_charge: returnDeductionCharge ? parseFloat(returnDeductionCharge) : 0,
       metadata: { ...metadataObject, variants: variants.join(",") },
       currency,
       category,
@@ -1301,16 +1312,75 @@ export default function ProductCreatePage() {
                       </p>
                     )}
                   </div>
+
+                  <div>
+                    <label className="text-xs text-[#c4c7c8] block mb-1.5 font-medium">Return Deduction Charge (₹)</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8e9192] text-xs font-semibold">₹</span>
+                      <input
+                        value={returnDeductionCharge}
+                        onChange={(e) => setReturnDeductionCharge(e.target.value)}
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        className="w-full bg-[#1c1b1b] border border-[#444748]/60 rounded-[4px] pl-8 pr-3 py-2 text-sm focus:border-white outline-none transition-colors text-white placeholder:text-[#8e9192]"
+                      />
+                    </div>
+                    <p className="text-[11px] text-[#8e9192] mt-1">Deducted from customer refund when item is returned.</p>
+
+                    {/* Return Deduction Payout Breakdown Box */}
+                    {(() => {
+                      const r = parseFloat(returnDeductionCharge) || 0;
+                      const activeCommRateVal = payoutHoldMode === "INSTANT" ? Number(instantCommPct) : Number(globalCommPct);
+                      const feeRatePct = (isNaN(activeCommRateVal) ? 3 : activeCommRateVal) + 2;
+                      const feeAmount = r * (feeRatePct / 100);
+                      const supplierGetOnReturn = Math.max(0, r - feeAmount);
+
+                      return (
+                        <div className="mt-2.5 p-3 rounded-[4px] bg-[#131313] border border-[#444748]/70 space-y-2 text-xs text-[#e5e2e1]">
+                          <div className="flex justify-between items-center pb-1.5 border-b border-[#444748]/50">
+                            <span className="text-[11px] font-semibold text-[#c4c7c8] tracking-wide uppercase flex items-center gap-1.5">
+                              <span>When Customer Returns Order</span>
+                            </span>
+                            <span className="text-[10px] text-[#8e9192]">
+                              Platform Fee: {feeRatePct.toFixed(2)}%
+                            </span>
+                          </div>
+
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="text-[#c4c7c8]">Return Deduction Charge:</span>
+                            <span className="font-mono text-white font-medium">₹{r.toFixed(2)}</span>
+                          </div>
+
+                          <div className="flex justify-between items-center text-xs text-red-400">
+                            <span>Minus Platform Charge ({feeRatePct.toFixed(2)}%):</span>
+                            <span className="font-mono font-medium">- ₹{feeAmount.toFixed(2)}</span>
+                          </div>
+
+                          <div className="pt-1.5 border-t border-[#444748]/50 flex justify-between items-center text-xs font-semibold">
+                            <span className="text-zinc-200">Amount you will get on return:</span>
+                            <span className="font-mono text-emerald-400 text-sm">₹{supplierGetOnReturn.toFixed(2)}</span>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
                 </div>
 
                 {/* Dynamic Commission & Earnings Breakdown using DESIGN.md (Glass Monochrome & Google Inter Font) */}
                 {parseFloat(price) > 0 && (() => {
                   const p = parseFloat(price) || 0;
-                  const activeCommRate = payoutHoldMode === "INSTANT" ? instantCommPct : globalCommPct;
+                  const activeCommRateVal = payoutHoldMode === "INSTANT" ? Number(instantCommPct) : Number(globalCommPct);
+                  const activeCommRate = isNaN(activeCommRateVal) ? 3 : activeCommRateVal;
                   const platformFee = p * (activeCommRate / 100);
                   const gatewayTax = p * 0.02;
                   const totalFeeAndTax = platformFee + gatewayTax;
                   const priceThatYouGet = Math.max(0, p - totalFeeAndTax);
+
+                  const r = parseFloat(returnDeductionCharge) || 0;
+                  const returnFeeRatePct = activeCommRate + 2;
+                  const returnFeeAmount = r * (returnFeeRatePct / 100);
+                  const supplierGetOnReturn = Math.max(0, r - returnFeeAmount);
 
                   return (
                     <div
@@ -1319,23 +1389,21 @@ export default function ProductCreatePage() {
                     >
                       <div className="flex justify-between items-center pb-2.5 border-b border-[#444748]">
                         <div className="flex items-center gap-2">
-                          {/* <span className="w-2 h-2 rounded-full bg-[#c4c0ff] inline-block" /> */}
                           <span className="text-xs font-semibold text-[#e5e2e1] tracking-tight flex items-center gap-1.5">
                             <span>Commission Breakdown</span> (Only for online payments)
-                            {/* <span className="text-[11px] text-[#c4c7c8] font-normal italic">(includes delivery)</span> */}
                           </span>
                         </div>
-                        <span className="text-[11px]   px-2 py-0.5 rounded-[4px]  font-semibold tracking-wide">
+                        <span className="text-[11px] px-2 py-0.5 rounded-[4px] font-semibold tracking-wide bg-[#131313] border border-[#444748]">
                           {payoutHoldMode === "INSTANT" ? "Instant Payout" : "Standard"} Is Active ({activeCommRate.toFixed(2)}%)
                         </span>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
                         <div className="bg-[#131313] p-3 rounded-[4px] border border-[#ffb4ab]/30 space-y-1">
                           <div className="text-[11px] text-[#c4c7c8] font-semibold tracking-wide uppercase">
                             Fee and tax
                           </div>
-                          <div className="text-base font-bold text-[#ff2f18] tracking-tight">
+                          <div className="text-base text-[#ff2f18] tracking-tight font-mono font-bold">
                             - ₹{totalFeeAndTax.toFixed(2)}
                           </div>
                           <p className="text-[11px] text-[#c4c7c8] leading-normal">
@@ -1347,11 +1415,23 @@ export default function ProductCreatePage() {
                           <div className="text-[11px] text-[#c4c7c8] font-semibold tracking-wide uppercase">
                             Price that you get
                           </div>
-                          <div className="text-base font-bold text-green-500 tracking-tight">
+                          <div className="text-base text-green-500 tracking-tight font-mono font-bold">
                             ₹{priceThatYouGet.toFixed(2)}
                           </div>
                           <p className="text-[11px] text-[#c4c7c8] leading-normal">
                             Net amount credited directly to supplier account
+                          </p>
+                        </div>
+
+                        <div className="bg-[#131313] p-3 rounded-[4px] border border-emerald-500/30 space-y-1">
+                          <div className="text-[11px] text-[#c4c7c8] font-semibold tracking-wide uppercase">
+                            You get on return
+                          </div>
+                          <div className="text-base text-emerald-400 tracking-tight font-mono font-bold">
+                            ₹{supplierGetOnReturn.toFixed(2)}
+                          </div>
+                          <p className="text-[11px] text-[#c4c7c8] leading-normal">
+                            Return charge ₹{r.toFixed(2)} (-{returnFeeRatePct.toFixed(2)}% platform charge)
                           </p>
                         </div>
                       </div>
@@ -1393,11 +1473,17 @@ export default function ProductCreatePage() {
                   />
                   <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/90 to-transparent flex items-center justify-between text-[10px]">
                     <span className="font-medium text-white flex items-center gap-1">
-                      <img
-                        src={activeAccount?.profile_picture_url || "https://static.vecteezy.com/system/resources/previews/002/318/271/non_2x/user-profile-icon-free-vector.jpg"}
-                        className="w-4 h-4 rounded-full object-cover border border-white/20"
-                        alt="Profile avatar"
-                      />
+                      {activeAccount?.profile_picture_url ? (
+                        <img
+                          src={activeAccount.profile_picture_url}
+                          className="w-4 h-4 rounded-full object-cover border border-white/20"
+                          alt="Profile avatar"
+                        />
+                      ) : (
+                        <div className="w-4 h-4 rounded-full bg-[#20201f] border border-[#2a2a2a] flex items-center justify-center text-[#e5e2e1] text-[8px]  font-mono">
+                          {(activeAccount?.username || "I").charAt(0).toUpperCase()}
+                        </div>
+                      )}
                       @{activeAccount?.username || "instagram_feed"}
                     </span>
                     <span className="text-[#c4c7c8]">Imported feed</span>
@@ -1556,7 +1642,7 @@ export default function ProductCreatePage() {
                       <InstagramIcon className="w-3.5 h-3.5 text-[#c4c0ff]" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-bold text-white tracking-tight">Also Post to Instagram</h4>
+                      <h4 className="text-xs  text-white tracking-tight">Also Post to Instagram</h4>
                       <p className="text-[10px] text-[#8e9192]">Auto-publish or schedule to feed</p>
                     </div>
                   </div>
@@ -1583,7 +1669,7 @@ export default function ProductCreatePage() {
                   <div className="space-y-2.5 pt-2.5 border-t border-[#444748]/20 animate-in fade-in duration-200">
                     <div className="flex items-center justify-between text-[10px]">
                       <span className="text-[#8e9192]">Target Account:</span>
-                      <span className="font-bold text-white font-mono">
+                      <span className=" text-white font-mono">
                         @{activeAccount?.username || "connected_account"}
                       </span>
                     </div>
@@ -1598,7 +1684,7 @@ export default function ProductCreatePage() {
                     {createAutomation && (
                       <div className="flex items-center justify-between text-[10px]">
                         <span className="text-[#8e9192]">Auto-DM:</span>
-                        <span className="text-white font-bold">
+                        <span className="text-white ">
                           ✨ Active ({automationDmFormat === "generic_template" ? "🛍️ Product Card" : "📝 Text"})
                         </span>
                       </div>
@@ -1607,7 +1693,7 @@ export default function ProductCreatePage() {
                     <button
                       type="button"
                       onClick={() => setShowAutomationModal(true)}
-                      className="w-full py-2 px-3 rounded bg-white/10 hover:bg-white/15 border border-white/10 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-sm mt-1"
+                      className="w-full py-2 px-3 rounded bg-white/10 hover:bg-white/15 border border-white/10 text-white text-xs  flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-sm mt-1"
                     >
                       <Sliders className="w-3.5 h-3.5 text-[#c4c0ff]" />
                       <span>Configure Instagram &amp; Automation</span>
@@ -1695,7 +1781,7 @@ export default function ProductCreatePage() {
                   <InstagramIcon className="w-4 h-4 text-white" />
                 </div>
                 <div className="truncate">
-                  <h2 className="text-xs sm:text-sm font-bold text-white tracking-tight truncate">
+                  <h2 className="text-xs sm:text-sm  text-white tracking-tight truncate">
                     Instagram Publishing &amp; Automation
                   </h2>
                   <p className="hidden md:block text-[10px] text-[#8e9192] truncate">
@@ -1712,7 +1798,7 @@ export default function ProductCreatePage() {
                     type="button"
                     onClick={() => setAutomationMobileView("edit")}
                     title="Editor"
-                    className={`p-1.5 px-2 rounded text-xs font-bold transition-all flex items-center gap-1.5 ${automationMobileView === "edit" ? "bg-white text-black shadow-sm" : "text-[#8e9192]"
+                    className={`p-1.5 px-2 rounded text-xs  transition-all flex items-center gap-1.5 ${automationMobileView === "edit" ? "bg-white text-black shadow-sm" : "text-[#8e9192]"
                       }`}
                   >
                     <Pencil className="w-3.5 h-3.5" />
@@ -1722,7 +1808,7 @@ export default function ProductCreatePage() {
                     type="button"
                     onClick={() => setAutomationMobileView("preview")}
                     title="Live Preview"
-                    className={`p-1.5 px-2 rounded text-xs font-bold transition-all flex items-center gap-1.5 ${automationMobileView === "preview" ? "bg-white text-black shadow-sm" : "text-[#8e9192]"
+                    className={`p-1.5 px-2 rounded text-xs  transition-all flex items-center gap-1.5 ${automationMobileView === "preview" ? "bg-white text-black shadow-sm" : "text-[#8e9192]"
                       }`}
                   >
                     <Smartphone className="w-3.5 h-3.5" />
@@ -1745,7 +1831,7 @@ export default function ProductCreatePage() {
                     setShowAutomationModal(false);
                     showToast("Instagram configuration applied", "success");
                   }}
-                  className="px-3 sm:px-4 py-1.5 rounded bg-gradient-to-r from-white to-[#eaeaea] text-black text-xs font-bold shadow flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer shrink-0"
+                  className="px-3 sm:px-4 py-1.5 rounded bg-gradient-to-r from-white to-[#eaeaea] text-black text-xs  shadow flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer shrink-0"
                 >
                   <Check className="w-3.5 h-3.5 stroke-[3]" /> Save
                 </button>
@@ -1805,7 +1891,7 @@ export default function ProductCreatePage() {
                             ) : (
                               <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-gradient-to-b from-[#1a1024] via-[#101010] to-[#0a0a0a]">
                                 <Film className="w-8 h-8 text-[#c4c0ff] animate-pulse mb-2" />
-                                <span className="text-xs font-bold text-white">Reel Preview</span>
+                                <span className="text-xs  text-white">Reel Preview</span>
                               </div>
                             )}
                             <div className="absolute inset-0 bg-gradient-to-b from-black/75 via-transparent to-black/95 pointer-events-none" />
@@ -1823,15 +1909,15 @@ export default function ProductCreatePage() {
                           <div className="absolute right-2.5 bottom-5 z-30 flex flex-col items-center gap-3 text-white pointer-events-none">
                             <div className="flex flex-col items-center gap-0.5">
                               <Heart className="w-5 h-5 text-white" />
-                              <span className="text-[9px] font-bold">142K</span>
+                              <span className="text-[9px] ">142K</span>
                             </div>
                             <div className="flex flex-col items-center gap-0.5">
                               <MessageCircle className="w-5 h-5 text-white" />
-                              <span className="text-[9px] font-bold">1.2K</span>
+                              <span className="text-[9px] ">1.2K</span>
                             </div>
                             <div className="flex flex-col items-center gap-0.5">
                               <Send className="w-5 h-5 text-white" />
-                              <span className="text-[9px] font-bold">38K</span>
+                              <span className="text-[9px] ">38K</span>
                             </div>
                             <div className="w-6 h-6 rounded-full bg-[#111] border border-white/20 p-0.5 animate-spin">
                               <div className="w-full h-full rounded-full bg-gradient-to-tr from-amber-400 to-rose-500" />
@@ -1842,11 +1928,11 @@ export default function ProductCreatePage() {
                           <div className="absolute left-3 bottom-5 z-30 text-white space-y-1 max-w-[190px] text-left">
                             <div className="flex items-center gap-1.5">
                               <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-amber-400 to-rose-500 p-[1px] shrink-0">
-                                <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-[8px] font-bold">
+                                <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-[8px] ">
                                   {activeAccount?.username ? activeAccount.username[0] : "Z"}
                                 </div>
                               </div>
-                              <span className="text-[10px] font-bold text-white truncate">
+                              <span className="text-[10px]  text-white truncate">
                                 {activeAccount?.username || "your_brand"}
                               </span>
                             </div>
@@ -1862,7 +1948,7 @@ export default function ProductCreatePage() {
                         <div className="relative w-full h-full bg-black flex flex-col justify-between overflow-hidden">
                           {/* Instagram Top Bar */}
                           <div className="pt-4 px-3 pb-1.5 flex items-center justify-between border-b border-zinc-800 bg-black">
-                            <span className="font-serif italic text-base font-bold text-white">Instagram</span>
+                            <span className="font-serif italic text-base  text-white">Instagram</span>
                             <div className="flex items-center gap-2.5 text-white">
                               <Heart className="w-4 h-4 text-white" />
                               <Send className="w-4 h-4 text-white" />
@@ -1875,11 +1961,11 @@ export default function ProductCreatePage() {
                             <div className="px-2.5 py-1.5 flex items-center justify-between">
                               <div className="flex items-center gap-1.5">
                                 <div className="w-5.5 h-5.5 rounded-full bg-gradient-to-tr from-amber-400 to-rose-500 p-[1px]">
-                                  <div className="w-full h-full bg-black rounded-full flex items-center justify-center text-[8px] font-bold text-white">
+                                  <div className="w-full h-full bg-black rounded-full flex items-center justify-center text-[8px]  text-white">
                                     {activeAccount?.username ? activeAccount.username[0].toUpperCase() : "Z"}
                                   </div>
                                 </div>
-                                <span className="text-[10px] font-bold text-white truncate">
+                                <span className="text-[10px]  text-white truncate">
                                   {activeAccount?.username || "brand_official"}
                                 </span>
                               </div>
@@ -1898,7 +1984,7 @@ export default function ProductCreatePage() {
                                     )}
 
                                     {/* Slide Counter Badge */}
-                                    <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/70 backdrop-blur-md text-[9px] font-bold text-white shadow-sm border border-white/10">
+                                    <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/70 backdrop-blur-md text-[9px]  text-white shadow-sm border border-white/10">
                                       {carouselIndex + 1}/{carouselUrls.length}
                                     </div>
 
@@ -1946,7 +2032,7 @@ export default function ProductCreatePage() {
                                 ) : (
                                   <div className="text-center p-4 text-white/40">
                                     <Layers className="w-9 h-9 mx-auto mb-1 opacity-50 text-[#c4c0ff]" />
-                                    <span className="text-[10px] font-bold block text-white">Carousel Album</span>
+                                    <span className="text-[10px]  block text-white">Carousel Album</span>
                                   </div>
                                 )
                               ) : mediaUrl || mediaList[0]?.url ? (
@@ -1958,7 +2044,7 @@ export default function ProductCreatePage() {
                               ) : (
                                 <div className="text-center p-4 text-zinc-500">
                                   <ImageIcon className="w-8 h-8 mx-auto mb-1 opacity-50 text-[#c4c0ff]" />
-                                  <span className="text-[9px] font-bold block text-zinc-400">Post Photo</span>
+                                  <span className="text-[9px]  block text-zinc-400">Post Photo</span>
                                 </div>
                               )}
                             </div>
@@ -1975,7 +2061,7 @@ export default function ProductCreatePage() {
 
                             {/* Likes Count & Caption */}
                             <div className="px-2.5 space-y-0.5 text-[9.5px]">
-                              <p className="font-bold text-white">1,428 likes</p>
+                              <p className=" text-white">1,428 likes</p>
                               <p className="text-zinc-300 line-clamp-2">
                                 <strong className="mr-1 text-white">{activeAccount?.username || "your_brand"}</strong>
                                 {instagramCustomCaption || title || "Your post caption..."}
@@ -2010,7 +2096,7 @@ export default function ProductCreatePage() {
                           type="button"
                           onClick={() => setInstagramPostType(opt.value as any)}
                           className={`px-2 py-1.5 rounded-md text-[10px] sm:text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1 ${isSelected
-                            ? "bg-white text-zinc-950 shadow-sm font-bold"
+                            ? "bg-white text-zinc-950 shadow-sm "
                             : "text-[#8e9192] hover:text-white"
                             }`}
                         >
@@ -2024,7 +2110,7 @@ export default function ProductCreatePage() {
                 {/* 2. Media Upload Section */}
                 {instagramPostType === "CAROUSEL" ? (
                   <div className="space-y-2.5 border-b border-[#2a2a2a] pb-3.5">
-                    <div className="flex items-center justify-between text-[11px] font-bold text-[#8e9192] tracking-wider">
+                    <div className="flex items-center justify-between text-[11px]  text-[#8e9192] tracking-wider">
                       <span>Carousel ({carouselUrls.length}/10)</span>
                       <span className="text-[10px] text-[#c4c0ff] font-semibold">Max 10 items</span>
                     </div>
@@ -2048,7 +2134,7 @@ export default function ProductCreatePage() {
                               ) : (
                                 <img src={url} alt={`Slide ${idx + 1}`} className="w-full h-full object-cover" />
                               )}
-                              <span className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-black/70 text-[9px] font-bold text-white">
+                              <span className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-black/70 text-[9px]  text-white">
                                 #{idx + 1}
                               </span>
                               <button
@@ -2073,7 +2159,7 @@ export default function ProductCreatePage() {
                         <div className="w-7 h-7 rounded bg-[#c4c0ff]/10 flex items-center justify-center text-[#c4c0ff]">
                           <Upload className="w-3.5 h-3.5" />
                         </div>
-                        <span className="text-xs font-bold text-white">
+                        <span className="text-xs  text-white">
                           {uploadingMedia ? `Uploading (${mediaUploadProgress}%)...` : "Upload Slides (Multi-select)"}
                         </span>
 
@@ -2093,7 +2179,7 @@ export default function ProductCreatePage() {
                   </div>
                 ) : (
                   <div className="space-y-1.5 border-b border-[#2a2a2a] pb-3.5">
-                    <div className="flex items-center justify-between text-[11px] font-bold text-[#8e9192] tracking-wider">
+                    <div className="flex items-center justify-between text-[11px]  text-[#8e9192] tracking-wider">
                       <span>Media</span>
                     </div>
 
@@ -2108,7 +2194,7 @@ export default function ProductCreatePage() {
                             )}
                           </div>
                           <div className="truncate">
-                            {/* <p className="text-xs font-bold text-white truncate">{mediaUrl}</p> */}
+                            {/* <p className="text-xs  text-white truncate">{mediaUrl}</p> */}
                             <p className="text-[10px] text-[#c4c0ff] font-medium flex items-center gap-1 mt-0.5">
                               <CheckCircle2 className="w-3 h-3" /> Ready
                             </p>
@@ -2118,7 +2204,7 @@ export default function ProductCreatePage() {
                         <button
                           type="button"
                           onClick={() => setMediaUrl("")}
-                          className="px-2.5 py-1 rounded bg-white/5 hover:bg-rose-500/20 text-white/70 hover:text-rose-300 text-[10px] font-bold transition-colors cursor-pointer"
+                          className="px-2.5 py-1 rounded bg-white/5 hover:bg-rose-500/20 text-white/70 hover:text-rose-300 text-[10px]  transition-colors cursor-pointer"
                         >
                           Replace
                         </button>
@@ -2128,7 +2214,7 @@ export default function ProductCreatePage() {
                         <div className="w-7 h-7 rounded bg-[#c4c0ff]/10 flex items-center justify-center text-[#c4c0ff]">
                           <Upload className="w-3.5 h-3.5" />
                         </div>
-                        <span className="text-xs font-bold text-white">
+                        <span className="text-xs  text-white">
                           {uploadingMedia ? `Uploading (${mediaUploadProgress}%)...` : "Upload Photo or Video"}
                         </span>
                         <span className="text-[10px] text-[#8e9192]">
@@ -2152,7 +2238,7 @@ export default function ProductCreatePage() {
                 {/* 3. Custom Reel / Video Thumbnail Cover */}
                 {instagramPostType === "REELS" && (
                   <div className="space-y-1.5 border-b border-[#2a2a2a] pb-3.5">
-                    <label className="text-[11px] font-bold text-[#8e9192] tracking-wider flex items-center justify-between">
+                    <label className="text-[11px]  text-[#8e9192] tracking-wider flex items-center justify-between">
                       <span>Thumbnail (Optional)</span>
                     </label>
 
@@ -2165,7 +2251,7 @@ export default function ProductCreatePage() {
                         <button
                           type="button"
                           onClick={() => setCoverUrl("")}
-                          className="text-[10px] text-white/50 hover:text-rose-300 font-bold cursor-pointer"
+                          className="text-[10px] text-white/50 hover:text-rose-300  cursor-pointer"
                         >
                           Remove
                         </button>
@@ -2175,7 +2261,7 @@ export default function ProductCreatePage() {
                         <span className="text-xs text-[#8e9192]">
                           {uploadingCover ? `Uploading (${coverUploadProgress}%)...` : "Choose high-res thumbnail photo"}
                         </span>
-                        <span className="text-xs text-[#c4c0ff] font-bold flex items-center gap-1">
+                        <span className="text-xs text-[#c4c0ff]  flex items-center gap-1">
                           <Upload className="w-3.5 h-3.5" /> Upload
                         </span>
                         <input
@@ -2197,7 +2283,7 @@ export default function ProductCreatePage() {
                 <div className="space-y-1.5 border-b border-[#2a2a2a] pb-3.5">
                   <div className="flex items-center justify-between text-[11px] font-semibold text-[#8e9192]">
                     <span>Caption</span>
-                    <span className={instagramCustomCaption.length > 2200 ? "text-rose-400 font-bold" : "text-[#8e9192]"}>
+                    <span className={instagramCustomCaption.length > 2200 ? "text-rose-400 " : "text-[#8e9192]"}>
                       {instagramCustomCaption.length} / 2200
                     </span>
                   </div>
@@ -2237,7 +2323,7 @@ export default function ProductCreatePage() {
                 {instagramPostType === "REELS" && (
                   <div className="p-3 rounded bg-[#1c1b1b] border border-white/10 flex items-center justify-between">
                     <div className="space-y-0.5 text-left">
-                      <p className="text-xs font-bold text-white">Share to Profile Grid</p>
+                      <p className="text-xs  text-white">Share to Profile Grid</p>
                       <p className="text-[10px] text-[#8e9192]">Show reel in main profile feed</p>
                     </div>
                     <button

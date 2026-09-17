@@ -15,8 +15,8 @@ export const uploadToCloudinary = (
   file: File | Blob,
   options: CloudinaryUploadOptions = {}
 ): Promise<CloudinaryUploadResult> => {
-  const cloudName = options.cloudName || "dx5bqewfx";
-  const uploadPreset = options.uploadPreset || "any_dm_product_upload";
+  const cloudName = options.cloudName || process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "";
+  const uploadPreset = options.uploadPreset || process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "";
 
   return new Promise((resolve, reject) => {
     const formData = new FormData();
@@ -101,61 +101,67 @@ export const deleteFromCloudinary = async (
 ): Promise<boolean> => {
   if (!identifier) return true;
 
-  let cloudName = options.cloudName || "dx5bqewfx";
-  let token: string | undefined;
   let publicId: string | undefined;
   let resourceType = "image";
+  let deleteToken: string | undefined;
 
   if (typeof identifier === "string") {
-    if (identifier.includes("cloudinary.com")) {
+    if (identifier.includes("cloudinary.com") || identifier.startsWith("http://") || identifier.startsWith("https://")) {
       const extracted = extractPublicIdFromCloudinaryUrl(identifier);
       publicId = extracted.publicId;
       if (extracted.resourceType) resourceType = extracted.resourceType;
     } else {
-      token = identifier;
+      // If a raw string is passed, treat it as public_id
+      publicId = identifier;
     }
   } else if (typeof identifier === "object") {
-    if (identifier.cloudName) cloudName = identifier.cloudName;
-    token = identifier.deleteToken;
+    deleteToken = identifier.deleteToken;
     publicId = identifier.publicId;
     if (identifier.resourceType) resourceType = identifier.resourceType;
 
-    if (!publicId && !token && identifier.url) {
+    if (!publicId && identifier.url) {
       const extracted = extractPublicIdFromCloudinaryUrl(identifier.url);
       publicId = extracted.publicId;
       if (extracted.resourceType) resourceType = extracted.resourceType;
     }
   }
 
-  if (!token && !publicId) return true;
-
-  try {
-    const formData = new FormData();
-    if (token) {
-      formData.append("token", token);
+  // Explicit deleteToken branch (only if deleteToken is explicitly passed)
+  if (deleteToken && !publicId) {
+    try {
+      const cloudName = options.cloudName || process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "";
+      const formData = new FormData();
+      formData.append("token", deleteToken);
       const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/delete_by_token`, {
         method: "POST",
         body: formData,
       });
       const data = await res.json();
       return data.result === "ok";
-    } else if (publicId) {
-      const res = await fetch("/api/cloudinary/delete", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          public_id: publicId,
-          resource_type: resourceType,
-        }),
-      });
-      const data = await res.json();
-      return data.success || data.result === "ok";
+    } catch (err) {
+      console.warn("Cloudinary delete_by_token failed:", err);
+      return false;
     }
-    return true;
+  }
+
+  if (!publicId) return true;
+
+  // Primary route: Next.js backend API route /api/cloudinary/delete
+  try {
+    const res = await fetch("/api/cloudinary/delete", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        public_id: publicId,
+        resource_type: resourceType,
+      }),
+    });
+    const data = await res.json();
+    return data.success || data.result === "ok";
   } catch (err) {
-    console.warn("Cloudinary delete failed:", err);
+    console.warn("Cloudinary delete via Next.js API failed:", err);
     return false;
   }
 };

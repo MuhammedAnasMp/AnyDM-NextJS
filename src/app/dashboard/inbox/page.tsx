@@ -251,25 +251,18 @@ export default function InboxPage() {
   }, []);
 
   useEffect(() => {
-    if (selectedConversation) {
-      const params = new URLSearchParams(window.location.search);
-      params.set("recipient_id", selectedConversation.recipient_id);
+    if (!selectedConversation) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const currentParam = params.get("recipient_id");
+    if (currentParam !== String(selectedConversation.recipient_id)) {
+      params.set("recipient_id", String(selectedConversation.recipient_id));
       params.delete("username");
       params.delete("name");
       params.delete("avatar");
       router.replace(`/dashboard/inbox?${params.toString()}`, { scroll: false });
-    } else {
-      const params = new URLSearchParams(window.location.search);
-      if (params.has("recipient_id")) {
-        params.delete("recipient_id");
-        params.delete("username");
-        params.delete("name");
-        params.delete("avatar");
-        const search = params.toString();
-        router.replace(`/dashboard/inbox${search ? `?${search}` : ""}`, { scroll: false });
-      }
     }
-  }, [selectedConversation, router]);
+  }, [selectedConversation?.recipient_id, router]);
 
   const filteredConversations = conversations.filter((c) =>
     c.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -297,39 +290,39 @@ export default function InboxPage() {
   }, [activeAccount?.id, isPremiumActive]);
 
   useEffect(() => {
-    if (recipientIdParam && conversations.length > 0) {
-      const existing = conversations.find((c: any) => c.recipient_id === recipientIdParam);
-      if (existing) {
-        if (!selectedConversation || selectedConversation.recipient_id !== recipientIdParam) {
-          setSelectedConversation(existing);
-        }
-      } else {
-        const decodedAvatar = avatarParam ? decodeURIComponent(avatarParam) : "";
-        const tempConv = {
-          id: `temp_${recipientIdParam}`,
-          name: usernameParam || nameParam || "Instagram User",
-          recipient_id: recipientIdParam,
-          time: "Now",
-          text: "No messages yet",
-          avatar: decodedAvatar || `https://ui-avatars.com/api/?name=${usernameParam || 'User'}&background=random&color=fff`,
-          badge: 0,
-          status: "Active",
-          is_within_24h_window: true
-        };
+    if (!recipientIdParam) return;
 
-        setConversations(prev => {
-          if (prev.some((c: any) => c.recipient_id === recipientIdParam)) return prev;
-          const updated = [tempConv, ...prev];
-          if (globalConversationsCache) {
-            globalConversationsCache.conversations = updated;
-          }
-          return updated;
-        });
+    if (selectedConversation && String(selectedConversation.recipient_id) === String(recipientIdParam)) {
+      return;
+    }
 
-        if (!selectedConversation || selectedConversation.recipient_id !== recipientIdParam) {
-          setSelectedConversation(tempConv);
+    const existing = conversations.find((c: any) => String(c.recipient_id) === String(recipientIdParam));
+    if (existing) {
+      setSelectedConversation(existing);
+    } else {
+      const decodedAvatar = avatarParam ? decodeURIComponent(avatarParam) : "";
+      const tempConv = {
+        id: `temp_${recipientIdParam}`,
+        name: usernameParam || nameParam || "Instagram User",
+        recipient_id: recipientIdParam,
+        time: "Now",
+        text: "No messages yet",
+        avatar: decodedAvatar || `https://ui-avatars.com/api/?name=${usernameParam || 'User'}&background=random&color=fff`,
+        badge: 0,
+        status: "Active",
+        is_within_24h_window: true
+      };
+
+      setConversations(prev => {
+        if (prev.some((c: any) => String(c.recipient_id) === String(recipientIdParam))) return prev;
+        const updated = [tempConv, ...prev];
+        if (globalConversationsCache) {
+          globalConversationsCache.conversations = updated;
         }
-      }
+        return updated;
+      });
+
+      setSelectedConversation(tempConv);
     }
   }, [recipientIdParam, usernameParam, nameParam, avatarParam, conversations.length]);
 
@@ -1056,8 +1049,8 @@ export default function InboxPage() {
 
     try {
       setUploadingImage(true);
-      const cloudName = "dx5bqewfx";
-      const uploadPreset = "any_dm_product_upload";
+      const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "";
+      const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "any_dm_product_upload";
 
       const formData = new FormData();
       formData.append("file", file);

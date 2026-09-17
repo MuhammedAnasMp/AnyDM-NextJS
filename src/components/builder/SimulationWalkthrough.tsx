@@ -61,7 +61,7 @@ export default function SimulationWalkthrough({ onRestartRequest, onStepChange }
 
   const sellerUsername = activeAccount?.username || "elenarossi";
   const sellerFullName = activeAccount?.name || appUser?.name || "Elena Rossi";
-  const sellerAvatarUrl = activeAccount?.profile_picture_url || "https://static.vecteezy.com/system/resources/previews/002/318/271/non_2x/user-profile-icon-free-vector.jpg";
+  const sellerAvatarUrl = activeAccount?.profile_picture_url || appUser?.photo_url || null;
 
   // Extract trigger details
   const triggerNode = flow.nodes.find(n => n.type === 'trigger');

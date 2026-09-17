@@ -46,6 +46,12 @@ export default function CreatorDashboardPage() {
     type: "error" | "success" | "info";
   }>({ isVisible: false, message: "", type: "success" });
 
+  const [isRequestingPayout, setIsRequestingPayout] = useState(false);
+
+  const showToast = (message: string, type: "error" | "success" | "info" = "success") => {
+    setToast({ isVisible: true, message, type });
+  };
+
   const fetchEarnings = async () => {
     setIsLoading(true);
     setError("");
@@ -60,6 +66,20 @@ export default function CreatorDashboardPage() {
       );
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleRequestPayout = async () => {
+    setIsRequestingPayout(true);
+    try {
+      const res = await api.post("/accounts/creator/payout-request/");
+      showToast(res.data?.message || "Payout request submitted!", "success");
+      fetchEarnings();
+    } catch (err: any) {
+      const msg = err.response?.data?.error || "Failed to submit payout request.";
+      showToast(msg, "error");
+    } finally {
+      setIsRequestingPayout(false);
     }
   };
 
@@ -143,10 +163,10 @@ export default function CreatorDashboardPage() {
 
   const formattedEndDate = expiresDate
     ? expiresDate.toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      })
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    })
     : null;
 
   const conversionRate =
@@ -185,14 +205,14 @@ export default function CreatorDashboardPage() {
           </p>
         </div>
 
-        {/* Current Active Reward Mode Badge */}
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded bg-[#1c1b1b] border border-[#2a2a2a] text-xs self-start md:self-auto shadow-sm">
+        {/* Current Active Reward Mode & Program End Date Badge */}
+        <div className="inline-flex flex-wrap items-center gap-2 px-3 py-1.5 rounded bg-[#1c1b1b] border border-[#2a2a2a] text-xs self-start md:self-auto shadow-sm">
           {isCommissionMode ? (
             <>
               <DollarSign className="w-3.5 h-3.5 text-[#c4c0ff]" strokeWidth={1.5} />
               <span className="text-[#c4c7c8]/70">Reward Mode:</span>
               <span className="font-semibold text-[#e5e2e1]">
-                {commissionPercent}% First-Purchase Commission
+                Commission Earnings
               </span>
             </>
           ) : (
@@ -204,23 +224,33 @@ export default function CreatorDashboardPage() {
               </span>
             </>
           )}
+
+          {formattedEndDate && (
+            <span className="pl-2 border-l border-[#2a2a2a] flex items-center gap-1.5 text-xs font-medium">
+              <Calendar className={`w-3.5 h-3.5 ${isExpired ? "text-amber-400" : "text-[#c4c0ff]"}`} strokeWidth={1.5} />
+              <span className={isExpired ? "text-amber-400 font-semibold" : "text-[#c4c7c8]/80"}>
+                {isExpired ? "Expired:" : "Ends:"}
+              </span>
+              <span className={isExpired ? "font-bold text-amber-400" : "font-semibold text-white"}>
+                {formattedEndDate}
+              </span>
+            </span>
+          )}
         </div>
       </div>
 
       {/* Dynamic Creator Plan Status Card */}
-      <div className={`relative overflow-hidden rounded-md border p-4 md:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm transition-all ${
-        isExpired
-          ? "bg-[#1c1b1b] border-amber-500/30"
-          : "bg-[#1c1b1b] border-[#2a2a2a]"
-      }`}>
+      <div className={`relative overflow-hidden rounded-md border p-4 md:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm transition-all ${isExpired
+        ? "bg-[#1c1b1b] border-amber-500/30"
+        : "bg-[#1c1b1b] border-[#2a2a2a]"
+        }`}>
         <div className="flex items-start md:items-center gap-3.5 z-10">
-          <div className={`w-10 h-10 rounded-md flex items-center justify-center shrink-0 border ${
-            isExpired
-              ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
-              : isCommissionMode
+          <div className={`w-10 h-10 rounded-md flex items-center justify-center shrink-0 border ${isExpired
+            ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
+            : isCommissionMode
               ? "bg-[#c4c0ff]/10 border-[#c4c0ff]/30 text-[#c4c0ff]"
               : "bg-[#c4c0ff]/15 border-[#c4c0ff]/40 text-[#c4c0ff]"
-          }`}>
+            }`}>
             {isExpired ? (
               <AlertCircle className="w-5 h-5" strokeWidth={1.5} />
             ) : isCommissionMode ? (
@@ -238,11 +268,10 @@ export default function CreatorDashboardPage() {
                   : "VIP Free Creator Pro Access"}
               </h2>
 
-              <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border ${
-                isExpired
-                  ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
-                  : "bg-[#c4c0ff]/10 border-[#c4c0ff]/25 text-[#c4c0ff]"
-              }`}>
+              <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border ${isExpired
+                ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
+                : "bg-[#c4c0ff]/10 border-[#c4c0ff]/25 text-[#c4c0ff]"
+                }`}>
                 <span className={`w-1.5 h-1.5 rounded-full ${isExpired ? "bg-amber-400" : "bg-[#c4c0ff] animate-pulse"}`}></span>
                 {isExpired ? "Expired" : "Active Plan"}
               </span>
@@ -252,30 +281,61 @@ export default function CreatorDashboardPage() {
               {isExpired
                 ? "Your creator partner term has expired. Reach out to AnyDM support to renew your partner plan."
                 : isCommissionMode
-                ? `You earn ${commissionPercent}% instant payout commission on every referred user's first subscription.`
-                : "Exclusive VIP Free Pro access granted for official AnyDM community partner creators."}
+                  ? `You earn ${commissionPercent}% instant payout commission on every referred user's first subscription.`
+                  : "Exclusive VIP Free Pro access granted for official AnyDM community partner creators."}
             </p>
           </div>
         </div>
-
-        {/* Display Expired Time ONLY if expired */}
-        {isExpired && formattedEndDate && (
-          <div className="z-10 shrink-0 w-full md:w-auto bg-[#101115] border border-amber-500/30 px-3.5 py-2 rounded-md flex items-center gap-3 justify-between md:justify-start">
-            <div className="flex items-center gap-2 text-xs text-amber-400">
-              <Calendar className="w-4 h-4" strokeWidth={1.5} />
-              <span>Expired On:</span>
-            </div>
-
-            <span className="text-xs font-semibold text-amber-400">
-              {formattedEndDate}
-            </span>
-          </div>
-        )}
       </div>
 
       {/* ==================== COMMISSION MODE UI ==================== */}
       {isCommissionMode ? (
         <>
+          {/* Payout Action & KYC Warning Banner */}
+          {!data?.has_kyc ? (
+            <div className="w-full p-4 rounded-md border border-yellow-800/40 bg-yellow-950/20 text-yellow-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2.5">
+                <AlertCircle className="w-5 h-5 text-yellow-400 shrink-0" />
+                <div>
+                  <p className="font-bold text-yellow-300">Bank Account Details Missing</p>
+                  <p className="text-[11px] text-yellow-400/80">
+                    Add your Bank Account or UPI VPA in Settings &gt; KYC to receive automated &amp; manual payouts.
+                  </p>
+                </div>
+              </div>
+              <a
+                href="/dashboard/settings/kyc"
+                className="px-3.5 py-1.5 rounded bg-yellow-400 text-black font-bold text-xs hover:bg-yellow-300 transition-all shrink-0"
+              >
+                Add Bank / KYC Details
+              </a>
+            </div>
+          ) : totalPending >= (data?.min_payout_amount || 500) ? (
+            <div className="w-full p-4 rounded-md border border-purple-500/30 bg-purple-950/20 text-purple-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2.5">
+                <Zap className="w-5 h-5 text-purple-400 shrink-0" />
+                <div>
+                  <p className="font-bold text-purple-200">Payout Ready (Pending {formatCurrency(totalPending)})</p>
+                  <p className="text-[11px] text-purple-300/80">
+                    Your pending balance has reached the minimum payout threshold of {formatCurrency(data?.min_payout_amount || 500)}.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={handleRequestPayout}
+                disabled={isRequestingPayout}
+                className="px-4 py-2 rounded bg-purple-500 hover:bg-purple-400 text-black font-bold text-xs transition-all shadow-lg flex items-center gap-1.5 shrink-0"
+              >
+                {isRequestingPayout ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <DollarSign className="w-3.5 h-3.5" />
+                )}
+                <span>Request Payout Now</span>
+              </button>
+            </div>
+          ) : null}
+
           {/* KPI Stats Cards Grid for Commission Mode */}
           <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 items-stretch">
             {/* Total Earned Card */}
@@ -394,7 +454,7 @@ export default function CreatorDashboardPage() {
                   <tr className="border-b border-[#20201f] text-[#8e9192] text-[10px] uppercase tracking-wider font-semibold bg-[#131313]">
                     <th className="px-4 py-3">Date</th>
                     <th className="px-4 py-3">Referred User</th>
-                    <th className="px-4 py-3">Purchase Amount</th>
+
                     <th className="px-4 py-3">Rate</th>
                     <th className="px-4 py-3">Commission</th>
                     <th className="px-4 py-3 text-right">Status</th>
@@ -417,13 +477,11 @@ export default function CreatorDashboardPage() {
                         <td className="px-4 py-3 text-[#e5e2e1] font-medium">
                           {c.referred_user || "Referred User"}
                         </td>
-                        <td className="px-4 py-3 text-[#c4c7c8] font-mono">
-                          {formatCurrency(c.payment_amount)}
-                        </td>
+
                         <td className="px-4 py-3 text-[#8e9192]">
                           {c.commission_percent}%
                         </td>
-                        <td className="px-4 py-3 font-semibold text-[#c4c0ff] font-mono">
+                        <td className="px-4 py-3 font-semibold text-[#c4c0ff] ">
                           +{formatCurrency(c.commission_amount)}
                         </td>
                         <td className="px-4 py-3 text-right">
@@ -638,15 +696,20 @@ export default function CreatorDashboardPage() {
                           })}
                         </td>
                         <td className="px-4 py-3 text-right">
-                          {ref.is_premium_active ? (
+                          {ref.plan === "pro" && ref.is_premium_active ? (
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#c4c0ff]/10 border border-[#c4c0ff]/25 text-[#c4c0ff] text-[11px] font-medium">
                               <span className="w-1.5 h-1.5 rounded-full bg-[#c4c0ff]"></span>
                               Creator Pro
                             </span>
+                          ) : ref.is_premium_active ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-[11px] font-medium">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                              {ref.has_extended_trial ? "15-Day Trial" : ref.trial_days_left ? `Trial (${ref.trial_days_left}d left)` : "Trial Active"}
+                            </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#20201f] border border-[#2a2a2a] text-[#8e9192] text-[11px] font-medium">
-                              <span className="w-1.5 h-1.5 rounded-full bg-[#8e9192]/60"></span>
-                              15-Day Trial
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-500/10 border border-red-500/25 text-red-400 text-[11px] font-medium">
+                              <span className="w-1.5 h-1.5 rounded-full bg-red-400"></span>
+                              Expired
                             </span>
                           )}
                         </td>

@@ -147,7 +147,7 @@ export function LeftSidebar() {
 
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [isLoadingWelcome, setIsLoadingWelcome] = useState<'icebreakers' | 'persistent_menu' | null>(null);
-  const [welcomeTab, setWelcomeTab] = useState<'icebreakers' | 'persistent_menu' | null>(urlWelcome);
+  const [welcomeTab, setWelcomeTab] = useState<'icebreakers' | 'persistent_menu' | 'closed' | null>(urlWelcome);
   const [lastWelcomeTab, setLastWelcomeTab] = useState<'icebreakers' | 'persistent_menu'>('icebreakers');
 
   const nodes = useSelector((state: RootState) => state.flow.nodes);
@@ -188,8 +188,9 @@ export function LeftSidebar() {
   const isEditMode = modeParam === 'edit' || searchParams.get('edit') === 'true';
 
   const activeWelcomeTab = React.useMemo(() => {
+    if (welcomeTab === 'closed') return null;
     if (welcomeTab) return welcomeTab;
-    if (urlWelcome) return urlWelcome;
+    if (urlWelcome && welcomeTab !== 'closed') return urlWelcome;
     if (isEditMode) {
       if (flowName === "Welcome Message Flow" || nodes.some(n => n.data?.is_icebreaker_trigger)) return 'icebreakers';
       if (flowName === "Persistent Menu Flow" || nodes.some(n => n.data?.is_menu_trigger)) return 'persistent_menu';
@@ -225,9 +226,13 @@ export function LeftSidebar() {
     const next = activeCategory === id ? null : id;
     setActiveCategory(next);
     if (next !== null) {
-      setWelcomeTab(null);
-      if (typeof window !== 'undefined' && window.location.search) {
-        window.history.replaceState({}, '', '/dashboard/automations');
+      setWelcomeTab('closed');
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        params.delete('welcome');
+        params.delete('canvas_init');
+        const newSearch = params.toString() ? `?${params.toString()}` : window.location.pathname;
+        window.history.replaceState({}, '', newSearch);
       }
     }
   };
@@ -235,7 +240,14 @@ export function LeftSidebar() {
   const handleWelcomeIconClick = async (tab: 'icebreakers' | 'persistent_menu') => {
     setLastWelcomeTab(tab);
     if (activeWelcomeTab === tab) {
-      setWelcomeTab(null);
+      setWelcomeTab('closed');
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        params.delete('welcome');
+        params.delete('canvas_init');
+        const newSearch = params.toString() ? `?${params.toString()}` : window.location.pathname;
+        window.history.replaceState({}, '', newSearch);
+      }
       return;
     }
     setIsLoadingWelcome(tab);
@@ -402,10 +414,10 @@ export function LeftSidebar() {
           {activeCategoryData && (
             <motion.div
               key={activeCategoryData.id}
-              initial={{ opacity: 0, x: -20 }}
+              initial={{ opacity: 0, x: '-100%' }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ type: 'spring', bounce: 0, duration: 0.3 }}
+              exit={{ opacity: 0, x: '-100%' }}
+              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
               className="h-full bg-[#131313] border-r border-[#2d2d2d] flex flex-col shadow-2xl relative w-[220px] sm:w-[320px]"
             >
               <div className="p-4 border-b border-[#2d2d2d] flex items-center justify-between shrink-0">
@@ -445,10 +457,10 @@ export function LeftSidebar() {
           {activeWelcomeTab !== null && !activeCategoryData && (
             <motion.div
               key={`welcome-panel-${activeWelcomeTab}`}
-              initial={{ opacity: 0, x: -20 }}
+              initial={{ opacity: 0, x: '-100%' }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ type: 'spring', bounce: 0, duration: 0.3 }}
+              exit={{ opacity: 0, x: '-100%' }}
+              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
               className="h-full bg-[#131313] border-r border-[#393939] flex flex-col shadow-2xl relative w-[254px] sm:w-[360px]"
             >
               <div className="px-2 py-2 sm:px-5 sm:pt-5 sm:pb-4 border-b border-[#2d2d2d] flex items-center justify-between shrink-0">
@@ -471,7 +483,16 @@ export function LeftSidebar() {
               {/* Floating Toggle Button on Right Edge of Mock UI Panel */}
               <button
                 type="button"
-                onClick={() => setWelcomeTab(null)}
+                onClick={() => {
+                  setWelcomeTab('closed');
+                  if (typeof window !== 'undefined') {
+                    const params = new URLSearchParams(window.location.search);
+                    params.delete('welcome');
+                    params.delete('canvas_init');
+                    const newSearch = params.toString() ? `?${params.toString()}` : window.location.pathname;
+                    window.history.replaceState({}, '', newSearch);
+                  }
+                }}
                 className="absolute top-1/2 -right-4 -translate-y-1/2 w-8 h-8 rounded-full bg-[#1c1b1b] border border-[#20201f] hover:bg-[#2c2c2c] hover:border-zinc-500 text-zinc-400 hover:text-white flex items-center justify-center shadow-md cursor-pointer z-50 transition-all duration-200"
                 title="Hide Panel"
               >

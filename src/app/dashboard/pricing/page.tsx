@@ -15,6 +15,7 @@ export default function PricingPage() {
   const appUser = useSelector((state: RootState) => state.auth.user);
 
   const [stats, setStats] = useState<any>(null);
+  const [sysSettings, setSysSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [payLoading, setPayLoading] = useState(false);
   const [redeemLoading, setRedeemLoading] = useState(false);
@@ -27,12 +28,14 @@ export default function PricingPage() {
 
   const fetchStats = async () => {
     try {
-      const res = await api.get("/accounts/referral/stats/", {
-        headers: { 'x-bypass-cache': 'true' }
-      });
-      setStats(res.data);
+      const [resStats, resSettings] = await Promise.all([
+        api.get("/accounts/referral/stats/", { headers: { 'x-bypass-cache': 'true' } }),
+        api.get("/accounts/settings/system/")
+      ]);
+      setStats(resStats.data);
+      setSysSettings(resSettings.data);
     } catch (err) {
-      console.error("Error fetching subscription stats:", err);
+      console.error("Error fetching subscription stats or system settings:", err);
     } finally {
       setLoading(false);
     }
@@ -203,11 +206,13 @@ export default function PricingPage() {
     );
   }
 
-  const isPro = stats?.plan === "pro" && stats?.is_premium_active;
+  const isPro = (stats?.plan === "pro" || appUser?.plan === "pro") && (stats?.is_premium_active ?? appUser?.is_premium_active);
   const pointsProgress = Math.min(100, Math.round(((stats?.points || 0) / (stats?.points_needed_for_premium || 100)) * 100));
 
   const getFormattedExpiryDate = () => {
     const rawDate =
+      stats?.premium_expires_at ||
+      appUser?.premium_expires_at ||
       stats?.expires_at ||
       stats?.plan_expires_at ||
       stats?.subscription_expires_at ||
@@ -295,13 +300,13 @@ export default function PricingPage() {
                 Free Trial
               </span>
               <span className="text-[10px] px-2 py-0.5 rounded bg-white/5 border border-white/10 text-zinc-400">
-                14 Days Included
+                {sysSettings?.trial_days || stats?.trial_days || 14} Days Included
               </span>
             </div>
 
             <div className="mt-3 flex items-baseline gap-1">
               <span className="text-3xl font-bold text-white tracking-tight">₹0</span>
-              <span className="text-xs text-[#c4c7c8]/60">/ 14 days</span>
+              <span className="text-xs text-[#c4c7c8]/60">/ {sysSettings?.trial_days || 14} days</span>
             </div>
 
             <p className="mt-2 text-xs leading-relaxed text-[#c4c7c8]/70">
@@ -351,12 +356,12 @@ export default function PricingPage() {
                   className="w-full rounded-md bg-[#2a2a2a] hover:bg-[#353535] border border-[#444748] py-2.5 text-xs font-semibold text-[#e5e2e1] transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] disabled:opacity-50"
                 >
                   {extendLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                  <span>Extend Trial (7 Days Free)</span>
+                  <span>Extend Trial ({sysSettings?.extend_days || 7} Days Free)</span>
                 </button>
               )
             ) : (
               <div className="w-full py-2.5 rounded-md bg-white/5 border border-white/10 text-[11px] text-zinc-400 text-center font-medium">
-                Included with Account
+                Already Claimed
               </div>
             )}
           </div>
@@ -379,7 +384,7 @@ export default function PricingPage() {
             </div>
 
             <div className="mt-3 flex items-baseline gap-1">
-              <span className="text-3xl font-bold text-white tracking-tight">₹{stats?.paid_plan_price || 499}</span>
+              <span className="text-3xl font-bold text-white tracking-tight">₹{sysSettings?.premium_plan_price !== undefined ? sysSettings.premium_plan_price : (stats?.paid_plan_price || 499)}</span>
               <span className="text-xs text-[#c4c7c8]/60">/ month</span>
             </div>
 
@@ -431,11 +436,11 @@ export default function PricingPage() {
                   <span>Subscription Active</span>
 
                 </div>
-                {formattedExpiryDate && (
+                {/* {formattedExpiryDate && (
                   <span className="text-[11px] text-[#131313]/90 normal-case tracking-normal font-medium z-10 [text-shadow:0_1px_0_rgba(255,245,190,0.5)]">
                     Expiry Date: <strong className="font-bold text-[#131313]">{formattedExpiryDate}</strong>
                   </span>
-                )}
+                )} */}
               </div>
             ) : (
               <>
@@ -450,11 +455,11 @@ export default function PricingPage() {
 
                 <button
                   onClick={handleRedeemPoints}
-                  disabled={redeemLoading || stats?.points < stats?.points_needed_for_premium}
+                  disabled={redeemLoading || stats?.points < (sysSettings?.points_to_redeem || stats?.points_needed_for_premium || 100)}
                   className="w-full bg-[#20201f] border border-[#444748] hover:bg-[#2a2a2a] text-[#e5e2e1] py-2 rounded-md text-xs font-semibold tracking-wide transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   {redeemLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Gift className="w-3.5 h-3.5 text-[#c4c0ff]" />}
-                  <span>Redeem {stats?.points_needed_for_premium || 100} Referral Points</span>
+                  <span>Redeem {sysSettings?.points_to_redeem || stats?.points_needed_for_premium || 100} Referral Points</span>
                 </button>
               </>
             )}
@@ -488,7 +493,7 @@ export default function PricingPage() {
                 <div className="w-4 h-4 rounded-full bg-[#c4c0ff]/10 border border-[#c4c0ff]/30 flex items-center justify-center text-[#c4c0ff] shrink-0">
                   <Check className="w-2.5 h-2.5" strokeWidth={2.5} />
                 </div>
-                <span><strong>10%–20% Cash Commission</strong> on 1st payments</span>
+                <span><strong>{sysSettings?.creator_commission_percent !== undefined ? sysSettings.creator_commission_percent : 10}% Cash Commission</strong> on 1st payments</span>
               </li>
               <li className="flex items-center gap-2.5">
                 <div className="w-4 h-4 rounded-full bg-[#c4c0ff]/10 border border-[#c4c0ff]/30 flex items-center justify-center text-[#c4c0ff] shrink-0">
@@ -545,13 +550,12 @@ export default function PricingPage() {
               <span>Referral Points Balance</span>
             </span>
             <span className="text-xs  font-bold text-white bg-white/5 border border-white/10 px-2.5 py-0.5 rounded-full">
-              {stats?.points || 0} / {stats?.points_needed_for_premium || 100} pts
+              {stats?.points || 0} / {sysSettings?.points_to_redeem || stats?.points_needed_for_premium || 100} pts
             </span>
           </div>
 
           <p className="text-xs text-[#c4c7c8]/70 max-w-xl leading-relaxed">
-            Invite friends & creators to AnyDM. Earn 20 points per signup and get free Creator Pro!
-
+            Invite friends & creators to AnyDM. Earn {sysSettings?.referral_points || stats?.referral_points || 20} points per signup and get free Creator Pro!
           </p>
 
           {/* Progress Bar */}

@@ -152,17 +152,17 @@ function PhonePreview({
                                 {/* Pulsing pointer indicator */}
                                 <div className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 bg-red-500 rounded opacity-60 animate-ping pointer-events-none" />
                                 <div className="absolute right-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-red-500 rounded border-2 border-black pointer-events-none shadow" />
-                                <div className="w-10 h-10 rounded border border-white/10 overflow-hidden shrink-0 relative">
+                                <div className="w-10 h-10 rounded-full border border-white/10 overflow-hidden shrink-0 relative">
                                     <img src={profilePic} className="w-full h-full object-cover" alt="" />
                                     {/* Green active dot */}
-                                    <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded border-2 border-black" />
+                                    <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded z-100 border-2 border-black" />
                                 </div>
                                 <div className="flex-1 min-w-0 text-left">
-                                    <div className="flex items-center justify-between">
+                                    <div className="flex items-center justify-between ">
                                         <span className="text-[11px] font-bold text-white truncate block">
                                             {username}
                                         </span>
-                                        <span className="text-[8px] text-red-500"></span>
+                                        <span className="text-[8px] text-red-500 rounded"></span>
                                     </div>
                                     {/* <p className="text-[9px] text-[#3797F0] font-bold truncate mt-0.5">
                                         Suggested: Tap to start chat
@@ -187,7 +187,7 @@ function PhonePreview({
                                 }
                             }}
                         />
-                        <div className="w-6 h-6 sm:w-8 sm:h-8 rounded bg-zinc-800 border border-white/10 overflow-hidden shrink-0">
+                        <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-zinc-800 border border-white/10 overflow-hidden shrink-0">
                             <img
                                 src={profilePic}
                                 className="w-full h-full object-cover"
@@ -234,8 +234,8 @@ function PhonePreview({
                                     opacity: animationStep === 'chat' ? 1 : 0
                                 }}
                             >
-                                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded p-[1px] bg-gradient-to-tr from-[#353535] to-[#2a2a2a] flex items-center justify-center">
-                                    <img src={profilePic} className="w-full h-full rounded object-cover border-2 border-black" alt="" />
+                                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full p-[1px] bg-gradient-to-tr from-[#353535] to-[#2a2a2a] flex items-center justify-center">
+                                    <img src={profilePic} className="w-full h-full rounded-full object-cover border-2 border-black" alt="" />
                                 </div>
                                 <div className="flex items-center gap-0.5 mt-1.5">
                                     <h2 className="text-[10px] font-bold text-white tracking-tight">{username}</h2>
@@ -352,14 +352,14 @@ function PhonePreview({
                     )}>
                         <div className="flex items-center gap-2.5">
                             {/* Camera Button (Outside) */}
-                            <div className="w-7 h-7 rounded bg-[#3797F0] flex items-center justify-center shrink-0 cursor-pointer hover:opacity-90 transition-opacity">
+                            <div className="w-7 h-7 rounded-full bg-[#3797F0] flex items-center justify-center shrink-0 cursor-pointer hover:opacity-90 transition-opacity">
                                 <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                                     <circle cx="12" cy="13" r="4" />
                                 </svg>
                             </div>
                             {/* Message input mock pill */}
-                            <div className="flex-1 bg-[#1c1b1b] rounded px-3.5 py-1.5 flex items-center justify-between border border-white/5">
+                            <div className="flex-1 bg-[#1c1b1b] rounded-full px-3.5 py-1.5 flex items-center justify-between border border-white/5">
                                 <span className="text-[11px] text-zinc-500 font-medium">
                                     {composerInputDisabledVal && type === 'persistent_menu' ? "Composer disabled" : "Message..."}
                                 </span>
@@ -403,7 +403,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
     }, [activeAccountId, instagramAccounts]);
 
     const username = activeAccount?.username || appUser?.username || 'Mailspot';
-    const profilePic = activeAccount?.profile_picture_url || 'https://static.vecteezy.com/system/resources/previews/002/318/271/non_2x/user-profile-icon-free-vector.jpg';
+    const profilePic = activeAccount?.profile_picture_url || appUser?.photo_url || null;
     const websiteUrl = activeAccount?.website || 'www.mailspot.com';
 
     const followersCount = "54k";
@@ -1158,7 +1158,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                                 postsCount={postsCount}
                                 mutualsText={mutualsText}
                                 isStatic={true}
-                                profile_urls={activeAccount?.profile_picture_url || 'https://static.vecteezy.com/system/resources/previews/002/318/271/non_2x/user-profile-icon-free-vector.jpg'}
+                                profile_urls={activeAccount?.profile_picture_url || appUser?.photo_url || null}
                             />
                         ) : (
                             <PhonePreview
@@ -1173,7 +1173,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                                 postsCount={postsCount}
                                 mutualsText={mutualsText}
                                 isStatic={true}
-                                profile_urls={activeAccount?.profile_picture_url || 'https://static.vecteezy.com/system/resources/previews/002/318/271/non_2x/user-profile-icon-free-vector.jpg'}
+                                profile_urls={activeAccount?.profile_picture_url || appUser?.photo_url || null}
                             />
                         )}
                     </div>
@@ -1415,7 +1415,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                         </div>
 
                         {/* Footer actions inside Modal */}
-                        <div className="pt-4 border-t border-white/10 flex items-center justify-end shrink-0 gap-2">
+                        {/* <div className="pt-4 border-t border-white/10 flex items-center justify-end shrink-0 gap-2">
                             <button
                                 type="button"
                                 onClick={handleDelete}
@@ -1433,7 +1433,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                             </button>
 
 
-                        </div>
+                        </div> */}
                     </div>
                 </div>
             </div>
@@ -1475,7 +1475,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                                 followersCount={followersCount}
                                 postsCount={postsCount}
                                 mutualsText={mutualsText}
-                                profile_urls={activeAccount?.profile_picture_url || 'https://static.vecteezy.com/system/resources/previews/002/318/271/non_2x/user-profile-icon-free-vector.jpg'}
+                                profile_urls={activeAccount?.profile_picture_url || appUser?.photo_url || null}
                             />
                         </div>
                     </div>
@@ -1496,7 +1496,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                                 followersCount={followersCount}
                                 postsCount={postsCount}
                                 mutualsText={mutualsText}
-                                profile_urls={activeAccount?.profile_picture_url || 'https://static.vecteezy.com/system/resources/previews/002/318/271/non_2x/user-profile-icon-free-vector.jpg'}
+                                profile_urls={activeAccount?.profile_picture_url || appUser?.photo_url || null}
                             />
                         </div>
                     </div>

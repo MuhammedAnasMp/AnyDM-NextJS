@@ -79,6 +79,9 @@ export default function InstagramSchedulerPage() {
     instagramAccounts.find((acc: any) => acc.id === appUser?.active_instagram_account_id) ||
     instagramAccounts[0];
 
+  const profilePic = activeAccount?.profile_picture_url || activeAccount?.profile_picture || null;
+  const initials = (activeAccount?.username ? activeAccount.username[0] : "Z").toUpperCase();
+
   const [posts, setPosts] = useState<ScheduledPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -317,11 +320,13 @@ export default function InstagramSchedulerPage() {
     return new Promise((resolve, reject) => {
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("upload_preset", "any_dm_product_upload");
+      const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "";
+      const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "any_dm_product_upload";
+      formData.append("upload_preset", uploadPreset);
 
       const xhr = new XMLHttpRequest();
       activeMediaXhrRef.current = xhr;
-      xhr.open("POST", "https://api.cloudinary.com/v1_1/dx5bqewfx/auto/upload", true);
+      xhr.open("POST", `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, true);
       xhr.onload = () => {
         activeMediaXhrRef.current = null;
         if (xhr.status === 200) {
@@ -425,11 +430,13 @@ export default function InstagramSchedulerPage() {
 
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("upload_preset", "any_dm_product_upload");
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "";
+    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "any_dm_product_upload";
+    formData.append("upload_preset", uploadPreset);
 
     const xhr = new XMLHttpRequest();
     activeMediaXhrRef.current = xhr;
-    xhr.open("POST", "https://api.cloudinary.com/v1_1/dx5bqewfx/auto/upload", true);
+    xhr.open("POST", `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, true);
 
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable) {
@@ -657,13 +664,12 @@ export default function InstagramSchedulerPage() {
                 initial={{ opacity: 0, y: -20, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -20, scale: 0.95 }}
-                className={`fixed top-24 right-6 sm:right-8 z-[999999] px-4 py-3 rounded-xl border text-xs sm:text-sm font-semibold shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex items-center gap-3 backdrop-blur-2xl max-w-md ${
-                  toast.type === "success"
-                    ? "bg-[#1c1b1b]/95 border-[#c4c0ff]/40 text-[#c4c0ff]"
-                    : toast.type === "info"
+                className={`fixed top-24 right-6 sm:right-8 z-[999999] px-4 py-3 rounded-xl border text-xs sm:text-sm font-semibold shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex items-center gap-3 backdrop-blur-2xl max-w-md ${toast.type === "success"
+                  ? "bg-[#1c1b1b]/95 border-[#c4c0ff]/40 text-[#c4c0ff]"
+                  : toast.type === "info"
                     ? "bg-[#1c1b1b]/95 border-blue-500/40 text-blue-300"
                     : "bg-rose-950/95 border-rose-500/50 text-rose-200"
-                }`}
+                  }`}
               >
                 {toast.type === "success" ? (
                   <CheckCircle2 className="w-5 h-5 text-[#c4c0ff] shrink-0" />
@@ -1821,8 +1827,12 @@ export default function InstagramSchedulerPage() {
                                   <div className="flex items-center gap-2">
                                     {/* Story Ring Avatar */}
                                     <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#feda75] via-[#d62976] to-[#4f5bd5] p-[1.5px] shadow-lg shrink-0">
-                                      <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-[10px] font-black text-white">
-                                        {activeAccount?.username ? activeAccount.username[0] : "Z"}
+                                      <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-[10px] font-black text-white overflow-hidden">
+                                        {profilePic ? (
+                                          <img src={profilePic} alt={activeAccount?.username || "profile"} className="w-full h-full object-cover rounded-full" />
+                                        ) : (
+                                          <span>{initials}</span>
+                                        )}
                                       </div>
                                     </div>
 
@@ -1871,7 +1881,7 @@ export default function InstagramSchedulerPage() {
                               <div className="relative w-full h-full bg-black flex flex-col justify-between overflow-hidden">
                                 {/* Instagram Script Top Bar */}
                                 <div className="pt-12 px-4 pb-2.5 flex items-center justify-between border-b border-white/5 bg-black">
-                                  <span className="font-serif italic text-xl font-black tracking-tight text-white">Instagram</span>
+                                  <span className="font-instagram-sans text-xl font-bold tracking-tight text-white">Instagram</span>
                                   <div className="flex items-center gap-4 text-white">
                                     {/* Notification Heart */}
                                     <svg className="w-6 h-6 fill-none stroke-white stroke-2" viewBox="0 0 24 24">
@@ -1892,9 +1902,13 @@ export default function InstagramSchedulerPage() {
                                   {/* User Header */}
                                   <div className="px-3 py-2 flex items-center justify-between">
                                     <div className="flex items-center gap-2">
-                                      <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888] p-[1.5px]">
-                                        <div className="w-full h-full bg-black rounded-full flex items-center justify-center text-[10px] font-bold text-white">
-                                          {activeAccount?.username ? activeAccount.username[0].toUpperCase() : "Z"}
+                                      <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888] p-[1.5px] shrink-0">
+                                        <div className="w-full h-full bg-black rounded-full flex items-center justify-center text-[10px] font-bold text-white overflow-hidden">
+                                          {profilePic ? (
+                                            <img src={profilePic} alt={activeAccount?.username || "profile"} className="w-full h-full object-cover rounded-full" />
+                                          ) : (
+                                            <span>{initials}</span>
+                                          )}
                                         </div>
                                       </div>
                                       <div className="flex flex-col">
@@ -2016,8 +2030,14 @@ export default function InstagramSchedulerPage() {
                                   <svg className="w-5 h-5 fill-none stroke-current stroke-[2.2]" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
                                   <svg className="w-5 h-5 fill-none stroke-current stroke-2" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="4" /><path d="M12 8v8m-4-4h8" /></svg>
                                   <Film className="w-5 h-5" />
-                                  <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-amber-500 to-purple-600 p-[1px]">
-                                    <div className="w-full h-full bg-black rounded-full" />
+                                  <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-amber-500 to-purple-600 p-[1px] shrink-0">
+                                    <div className="w-full h-full bg-black rounded-full flex items-center justify-center text-[8px] font-bold text-white overflow-hidden">
+                                      {profilePic ? (
+                                        <img src={profilePic} alt={activeAccount?.username || "profile"} className="w-full h-full object-cover rounded-full" />
+                                      ) : (
+                                        <span>{initials}</span>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
                               </div>
@@ -2055,9 +2075,13 @@ export default function InstagramSchedulerPage() {
                                   {/* User Bar */}
                                   <div className="flex items-center justify-between text-white">
                                     <div className="flex items-center gap-2">
-                                      <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888] p-[1.5px]">
-                                        <div className="w-full h-full bg-black rounded-full flex items-center justify-center text-[10px] font-black">
-                                          {activeAccount?.username ? activeAccount.username[0].toUpperCase() : "Z"}
+                                      <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888] p-[1.5px] shrink-0">
+                                        <div className="w-full h-full bg-black rounded-full flex items-center justify-center text-[10px] font-black text-white overflow-hidden">
+                                          {profilePic ? (
+                                            <img src={profilePic} alt={activeAccount?.username || "profile"} className="w-full h-full object-cover rounded-full" />
+                                          ) : (
+                                            <span>{initials}</span>
+                                          )}
                                         </div>
                                       </div>
                                       <span className="text-xs font-extrabold">{activeAccount?.username || "your_brand"}</span>

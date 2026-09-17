@@ -23,9 +23,11 @@ import {
   AlertCircle,
   ClipboardList,
   Info,
+  MessageCircle,
 } from "lucide-react";
 import api from "@/lib/services/api.service";
 import Toast from "@/components/Toast";
+import InstagramIcon from "@/components/ui/InstagramIcon";
 
 function SellerOrdersContent() {
   const router = useRouter();
@@ -60,6 +62,7 @@ function SellerOrdersContent() {
 
   const [payoutHoldMode, setPayoutHoldMode] = useState<"INSTANT" | "MONTHLY">("INSTANT");
   const [instantPayoutCommPct, setInstantPayoutCommPct] = useState<string>("3.00");
+  const [enableRazorpayRoute, setEnableRazorpayRoute] = useState(false);
   const [isUpdatingPayoutMode, setIsUpdatingPayoutMode] = useState(false);
   const [activeTab, setActiveTab] = useState<"ORDERS" | "SETTLEMENTS">(
     tabQuery === "settlements" ? "SETTLEMENTS" : "ORDERS"
@@ -96,6 +99,9 @@ function SellerOrdersContent() {
         }
         if (res.data.instant_payout_commission_pct) {
           setInstantPayoutCommPct(res.data.instant_payout_commission_pct);
+        }
+        if (res.data.enable_razorpay_route !== undefined) {
+          setEnableRazorpayRoute(!!res.data.enable_razorpay_route);
         }
         setStats(res.data.stats || {
           today_sales: "0.00",
@@ -215,7 +221,10 @@ function SellerOrdersContent() {
     currentPage * itemsPerPage
   );
 
-  const totalAmountOrdered = orders.reduce((sum, o) => sum + parseFloat(o.total_amount || "0"), 0).toFixed(2);
+  const totalAmountOrdered = orders
+    .filter(o => !["REFUNDED", "CANCELLED", "PAYMENT_FAILED"].includes(o.order_status))
+    .reduce((sum, o) => sum + parseFloat(o.total_amount || "0"), 0)
+    .toFixed(2);
 
   const bentoStats = [
     { label: "Total amount ordered", val: `₹${totalAmountOrdered}`, meta: "Gross order value", icon: Coins, color: "[#8e9192]" },
@@ -317,7 +326,7 @@ function SellerOrdersContent() {
 
         {/* Right Side: Payout Hold Mode Switcher & Details Info Button */}
         <div className="flex items-center gap-2 shrink-0 pb-1 md:pb-0">
-          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide hidden lg:inline-block">Payout Mode </span>
+          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide hidden lg:inline-block" title="Sets the default payout mode applied to upcoming new orders">Payout Mode for New Orders</span>
           <div className="flex items-center gap-1 bg-[#131313] p-1 rounded-md border border-[#353535]">
             {[
               { id: "INSTANT", label: "⚡ Instant" },
@@ -618,8 +627,8 @@ function SellerOrdersContent() {
 
                         if (settlementFilter === "All") return true;
 
-                        const isRefunded = o.order_status === "REFUNDED" || o.order_status === "CANCELLED";
-                        const isPaidOut = !isRefunded && (o.payment_status === "PAID" || o.order_status === "DELIVERED" || o.order_status === "COMPLETED");
+                        const isRefunded = o.order_status === "REFUNDED" || o.order_status === "CANCELLED" || o.settlement_status === "REFUNDED";
+                        const isPaidOut = !isRefunded && (o.settlement_status === "PAID" || o.settlement_status === "COMPLETED");
                         const isPending = !isRefunded && !isPaidOut;
 
                         if (settlementFilter === "Pending") return isPending;
@@ -628,45 +637,66 @@ function SellerOrdersContent() {
 
                         return true;
                       })
-                      .map((o, idx) => (
-                        <tr key={idx} className="hover:bg-white/[0.02] transition-colors">
-                          <td className="px-5 py-3 font-mono font-bold text-white">{o.order_id}</td>
-                          <td className="px-5 py-3 text-zinc-300">{o.customer_name}</td>
-                          <td className="px-5 py-3">
-                            <span className="px-2 py-0.5 rounded bg-sky-950/60 border border-sky-800/50 text-sky-400 text-[10px] font-mono font-bold">
-                              RAZORPAY
-                            </span>
-                          </td>
-                          <td className="px-5 py-3 font-bold text-white">₹{o.total_amount}</td>
-                          <td className="px-5 py-3 text-zinc-400">₹{o.total_commission || "0.00"}</td>
-                          <td className="px-5 py-3 text-zinc-400">₹{o.total_razorpay_fee || "0.00"}</td>
-                          <td className="px-5 py-3 font-bold text-emerald-400">₹{o.seller_payout_amount || "0.00"}</td>
-                          <td className="px-5 py-3">
-                            {payoutHoldMode === "INSTANT" ? (
-                              <span className="px-2 py-0.5 rounded bg-emerald-950/60 border border-emerald-800/50 text-emerald-400 text-[10px] font-bold">
-                                ⚡ INSTANT
+                      .map((o, idx) => {
+                        const isRefunded = o.order_status === "REFUNDED" || o.order_status === "CANCELLED" || o.settlement_status === "REFUNDED";
+                        const isPaidOut = !isRefunded && (o.settlement_status === "PAID" || o.settlement_status === "COMPLETED");
+
+                        return (
+                          <tr key={idx} className="hover:bg-white/[0.02] transition-colors">
+                            <td className="px-5 py-3 font-mono font-bold text-white">{o.order_id}</td>
+                            <td className="px-5 py-3 text-zinc-300">
+                              <div className="flex flex-col gap-0.5">
+                                <span className="font-semibold text-white">{o.customer_name}</span>
+                                {o.instagram_username && (
+                                  <div className="flex items-center gap-1 text-[10px] text-[#c4c0ff]">
+                                    <InstagramIcon className="w-3 h-3 text-[#c4c0ff]" />
+                                    <span>@{o.instagram_username}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-5 py-3">
+                              <span className="px-2 py-0.5 rounded bg-sky-950/60 border border-sky-800/50 text-sky-400 text-[10px] font-mono font-bold">
+                                RAZORPAY
                               </span>
-                            ) : (
-                              <span className="px-2 py-0.5 rounded bg-amber-950/60 border border-amber-800/50 text-amber-400 text-[10px] font-bold">
-                                🛡️ MONTHLY HELD
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-5 py-3">
-                            {o.order_status === "REFUNDED" || o.order_status === "CANCELLED" ? (
-                              <span className="px-2 py-0.5 rounded bg-rose-950/60 border border-rose-800/50 text-rose-400 text-[10px] font-bold">
-                                REFUNDED / REVERSED
-                              </span>
-                            ) : o.payment_status === "PAID" || o.order_status === "DELIVERED" || o.order_status === "COMPLETED" ? (
-                              <span className="px-2 py-0.5 rounded bg-emerald-950/60 border border-emerald-800/50 text-emerald-400 text-[10px] font-bold">
-                                PAID OUT
-                              </span>
-                            ) : (
-                              <span className="px-2 py-0.5 rounded bg-amber-950/60 border border-amber-800/50 text-amber-400 text-[10px] font-bold">
-                                {payoutHoldMode === "MONTHLY" ? "HELD (30D)" : "PENDING RELEASE"}
-                              </span>
-                            )}
-                          </td>
+                            </td>
+                            <td className="px-5 py-3 font-bold text-white">₹{o.total_amount}</td>
+                            <td className="px-5 py-3 text-zinc-400">₹{o.total_commission || "0.00"}</td>
+                            <td className="px-5 py-3 text-zinc-400">₹{o.total_razorpay_fee || "0.00"}</td>
+                            <td className="px-5 py-3 font-bold text-emerald-400">₹{o.seller_payout_amount || "0.00"}</td>
+                            <td className="px-5 py-3">
+                              {(o.payout_mode || "INSTANT") === "INSTANT" ? (
+                                <span className="px-2 py-0.5 rounded bg-emerald-950/60 border border-emerald-800/50 text-emerald-400 text-[10px] font-bold">
+                                  ⚡ INSTANT
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded bg-amber-950/60 border border-amber-800/50 text-amber-400 text-[10px] font-bold">
+                                  🛡️ MONTHLY HELD
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-5 py-3">
+                              {isRefunded ? (
+                                <span className="px-2 py-0.5 rounded bg-rose-950/60 border border-rose-800/50 text-rose-400 text-[10px] font-bold">
+                                  REFUNDED / REVERSED
+                                </span>
+                              ) : isPaidOut ? (
+                                <div className="flex flex-col gap-0.5">
+                                  <span className="px-2 py-0.5 rounded bg-emerald-950/60 border border-emerald-800/50 text-emerald-400 text-[10px] font-bold inline-block">
+                                    PAID OUT (AnyDM Settled)
+                                  </span>
+                                  {o.settlement_utr_number && (
+                                    <span className="text-[9px] font-mono text-emerald-300">
+                                      UTR: {o.settlement_utr_number}
+                                    </span>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded bg-amber-950/60 border border-amber-800/50 text-amber-400 text-[10px] font-bold">
+                                  {payoutHoldMode === "MONTHLY" ? "HELD (30D)" : "PENDING RELEASE"}
+                                </span>
+                              )}
+                            </td>
                           <td className="px-5 py-3 text-right">
                             <button
                               onClick={() => setSelectedOrder(o)}
@@ -676,7 +706,8 @@ function SellerOrdersContent() {
                             </button>
                           </td>
                         </tr>
-                      ))
+                      );
+                    })
                   )}
                 </tbody>
               </table>
@@ -758,6 +789,31 @@ function SellerOrdersContent() {
                       <div className="text-[#c4c7c8]">{selectedOrder.customer_email}</div>
                     )}
                     <div className="text-[#c4c7c8] font-mono">{selectedOrder.customer_phone}</div>
+
+                    {selectedOrder.instagram_username && (
+                      <div className="p-2.5 rounded-[6px] bg-[#1c1b1b] border border-[#444748] flex items-center justify-between gap-3 mt-2.5">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          {selectedOrder.instagram_profile_pic ? (
+                            <img src={selectedOrder.instagram_profile_pic} alt={selectedOrder.instagram_username} className="w-7 h-7 rounded-full object-cover border border-[#444748] shrink-0" />
+                          ) : (
+                            <InstagramIcon className="w-4 h-4 text-[#c4c0ff] shrink-0" />
+                          )}
+                          <div className="min-w-0">
+                            <span className="text-[9px] text-[#8e9192] block font-semibold uppercase tracking-wider">Instagram Customer</span>
+                            <span className="font-bold text-white text-xs truncate block">@{selectedOrder.instagram_username}</span>
+                          </div>
+                        </div>
+                        <a
+                          href={`https://ig.me/m/${selectedOrder.instagram_username}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#c4c0ff]/10 border border-[#c4c0ff]/30 hover:bg-[#c4c0ff]/20 text-[#c4c0ff] text-[11px] font-bold transition-all shrink-0 active:scale-[0.98]"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" />
+                          <span>Message on IG</span>
+                        </a>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -860,24 +916,30 @@ function SellerOrdersContent() {
                     {selectedOrder.order_status !== "REFUNDED" && selectedOrder.order_status !== "CANCELLED" && (
                       ((selectedOrder.payment_method || "").toUpperCase() === "RAZORPAY" || (selectedOrder.payment_method || "").toUpperCase() === "ONLINE") ? (
                         (selectedOrder.payment_status || "").toUpperCase() === "PAID" ? (
-                          <button
-                            type="button"
-                            onClick={() => handleRefundOrder(selectedOrder.order_id)}
-                            disabled={isRefunding}
-                            className="w-full mt-2 py-2 px-3 rounded-[4px] bg-red-500/10 border border-red-500/30 hover:bg-red-500/20 text-[#ffb4ab] text-xs font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                          >
-                            {isRefunding ? (
-                              <>
-                                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                                <span>Processing Refund &amp; Reversal...</span>
-                              </>
-                            ) : (
-                              <>
-                                <AlertTriangle className="w-3.5 h-3.5" />
-                                <span>Issue Refund &amp; Reverse Route Transfer</span>
-                              </>
-                            )}
-                          </button>
+                          enableRazorpayRoute ? (
+                            <button
+                              type="button"
+                              onClick={() => handleRefundOrder(selectedOrder.order_id)}
+                              disabled={isRefunding}
+                              className="w-full mt-2 py-2 px-3 rounded-[4px] bg-red-500/10 border border-red-500/30 hover:bg-red-500/20 text-[#ffb4ab] text-xs font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                            >
+                              {isRefunding ? (
+                                <>
+                                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                  <span>Processing Refund &amp; Reversal...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <AlertTriangle className="w-3.5 h-3.5" />
+                                  <span>Issue Refund &amp; Reverse Route Transfer</span>
+                                </>
+                              )}
+                            </button>
+                          ) : (
+                            <div className="w-full mt-2 p-3 rounded-[4px] bg-[#0e0e0e] border border-[#444748] text-xs text-[#c4c7c8] leading-relaxed">
+                              ℹ️ <strong className="text-white">Razorpay Routing Disabled:</strong> Route refund &amp; reverse transfer option is only active when Razorpay Route split payment engine is enabled in system settings.
+                            </div>
+                          )
                         ) : (
                           <div className="w-full mt-2 p-3 rounded-[4px] bg-[#0e0e0e] border border-[#444748] text-xs text-[#c4c7c8] leading-relaxed">
                             ℹ️ <strong className="text-white">Unpaid Online Order:</strong> Customer has not completed online payment for this order yet. Automated online refunds only apply to completed payments.

@@ -9,7 +9,7 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/store";
 import { authService } from "@/lib/services/auth.service";
-import { setHydrating } from "@/store/slices/authSlice";
+import { setHydrating, hydrateFromStorage } from "@/store/slices/authSlice";
 import { cn } from "@/lib/utils";
 
 function DashboardLayoutContent({
@@ -31,6 +31,7 @@ function DashboardLayoutContent({
   const isFullBleed = isBuilder || pathname === "/dashboard/inbox";
 
   useEffect(() => {
+    dispatch(hydrateFromStorage());
     const handleOpenSidebar = () => setIsSidebarOpen(true);
     window.addEventListener("open-sidebar", handleOpenSidebar);
     return () => {
@@ -107,16 +108,7 @@ function DashboardLayoutContent({
     };
   }, []);
 
-  if (isHydrating) {
-    return (
-      <div className="min-h-screen bg-[#131313] text-[#e5e2e1] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 rounded-full border-4 border-white/20 border-t-white animate-spin"></div>
-          <p className="text-xs text-white/50 font-medium">Restoring session...</p>
-        </div>
-      </div>
-    );
-  }
+
 
   return (
     <div className={cn("bg-[#131313] text-[#e5e2e1] relative", isFullBleed ? "h-screen overflow-hidden" : "min-h-screen")}>

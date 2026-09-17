@@ -560,20 +560,18 @@ export default function LinkInBioPublicView({
               className={cn("rounded-full overflow-hidden p-1 shadow-2xl border-2 bg-[#131313]", isPreviewMode ? "w-20 h-20" : "w-24 h-24 sm:w-28 sm:h-28")}
               style={{ borderColor: theme.accentColor }}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={
-                  page.profile_image_url ||
-                  creator?.profile_picture_url ||
-                  "https://static.vecteezy.com/system/resources/previews/002/318/271/non_2x/user-profile-icon-free-vector.jpg"
-                }
-                alt={page.title || page.username}
-                className="w-full h-full object-cover rounded-full bg-zinc-900"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src =
-                    "https://static.vecteezy.com/system/resources/previews/002/318/271/non_2x/user-profile-icon-free-vector.jpg";
-                }}
-              />
+              {page.profile_image_url || creator?.profile_picture_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={page.profile_image_url || creator?.profile_picture_url || undefined}
+                  alt={page.title || page.username}
+                  className="w-full h-full object-cover rounded-full bg-zinc-900"
+                />
+              ) : (
+                <div className="w-full h-full rounded-full bg-[#20201f] border border-[#2a2a2a] flex items-center justify-center text-[#e5e2e1] text-2xl sm:text-3xl font-bold select-none">
+                  {(page.title || page.username || creator?.username || "U").slice(0, 1).toUpperCase()}
+                </div>
+              )}
             </div>
             <div
               className="absolute bottom-0 right-0 w-5.5 h-5.5 rounded-full flex items-center justify-center shadow-lg border-2 border-[#131313]"

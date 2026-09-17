@@ -9,7 +9,8 @@ import { RootState } from "@/store";
 import { authService } from "@/lib/services/auth.service";
 import { auth } from "@/lib/firebase";
 import Toast from "./Toast";
-import { UserAvatar } from "./Avatar";
+import { cn } from "@/lib/utils";
+import { UserAvatar, getUserDisplayName, getAvatarRingClass } from "./Avatar";
 import InstagramIcon from "./ui/InstagramIcon";
 import InstagramAccountGuard from "./InstagramAccountGuard";
 
@@ -79,7 +80,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const handleLogout = async () => {
     try {
       await authService.logout();
-      router.push("/login");
+      router.push("/");
     } catch (err) {
       console.error("Logout failed:", err);
     }
@@ -87,7 +88,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
   const handleReLoginInstagram = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    const clientId = "1454663269228644";
+    const clientId = process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_ID;
     const redirectUri = `${window.location.origin}/dashboard/settings/accounts`;
     const scope =
       "instagram_business_basic,instagram_business_manage_messages,instagram_business_manage_comments,instagram_business_content_publish,instagram_business_manage_insights";
@@ -121,6 +122,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
     if (pathname.startsWith("/dashboard/refer")) return "Refer";
     if (pathname.startsWith("/dashboard/pricing")) return "Pricing";
     if (pathname.startsWith("/dashboard/admin")) return "Admin";
+    if (pathname.startsWith("/dashboard/creator")) return "Creator";
     if (pathname.startsWith("/dashboard/bio")) return "Bio";
     if (pathname.startsWith("/dashboard/analytics") || pathname.startsWith("/dashboard/revenue") || pathname === "/dashboard") return "Dashboard";
     return "Dashboard";
@@ -178,6 +180,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
     Schedule: [],
     Refer: [],
     Pricing: [],
+    Creator: [],
   };
 
   const items = subNavItems[category] || [];
@@ -199,9 +202,9 @@ export default function Header({ onMenuClick }: HeaderProps) {
     }
   }, [activeAccount?.id, activeAccount?.is_token_expired, pathname, router]);
 
-  const userDisplayName = appUser?.display_name || appUser?.first_name || "User";
+  const userDisplayName = getUserDisplayName(appUser);
   const googlePhoto = firebaseUser?.providerData?.find((p: any) => p.providerId === "google.com")?.photoURL || firebaseUser?.photoURL;
-  const userPhoto = appUser?.photo_url || appUser?.profile_picture_url || googlePhoto || "https://static.vecteezy.com/system/resources/previews/002/318/271/non_2x/user-profile-icon-free-vector.jpg";
+  const userPhoto = appUser?.photo_url || appUser?.profile_picture_url || googlePhoto || null;
 
   return (
     <div className="sticky top-0 z-[50] w-full flex flex-col bg-[#131313] border-b border-white/5 shrink-0 text-white">
@@ -233,8 +236,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
           {/* Instagram Account Switcher Dropdown */}
           {activeAccount && (
             <div
-              className={`relative ${
-                pathname === "/dashboard/products/catalog/create" ||
+              className={`relative ${pathname === "/dashboard/products/catalog/create" ||
                 pathname.startsWith("/dashboard/automations") ||
                 pathname.startsWith("/dashboard/bio")
                 ? "pointer-events-none opacity-50 cursor-not-allowed"
@@ -247,11 +249,9 @@ export default function Header({ onMenuClick }: HeaderProps) {
                   (instagramAccounts.length > 1 || activeAccount?.is_token_expired) &&
                   setIsAccountMenuOpen(!isAccountMenuOpen)
                 }
-                className={`relative flex items-center gap-2 px-3 py-1.5 rounded-full border ${
-                  activeAccount?.is_token_expired ? "border-red-500/50 bg-red-500/10" : "border-white/10 bg-white/5"
-                } backdrop-blur-md cursor-pointer hover:bg-white/10 transition-all mr-1 md:mr-2 select-none ${
-                  instagramAccounts.length > 1 || activeAccount?.is_token_expired ? "active:scale-[0.98]" : ""
-                }`}
+                className={`relative flex items-center gap-2 px-3 py-1.5 rounded-full border ${activeAccount?.is_token_expired ? "border-red-500/50 bg-red-500/10" : "border-white/10 bg-white/5"
+                  } backdrop-blur-md cursor-pointer hover:bg-white/10 transition-all mr-1 md:mr-2 select-none ${instagramAccounts.length > 1 || activeAccount?.is_token_expired ? "active:scale-[0.98]" : ""
+                  }`}
               >
                 <div className="w-5 h-5 rounded-full overflow-hidden border border-white/20 flex items-center justify-center bg-white/10 shrink-0 relative">
                   <UserAvatar
@@ -299,11 +299,10 @@ export default function Header({ onMenuClick }: HeaderProps) {
                             handleSwitchAccount(acc.id);
                           }
                         }}
-                        className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
-                          acc.id === activeAccount?.id
-                            ? "bg-white/10 text-white font-semibold"
-                            : "hover:bg-white/5 text-[#c4c7c8]/60 hover:text-white"
-                        } ${acc.is_token_expired ? "border border-red-500/30 bg-red-500/10" : ""}`}
+                        className={`flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer transition-colors ${acc.id === activeAccount?.id
+                          ? "bg-white/10 text-white font-semibold"
+                          : "hover:bg-white/5 text-[#c4c7c8]/60 hover:text-white"
+                          } ${acc.is_token_expired ? "border border-red-500/30 bg-red-500/10" : ""}`}
                       >
                         <UserAvatar
                           src={acc.profile_picture_url}
@@ -361,14 +360,13 @@ export default function Header({ onMenuClick }: HeaderProps) {
           <div className="relative" ref={profileMenuRef}>
             <div
               onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-              className="w-8 h-8 md:w-9 md:h-9 rounded-full shrink-0 p-[1.5px] bg-gradient-to-tr from-[#A67C00] via-[#BF9B30] via-[#FFBF00] via-[#FFCF40] to-[#FFDC73] flex items-center justify-center cursor-pointer hover:scale-105 transition-all active:scale-95 select-none"
+              className={cn("w-8 h-8 md:w-9 md:h-9 rounded-full shrink-0 flex items-center justify-center cursor-pointer hover:scale-105 transition-all active:scale-95 select-none", getAvatarRingClass(appUser))}
             >
               <div className="w-full h-full rounded-full overflow-hidden border border-[#131313] bg-[#20201f]">
                 <UserAvatar
                   src={userPhoto}
-                  alt="Profile"
+                  alt={userDisplayName}
                   className="w-full h-full object-cover"
-                  fallbackIcon={<span className="material-symbols-outlined text-[16px] text-white/70">person</span>}
                 />
               </div>
             </div>

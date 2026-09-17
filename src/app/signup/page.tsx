@@ -86,7 +86,7 @@ function SignupContent() {
 
   const handleInstagramLogin = () => {
     setIsInstagramLoading(true);
-    const clientId = "1454663269228644";
+    const clientId = process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_ID;
     const redirectUri = `${window.location.origin}/signup`;
     const scope = "instagram_business_basic,instagram_business_manage_messages,instagram_business_manage_comments,instagram_business_content_publish,instagram_business_manage_insights";
     window.location.href = `https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&enable_fb_login=false`;
@@ -228,7 +228,14 @@ function SignupContent() {
               id="agree"
             />
             <label htmlFor="agree" className="text-xs text-[#c4c7c8]/60 cursor-pointer select-none">
-              I agree to the <a href="#" className="text-white hover:underline">Terms of Service</a> and <a href="#" className="text-white hover:underline">Privacy Policy</a>
+              I agree to the{" "}
+              <Link href="/terms" target="_blank" rel="noopener noreferrer" className="text-white hover:underline font-medium">
+                Terms of Service
+              </Link>{" "}
+              and{" "}
+              <Link href="/privacy" target="_blank" rel="noopener noreferrer" className="text-white hover:underline font-medium">
+                Privacy Policy
+              </Link>
             </label>
           </div>
 

@@ -30,6 +30,7 @@ interface KYCState {
   bank_account_number: string;
   confirm_account_number: string;
   bank_ifsc: string;
+  upi_id?: string;
   status: "PENDING" | "SUBMITTED" | "APPROVED" | "REJECTED" | string;
   is_card_verified: boolean;
   razorpay_account_id?: string;
@@ -44,6 +45,7 @@ export default function SellerKYCPage() {
     bank_account_number: "",
     confirm_account_number: "",
     bank_ifsc: "",
+    upi_id: "",
     status: "PENDING",
     is_card_verified: false,
     razorpay_account_id: "",
@@ -80,6 +82,7 @@ export default function SellerKYCPage() {
             bank_account_number: accNum,
             confirm_account_number: accNum,
             bank_ifsc: res.data.bank_ifsc || "",
+            upi_id: res.data.upi_id || "",
             status: res.data.status || "PENDING",
             is_card_verified: !!res.data.is_card_verified,
             razorpay_account_id: res.data.razorpay_account_id || "",
@@ -530,6 +533,19 @@ export default function SellerKYCPage() {
                   <span>{formErrors.confirm_account_number}</span>
                 </p>
               )}
+            </div>
+
+            {/* UPI ID / VPA */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-[#e5e2e1]">UPI VPA ID (Optional)</label>
+              <input
+                type="text"
+                disabled={!isEditable}
+                value={kycData.upi_id || ""}
+                onChange={(e) => setKycData({ ...kycData, upi_id: e.target.value })}
+                placeholder="name@upi / phone@paytm"
+                className="w-full bg-[#101115] border border-[#2a2a2a] focus:border-[#c4c0ff] rounded-md px-3.5 py-2.5 text-xs text-[#e5e2e1] placeholder-[#8e9192] outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed font-mono"
+              />
             </div>
           </div>
         </div>

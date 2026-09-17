@@ -16,14 +16,16 @@ const initialState: FlowState = {
     edges: [],
     selectedNodeId: null,
     mediaPicker: null,
+    isLoading: false,
+    autoAdjust: true,
 };
 
 export const EXECUTION_COLUMNS = {
-    1: { name: 'TRIGGER', step: 1, baseX: 80, minX: 40, maxX: 380 },
-    2: { name: 'FILTER', step: 2, baseX: 440, minX: 400, maxX: 740 },
-    3: { name: 'ACTION', step: 3, baseX: 800, minX: 760, maxX: 1100 },
-    4: { name: 'DM / COMMENT', step: 4, baseX: 1160, minX: 1120, maxX: 1460 },
-    5: { name: 'NEXT', step: 5, baseX: 1520, minX: 1480, maxX: 2000 },
+    1: { name: 'TRIGGER', step: 1, baseX: 80, minX: 40, maxX: 460 },
+    2: { name: 'FILTER', step: 2, baseX: 540, minX: 500, maxX: 920 },
+    3: { name: 'ACTION', step: 3, baseX: 1000, minX: 960, maxX: 1380 },
+    4: { name: 'DM / COMMENT', step: 4, baseX: 1460, minX: 1420, maxX: 1840 },
+    5: { name: 'NEXT', step: 5, baseX: 1920, minX: 1880, maxX: 2500 },
 } as const;
 
 export function getNodeExecutionStep(node: FlowNode): number {
@@ -41,11 +43,11 @@ export function getNodeExecutionStep(node: FlowNode): number {
             return 3;
         }
         if (node.position?.x !== undefined) {
-            if (node.position.x < 400) return 1;
-            if (node.position.x < 760) return 2;
-            if (node.position.x < 1120) return 3;
-            if (node.position.x < 1480) return 4;
-            return Math.max(4, Math.floor((node.position.x - 80) / 360) + 1);
+            if (node.position.x < 500) return 1;
+            if (node.position.x < 960) return 2;
+            if (node.position.x < 1420) return 3;
+            if (node.position.x < 1880) return 4;
+            return Math.max(4, Math.floor((node.position.x - 80) / 460) + 1);
         }
         return 4;
     }
@@ -101,7 +103,7 @@ export function resolveNodePosition(
                 const { width: pW } = getNodeDimensions(p);
                 return p.position.x + pW;
             }));
-            minAllowedX = Math.max(minAllowedX, maxParentEdge + 40);
+            minAllowedX = Math.max(minAllowedX, maxParentEdge + 60);
         }
     }
 
@@ -113,7 +115,7 @@ export function resolveNodePosition(
         const childNodes = allNodes.filter(n => outgoingExecEdges.some(e => e.target === n.id));
         if (childNodes.length > 0) {
             const minChildX = Math.min(...childNodes.map(c => c.position.x));
-            maxAllowedX = Math.min(maxAllowedX, minChildX - nodeW - 40);
+            maxAllowedX = Math.min(maxAllowedX, minChildX - nodeW - 60);
         }
     }
 
@@ -125,7 +127,7 @@ export function resolveNodePosition(
     }
 
     let clampedY = Math.max(40, targetY);
-    const GAP = 40;
+    const GAP = 60;
 
     // 2. Collision avoidance with all other cards
     const otherNodes = allNodes.filter(n => n.id !== node.id);
@@ -670,10 +672,14 @@ export const flowSlice = createSlice({
         setFlow: (state, action: PayloadAction<FlowState>) => {
             return {
                 ...action.payload,
+                isLoading: false,
                 past: [],
                 future: [],
                 lastEdit: null,
             };
+        },
+        setIsLoading: (state, action: PayloadAction<boolean>) => {
+            state.isLoading = action.payload;
         },
         updateFlowName: (state, action: PayloadAction<string>) => {
             saveToPast(state);
@@ -694,8 +700,25 @@ export const flowSlice = createSlice({
             saveToPast(state);
             const node = state.nodes.find(n => n.id === action.payload.id);
             if (node) {
-                const resolved = resolveNodePosition(node, action.payload.position.x, action.payload.position.y, state.nodes, state.edges);
-                node.position = resolved;
+                if (state.autoAdjust !== false) {
+                    const resolved = resolveNodePosition(node, action.payload.position.x, action.payload.position.y, state.nodes, state.edges);
+                    node.position = resolved;
+                } else {
+                    node.position = {
+                        x: Math.round(action.payload.position.x),
+                        y: Math.round(action.payload.position.y)
+                    };
+                }
+            }
+        },
+        toggleAutoAdjust: (state, action: PayloadAction<boolean | undefined>) => {
+            const nextVal = action.payload !== undefined ? action.payload : (state.autoAdjust === false ? true : false);
+            state.autoAdjust = nextVal;
+            if (nextVal === true) {
+                state.nodes.forEach(node => {
+                    const resolved = resolveNodePosition(node, node.position.x, node.position.y, state.nodes, state.edges);
+                    node.position = resolved;
+                });
             }
         },
         updateNodeData: (state, action: PayloadAction<{ id: string; key: string; value: unknown }>) => {
@@ -1027,6 +1050,7 @@ export const flowSlice = createSlice({
 
 export const {
     setFlow,
+    setIsLoading,
     updateFlowName,
     addNode,
     updateNodePosition,
@@ -1042,6 +1066,7 @@ export const {
     setDMFormat,
     resetToPlaceholder,
     setLoopBackTarget,
+    toggleAutoAdjust,
     undo,
     redo
 } = flowSlice.actions;

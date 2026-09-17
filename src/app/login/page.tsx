@@ -33,6 +33,7 @@ const GoogleIcon = () => (
 function LoginContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [agree, setAgree] = useState(true);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isEmailLoading, setIsEmailLoading] = useState(false);
   const [isInstagramLoading, setIsInstagramLoading] = useState(false);
@@ -94,7 +95,7 @@ function LoginContent() {
 
   const handleInstagramLogin = () => {
     setIsInstagramLoading(true);
-    const clientId = "1454663269228644";
+    const clientId = process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_ID;
     const redirectUri = `${window.location.origin}/login`;
     const scope = "instagram_business_basic,instagram_business_manage_messages,instagram_business_manage_comments,instagram_business_content_publish,instagram_business_manage_insights";
     window.location.href = `https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&enable_fb_login=false`;
@@ -118,6 +119,10 @@ function LoginContent() {
     e.preventDefault();
     if (!email || !password) {
       setError("Please fill in all fields");
+      return;
+    }
+    if (!agree) {
+      setError("Please agree to the Terms of Service and Privacy Policy");
       return;
     }
     setIsEmailLoading(true);
@@ -232,6 +237,26 @@ function LoginContent() {
                   className="w-full bg-[#1c1b1b] border border-white/10 rounded-lg py-2.5 pl-10 pr-4 text-sm text-white focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20 transition-all placeholder:text-white/20"
                   placeholder="••••••••"
                 />
+              </div>
+
+              <div className="flex items-center gap-2 pt-3">
+                <input
+                  type="checkbox"
+                  checked={agree}
+                  onChange={(e) => setAgree(e.target.checked)}
+                  className="rounded bg-transparent border-white/20 focus:ring-0 text-primary cursor-pointer accent-white"
+                  id="login-agree"
+                />
+                <label htmlFor="login-agree" className="text-xs text-[#c4c7c8]/60 cursor-pointer select-none">
+                  I agree to the{" "}
+                  <Link href="/terms" target="_blank" rel="noopener noreferrer" className="text-white hover:underline font-medium">
+                    Terms of Service
+                  </Link>{" "}
+                  and{" "}
+                  <Link href="/privacy" target="_blank" rel="noopener noreferrer" className="text-white hover:underline font-medium">
+                    Privacy Policy
+                  </Link>
+                </label>
               </div>
             </div>
           )}

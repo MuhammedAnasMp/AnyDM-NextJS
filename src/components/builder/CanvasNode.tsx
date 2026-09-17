@@ -6,7 +6,7 @@ import { RootState } from '@/store';
 import { updateNodePosition, selectNode, updateNodeData, removeNode, resetToPlaceholder, setLoopBackTarget, EXECUTION_COLUMNS, getNodeExecutionStep, resolveNodePosition, getNodeDimensions } from '@/store/slices/flowSlice';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { MessageSquare, Filter, Send, AtSign, Plus, Trophy, Gift, Sparkles, Clock, ChevronDown, Paperclip, X, Film, Headphones, Share2, Heart, Image as ImageIcon, ArrowRightFromLineIcon, FilterIcon, AlertCircle, User, UserCheck, ExternalLink, ShieldCheck, RotateCcw, Ban, SplitIcon } from 'lucide-react';
+import { MessageSquare, Filter, Send, AtSign, Plus, Trophy, Gift, Sparkles, Clock, ChevronDown, Paperclip, X, Film, Headphones, Share2, Heart, Image as ImageIcon, ArrowRightFromLineIcon, FilterIcon, AlertCircle, User, UserCheck, ExternalLink, ShieldCheck, RotateCcw, Ban, SplitIcon, Cable, Plug } from 'lucide-react';
 import Xarrow, { useXarrow } from 'react-xarrows';
 import { useCanvas } from './CanvasContext';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/Tooltip';
@@ -80,6 +80,48 @@ export const autoPanOnDragEdge = (e: any) => {
     }
 };
 
+export function getActiveFlowPaths(hoveredNodeId: string | null, nodes: any[], edges: any[]) {
+    if (!hoveredNodeId) {
+        return { activeNodeIds: new Set<string>(), activeEdgeIds: new Set<string>() };
+    }
+
+    const activeNodeIds = new Set<string>([hoveredNodeId]);
+    const activeEdgeIds = new Set<string>();
+
+    const queue = [hoveredNodeId];
+    const visited = new Set<string>([hoveredNodeId]);
+
+    // Trace strictly UPSTREAM along standard execution edges to the trigger card
+    while (queue.length > 0) {
+        const curr = queue.shift()!;
+        const inEdges = edges.filter(e => e.target === curr && !e.id.includes('loop') && !e.label?.includes('Loop'));
+        for (const edge of inEdges) {
+            activeEdgeIds.add(edge.id);
+            if (!visited.has(edge.source)) {
+                visited.add(edge.source);
+                activeNodeIds.add(edge.source);
+                queue.push(edge.source);
+            }
+        }
+    }
+
+    const directAncestors = new Set(activeNodeIds);
+
+    // Include loop back edge ONLY if its SOURCE card has been reached along the execution path
+    for (const edge of edges) {
+        const isLoop = edge.id.includes('loop') || edge.label?.includes('Loop');
+        if (isLoop) {
+            if (directAncestors.has(edge.source)) {
+                activeEdgeIds.add(edge.id);
+                activeNodeIds.add(edge.source);
+                activeNodeIds.add(edge.target);
+            }
+        }
+    }
+
+    return { activeNodeIds, activeEdgeIds };
+}
+
 export function CanvasNode({ id }: { id: string }) {
     const dispatch = useDispatch();
     const node = useSelector((state: RootState) => state.flow.nodes.find(n => n.id === id));
@@ -87,10 +129,13 @@ export function CanvasNode({ id }: { id: string }) {
     const edges = useSelector((state: RootState) => state.flow.edges);
     const nodes = useSelector((state: RootState) => state.flow.nodes);
     const updateXarrow = useXarrow();
-    const { pan, scale } = useCanvas();
+    const { pan, scale, hoveredNodeId, setHoveredNodeId } = useCanvas();
+    const activeFlow = React.useMemo(() => getActiveFlowPaths(hoveredNodeId, nodes, edges), [hoveredNodeId, nodes, edges]);
+    const isNodeActiveInFlow = hoveredNodeId ? activeFlow.activeNodeIds.has(id) : false;
     const isDragging = React.useRef(false);
     const lastDragEndTimestamp = React.useRef(0);
     const dragTotalDistance = React.useRef(0);
+    const [dragOffset, setDragOffset] = React.useState<{ x: number; y: number } | null>(null);
 
     const xarrowRafRef = React.useRef<number | null>(null);
     const throttledUpdateXarrow = React.useCallback(() => {
@@ -187,9 +232,94 @@ export function CanvasNode({ id }: { id: string }) {
     const childThreshold = childExecNodes.length > 0 ? Math.min(...childExecNodes.map(c => c.position.x)) - nodeWidth - 40 : Infinity;
     const maxAllowedX = Math.min(colConfig.maxX, childThreshold);
 
+    const isAutoAdjustEnabled = useSelector((state: RootState) => state.flow.autoAdjust ?? true);
+
     const clampNodePosition = (targetX: number, targetY: number) => {
+        if (!isAutoAdjustEnabled) {
+            return { x: Math.round(targetX), y: Math.round(targetY) };
+        }
         return resolveNodePosition(node, targetX, targetY, nodes, edges);
     };
+
+    const handlePointerDown = (e: React.PointerEvent) => {
+        if (e.button !== 0 || activeLoopDragSourceId) return;
+        const target = e.target as HTMLElement;
+        if (
+            target.closest('input') ||
+            target.closest('textarea') ||
+            target.closest('select') ||
+            target.closest('[contenteditable="true"]') ||
+            target.closest('.no-drag')
+        ) {
+            return;
+        }
+
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const startNodeX = node.position.x;
+        const startNodeY = node.position.y;
+        let isDragActive = false;
+
+        let tempX = startNodeX;
+        let tempY = startNodeY;
+
+        const onPointerMove = (moveEv: PointerEvent) => {
+            const dist = Math.hypot(moveEv.clientX - startX, moveEv.clientY - startY);
+            if (!isDragActive && dist > 4) {
+                isDragActive = true;
+                isDragging.current = true;
+                dispatch(selectNode(null));
+            }
+
+            if (isDragActive) {
+                dragTotalDistance.current = dist;
+                const dx = (moveEv.clientX - startX) / scale;
+                const dy = (moveEv.clientY - startY) / scale;
+                tempX = startNodeX + dx;
+                tempY = startNodeY + dy;
+                setDragOffset({ x: dx, y: dy });
+                autoPanOnDragEdge(moveEv);
+                window.dispatchEvent(new CustomEvent('update-xarrow'));
+            }
+        };
+
+        const onPointerUp = () => {
+            window.removeEventListener('pointermove', onPointerMove);
+            window.removeEventListener('pointerup', onPointerUp);
+
+            if (isDragActive) {
+                setDragOffset(null);
+
+                const clamped = clampNodePosition(tempX, tempY);
+                dispatch(updateNodePosition({
+                    id: node.id,
+                    position: clamped
+                }));
+
+                window.dispatchEvent(new CustomEvent('update-xarrow'));
+                lastDragEndTimestamp.current = Date.now();
+                setTimeout(() => {
+                    isDragging.current = false;
+                    dragTotalDistance.current = 0;
+                    window.dispatchEvent(new CustomEvent('update-xarrow'));
+                }, 50);
+                setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent('update-xarrow'));
+                }, 150);
+            } else {
+                isDragging.current = false;
+                dragTotalDistance.current = 0;
+            }
+        };
+
+        window.addEventListener('pointermove', onPointerMove);
+        window.addEventListener('pointerup', onPointerUp, { once: true });
+    };
+
+    const currentX = node.position.x + (dragOffset ? dragOffset.x : 0);
+    const currentY = node.position.y + (dragOffset ? dragOffset.y : 0);
+    const screenX = currentX * scale + pan.x;
+    const screenY = currentY * scale + pan.y;
 
     const activeLoopEdge = edges.find(e => e.source === node.id && (e.id.includes('loop') || e.label?.includes('Loop')));
     const loopTargetNode = activeLoopEdge ? nodes.find(n => n.id === activeLoopEdge.target) : null;
@@ -320,11 +450,11 @@ export function CanvasNode({ id }: { id: string }) {
     const hasConfiguredData =
         !node.data?.is_placeholder &&
         ((d.messages && d.messages.length > 0) ||
-        (d.dm_format && d.dm_format !== 'text') ||
-        (d.quick_replies_titles && d.quick_replies_titles.length > 0) ||
-        (d.button_template_buttons_json && String(d.button_template_buttons_json).trim() !== '') ||
-        (d.generic_template_elements_json && String(d.generic_template_elements_json).trim() !== '') ||
-        (d.action_type && d.action_type !== 'send_dm' && d.action_type !== 'reply_comment'));
+            (d.dm_format && d.dm_format !== 'text') ||
+            (d.quick_replies_titles && d.quick_replies_titles.length > 0) ||
+            (d.button_template_buttons_json && String(d.button_template_buttons_json).trim() !== '') ||
+            (d.generic_template_elements_json && String(d.generic_template_elements_json).trim() !== '') ||
+            (d.action_type && d.action_type !== 'send_dm' && d.action_type !== 'reply_comment'));
 
     if (node.type === 'action' && (node.data?.is_placeholder || (isBranchNode && node.data?.is_placeholder !== false)) && !hasConfiguredData && node.data?.parent_event !== 'TRACK_ORDER') {
         const isSendDM = node.data.action_type === 'send_dm' || !node.data.action_type;
@@ -335,45 +465,21 @@ export function CanvasNode({ id }: { id: string }) {
             return (
                 <motion.div
                     id={node.id}
-                    drag={!activeLoopDragSourceId}
-                    dragMomentum={false}
-                    onDrag={(e, info) => {
-                        dragTotalDistance.current += Math.hypot(info.delta.x, info.delta.y);
-                        autoPanOnDragEdge(e);
-                        throttledUpdateXarrow();
-                    }}
-                    onDragStart={() => {
-                        isDragging.current = true;
-                        dragTotalDistance.current = 0;
-                        dispatch(selectNode(null));
-                    }}
-                    onDragEnd={(e, info) => {
-                        const rawX = node.position.x + info.offset.x / scale;
-                        const rawY = node.position.y + info.offset.y / scale;
-                        const clamped = clampNodePosition(rawX, rawY);
-                        dispatch(updateNodePosition({
-                            id: node.id,
-                            position: clamped
-                        }));
-                        throttledUpdateXarrow();
-                        lastDragEndTimestamp.current = Date.now();
-                        setTimeout(() => {
-                            isDragging.current = false;
-                            dragTotalDistance.current = 0;
-                        }, 250);
-                    }}
+                    onPointerDown={handlePointerDown}
+                    onPointerEnter={() => setHoveredNodeId && setHoveredNodeId(node.id)}
+                    onPointerLeave={() => setHoveredNodeId && setHoveredNodeId(null)}
                     onClick={(e) => {
                         e.stopPropagation();
                         // Container click does not open popup; only single clicking an item from the 5-list opens its popup
                     }}
-                    initial={{ x: node.position.x * scale + pan.x, y: node.position.y * scale + pan.y, scale }}
-                    animate={{ x: node.position.x * scale + pan.x, y: node.position.y * scale + pan.y, scale }}
+                    animate={{ x: screenX, y: screenY, scale }}
                     transition={{ duration: 0 }}
                     style={{ transformOrigin: '0 0', zIndex: isSelected ? 20 : 1 }}
                     className="absolute z-20 pointer-events-auto flex flex-col cursor-grab active:cursor-grabbing"
                 >
                     <div className={cn(
-                        "bg-[#161622]/95 border rounded-xl shadow-2xl overflow-hidden z-[200] flex flex-col w-[155px] animate-fadeIn transition-all select-none",
+                        "bg-[#161622]/95 border rounded-2xl shadow-2xl overflow-hidden z-[200] flex flex-col w-[160px] animate-fadeIn transition-all select-none",
+                        isNodeActiveInFlow ? "ring-2 ring-[#c4c0ff]/90 border-[#c4c0ff] shadow-[0_0_20px_rgba(196,192,255,0.4)]" : "",
                         node.data?.validationError
                             ? "border-rose-500 ring-2 ring-rose-500/60 shadow-rose-500/20 animate-shake"
                             : node.data?.is_cf_following
@@ -383,7 +489,7 @@ export function CanvasNode({ id }: { id: string }) {
                                     : "border-white/10"
                     )}>
                         <div className={cn(
-                            "px-3 py-2 border-b text-center select-none shrink-0 flex flex-col gap-0.5",
+                            "px-3.5 py-2.5 border-b text-center select-none shrink-0 flex flex-col gap-0.5",
                             node.data?.is_cf_following
                                 ? "bg-emerald-950/40 border-emerald-500/30"
                                 : node.data?.is_cf_not_following
@@ -437,7 +543,7 @@ export function CanvasNode({ id }: { id: string }) {
                                             }));
                                         }, 50);
                                     }}
-                                    className="w-full px-3 py-2 text-center text-xs hover:bg-white/10 transition-colors cursor-pointer text-zinc-200 font-semibold active:bg-white/20"
+                                    className="w-full px-3.5 py-2.5 text-center text-xs hover:bg-white/10 transition-colors cursor-pointer text-zinc-200 font-semibold active:bg-white/20"
                                 >
                                     {opt.label}
                                 </button>
@@ -473,7 +579,7 @@ export function CanvasNode({ id }: { id: string }) {
                                 }}
                                 title={loopTargetNode ? `Loop active: connected to ${loopTargetNode.data?.parent_label || loopTargetNode.id}` : "Click and drag to stretch wire to previous card"}
                                 className={cn(
-                                    "flex items-center gap-1.5 px-3 py-1 rounded-full text-[9.5px] font-bold border backdrop-blur-md shadow-2xl transition-all cursor-crosshair active:scale-95",
+                                    "flex items-center gap-1 p-2 rounded-full text-[9.5px] font-bold border backdrop-blur-md shadow-2xl transition-all cursor-crosshair active:scale-95",
                                     activeLoopDragSourceId === node.id
                                         ? "bg-purple-600 border-white text-white ring-2 ring-[#c4c0ff] scale-105"
                                         : loopTargetNode
@@ -481,10 +587,10 @@ export function CanvasNode({ id }: { id: string }) {
                                             : "bg-[#161622] border-white/20 text-zinc-300 hover:border-[#c4c0ff] hover:text-[#c4c0ff]"
                                 )}
                             >
-                                <RotateCcw className={cn("w-3 h-3 shrink-0", activeLoopDragSourceId === node.id ? "animate-spin" : "")} />
+                                <Cable className={cn("w-3 h-3 shrink-0", activeLoopDragSourceId === node.id ? "animate" : "")} />
                                 <span className="whitespace-nowrap">
                                     {activeLoopDragSourceId === node.id
-                                        ? "Stretching Wire... Drop on Input"
+                                        ? ""
                                         : loopTargetNode
                                             ? `Loop: ${loopTargetNode.data?.parent_label || loopTargetNode.data?.action_label || 'Connected Card'}`
                                             : 'Back Loop'}
@@ -511,38 +617,13 @@ export function CanvasNode({ id }: { id: string }) {
         return (
             <motion.div
                 id={node.id}
-                drag
-                dragMomentum={false}
-                onDrag={(e, info) => {
-                    dragTotalDistance.current += Math.hypot(info.delta.x, info.delta.y);
-                    autoPanOnDragEdge(e);
-                    throttledUpdateXarrow();
-                }}
-                onDragStart={() => {
-                    isDragging.current = true;
-                    dragTotalDistance.current = 0;
-                    dispatch(selectNode(null));
-                }}
-                onDragEnd={(e, info) => {
-                    const rawX = node.position.x + info.offset.x / scale;
-                    const rawY = node.position.y + info.offset.y / scale;
-                    const clamped = clampNodePosition(rawX, rawY);
-                    dispatch(updateNodePosition({
-                        id: node.id,
-                        position: clamped
-                    }));
-                    throttledUpdateXarrow();
-                    lastDragEndTimestamp.current = Date.now();
-                    setTimeout(() => {
-                        isDragging.current = false;
-                        dragTotalDistance.current = 0;
-                    }, 250);
-                }}
+                onPointerDown={handlePointerDown}
+                onPointerEnter={() => setHoveredNodeId && setHoveredNodeId(node.id)}
+                onPointerLeave={() => setHoveredNodeId && setHoveredNodeId(null)}
                 onClick={(e) => {
                     e.stopPropagation();
                 }}
-                initial={{ x: node.position.x * scale + pan.x, y: node.position.y * scale + pan.y, scale }}
-                animate={{ x: node.position.x * scale + pan.x, y: node.position.y * scale + pan.y, scale }}
+                animate={{ x: screenX, y: screenY, scale }}
                 transition={{ duration: 0 }}
                 style={{ transformOrigin: '0 0', zIndex: isSelected ? 20 : 1 }}
                 className="absolute flex items-center gap-2 z-20 pointer-events-auto animate-fadeIn"
@@ -567,7 +648,7 @@ export function CanvasNode({ id }: { id: string }) {
                                     node.data?.validationError
                                         ? "border-rose-500 ring-2 ring-rose-500/50 shadow-rose-500/20 animate-shake bg-rose-500/10"
                                         : "border-[#393939] hover:border-white hover:bg-white/10"
-                                    )}
+                                )}
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     if (wasRecentlyDragged()) return;
@@ -649,40 +730,19 @@ export function CanvasNode({ id }: { id: string }) {
         return (
             <motion.div
                 id={node.id}
-                drag
-                dragMomentum={false}
-                onDrag={(e, info) => {
-                    dragTotalDistance.current += Math.hypot(info.delta.x, info.delta.y);
-                    autoPanOnDragEdge(e);
-                    throttledUpdateXarrow();
-                }}
-                onDragStart={() => {
-                    isDragging.current = true;
-                    dragTotalDistance.current = 0;
-                }}
-                onDragEnd={(e, info) => {
-                    const rawX = node.position.x + info.offset.x / scale;
-                    const rawY = node.position.y + info.offset.y / scale;
-                    const clamped = clampNodePosition(rawX, rawY);
-                    dispatch(updateNodePosition({
-                        id: node.id,
-                        position: clamped
-                    }));
-                    throttledUpdateXarrow();
-                    lastDragEndTimestamp.current = Date.now();
-                    setTimeout(() => {
-                        isDragging.current = false;
-                        dragTotalDistance.current = 0;
-                    }, 250);
-                }}
+                onPointerDown={handlePointerDown}
+                onPointerEnter={() => setHoveredNodeId && setHoveredNodeId(node.id)}
+                onPointerLeave={() => setHoveredNodeId && setHoveredNodeId(null)}
                 onClick={(e) => {
                     e.stopPropagation();
                 }}
-                initial={{ x: node.position.x * scale + pan.x, y: node.position.y * scale + pan.y, scale: 1 }}
-                animate={{ x: node.position.x * scale + pan.x, y: node.position.y * scale + pan.y, scale: 1 }}
+                animate={{ x: screenX, y: screenY, scale: 1 }}
                 transition={{ duration: 0 }}
                 style={{ transformOrigin: '0 0', zIndex: 5 }}
-                className="absolute flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-[#c4c0ff]/30 bg-[#161622] text-[#c4c0ff] text-[10px] font-bold whitespace-nowrap backdrop-blur-sm shadow-2xl cursor-grab active:cursor-grabbing pointer-events-auto hover:border-[#c4c0ff] transition-colors"
+                className={cn(
+                    "absolute flex items-center gap-1.5 px-2.5 py-1 rounded-lg border bg-[#161622] text-[#c4c0ff] text-[10px] font-bold whitespace-nowrap backdrop-blur-sm shadow-2xl cursor-grab active:cursor-grabbing pointer-events-auto transition-colors",
+                    isNodeActiveInFlow ? "border-[#c4c0ff] ring-2 ring-[#c4c0ff]/80 shadow-[0_0_15px_rgba(196,192,255,0.4)]" : "border-[#c4c0ff]/30 hover:border-[#c4c0ff]"
+                )}
             >
                 <SplitIcon className="w-3.5 h-3.5 text-[#c4c0ff] shrink-0" />
                 {/* <span className="leading-tight">{node.data?.button_name || '👉 Follow Us'}</span> */}
@@ -706,35 +766,10 @@ export function CanvasNode({ id }: { id: string }) {
         return (
             <motion.div
                 id={node.id}
-                drag
-                dragMomentum={false}
-                onDrag={(e, info) => {
-                    dragTotalDistance.current += Math.hypot(info.delta.x, info.delta.y);
-                    autoPanOnDragEdge(e);
-                    throttledUpdateXarrow();
-                }}
-                onDragStart={() => {
-                    isDragging.current = true;
-                    dragTotalDistance.current = 0;
-                    dispatch(selectNode(null));
-                }}
-                onDragEnd={(e, info) => {
-                    const rawX = node.position.x + info.offset.x / scale;
-                    const rawY = node.position.y + info.offset.y / scale;
-                    const clamped = clampNodePosition(rawX, rawY);
-                    dispatch(updateNodePosition({
-                        id: node.id,
-                        position: clamped
-                    }));
-                    throttledUpdateXarrow();
-                    lastDragEndTimestamp.current = Date.now();
-                    setTimeout(() => {
-                        isDragging.current = false;
-                        dragTotalDistance.current = 0;
-                    }, 250);
-                }}
-                initial={{ x: node.position.x * scale + pan.x, y: node.position.y * scale + pan.y, scale }}
-                animate={{ x: node.position.x * scale + pan.x, y: node.position.y * scale + pan.y, scale }}
+                onPointerDown={handlePointerDown}
+                onPointerEnter={() => setHoveredNodeId && setHoveredNodeId(node.id)}
+                onPointerLeave={() => setHoveredNodeId && setHoveredNodeId(null)}
+                animate={{ x: screenX, y: screenY, scale }}
                 transition={{ duration: 0 }}
                 style={{ transformOrigin: '0 0', zIndex: isSelected ? 10 : 1 }}
                 onClick={(e) => {
@@ -756,6 +791,7 @@ export function CanvasNode({ id }: { id: string }) {
                 <InstagramProfileCard
                     size="canvas"
                     className={cn(
+                        isNodeActiveInFlow ? "ring-2 ring-[#c4c0ff] border-[#c4c0ff] shadow-[0_0_20px_rgba(196,192,255,0.4)]" : "",
                         node.data?.validationError ? "ring-2 ring-rose-500 shadow-rose-500/30 animate-shake" : "",
                         isSelected && !node.data?.validationError ? "ring-2 ring-[#c4c0ff]/60 border-[#c4c0ff]/60" : ""
                     )}
@@ -769,35 +805,10 @@ export function CanvasNode({ id }: { id: string }) {
     return (
         <motion.div
             id={node.id}
-            drag
-            dragMomentum={false}
-            onDrag={(e, info) => {
-                dragTotalDistance.current += Math.hypot(info.delta.x, info.delta.y);
-                autoPanOnDragEdge(e);
-                throttledUpdateXarrow();
-            }}
-            onDragStart={() => {
-                isDragging.current = true;
-                dragTotalDistance.current = 0;
-                dispatch(selectNode(null));
-            }}
-            onDragEnd={(e, info) => {
-                const rawX = node.position.x + info.offset.x / scale;
-                const rawY = node.position.y + info.offset.y / scale;
-                const clamped = clampNodePosition(rawX, rawY);
-                dispatch(updateNodePosition({
-                    id: node.id,
-                    position: clamped
-                }));
-                throttledUpdateXarrow();
-                lastDragEndTimestamp.current = Date.now();
-                setTimeout(() => {
-                    isDragging.current = false;
-                    dragTotalDistance.current = 0;
-                }, 250);
-            }}
-            initial={{ x: node.position.x * scale + pan.x, y: node.position.y * scale + pan.y, scale }}
-            animate={{ x: node.position.x * scale + pan.x, y: node.position.y * scale + pan.y, scale }}
+            onPointerDown={handlePointerDown}
+            onPointerEnter={() => setHoveredNodeId && setHoveredNodeId(node.id)}
+            onPointerLeave={() => setHoveredNodeId && setHoveredNodeId(null)}
+            animate={{ x: screenX, y: screenY, scale }}
             transition={{ duration: 0 }}
             style={{ transformOrigin: '0 0', zIndex: isSelected ? 10 : 1 }}
             onClick={(e) => {
@@ -823,11 +834,13 @@ export function CanvasNode({ id }: { id: string }) {
             className={cn(
                 "absolute flex flex-col w-[320px] rounded-[1.25rem] border-[1px] cursor-pointer shadow-2xl pointer-events-auto transition-colors",
                 "backdrop-blur-[20px] bg-[#1c1b1b]/60",
-                node.data?.validationError
-                    ? "border-rose-500 ring-2 ring-rose-500/60 shadow-rose-500/20"
-                    : isEventReply
-                        ? "border-[#c4c0ff]/20 hover:border-[#c4c0ff]/40"
-                        : "border-white/10 hover:border-white/20",
+                isNodeActiveInFlow
+                    ? "ring-2 ring-[#c4c0ff] border-[#c4c0ff] shadow-[0_0_20px_rgba(196,192,255,0.4)]"
+                    : node.data?.validationError
+                        ? "border-rose-500 ring-2 ring-rose-500/60 shadow-rose-500/20"
+                        : isEventReply
+                            ? "border-[#c4c0ff]/20 hover:border-[#c4c0ff]/40"
+                            : "border-white/10 hover:border-white/20",
                 isSelected && !node.data?.validationError
                     ? (isEventReply ? "ring-2 ring-[#c4c0ff]/20 border-[#c4c0ff]/40" : "ring-2 ring-white/20 border-white/30")
                     : "hover:bg-[#1c1b1b]/70"
@@ -850,53 +863,53 @@ export function CanvasNode({ id }: { id: string }) {
                                     window.dispatchEvent(new CustomEvent('update-xarrow'));
                                 }, 50);
                             }}
-                            className="absolute top-3 right-4 p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-500/10 cursor-pointer transition-all z-30"
+                            className="absolute top-3 right-4 py-1.5 pl-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-500/10 cursor-pointer transition-all z-30"
                             title="Remove Wireframe"
                         >
                             <X className="w-4 h-4" />
                         </button>
                     )}
                 {/* Overlapping Pill */}
-                <div className="absolute -top-3 left-4 flex gap-2">
-                    <span className={cn("px-3 py-1.5 rounded-full text-[10px] justify-center items-center flex tracking-widest leading-none outline outline-[#131313] outline-[4px]", customPillColor)}>
+                <div className="absolute -top-3 left-5 flex gap-2">
+                    <span className={cn("px-2.5 py-1 rounded-full text-[10px] justify-center items-center flex tracking-widest leading-none outline outline-[#131313] outline-[4px]", customPillColor)}>
                         {customPill}
                     </span>
                     {node.data?.parent_event && (
-                        <span className="px-3 py-1.5 rounded-full text-[10px] font-black bg-black  border border-[#c4c0ff]/30 text-white outline outline-[#131313] outline-[4px]  tracking-wider">
+                        <span className="px-3.5 py-1.5 rounded-full text-[10px] font-black bg-black border border-[#c4c0ff]/30 text-white outline outline-[#131313] outline-[4px] tracking-wider">
                             {node.data?.parent_label || 'Trigger'}
                         </span>
                     )}
                 </div>
 
-                <div className="p-5 pt-8">
+                <div className="p-4 pt-5">
                     {node.data?.validationError && (
-                        <div className="mb-4 px-3 py-2 bg-rose-500/15 border border-rose-500/40 rounded-lg text-rose-300 text-[11px] font-medium flex items-start gap-2 shadow-lg animate-fadeIn">
+                        <div className="mb-4 px-3.5 py-2.5 bg-rose-500/15 border border-rose-500/40 rounded-xl text-rose-300 text-[11px] font-medium flex items-start gap-2 shadow-lg animate-fadeIn">
                             <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
                             <span className="leading-snug">{node.data.validationError}</span>
                         </div>
                     )}
-                    <div className="flex items-center gap-3 mb-5">
-                        <div className="w-8 h-8 rounded-[0.4rem] bg-[#2a2a2a] flex items-center justify-center border border-white/5">
+                    <div className="flex items-center gap-3 mb-2.5">
+                        <div className="w-7 h-7 rounded-md bg-[#2a2a2a] flex items-center justify-center border border-white/5 shadow-inner shrink-0">
                             <ArrowRightFromLineIcon className="w-4 h-4 text-white" />
                         </div>
-                        <h4 className="text-[17px] font-bold text-white tracking-tight">{customTitle}</h4>
+                        <h4 className="text-base font-bold text-white tracking-tight">{customTitle}</h4>
                     </div>
 
                     {/* Node Content Variations based on type and dynamic data */}
                     {node.type === 'trigger' && (() => {
                         if (node.data?.is_icebreaker_trigger) {
                             return (
-                                <div className="flex flex-col gap-3 text-xs w-full">
-                                    <div className="bg-black/35 border border-white/5 rounded-xl p-3 flex flex-col gap-2">
+                                <div className="flex flex-col gap-3.5 text-xs w-full">
+                                    <div className="bg-black/35 border border-white/5 rounded-xl p-3.5 flex flex-col gap-2.5">
                                         {/* <span className="text-[10px] font-bold text-[#8FE3FF] tracking-widest block mb-1">💬 Suggested Questions (Icebreakers)</span> */}
                                         {node.data?.welcome_prompt && (
-                                            <div className="text-[10px] text-zinc-400 italic mb-1.5 font-medium border-b border-white/5 pb-1 text-center">
+                                            <div className="text-[10px] text-zinc-400 italic mb-1.5 font-medium border-b border-white/5 pb-1.5 text-center">
                                                 {node.data.welcome_prompt}
                                             </div>
                                         )}
-                                        <div className="flex flex-col gap-1.5">
+                                        <div className="flex flex-col gap-2">
                                             {(node.data?.icebreakers || []).map((ib: any, idx: number) => (
-                                                <div key={idx} className="bg-white/5 border border-[#444748] rounded-lg p-2.5 text-left text-xs font-semibold text-white flex items-center justify-between gap-3">
+                                                <div key={idx} className="bg-white/5 border border-[#444748] rounded-xl p-3 text-left text-xs font-semibold text-white flex items-center justify-between gap-3">
                                                     <span>{ib.question || `Question ${idx + 1}`}</span>
                                                     {/* <span className="text-[8px] bg-[#8FE3FF]/10 text-[#8FE3FF] border border-[#8FE3FF]/20 px-1 py-0.2 rounded font-mono shrink-0 ">{ib.payload}</span> */}
                                                 </div>
@@ -912,21 +925,18 @@ export function CanvasNode({ id }: { id: string }) {
 
                         if (node.data?.is_menu_trigger) {
                             return (
-                                <div className="flex flex-col gap-3 text-xs w-full">
-                                    <div className="bg-black/35 border border-white/5 rounded-xl p-3 flex flex-col gap-2">
-                                        <span className="text-[10px] font-bold text-[#C084FC] tracking-widest block mb-1">🍔 Persistent Menu Actions</span>
+                                <div className="flex flex-col gap-3.5 text-xs w-full">
+                                    <div className="bg-black/35 border border-white/5 rounded-xl p-3.5 flex flex-col gap-2.5">
+                                        <span className="text-[10px] font-bold text-[#C084FC] tracking-widest block mb-0.5">🍔 Persistent Menu Actions</span>
                                         {node.data?.composer_input_disabled && (
-                                            <span className="text-[8.5px] px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400 self-start font-bold tracking-wider mb-1">
+                                            <span className="text-[8.5px] px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-400 self-start font-bold tracking-wider mb-0.5">
                                                 Composer Input Disabled
                                             </span>
                                         )}
-                                        <div className="flex flex-col gap-1.5">
+                                        <div className="flex flex-col gap-2">
                                             {(node.data?.persistent_menu_items || []).map((item: any, idx: number) => (
-                                                <div key={idx} className="bg-white/5 border border-[#444748] rounded-lg p-2.5 text-left text-xs font-semibold text-white flex items-center justify-between gap-3">
+                                                <div key={idx} className="bg-white/5 border border-[#444748] rounded-xl p-3 text-left text-xs font-semibold text-white flex items-center justify-between gap-3">
                                                     <span className="truncate">{item.title || `Button ${idx + 1}`}</span>
-                                                    {/* <span className="text-[8px] bg-purple-500/10 text-purple-400 border border-purple-500/20 px-1 py-0.2 rounded font-mono shrink-0 ">
-                                                    {item.type === 'web_url' ? 'URL' : item.payload || 'POSTBACK'}
-                                                </span> */}
                                                 </div>
                                             ))}
                                             {(!node.data?.persistent_menu_items || node.data.persistent_menu_items.length === 0) && (
@@ -944,8 +954,8 @@ export function CanvasNode({ id }: { id: string }) {
 
                         if (isStandardDMRule) {
                             return (
-                                <div className="flex flex-col gap-3 text-xs">
-                                    <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col gap-1.5">
+                                <div className="flex flex-col gap-3.5 text-xs">
+                                    <div className="bg-white/5 border border-white/10 rounded-xl p-3.5 flex flex-col gap-2">
                                         <span className="text-[10px] font-bold text-[#c4c7c8] tracking-widest">Trigger Event</span>
                                         <span className="text-sm font-semibold text-white">
                                             User Sends a Direct Message
@@ -968,21 +978,21 @@ export function CanvasNode({ id }: { id: string }) {
                             displayTarget = isSelectedMode ? 'Selected Media Only' : 'Every Post / Reel';
                         }
                         return (
-                            <div className="flex flex-col gap-3 text-xs">
-                                <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col gap-2">
+                            <div className="flex flex-col gap-3.5 text-xs">
+                                <div className="bg-white/5 border border-white/10 rounded p-2 flex flex-col gap-2.5">
                                     <span className="text-[10px] font-bold text-[#c4c7c8] tracking-widest">Target & Media</span>
                                     <span className="text-sm font-semibold text-white">
                                         {displayTarget}
                                     </span>
                                     {node.data?.media_ids_details && node.data.media_ids_details.length > 0 && (
-                                        <div className="flex flex-wrap gap-1 mt-2">
+                                        <div className="flex flex-wrap gap-1.5 mt-2">
                                             {node.data.media_ids_details.slice(0, 4).map((m: any) => (
-                                                <div key={m.id} className="w-8 h-8 rounded-md overflow-hidden border border-white/10 shrink-0">
+                                                <div key={m.id} className="w-9 h-9 rounded-lg overflow-hidden border border-white/10 shrink-0">
                                                     <img src={m.thumbnail_url || m.media_url} alt="" className="w-full h-full object-cover" />
                                                 </div>
                                             ))}
                                             {node.data.media_ids_details.length > 4 && (
-                                                <div className="w-8 h-8 rounded-md bg-white/5 border border-white/10 flex items-center justify-center text-[9px] font-bold text-white shrink-0">
+                                                <div className="w-9 h-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-[9px] font-bold text-white shrink-0">
                                                     +{node.data.media_ids_details.length - 4}
                                                 </div>
                                             )}
@@ -991,7 +1001,7 @@ export function CanvasNode({ id }: { id: string }) {
                                 </div>
 
                                 {node.data?.detailed && (
-                                    <div className="bg-white/5 border border-white/15 rounded-xl p-3 space-y-2.5 animate-fadeIn">
+                                    <div className="bg-white/5 border border-white/15 rounded-xl p-3.5 space-y-2.5 animate-fadeIn">
                                         <span className="text-[10px] font-bold text-[#c4c7c8] tracking-widest block border-b border-white/5 pb-1">Trigger Config</span>
                                         <div className="grid grid-cols-2 gap-x-2 gap-y-2 text-[10px] text-[#c4c7c8]">
                                             <div className="flex flex-col col-span-2">
@@ -1006,7 +1016,7 @@ export function CanvasNode({ id }: { id: string }) {
                     })()}
 
                     {node.type === 'condition' && (
-                        <div className="flex flex-col gap-3 text-xs">
+                        <div className="flex flex-col gap-3.5 text-xs">
                             <div
                                 onClick={(e) => {
                                     e.stopPropagation();
@@ -1015,11 +1025,11 @@ export function CanvasNode({ id }: { id: string }) {
                                         detail: { nodeId: node.id }
                                     }));
                                 }}
-                                className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col gap-2 hover:bg-[#CECBF6]/5 hover:border-[#CECBF6]/40 cursor-pointer transition-all"
+                                className="bg-white/5 border border-white/10 rounded p-2 flex flex-col gap-2.5 hover:bg-[#CECBF6]/5 hover:border-[#CECBF6]/40 cursor-pointer transition-all"
                             >
                                 <div className="flex items-center justify-between">
                                     <span className="text-[10px] font-bold text-[#c4c7c8] tracking-widest">Match Type</span>
-                                    <span className="text-[10px] px-2 py-0.5 rounded-[4px] font-bold bg-[#E6F1FB] text-[#185FA5] ">
+                                    <span className="text-[10px] px-2.5 py-0.5 rounded-md font-bold bg-[#E6F1FB] text-[#185FA5]">
                                         {node.ruleType?.includes('share') ? 'Auto Share Match' : (node.data?.match_type || 'Contains')}
                                     </span>
                                 </div>
@@ -1033,7 +1043,7 @@ export function CanvasNode({ id }: { id: string }) {
                                             Keywords: {(() => {
                                                 const kws = node.data?.match_type === 'equals' ? node.data?.keywords_equals : node.data?.keywords;
                                                 return kws?.length > 0 ? (
-                                                    <span className="font-mono text-[10px] bg-[#222] px-1.5 py-0.5 rounded-sm line-clamp-2 mt-1 block">
+                                                    <span className="font-mono text-[10px] bg-[#222] px-2 py-1 rounded-md line-clamp-2 mt-1.5 block">
                                                         [{kws.join(', ')}]
                                                     </span>
                                                 ) : (
@@ -1053,11 +1063,11 @@ export function CanvasNode({ id }: { id: string }) {
                                         detail: { nodeId: node.id }
                                     }));
                                 }}
-                                className="bg-[#2a2a2a]/30 border border-white/5 rounded-xl p-2.5 flex flex-col gap-1.5 hover:bg-[#CECBF6]/5 hover:border-[#CECBF6]/40 cursor-pointer transition-all"
+                                className="bg-[#2a2a2a]/30 border border-white/5 rounded p-3 flex flex-col gap-2 hover:bg-[#CECBF6]/5 hover:border-[#CECBF6]/40 cursor-pointer transition-all"
                             >
                                 <div className="flex items-center justify-between">
-                                    <span className="text-[#c4c7c8] text-[10px]">Follower Gate</span>
-                                    <div className={cn("px-2 py-0.5 rounded-full text-[9px] font-bold", node.data?.follower_gate ? "bg-[#FCEBEB] text-[#A32D2D]" : "bg-white/5 text-white/40")}>
+                                    <span className="text-[#c4c7c8] text-[10px] font-semibold">Follower Gate</span>
+                                    <div className={cn("px-2.5 py-0.5 rounded-full text-[9px] font-bold", node.data?.follower_gate ? "bg-[#FCEBEB] text-[#A32D2D]" : "bg-white/5 text-white/40")}>
                                         {node.data?.follower_gate ? "Active" : "Disabled"}
                                     </div>
                                 </div>
@@ -1069,7 +1079,7 @@ export function CanvasNode({ id }: { id: string }) {
                             </div>
 
                             {node.data?.detailed && (
-                                <div className="bg-white/5 border border-white/15 rounded-xl p-3 space-y-2.5 animate-fadeIn">
+                                <div className="bg-white/5 border border-white/15 rounded-xl p-3.5 space-y-2.5 animate-fadeIn">
                                     <span className="text-[10px] font-bold text-[#c4c7c8] tracking-widest block border-b border-white/5 pb-1">Detailed Config</span>
                                     <div className="flex flex-col gap-2 text-[10px] text-[#c4c7c8]">
                                         <div className="flex justify-between">
@@ -1081,7 +1091,7 @@ export function CanvasNode({ id }: { id: string }) {
                                                 <span className="opacity-60 mb-1">Gate Messages:</span>
                                                 <div className="space-y-1">
                                                     {node.data.follower_gate_messages.map((m: string, i: number) => (
-                                                        <div key={i} className="text-white bg-white/5 p-1 px-1.5 rounded text-[9px] italic break-words">
+                                                        <div key={i} className="text-white bg-white/5 p-1.5 px-2 rounded-lg text-[9px] italic break-words">
                                                             &quot;{m}&quot;
                                                         </div>
                                                     ))}
@@ -1095,20 +1105,18 @@ export function CanvasNode({ id }: { id: string }) {
                     )}
 
                     {node.type === 'action' && node.data?.parent_event === 'TRACK_ORDER' && (
-                        <div className="flex flex-col gap-2.5 text-xs font-semibold">
+                        <div className="flex flex-col gap-3 text-xs font-semibold">
                             {node.data.is_track_prompt && (
-                                <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col gap-1.5 animate-fadeIn">
-                                    {/* <span className="text-[9px] text-zinc-500 tracking-widest font-extrabold">System DM Prompt</span> */}
-                                    <p className="text-zinc-200 font-mono text-[10.5px] bg-black/35 p-2.5 rounded border border-white/5 whitespace-pre-line leading-relaxed">
+                                <div className="bg-white/5 border border-white/10 rounded-xl p-3.5 flex flex-col gap-2 animate-fadeIn">
+                                    <p className="text-zinc-200 font-mono text-[10.5px] bg-black/35 p-3 rounded-lg border border-white/5 whitespace-pre-line leading-relaxed">
                                         &quot;Please reply with your Order ID to track your order. 📦&quot;
                                     </p>
                                 </div>
                             )}
 
                             {node.data.is_track_input && (
-                                <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col gap-2.5 animate-fadeIn">
-                                    {/* <span className="text-[9px] text-zinc-500 tracking-widest font-extrabold">Expected Action</span> */}
-                                    <div className="text-zinc-305 font-medium text-[10.5px] flex flex-col gap-1.5 bg-black/25 p-2.5 rounded border border-white/5">
+                                <div className="bg-white/5 border border-white/10 rounded p-2 flex flex-col gap-2.5 animate-fadeIn">
+                                    <div className="text-zinc-300 font-medium text-[10.5px] flex flex-col gap-2 bg-black/25 p-3 rounded-lg border border-white/5">
                                         <div>• Customer replies with Order ID</div>
                                         <div>• Session captures input dynamically</div>
                                     </div>
@@ -1116,16 +1124,15 @@ export function CanvasNode({ id }: { id: string }) {
                             )}
 
                             {node.data.is_track_response && (
-                                <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col gap-2.5 animate-fadeIn">
-                                    {/* <span className="text-[9px] text-zinc-500 tracking-widest font-extrabold font-extrabold block mb-0.5">Database Check Responses</span> */}
+                                <div className="bg-white/5 border border-white/10 rounded p-2 flex flex-col gap-2.5 animate-fadeIn">
                                     <div className="grid grid-cols-1 gap-2 text-[9px] font-semibold leading-relaxed">
-                                        <div className="text-green-200 font-medium text-[10.5px] flex flex-col gap-1.5 bg-black/25 p-2.5 rounded border border-white/5">
+                                        <div className="text-green-200 font-medium text-[10.5px] flex flex-col gap-1.5 bg-black/25 p-3 rounded-lg border border-white/5">
                                             Returns live order status
                                         </div>
                                         <div className='w-full flex justify-center text-[12.5px]'>
                                             or
                                         </div>
-                                        <div className="text-red-200 font-medium text-[10.5px] flex flex-col gap-1.5 bg-black/25 p-2.5 rounded border border-white/5">
+                                        <div className="text-red-200 font-medium text-[10.5px] flex flex-col gap-1.5 bg-black/25 p-3 rounded-lg border border-white/5">
                                             Prompts customer to check ID and retry
                                         </div>
                                     </div>
@@ -1135,14 +1142,14 @@ export function CanvasNode({ id }: { id: string }) {
                     )}
 
                     {node.type === 'action' && node.data?.parent_event !== 'TRACK_ORDER' && (
-                        <div className="flex flex-col gap-3 text-xs">
-                            <div className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col gap-2">
+                        <div className="flex flex-col gap-3.5 text-xs">
+                            <div className="bg-white/5 border border-white/10 rounded p-2 flex flex-col gap-2.5">
                                 <div className="flex items-center justify-between">
-                                    <span className="bg-[#F1EFE8] text-[#444441] text-[9px] font-bold px-2 py-0.5 rounded-md ">
+                                    <span className="bg-[#F1EFE8] text-[#444441] text-[9px] font-bold px-2.5 py-0.5 rounded-md">
                                         {node.data?.action_type?.replace('_', ' ') || 'Reply Comment'}
                                     </span>
                                     {node.data?.dm_format && (
-                                        <span className="bg-[#EEEDFE] text-[#534AB7] text-[9px] font-bold px-2 py-0.5 rounded-md ">
+                                        <span className="bg-[#EEEDFE] text-[#534AB7] text-[9px] font-bold px-2.5 py-0.5 rounded-md">
                                             {node.data.dm_format.replace('_', ' ')}
                                         </span>
                                     )}
@@ -1157,19 +1164,19 @@ export function CanvasNode({ id }: { id: string }) {
                                                 detail: { nodeId: node.id }
                                             }));
                                         }}
-                                        className="bg-[#262626]/50 p-2 rounded-lg border border-white/5 hover:border-[#c4c0ff]/45 hover:bg-[#c4c0ff]/5 cursor-pointer transition-all"
+                                        className="bg-[#262626]/50 p-2.5 rounded-xl border border-white/5 hover:border-[#c4c0ff]/45 hover:bg-[#c4c0ff]/5 cursor-pointer transition-all"
                                     >
-                                        <span className="text-[9px] font-bold text-on-surface-variant tracking-widest block mb-0.5">
+                                        <span className="text-[9px] font-bold text-on-surface-variant tracking-widest block mb-1">
                                             Messages
                                         </span>
                                         {!node.data?.detailed ? (
-                                            <p className="text-[10px] text-[#c4c7c8] italic line-clamp-2">
+                                            <p className="text-[10.5px] text-[#c4c7c8] italic line-clamp-2">
                                                 &quot;{node.data.messages[0]}&quot;
                                             </p>
                                         ) : (
                                             <div className="space-y-1.5 max-h-[120px] overflow-y-auto pr-1 scrollbar-thin">
                                                 {node.data.messages.map((msg: string, idx: number) => (
-                                                    <div key={idx} className="text-[10px] text-[#c4c7c8] bg-white/5 p-1 rounded italic break-words">
+                                                    <div key={idx} className="text-[10px] text-[#c4c7c8] bg-white/5 p-1.5 rounded-lg italic break-words">
                                                         {idx + 1}. &quot;{msg}&quot;
                                                     </div>
                                                 ))}
@@ -1188,16 +1195,15 @@ export function CanvasNode({ id }: { id: string }) {
                                             detail: { nodeId: node.id }
                                         }));
                                     }}
-                                    className="bg-black/35 hover:bg-[#c4c0ff]/5 border border-white/5 hover:border-[#c4c0ff]/45 rounded-xl p-3 flex flex-col gap-2.5 transition-all text-[11px]"
+                                    className="bg-black/35 hover:bg-[#c4c0ff]/5 border border-white/5 hover:border-[#c4c0ff]/45 rounded-xl p-3.5 flex flex-col gap-2.5 transition-all text-[11px]"
                                 >
                                     <div className="flex flex-col gap-0.5">
-                                        {/* <span className="text-[9px] font-bold text-zinc-500 tracking-wider block">Message Prompt:</span> */}
                                         <span className="text-zinc-200 font-semibold">{node.data.quick_reply_text}</span>
                                     </div>
                                     {node.data.quick_replies_titles && (
-                                        <div className="flex flex-wrap gap-1.5 pt-1.5 border-t border-white/5">
+                                        <div className="flex flex-wrap gap-1.5 pt-2 border-t border-white/5">
                                             {node.data.quick_replies_titles.map((t: string) => (
-                                                <span key={t} className="bg-white/5 text-[#c4c0ff] px-2 py-0.5 rounded-full text-[8.5px] border border-white/10 font-bold">{t}</span>
+                                                <span key={t} className="bg-white/5 text-[#c4c0ff] px-2.5 py-1 rounded-full text-[9px] border border-white/10 font-bold">{t}</span>
                                             ))}
                                         </div>
                                     )}
@@ -1223,17 +1229,17 @@ export function CanvasNode({ id }: { id: string }) {
                                         }}
                                         className="bg-black/35 hover:bg-[#c4c0ff]/5 border border-white/5 hover:border-[#c4c0ff]/45 rounded-xl overflow-hidden flex flex-col transition-all"
                                     >
-                                        <div className="p-3 text-[11px] text-zinc-200 font-semibold border-b border-white/5 text-left bg-zinc-900/10">
+                                        <div className="p-3.5 text-xs text-zinc-200 font-semibold border-b border-white/5 text-left bg-zinc-900/10">
                                             {node.data?.button_template_text || 'What would you like to do?'}
                                         </div>
                                         <div className="flex flex-col divide-y divide-white/5 bg-zinc-950/20">
                                             {buttons.map((btn: any, idx: number) => (
-                                                <span key={idx} className="py-2 text-[10px] text-[#3797F0] font-bold text-center">
+                                                <span key={idx} className="py-2.5 text-xs text-[#3797F0] font-bold text-center">
                                                     {btn.title || 'Button'}
                                                 </span>
                                             ))}
                                             {buttons.length === 0 && (
-                                                <span className="py-2.5 text-[10px] text-zinc-500 font-bold text-center italic">No buttons configured</span>
+                                                <span className="py-3 text-[10.5px] text-zinc-500 font-bold text-center italic">No buttons configured</span>
                                             )}
                                         </div>
                                     </div>
@@ -1261,26 +1267,26 @@ export function CanvasNode({ id }: { id: string }) {
                                         className="bg-black/35 hover:bg-[#c4c0ff]/5 border border-white/5 hover:border-[#c4c0ff]/45 rounded-xl overflow-hidden flex flex-col transition-all"
                                     >
                                         {firstElem.image_url ? (
-                                            <div className="h-24 w-full bg-zinc-950 overflow-hidden relative border-b border-white/5 shrink-0">
+                                            <div className="h-26 w-full bg-zinc-950 overflow-hidden relative border-b border-white/5 shrink-0">
                                                 <img src={firstElem.image_url} alt="" className="w-full h-full object-cover" />
-                                                <span className="absolute bottom-1.5 right-2 bg-black/85 px-1.5 py-0.5 rounded text-[8px] font-bold text-white tracking-wider">
+                                                <span className="absolute bottom-1.5 right-2 bg-black/85 px-2 py-0.5 rounded text-[8.5px] font-bold text-white tracking-wider">
                                                     1 of {elements.length} Cards
                                                 </span>
                                             </div>
                                         ) : (
-                                            <div className="h-14 w-full bg-white/5 flex flex-col items-center justify-center text-[10px] font-bold text-zinc-500 border-b border-white/5">
+                                            <div className="h-16 w-full bg-white/5 flex flex-col items-center justify-center text-[10px] font-bold text-zinc-500 border-b border-white/5">
                                                 <span>Carousel Slider</span>
-                                                <span className="text-[8px] opacity-60">({elements.length} card templates)</span>
+                                                <span className="text-[8.5px] opacity-60">({elements.length} card templates)</span>
                                             </div>
                                         )}
-                                        <div className="p-2.5 flex flex-col bg-[#121212] justify-center min-h-[48px] border-b border-white/5">
-                                            <span className="text-[11px] font-bold text-white truncate text-left">{firstElem.title || 'Slide Title'}</span>
-                                            <span className="text-[9px] text-zinc-400 mt-0.5 truncate text-left">{firstElem.subtitle || 'Slide Description'}</span>
+                                        <div className="p-3 flex flex-col bg-[#121212] justify-center min-h-[52px] border-b border-white/5">
+                                            <span className="text-xs font-bold text-white truncate text-left">{firstElem.title || 'Slide Title'}</span>
+                                            <span className="text-[9.5px] text-zinc-400 mt-0.5 truncate text-left">{firstElem.subtitle || 'Slide Description'}</span>
                                         </div>
                                         {firstElem.buttons && firstElem.buttons.length > 0 && (
                                             <div className="flex flex-col divide-y divide-white/5 bg-zinc-950/20">
                                                 {firstElem.buttons.map((btn: any, bi: number) => (
-                                                    <span key={bi} className="py-2 text-[10px] text-[#3797F0] font-bold text-center">
+                                                    <span key={bi} className="py-2.5 text-xs text-[#3797F0] font-bold text-center">
                                                         {btn.title || 'Button'}
                                                     </span>
                                                 ))}
@@ -1301,11 +1307,11 @@ export function CanvasNode({ id }: { id: string }) {
                                                 detail: { nodeId: node.id }
                                             }));
                                         }}
-                                        className="bg-black/35 hover:bg-[#c4c0ff]/5 border border-white/5 hover:border-[#c4c0ff]/45 rounded-xl p-3 flex flex-col gap-2 transition-all cursor-pointer"
+                                        className="bg-black/35 hover:bg-[#c4c0ff]/5 border border-white/5 hover:border-[#c4c0ff]/45 rounded-xl p-3.5 flex flex-col gap-2.5 transition-all cursor-pointer"
                                     >
                                         <div className="flex items-center justify-between">
                                             <span className="text-[9px] font-bold text-zinc-500 tracking-wider block">Attachments</span>
-                                            <span className="bg-[#c4c0ff]/15 text-[#c4c0ff] text-[8px] font-bold px-1.5 py-0.5 rounded">
+                                            <span className="bg-[#c4c0ff]/15 text-[#c4c0ff] text-[8.5px] font-bold px-2 py-0.5 rounded-md">
                                                 {attachList.length} files
                                             </span>
                                         </div>
@@ -1335,7 +1341,7 @@ export function CanvasNode({ id }: { id: string }) {
                                                     const isImage = type === 'image' && url;
 
                                                     return (
-                                                        <div key={index} className="w-10 h-10 rounded-lg bg-zinc-900 border border-white/10 overflow-hidden flex items-center justify-center shrink-0">
+                                                        <div key={index} className="w-11 h-11 rounded-xl bg-zinc-900 border border-white/10 overflow-hidden flex items-center justify-center shrink-0">
                                                             {isImage ? (
                                                                 <img src={url} alt="" className="w-full h-full object-cover" />
                                                             ) : type === 'video' ? (
@@ -1539,10 +1545,10 @@ export function CanvasNode({ id }: { id: string }) {
                                 setTimeout(() => window.dispatchEvent(new CustomEvent('update-xarrow')), 50);
                             }
                         }}
-                        className="w-full py-2.5 px-3 border-t-2 border-dashed border-[#c4c0ff] bg-purple-950/80 hover:bg-purple-800 rounded-b-[1.25rem] flex items-center justify-center gap-2 text-[10px] font-extrabold text-[#c4c0ff] hover:text-white transition-all cursor-pointer select-none animate-pulse shadow-xl shadow-purple-500/20"
+                        className="w-full py-2.5 px-3 border-t-2 border-dashed border-[#c4c0ff] bg-purple-950/80 hover:bg-purple- rounded-b-[1.25rem] flex items-center justify-center gap-2 text-[15px]  text-[#c4c0ff] hover:text-white transition-all cursor-pointer select-none  shadow-xl shadow-purple-500/20"
                     >
-                        <RotateCcw className="w-3.5 h-3.5 shrink-0" />
-                        <span>Connect Loop Input (Bottom)</span>
+                        <Plug className="w-3.5 h-3.5 shrink-0" />
+                        <span>Connect Here </span>
                     </div>
                 )}
             </div>
@@ -1699,9 +1705,11 @@ export function CanvasEdges() {
     const edges = useSelector((state: RootState) => state.flow.edges);
     const nodes = useSelector((state: RootState) => state.flow.nodes);
     const selectedNodeId = useSelector((state: RootState) => state.flow.selectedNodeId);
-    const { pan, scale } = useCanvas();
+    const { pan, scale, hoveredNodeId } = useCanvas();
     const updateXarrow = useXarrow();
     const [badgeOffsets, setBadgeOffsets] = React.useState<Record<string, { x: number; y: number }>>({});
+
+    const activeFlow = React.useMemo(() => getActiveFlowPaths(hoveredNodeId, nodes, edges), [hoveredNodeId, nodes, edges]);
 
     const xarrowRafRef = React.useRef<number | null>(null);
     const throttledUpdateXarrow = React.useCallback(() => {
@@ -1719,26 +1727,31 @@ export function CanvasEdges() {
                 const isFollowingEdge = edge.label === 'If Following';
                 const isNotFollowingEdge = edge.label === 'If Not Following';
                 const isLoopEdge = edge.id.includes('loop') || edge.label?.includes('Loop');
+                const isActiveEdge = activeFlow.activeEdgeIds.has(edge.id);
 
-                const edgeColor = isFollowingEdge
-                    ? '#10b981'
-                    : isNotFollowingEdge
-                        ? '#f43f5e'
-                        : isLoopEdge
-                            ? '#c4c0ff'
-                            : edge.label
+                const edgeColor = isActiveEdge
+                    ? '#c4c0ff'
+                    : isFollowingEdge
+                        ? '#10b981'
+                        : isNotFollowingEdge
+                            ? '#f43f5e'
+                            : isLoopEdge
                                 ? '#c4c0ff'
-                                : '#666';
+                                : edge.label
+                                    ? '#c4c0ff'
+                                    : '#666';
 
-                const headColor = isFollowingEdge
-                    ? '#10b981'
-                    : isNotFollowingEdge
-                        ? '#f43f5e'
-                        : isLoopEdge
-                            ? '#c4c0ff'
-                            : edge.label
+                const headColor = isActiveEdge
+                    ? '#c4c0ff'
+                    : isFollowingEdge
+                        ? '#10b981'
+                        : isNotFollowingEdge
+                            ? '#f43f5e'
+                            : isLoopEdge
                                 ? '#c4c0ff'
-                                : '#8e9192';
+                                : edge.label
+                                    ? '#c4c0ff'
+                                    : '#8e9192';
 
                 if (isLoopEdge) {
                     const sNode = nodes.find(n => n.id === edge.source);
@@ -1783,6 +1796,10 @@ export function CanvasEdges() {
                     const posX = Math.max(minX, Math.min(maxX, rawX));
                     const posY = Math.max(minY, rawY);
 
+                    const loopClassName = isActiveEdge
+                        ? "loop-back-wire-path active-loop-back"
+                        : "loop-back-wire-path";
+
                     return (
                         <div key={edge.id} className="group/loop-wire">
                             {/* Draggable Waypoint Badge centered at (0, -5) between Target Card (0, 3) and Loop Back Card (2, 3) */}
@@ -1811,19 +1828,16 @@ export function CanvasEdges() {
                                 key={`seg1-${edge.id}`}
                                 start={edge.source}
                                 end={`loop-badge-in-${edge.id}`}
-                                color="#c4c0ff"
-                                strokeWidth={2 * scale}
+                                color={isActiveEdge ? "#c4c0ff" : "#c4c0ff"}
+                                strokeWidth={(isActiveEdge ? 2 : 1.75) * scale}
                                 path="smooth"
-                                showHead={true}
-                                headSize={3.5}
-                                headColor="#c4c0ff"
-                                headShape="arrow1"
+                                showHead={false}
                                 curveness={0.55}
                                 startAnchor="bottom"
                                 endAnchor="right"
-                                dashness={{ strokeLen: 5, nonStrokeLen: 5 }}
+                                dashness={{ strokeLen: 6, nonStrokeLen: 6 }}
                                 zIndex={0}
-                                passProps={{ className: "loop-back-wire-path" }}
+                                passProps={{ className: loopClassName }}
                             />
 
                             {/* Segment 2: Exits horizontally from EXACT LEFT handle of the badge into BOTTOM of previous card */}
@@ -1831,23 +1845,23 @@ export function CanvasEdges() {
                                 key={`seg2-${edge.id}`}
                                 start={`loop-badge-out-${edge.id}`}
                                 end={edge.target}
-                                color="#c4c0ff"
-                                strokeWidth={2 * scale}
+                                color={isActiveEdge ? "#c4c0ff" : "#c4c0ff"}
+                                strokeWidth={(isActiveEdge ? 2 : 1.75) * scale}
                                 path="smooth"
-                                showHead={true}
-                                headSize={4}
-                                headColor="#c4c0ff"
-                                headShape="arrow1"
+                                showHead={false}
                                 curveness={0.55}
                                 startAnchor="left"
                                 endAnchor="bottom"
-                                dashness={{ strokeLen: 5, nonStrokeLen: 5 }}
+                                dashness={{ strokeLen: 6, nonStrokeLen: 6 }}
                                 zIndex={0}
-                                passProps={{ className: "loop-back-wire-path" }}
+                                passProps={{ className: loopClassName }}
                             />
                         </div>
                     );
                 }
+
+                const stdClassName = isActiveEdge ? "active-flow-wire-path" : "";
+                const stdDashness = isActiveEdge ? { strokeLen: 6, nonStrokeLen: 6 } : false;
 
                 return (
                     <Xarrow
@@ -1855,27 +1869,27 @@ export function CanvasEdges() {
                         start={edge.source}
                         end={edge.target}
                         color={edgeColor}
-                        strokeWidth={2 * scale}
+                        strokeWidth={(isActiveEdge ? 2 : 1.75) * scale}
                         path="smooth"
-                        showHead={true}
-                        headSize={4}
-                        headColor={headColor}
-                        headShape="arrow1"
+                        showHead={false}
                         curveness={0.5}
                         startAnchor="right"
                         endAnchor="left"
-                        dashness={false}
+                        dashness={stdDashness}
+                        passProps={{ className: stdClassName }}
                         labels={edge.label ? {
                             middle: (
                                 <div
                                     onPointerDown={(e) => e.stopPropagation()}
                                     className={cn(
-                                        "px-2.5 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap backdrop-blur-sm shadow-2xl border pointer-events-none select-none",
-                                        isFollowingEdge
-                                            ? "bg-[#064e3b]/90 border-emerald-500/40 text-emerald-300"
-                                            : isNotFollowingEdge
-                                                ? "bg-[#4c0519]/90 border-rose-500/40 text-rose-300"
-                                                : "bg-[#161622] border-[#c4c0ff]/30 text-[#c4c0ff]"
+                                        "px-2.5 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap backdrop-blur-sm shadow-2xl border pointer-events-none select-none transition-all",
+                                        isActiveEdge
+                                            ? "bg-[#1e1b4b] border-[#c4c0ff] text-[#c4c0ff] ring-2 ring-[#c4c0ff]/50 scale-105"
+                                            : isFollowingEdge
+                                                ? "bg-[#064e3b]/90 border-emerald-500/40 text-emerald-300"
+                                                : isNotFollowingEdge
+                                                    ? "bg-[#4c0519]/90 border-rose-500/40 text-rose-300"
+                                                    : "bg-[#161622] border-[#c4c0ff]/30 text-[#c4c0ff]"
                                     )}
                                 >
                                     {edge.label}

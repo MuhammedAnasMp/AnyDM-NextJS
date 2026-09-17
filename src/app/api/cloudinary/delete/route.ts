@@ -10,9 +10,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "public_id is required" }, { status: 400 });
     }
 
-    const cloudName = process.env.CLOUDINARY_CLOUD_NAME || "dx5bqewfx";
-    const apiKey = process.env.CLOUDINARY_API_KEY || "282274242814833";
-    const apiSecret = process.env.CLOUDINARY_API_SECRET || "cn88xUJDXYHh0u0fBh81GPD0iqY";
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "";
+    const apiKey = process.env.CLOUDINARY_API_KEY || "";
+    const apiSecret = process.env.CLOUDINARY_API_SECRET || "";
 
     const timestamp = Math.floor(Date.now() / 1000);
     // Cloudinary signature parameters must be sorted alphabetically

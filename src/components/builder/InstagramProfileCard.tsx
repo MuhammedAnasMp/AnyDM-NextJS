@@ -78,12 +78,12 @@ export function InstagramProfileCard({
         <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-pink-600/10 blur-2xl pointer-events-none" />
 
         {/* Content */}
-        <div className="relative flex flex-col justify-between p-3.5 gap-3">
+        <div className="relative flex flex-col justify-between p-4.5 gap-3.5">
           {/* Top section */}
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2.5 min-w-0">
+            <div className="flex items-center gap-3 min-w-0">
               {/* Profile Picture with Instagram Gradient Ring */}
-              <div className="h-11 w-11 shrink-0 rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 p-[2px]">
+              <div className="h-12 w-12 shrink-0 rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 p-[2px]">
                 <div className="h-full w-full rounded-full bg-zinc-800 p-[1.5px] overflow-hidden">
                   {profilePic ? (
                     <img src={profilePic} alt={username} className="h-full w-full rounded-full object-cover" />
@@ -115,7 +115,7 @@ export function InstagramProfileCard({
             </div>
 
             {/* Instagram Glyph */}
-            <div className="rounded-lg border border-white/10 bg-white/5 p-1.5 shrink-0">
+            <div className="rounded-lg border border-white/10 bg-white/5 p-2 shrink-0">
               <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
                 <rect x="3" y="3" width="18" height="18" rx="5" />
                 <circle cx="12" cy="12" r="4" />
@@ -125,7 +125,7 @@ export function InstagramProfileCard({
           </div>
 
           {/* Stats section */}
-          <div className="flex gap-6 px-0.5">
+          <div className="flex gap-6 px-1">
             <div>
               <p className="text-xs font-bold text-white leading-tight">
                 {followers}
@@ -148,13 +148,13 @@ export function InstagramProfileCard({
           <div className="flex gap-2 pt-0.5">
             <button
               type="button"
-              className="flex-1 rounded-lg bg-white py-1.5 text-xs font-bold text-black transition hover:bg-zinc-200 cursor-pointer shadow-sm"
+              className="flex-1 rounded-xl bg-white py-2 text-xs font-bold text-black transition hover:bg-zinc-200 cursor-pointer shadow-sm"
             >
               Follow
             </button>
             <button
               type="button"
-              className="flex-1 rounded-lg border border-white/15 bg-white/5 py-1.5 text-xs font-semibold text-white backdrop-blur transition hover:bg-white/10 cursor-pointer"
+              className="flex-1 rounded-xl border border-white/15 bg-white/5 py-2 text-xs font-semibold text-white backdrop-blur transition hover:bg-white/10 cursor-pointer"
             >
               Message
             </button>

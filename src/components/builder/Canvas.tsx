@@ -3,15 +3,16 @@
 import * as React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store';
-import { addNode, selectNode, setFlow } from '@/store/slices/flowSlice';
+import { addNode, selectNode, setFlow, toggleAutoAdjust } from '@/store/slices/flowSlice';
 import { CanvasNode, CanvasEdges } from './CanvasNode';
 import { NodeType, FlowState } from '@/lib/types';
 import Xarrow, { Xwrapper, useXarrow } from 'react-xarrows';
 import { CanvasContext } from './CanvasContext';
-import { Minus, Plus, Sparkles, Menu as MenuIcon, Loader2, Focus, Smartphone, Shrink, Expand } from 'lucide-react';
+import { Minus, Plus, Sparkles, Menu as MenuIcon, Loader2, Focus, Smartphone, Shrink, Expand, Magnet, MoveLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useSearchParams, useRouter } from 'next/navigation';
 import api from '@/lib/services/api.service';
+import { cn } from '@/lib/utils';
 
 // Initial dummy data matching the screenshot
 const screenshotFlow: FlowState = {
@@ -28,19 +29,19 @@ const screenshotFlow: FlowState = {
     {
       id: 'n_filter',
       type: 'condition',
-      position: { x: 440, y: 150 },
+      position: { x: 540, y: 150 },
       data: {}
     },
     {
       id: 'n_action1',
       type: 'action',
-      position: { x: 800, y: 80 },
+      position: { x: 1000, y: 50 },
       data: { isPrimary: false, action_label: "ACTION 1", is_placeholder: true, action_type: 'reply_comment' }
     },
     {
       id: 'n_action2',
       type: 'action',
-      position: { x: 800, y: 400 },
+      position: { x: 1000, y: 440 },
       data: { isPrimary: true, action_label: "PRIMARY ACTION", is_placeholder: true, action_type: 'send_dm' }
     }
   ],
@@ -103,6 +104,7 @@ export function Canvas() {
 
   const [pan, setPan] = React.useState({ x: 0, y: 0 });
   const [scale, setScale] = React.useState(1);
+  const [hoveredNodeId, setHoveredNodeId] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     if (typeof window !== 'undefined' && window.innerWidth < 640) {
@@ -264,6 +266,10 @@ export function Canvas() {
     };
   }, [flow.nodes, scale]);
 
+  const nodesPositionHash = React.useMemo(() => {
+    return flow.nodes.map(n => `${n.id}:${Math.round(n.position.x)}:${Math.round(n.position.y)}`).join('|');
+  }, [flow.nodes]);
+
   // Clear flow in Redux if openTab changes to initialize overlay
   React.useEffect(() => {
     if (openTab) {
@@ -278,15 +284,19 @@ export function Canvas() {
     }
   }, [openTab, dispatch]);
 
+  const flowIdParam = searchParams.get('id');
+  const newPayloadParam = searchParams.get('new_payload');
+  const flowTypeParam = searchParams.get('flow_type');
   const welcomeParam = searchParams.get('welcome');
   const isWelcomeFlow = flow.name === 'Welcome Message Flow' || flow.name === 'Persistent Menu Flow' || !!welcomeParam;
+  const isFlowLoading = flow.isLoading || false;
 
-  // Initialize with sample items if empty and not in Welcome tab config
+  // Initialize with sample items if empty and not in Welcome tab config or loading an existing flow
   React.useEffect(() => {
-    if (flow.nodes.length === 0 && !openTab && !isWelcomeFlow) {
+    if (flow.nodes.length === 0 && !openTab && !isWelcomeFlow && !flowIdParam && !newPayloadParam && !flowTypeParam && !isFlowLoading) {
       dispatch(setFlow(screenshotFlow));
     }
-  }, [dispatch, flow.nodes.length, openTab, isWelcomeFlow]);
+  }, [dispatch, flow.nodes.length, openTab, isWelcomeFlow, flowIdParam, newPayloadParam, flowTypeParam, isFlowLoading]);
 
   const handleInitializeWelcomeExperience = async () => {
     if (!activeAccountId || !openTab) return;
@@ -324,7 +334,7 @@ export function Canvas() {
         const actionNode = {
           id: actionId,
           type: 'action' as const,
-          position: { x: 440, y: 150 },
+          position: { x: 540, y: 150 },
           ruleType: 'dm_automation',
           data: {
             action_type: 'send_dm',
@@ -388,7 +398,7 @@ export function Canvas() {
         const actionNode = {
           id: actionId,
           type: 'action' as const,
-          position: { x: 440, y: 150 },
+          position: { x: 540, y: 150 },
           ruleType: 'dm_automation',
           data: {
             action_type: 'send_dm',
@@ -510,22 +520,48 @@ export function Canvas() {
     }
   };
 
-  const handleFocusFlow = () => {
+  const getAutomationFitScale = React.useCallback(() => {
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
-    const defaultScale = isMobile ? 0.65 : 1;
+    const defaultScale = isMobile ? 0.65 : 1.0;
     if (!flow.nodes || flow.nodes.length === 0) {
-      setScale(defaultScale);
-      setPan({ x: 0, y: 0 });
-      return;
+      return { scale: defaultScale, minX: 0, maxX: 0, minY: 0, maxY: 0, centerX: 0, centerY: 0 };
     }
 
     const minX = Math.min(...flow.nodes.map(n => n.position.x));
-    const maxX = Math.max(...flow.nodes.map(n => n.position.x + 280));
+    const maxX = Math.max(...flow.nodes.map(n => n.position.x + (n.type === 'action' ? 320 : 280)));
     const minY = Math.min(...flow.nodes.map(n => n.position.y));
-    const maxY = Math.max(...flow.nodes.map(n => n.position.y + 180));
+    const maxY = Math.max(...flow.nodes.map(n => n.position.y + 240));
 
-    const centerX = (minX + maxX) / 2;
-    const centerY = (minY + maxY) / 2;
+    const flowWidth = Math.max(maxX - minX, 320);
+    const flowHeight = Math.max(maxY - minY, 240);
+
+    const clientWidth = containerRef.current?.clientWidth || (typeof window !== 'undefined' ? window.innerWidth : 1200);
+    const clientHeight = containerRef.current?.clientHeight || (typeof window !== 'undefined' ? window.innerHeight : 800);
+
+    const fitScaleX = (clientWidth * 0.82) / flowWidth;
+    const fitScaleY = (clientHeight * 0.82) / flowHeight;
+
+    const rawFitScale = Math.min(fitScaleX, fitScaleY);
+    const clampedFitScale = Math.min(1.0, Math.max(0.2, Math.round(rawFitScale * 100) / 100));
+
+    return {
+      scale: isMobile ? Math.min(clampedFitScale, 0.7) : clampedFitScale,
+      minX,
+      maxX,
+      minY,
+      maxY,
+      centerX: (minX + maxX) / 2,
+      centerY: (minY + maxY) / 2
+    };
+  }, [flow.nodes]);
+
+  const handleFocusFlow = React.useCallback(() => {
+    const fit = getAutomationFitScale();
+    if (!flow.nodes || flow.nodes.length === 0) {
+      setScale(fit.scale);
+      setPan({ x: 0, y: 0 });
+      return;
+    }
 
     const clientWidth = containerRef.current?.clientWidth || 1200;
     const clientHeight = containerRef.current?.clientHeight || 800;
@@ -533,13 +569,22 @@ export function Canvas() {
     const containerCenterX = clientWidth / 2;
     const containerCenterY = clientHeight / 2;
 
-    const targetScale = defaultScale;
+    const targetScale = fit.scale;
     setScale(targetScale);
     setPan({
-      x: containerCenterX - centerX * targetScale,
-      y: containerCenterY - centerY * targetScale
+      x: Math.round(containerCenterX - fit.centerX * targetScale),
+      y: Math.round(containerCenterY - fit.centerY * targetScale)
     });
-  };
+  }, [flow.nodes, getAutomationFitScale]);
+
+  // Auto-fit scale and center flow based on automation size when loaded
+  const lastLoadedFlowIdRef = React.useRef<string | null>(null);
+  React.useEffect(() => {
+    if (flow.id && flow.nodes.length > 0 && lastLoadedFlowIdRef.current !== flow.id && !flow.isLoading) {
+      lastLoadedFlowIdRef.current = flow.id;
+      handleFocusFlow();
+    }
+  }, [flow.id, flow.nodes.length, flow.isLoading, handleFocusFlow]);
 
   const [isPanelCollapsed, setIsPanelCollapsed] = React.useState(false);
   const [isScheduleOpen, setIsScheduleOpen] = React.useState(false);
@@ -834,7 +879,7 @@ export function Canvas() {
   };
 
   return (
-    <CanvasContext.Provider value={{ pan, scale }}>
+    <CanvasContext.Provider value={{ pan, scale, hoveredNodeId, setHoveredNodeId }}>
       <div
         className="canvas-container flex-1 relative overflow-hidden bg-[#131313] select-none"
         ref={containerRef}
@@ -854,16 +899,26 @@ export function Canvas() {
         style={{ cursor: isPanning ? 'grabbing' : 'grab', touchAction: 'none' }}
       >
         <div
-          className="absolute inset-0 pointer-events-none"
+          className={cn(
+            "absolute inset-0 pointer-events-none transition-opacity duration-500",
+            isFlowLoading ? "animate-pulse opacity-90" : "opacity-100"
+          )}
           style={{
-            backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.1) 1.5px, transparent 1.5px)',
+            backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.15) 1.5px, transparent 1.5px)',
             backgroundSize: `${24 * scale}px ${24 * scale}px`,
             backgroundPosition: `${pan.x}px ${pan.y}px`
           }}
         />
+
+        {/* Direct Canvas Loader when workflow is loading */}
+        {isFlowLoading && (
+          <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none select-none">
+            <Loader2 className="w-7 h-7 text-[#c4c0ff] animate-spin drop-shadow-md" />
+          </div>
+        )}
         <CanvasErrorBoundary>
           <Xwrapper>
-            <XarrowUpdater trigger={`${pan.x}-${pan.y}-${scale}-${loopDragState?.mousePos.x || 0}-${loopDragState?.mousePos.y || 0}`} />
+            <XarrowUpdater trigger={`${pan.x}-${pan.y}-${scale}-${flow.autoAdjust}-${nodesPositionHash}-${loopDragState?.mousePos.x || 0}-${loopDragState?.mousePos.y || 0}`} />
             {flow.nodes.map(node => (
               <CanvasNode key={node.id} id={node.id} />
             ))}
@@ -876,10 +931,7 @@ export function Canvas() {
                 color="#c4c0ff"
                 strokeWidth={2.5 * scale}
                 path="smooth"
-                showHead={true}
-                headSize={4}
-                headColor="#c4c0ff"
-                headShape="arrow1"
+                showHead={false}
                 curveness={0.8}
                 startAnchor="bottom"
                 endAnchor="middle"
@@ -889,7 +941,7 @@ export function Canvas() {
                 labels={{
                   middle: (
                     <div className="px-2.5 py-0.5 rounded-full bg-[#1e1b4b]/95 border border-[#c4c0ff]/40 text-[#c4c0ff] text-[9px] font-extrabold whitespace-nowrap backdrop-blur-md shadow-2xl animate-pulse select-none pointer-events-none">
-                      🔄 Back Loop
+                      Back Loop
                     </div>
                   )
                 }}
@@ -910,10 +962,11 @@ export function Canvas() {
               zIndex: 99999,
               transform: 'translate(-50%, -50%)',
             }}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold bg-[#1e1b4b] border-2 border-[#c4c0ff] text-[#c4c0ff] shadow-2xl backdrop-blur-md animate-pulse whitespace-nowrap select-none"
+            className="flex items-center gap-1.5 p-1 rounded-full text-[10px] font-extrabold bg-[#1e1b4b] border-2 border-[#c4c0ff] text-[#c4c0ff] shadow-2xl backdrop-blur-md animate-pulse whitespace-nowrap select-none"
           >
             <span className="w-2 h-2 rounded-full bg-[#c4c0ff] animate-ping shrink-0" />
-            <span>🔄 Loop Back</span>
+            {/* <span>anas</span> */}
+
           </div>
         )}
 
@@ -1003,94 +1056,123 @@ export function Canvas() {
         </div>
 
         {/* Zoom Controls Overlay - hidden on mobile when sidebar rail or schedule popover is open */}
-        <div
-          className={`absolute bottom-6 left-3 sm:left-6 z-30 flex-col sm:flex-row items-center gap-1.5 sm:gap-3 sm:px-4 sm:py-2.5 shadow-2xl select-none ${isScheduleOpen ? 'hidden sm:flex' : (isPanelCollapsed ? 'flex' : 'hidden sm:flex')}`}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Zoom In — top on mobile vertical layout */}
+        {(() => {
+          const fitInfo = getAutomationFitScale();
+          const minScale = Math.min(0.15, Math.max(0.05, Math.round(fitInfo.scale * 0.3 * 100) / 100));
+          const maxScale = 2.0;
+          const scalePercent = Math.max(0, Math.min(100, ((scale - minScale) / (maxScale - minScale)) * 100));
 
+          return (
+            <div
+              className={`absolute bottom-6 left-3 sm:left-6 z-30 flex-col sm:flex-row items-center gap-1.5 sm:gap-3 sm:px-4 sm:py-2.5 shadow-2xl select-none ${isScheduleOpen ? 'hidden sm:flex' : (isPanelCollapsed ? 'flex' : 'hidden sm:flex')}`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={() => zoomToScale(scale - 0.1)}
+                disabled={scale <= minScale}
+                className="p-1 sm:p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 active:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer transition-all shrink-0"
+                title="Zoom Out"
+              >
+                <Minus className="w-3 h-3 sm:w-4 sm:h-4" />
+              </button>
 
-          <button
-            type="button"
-            onClick={() => zoomToScale(scale - 0.1)}
-            disabled={scale <= 0.2}
-            className="p-1 sm:p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 active:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer transition-all shrink-0"
-            title="Zoom Out"
-          >
-            <Minus className="w-3 h-3 sm:w-4 sm:h-4" />
-          </button>
-          {/* Zoom Slider - vertical on mobile, horizontal on desktop */}
-          <div className="flex items-center sm:hidden">
-            <input
-              type="range"
-              min="0.2"
-              max="2"
-              step="0.05"
-              value={scale}
-              onChange={(e) => zoomToScale(parseFloat(e.target.value))}
-              className="appearance-none cursor-pointer accent-white"
-              style={{
-                writingMode: 'vertical-lr' as any,
-                direction: 'rtl' as any,
-                height: '72px',
-                width: '4px',
-                background: `linear-gradient(to top, #ffffff 0%, #ffffff ${((scale - 0.2) / 1.8) * 100}%, #27272a ${((scale - 0.2) / 1.8) * 100}%, #27272a 100%)`
-              }}
-            />
-          </div>
-          <div className="hidden sm:flex items-center">
-            <input
-              type="range"
-              min="0.2"
-              max="2"
-              step="0.05"
-              value={scale}
-              onChange={(e) => zoomToScale(parseFloat(e.target.value))}
-              className="w-24 h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-white hover:accent-zinc-200 transition-all"
-              style={{
-                background: `linear-gradient(to right, #ffffff 0%, #ffffff ${((scale - 0.2) / 1.8) * 100}%, #27272a ${((scale - 0.2) / 1.8) * 100}%, #27272a 100%)`
-              }}
-            />
-          </div>
+              {/* Zoom Slider - vertical on mobile, horizontal on desktop */}
+              <div className="flex items-center sm:hidden">
+                <input
+                  type="range"
+                  min={minScale}
+                  max={maxScale}
+                  step="0.02"
+                  value={scale}
+                  onChange={(e) => zoomToScale(parseFloat(e.target.value))}
+                  className="appearance-none cursor-pointer accent-white"
+                  style={{
+                    writingMode: 'vertical-lr' as any,
+                    direction: 'rtl' as any,
+                    height: '72px',
+                    width: '4px',
+                    background: `linear-gradient(to top, #ffffff 0%, #ffffff ${scalePercent}%, #27272a ${scalePercent}%, #27272a 100%)`
+                  }}
+                />
+              </div>
+              <div className="hidden sm:flex items-center">
+                <input
+                  type="range"
+                  min={minScale}
+                  max={maxScale}
+                  step="0.02"
+                  value={scale}
+                  onChange={(e) => zoomToScale(parseFloat(e.target.value))}
+                  className="w-24 h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-white hover:accent-zinc-200 transition-all"
+                  style={{
+                    background: `linear-gradient(to right, #ffffff 0%, #ffffff ${scalePercent}%, #27272a ${scalePercent}%, #27272a 100%)`
+                  }}
+                />
+              </div>
 
-          {/* Zoom Out — bottom on mobile vertical layout */}
-          <button
-            type="button"
-            onClick={() => zoomToScale(scale + 0.1)}
-            disabled={scale >= 2}
-            className="p-1 sm:p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 active:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer transition-all shrink-0"
-            title="Zoom In"
-          >
-            <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
-          </button>
+              <button
+                type="button"
+                onClick={() => zoomToScale(scale + 0.1)}
+                disabled={scale >= maxScale}
+                className="p-1 sm:p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 active:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer transition-all shrink-0"
+                title="Zoom In"
+              >
+                <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
+              </button>
 
-          {/* Focus Flow Button */}
-          <button
-            type="button"
-            onClick={handleFocusFlow}
-            className="px-1.5 sm:px-2.5 py-1 rounded-lg text-xs font-bold text-zinc-300 hover:text-white hover:bg-white/5 active:bg-white/10 cursor-pointer transition-all shrink-0 flex items-center gap-1.5"
-            title="Focus & Center Flow on UI"
-          >
-            <Focus className="w-3 h-3 sm:w-4 sm:h-4 text-[#c4c0ff]" />
-          </button>
+              {/* Focus Flow Button */}
+              <button
+                type="button"
+                onClick={handleFocusFlow}
+                className="px-1.5 sm:px-2.5 py-1 rounded text-xs font-bold text-zinc-300 hover:text-white hover:bg-white/5 active:bg-white/10 cursor-pointer transition-all shrink-0 flex items-center gap-1.5"
+                title="Auto-Fit & Center Flow on Canvas"
+              >
+                <Focus className="w-3 h-3 sm:w-4 sm:h-4 text-[#c4c0ff]" />
+              </button>
 
-          {/* Reset / Zoom Level Button */}
-          <button
-            type="button"
-            onClick={() => {
-              const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
-              setScale(isMobile ? 0.65 : 1);
-              setPan({ x: 0, y: 0 });
-              if (flow.selectedNodeId) {
-                dispatch(selectNode(null));
-              }
-            }}
-            className="px-1.5 sm:px-2 py-1 rounded-lg text-[7px] sm:text-xs font-bold text-zinc-300 hover:text-white hover:bg-white/5 active:bg-white/10 cursor-pointer transition-all shrink-0 font-mono"
-            title="Reset Zoom & Pan"
-          >
-            {Math.round(scale * 100)}
-          </button>
-        </div>
+              {/* Auto Adjust Toggle Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  dispatch(toggleAutoAdjust());
+                  setTimeout(() => window.dispatchEvent(new CustomEvent('update-xarrow')), 50);
+                  setTimeout(() => window.dispatchEvent(new CustomEvent('update-xarrow')), 150);
+                }}
+                className={cn(
+                  "px-2 sm:px-2.5 py-1 rounded text-xs font-bold transition-all cursor-pointer shrink-0 flex items-center gap-1.5 border select-none",
+                  flow.autoAdjust !== false
+                    ? "bg-[#1e1b4b] border-[#c4c0ff]/50 text-[#c4c0ff] shadow-md shadow-[#c4c0ff]/10"
+                    : "bg-white/5 border-white/10 text-zinc-400 hover:text-white hover:bg-white/10"
+                )}
+                title={
+                  flow.autoAdjust !== false
+                    ? "Auto Adjust: ENABLED (Cards auto-align to columns). Click to allow free placement anywhere."
+                    : "Auto Adjust: DISABLED (Free Placement mode). Click to enable auto column alignment."
+                }
+              >
+                <Magnet className={cn("w-3.5 h-3.5", flow.autoAdjust !== false ? "text-[#c4c0ff]" : "text-zinc-400")} />
+                <span className="hidden md:inline">Auto Adjust</span>
+
+              </button>
+
+              {/* Reset / Zoom Level Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  handleFocusFlow();
+                  if (flow.selectedNodeId) {
+                    dispatch(selectNode(null));
+                  }
+                }}
+                className="px-1.5 sm:px-2 py-1 rounded-lg text-[7px] sm:text-xs font-bold text-zinc-300 hover:text-white hover:bg-white/5 active:bg-white/10 cursor-pointer transition-all shrink-0 font-mono"
+                title="Auto-Fit Scale & Center Flow"
+              >
+                {Math.round(scale * 100)}%
+              </button>
+            </div>
+          );
+        })()}
       </div>
     </CanvasContext.Provider>
   );

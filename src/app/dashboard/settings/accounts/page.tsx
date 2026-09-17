@@ -32,7 +32,7 @@ import {
   Camera,
   Upload
 } from "lucide-react";
-import { Avatar, OverlappingAvatars, UserAvatar } from "@/components/Avatar";
+import { Avatar, OverlappingAvatars, UserAvatar, getUserInitial } from "@/components/Avatar";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { auth } from "@/lib/firebase";
@@ -420,7 +420,7 @@ function AccountsContent() {
     }
 
     setIsInstagramLinking(true);
-    const clientId = "1454663269228644";
+    const clientId = process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_ID;
     const redirectUri = `${window.location.origin}/dashboard/settings/accounts`;
     const scope = "instagram_business_basic,instagram_business_manage_messages,instagram_business_manage_comments,instagram_business_content_publish,instagram_business_manage_insights";
     window.location.href = `https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&enable_fb_login=false`;
@@ -638,6 +638,8 @@ function AccountsContent() {
 
   const getFormattedExpiryDate = () => {
     const rawDate =
+      stats?.premium_expires_at ||
+      appUser?.premium_expires_at ||
       stats?.expires_at ||
       stats?.plan_expires_at ||
       stats?.subscription_expires_at ||
@@ -728,7 +730,7 @@ function AccountsContent() {
                       </div>
                     ) : (
                       <div className="w-12 h-12 rounded-full bg-[#20201f] border border-[#2a2a2a] flex items-center justify-center text-[#e5e2e1] text-lg font-semibold">
-                        {(appUser?.display_name || appUser?.email || "U").slice(0, 1).toUpperCase()}
+                        {getUserInitial(appUser)}
                       </div>
                     )}
 

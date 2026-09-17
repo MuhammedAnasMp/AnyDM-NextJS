@@ -201,8 +201,12 @@ export default function ContactsPage() {
   // Navigate to Individual Chat
   const handleStartChat = (contact: Contact) => {
     if (!contact.is_within_23h_window) return;
-    const url = `/dashboard/inbox?recipient_id=${contact.instagram_scoped_id}`;
-    router.push(url);
+    const params = new URLSearchParams();
+    params.set("recipient_id", contact.instagram_scoped_id);
+    if (contact.username) params.set("username", contact.username);
+    if (contact.full_name) params.set("name", contact.full_name);
+    if (contact.profile_pic) params.set("avatar", encodeURIComponent(contact.profile_pic));
+    router.push(`/dashboard/inbox?${params.toString()}`);
   };
 
   // Format window status details
@@ -390,7 +394,7 @@ export default function ContactsPage() {
           <button
             onClick={() => fetchContacts(false)}
             disabled={isFetching}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-xs font-semibold text-white/80 hover:text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-xs  text-white/80 hover:text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? 'animate-spin' : ''}`} />
             Refresh
@@ -417,7 +421,7 @@ export default function ContactsPage() {
             <div className="flex gap-2 shrink-0">
               <button
                 onClick={() => setSelectedContacts(new Set())}
-                className="px-2.5 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-md text-[11px] font-semibold text-white transition-all cursor-pointer"
+                className="px-2.5 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-md text-[11px]  text-white transition-all cursor-pointer"
               >
                 Clear Selection
               </button>
@@ -445,7 +449,7 @@ export default function ContactsPage() {
 
           {/* Hourly DM Velocity Indicator */}
           <div className="flex items-center gap-2">
-            {/* <span className="text-[11px] text-[#8e9192] font-semibold tracking-wider">DM Hourly Velocity:</span> */}
+            {/* <span className="text-[11px] text-[#8e9192]  tracking-wider">DM Hourly Velocity:</span> */}
             <div className="flex items-center gap-1.5 font-bold">
               <span className="text-white font-mono">{rateLimitData?.hourly_dm_count || 0}</span>
               <span className="text-[#8e9192]">/ {rateLimitData?.hourly_dm_limit || 200} safe DMs/hr</span>
@@ -558,7 +562,7 @@ export default function ContactsPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="bg-white/[0.03] border-b border-white/10 text-white/50 font-semibold tracking-wider">
+              <tr className="bg-white/[0.03] border-b border-white/10 text-white/50  tracking-wider">
                 <th className="px-3 py-2.5 text-center w-12">
                   <input
                     type="checkbox"
@@ -661,7 +665,7 @@ export default function ContactsPage() {
                             <div className="text-white/40 text-[10px] flex items-center gap-1.5 flex-wrap mt-0.5">
                               <span>@{contact.username}</span>
                               {contact.gained_via_automation && (
-                                <span className="px-1.5 py-0.2 text-[9px] font-semibold rounded bg-[#c4c0ff]/10 text-[#c4c0ff] border border-[#c4c0ff]/20">
+                                <span className="px-1.5 py-0.2 text-[9px]  rounded bg-[#c4c0ff]/10 text-[#c4c0ff] border border-[#c4c0ff]/20">
                                   Followed via {contact.gained_via_automation}
                                 </span>
                               )}
@@ -672,31 +676,62 @@ export default function ContactsPage() {
 
                       {/* Rating (Lead Score) */}
                       <td className="px-4 py-2.5">
-                        <div className="space-y-1 w-28">
-                          <div className="flex justify-between font-medium text-[10px]">
-                            <span className="text-white/50">Lead Score</span>
-                            <span className="text-white">{contact.lead_score}%</span>
-                          </div>
-                          <div className="w-full bg-white/10 rounded-full h-1 overflow-hidden">
-                            <div
-                              className="bg-gradient-to-r from-[#B6B2FF] to-[#c4c0ff] h-full rounded-full transition-all duration-500"
-                              style={{ width: `${Math.max(5, Math.min(100, contact.lead_score))}%` }}
-                            />
-                          </div>
-                        </div>
+                        {(() => {
+                          const score = (() => {
+                            if (contact.lead_score && contact.lead_score > 0) return Math.min(100, contact.lead_score);
+                            let s = 15;
+                            s += Math.min(40, (contact.total_interactions || 0) * 10);
+                            s += Math.min(30, (contact.total_enquiries || 0) * 15);
+                            if (contact.is_following_business) s += 15;
+                            if (contact.is_within_24h_window) s += 15;
+                            return Math.min(100, s);
+                          })();
+
+                          const isHot = score >= 70;
+                          const isWarm = score >= 40 && score < 70;
+
+                          const tierLabel = isHot ? "Hot Lead" : isWarm ? "Warm Lead" : "New Lead";
+                          const badgeColor = isHot
+                            ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                            : isWarm
+                              ? "bg-amber-500/15 text-amber-400 border-amber-500/30"
+                              : "bg-indigo-500/15 text-indigo-300 border-indigo-500/30";
+                          const gradientColor = isHot
+                            ? "from-emerald-400 to-teal-300"
+                            : isWarm
+                              ? "from-amber-400 to-yellow-300"
+                              : "from-[#B6B2FF] to-[#c4c0ff]";
+
+                          return (
+                            <div className="space-y-1.5 w-32">
+                              <div className="flex items-center justify-between font-medium text-[10px]">
+                                {/* <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${badgeColor}`}>
+                                  {tierLabel}
+                                </span> */}
+                                <span className="text-white font-bold">{score}%</span>
+                              </div>
+                              <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
+                                <div
+                                  className={`bg-gradient-to-r ${gradientColor} h-full rounded-full transition-all duration-500`}
+                                  style={{ width: `${Math.max(8, score)}%` }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </td>
 
                       {/* Activity & Metrics */}
                       <td className="px-4 py-2.5">
                         <div className="space-y-0.5 text-white/70 text-[11px]">
                           <div>
-                            <strong className="text-white font-semibold">
+                            <strong className="text-white ">
                               {contact.total_interactions}
                             </strong>{" "}
                             interactions
                           </div>
                           <div>
-                            <strong className="text-white font-semibold">
+                            <strong className="text-white ">
                               {contact.total_enquiries}
                             </strong>{" "}
                             enquiries
@@ -718,7 +753,7 @@ export default function ContactsPage() {
                       {/* Window Status */}
                       <td className="px-4 py-2.5">
                         <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 .bg-white/5 rounded-full .border text-[9px] font-semibold tracking-wider ${win.badgeClass}`}
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 .bg-white/5 rounded-full .border text-[9px]  tracking-wider ${win.badgeClass}`}
                         >
                           <span className={`w-1.5 h-1.5 rounded-full ${win.indicatorClass}`} />
                           {win.text}
@@ -730,7 +765,7 @@ export default function ContactsPage() {
                         <button
                           onClick={() => handleStartChat(contact)}
                           disabled={!contact.is_within_23h_window}
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-semibold transition-all relative overflow-hidden group/btn ${contact.is_within_23h_window
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px]  transition-all relative overflow-hidden group/btn ${contact.is_within_23h_window
                             ? "bg-gradient-to-r from-[#8e8aff] to-[#706bff] hover:from-[#7e7aff] hover:to-[#605bff] text-white cursor-pointer active:scale-95 shadow-md shadow-purple-900/20"
                             : "bg-white/5 border border-white/10 text-white/30 cursor-not-allowed"
                             }`}
@@ -787,7 +822,7 @@ export default function ContactsPage() {
                   <ChevronLeft className="w-4 h-4" />
                 </button>
 
-                <div className="text-xs text-white/70 font-semibold px-2">
+                <div className="text-xs text-white/70  px-2">
                   {page} / {totalPages}
                 </div>
 
@@ -829,7 +864,7 @@ export default function ContactsPage() {
               <div className="p-4 border-b border-white/10 flex items-center justify-between shrink-0 bg-[#1c1b1b]">
                 <div className="flex items-center gap-2">
                   <Megaphone className="w-4 h-4 text-[#c4c0ff]" />
-                  <h3 className="font-semibold text-sm tracking-wide">Compose Bulk Broadcast</h3>
+                  <h3 className=" text-sm tracking-wide">Compose Bulk Broadcast</h3>
                 </div>
                 <button
                   onClick={handleCloseBroadcastModal}
@@ -882,7 +917,7 @@ export default function ContactsPage() {
                     {/* Tab Panels */}
                     {broadcastTab === "text" ? (
                       <div className="space-y-2">
-                        <label className="text-[10px] tracking-wider text-white/40 font-semibold block">
+                        <label className="text-[10px] tracking-wider text-white/40  block">
                           Broadcast Message
                         </label>
                         <textarea
@@ -896,7 +931,7 @@ export default function ContactsPage() {
                     ) : (
                       <div className="space-y-3.5">
                         <div className="flex justify-between items-center">
-                          <label className="text-[10px] tracking-wider text-white/40 font-semibold">
+                          <label className="text-[10px] tracking-wider text-white/40 ">
                             Select Products (Max 10)
                           </label>
                           {selectedBroadcastProducts.length > 0 && (
@@ -942,7 +977,7 @@ export default function ContactsPage() {
                                     className="w-10 h-10 rounded object-cover bg-white/5 border border-white/10"
                                   />
                                   <div className="min-w-0 flex-1">
-                                    <h5 className="font-semibold text-white truncate text-[11px] leading-tight">
+                                    <h5 className=" text-white truncate text-[11px] leading-tight">
                                       {prod.title}
                                     </h5>
                                     <p className="text-[10px] font-bold text-[#c4c0ff] mt-0.5">
@@ -973,15 +1008,15 @@ export default function ContactsPage() {
                     <div className="grid grid-cols-3 gap-3">
                       <div className="bg-white/5 border border-white/5 p-3 rounded-xl text-center">
                         <div className="text-xl font-bold text-white">{broadcastResults.total_count}</div>
-                        <div className="text-[9px] text-white/40 font-semibold mt-0.5">Total</div>
+                        <div className="text-[9px] text-white/40  mt-0.5">Total</div>
                       </div>
                       <div className="bg-[#c4c0ff]/10 border border-[#c4c0ff]/20 p-3 rounded text-center">
                         <div className="text-xl font-bold text-[#c4c0ff]">{broadcastResults.success_count}</div>
-                        <div className="text-[9px] text-[#c4c0ff]/70 font-semibold mt-0.5">Sent</div>
+                        <div className="text-[9px] text-[#c4c0ff]/70  mt-0.5">Sent</div>
                       </div>
                       <div className="bg-[#ef4444]/10 border border-[#ef4444]/20 p-3 rounded text-center">
                         <div className="text-xl font-bold text-[#f87171]">{broadcastResults.failed_count}</div>
-                        <div className="text-[9px] text-[#f87171]/60 font-semibold mt-0.5">Failed</div>
+                        <div className="text-[9px] text-[#f87171]/60  mt-0.5">Failed</div>
                       </div>
                     </div>
 
@@ -998,7 +1033,7 @@ export default function ContactsPage() {
 
                           return (
                             <div key={idx} className="p-3 flex items-center justify-between text-xs">
-                              <span className="font-semibold text-white/80">{name}</span>
+                              <span className=" text-white/80">{name}</span>
                               {isSuccess ? (
                                 <span className="text-[9px] font-bold text-[#c4c0ff] bg-[#c4c0ff]/10 border border-[#c4c0ff]/20 px-2 py-0.5 rounded tracking-wider">
                                   Sent
@@ -1026,7 +1061,7 @@ export default function ContactsPage() {
                   <>
                     <button
                       onClick={handleCloseBroadcastModal}
-                      className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs font-semibold text-white transition-all cursor-pointer"
+                      className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs  text-white transition-all cursor-pointer"
                     >
                       Cancel
                     </button>

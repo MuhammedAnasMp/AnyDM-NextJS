@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { Check, Truck, ArrowLeft, RefreshCw, ShoppingBag, Paperclip, Clipboard, ClipboardList } from "lucide-react";
 import Link from "next/link";
 import api from "@/lib/services/api.service";
+import { getStoreHomeUrl } from "@/lib/utils/domain";
 
 interface PageProps {
   params: Promise<{
@@ -34,7 +35,7 @@ export default function OrderTrackingPage({ params }: PageProps) {
       const orders = JSON.parse(localStorage.getItem("anydm_customer_orders") || "[]");
       const matched = orders.find((o: any) => o.order_id === orderId);
       if (matched && matched.username) {
-        return `/${matched.username}`;
+        return getStoreHomeUrl(matched.username);
       }
     }
     return "/";
@@ -149,7 +150,7 @@ export default function OrderTrackingPage({ params }: PageProps) {
             </button>
             {order.store_username && (
               <Link
-                href={`/${order.store_username}`}
+                href={getStoreHomeUrl(order.store_username)}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#605ca2] text-white hover:bg-[#605ca2]/90 transition-all active:scale-[0.98]"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
@@ -274,6 +275,47 @@ export default function OrderTrackingPage({ params }: PageProps) {
             </div>
           </div>
 
+        </div>
+
+        {/* Return Refund Amount Breakdown Card */}
+        <div className="rounded-md bg-[#20201f] border border-white/5 p-6 space-y-4 shadow-md">
+          <div className="flex justify-between items-center border-b border-white/5 pb-3">
+            <h3 className="text-xs font-bold tracking-wider text-white flex items-center gap-2">
+              <RefreshCw className="w-4 h-4 text-[#b6b2ff]" />
+              <span>Return &amp; Refund Summary</span>
+            </h3>
+            <span className={cn(
+              "text-[10px] px-2 py-0.5 rounded font-bold border",
+              order.return_policy ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-zinc-800 text-zinc-400 border-white/10"
+            )}>
+              {order.return_policy ? "Return Eligible" : "Non-Returnable"}
+            </span>
+          </div>
+
+          <div className="space-y-2.5 text-xs">
+            <div className="flex justify-between text-zinc-400">
+              <span>Order Amount</span>
+              <span className="text-zinc-200 font-semibold">₹{order.total_amount}</span>
+            </div>
+
+            {parseFloat(order.return_deduction_charge || "0") > 0 && (
+              <div className="flex justify-between text-amber-400/90">
+                <span>Return Deduction Charge (Restocking Fee)</span>
+                <span className="font-semibold">- ₹{order.return_deduction_charge}</span>
+              </div>
+            )}
+
+            <div className="h-px bg-white/5 pt-1" />
+
+            <div className="flex justify-between items-center text-xs font-bold pt-1">
+              <span className="text-zinc-300">Estimated Refund Amount to Account</span>
+              <span className="text-[#b6b2ff] text-sm">₹{order.estimated_refund_amount || order.total_amount}</span>
+            </div>
+
+            <p className="text-[10px] text-zinc-500 leading-relaxed pt-1">
+              * Upon initiating a return request, the return deduction charge is applied to shipping &amp; handling costs. The remaining net refund amount will be credited back to your original payment method.
+            </p>
+          </div>
         </div>
 
       </div>

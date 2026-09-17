@@ -14,7 +14,7 @@ import CommentReplyContentEditor from "@/components/builder/CommentReplyContentE
 import { AnimatePresence } from "framer-motion";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/store";
-import { closeMediaPicker, updateNodeData, selectNode, setFlow } from "@/store/slices/flowSlice";
+import { closeMediaPicker, updateNodeData, selectNode, setFlow, setIsLoading } from "@/store/slices/flowSlice";
 import { useSearchParams } from "next/navigation";
 import api from "@/lib/services/api.service";
 import { deleteFromCloudinary } from "@/lib/services/cloudinary.service";
@@ -73,6 +73,7 @@ export default function BuilderPage() {
 
   useEffect(() => {
     if (flowId) {
+      dispatch(setIsLoading(true));
       const loadFlow = async () => {
         try {
           const res = await api.get(`/automations/${flowId}/`);
@@ -324,6 +325,7 @@ export default function BuilderPage() {
           }
         } catch (err) {
           console.error("Error loading automation:", err);
+          dispatch(setIsLoading(false));
         }
       };
       loadFlow();

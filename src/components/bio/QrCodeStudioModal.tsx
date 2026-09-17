@@ -1191,7 +1191,7 @@ export function QrCodeStudioModal({
                             {uploadingLogo ? (
                               <>
                                 <Loader2 className="w-5 h-5 text-[#c4c0ff] animate-spin" />
-                                <span className="text-xs font-semibold text-[#c4c0ff]">Uploading to Cloudinary... ({uploadProgress}%)</span>
+                                <span className="text-xs font-semibold text-[#c4c0ff]">Uploading image... ({uploadProgress}%)</span>
                               </>
                             ) : (
                               <>

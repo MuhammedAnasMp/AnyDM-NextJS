@@ -43,6 +43,11 @@
 
   --font-sans: 'Inter', sans-serif;
   --font-mono: 'Space Mono', monospace;
+  --font-instagram: 'Instagram Sans', 'Instagram Sans Headline', 'Instagram Sans Script', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+.font-instagram-sans {
+  font-family: 'Instagram Sans', 'Instagram Sans Headline', 'Instagram Sans Script', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 /* Custom Unique Global Text Selection Color */
@@ -259,24 +264,67 @@ body {
   }
 }
 
-/* Back Loop Wireframe Dotted Right-to-Left Flow Animation on Hover */
-@keyframes flowDashesRightToLeft {
+/* Back Loop Wireframe Dotted Reverse Flow Animation on Hover */
+@keyframes flowDashesReverse {
   0% {
     stroke-dashoffset: 0;
   }
   100% {
-    stroke-dashoffset: 20px;
+    stroke-dashoffset: -24px;
   }
 }
 
-.loop-back-wire-path path {
-  pointer-events: auto;
+/* Forward Flow Wireframe Dotted Forward Animation */
+@keyframes flowDashesForward {
+  0% {
+    stroke-dashoffset: 24px;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
 }
 
+.active-flow-wire-path,
+path.active-flow-wire-path,
+.active-flow-wire-path path,
+g.active-flow-wire-path path,
+svg.active-flow-wire-path path {
+  stroke-dasharray: 6 6 !important;
+  animation: flowDashesForward 0.35s linear infinite !important;
+  stroke: #c4c0ff !important;
+  stroke-width: 2px !important;
+  filter: drop-shadow(0 0 4px rgba(196, 192, 255, 0.5));
+}
+
+.active-loop-back,
+path.active-loop-back,
+.active-loop-back path,
+g.active-loop-back path,
+svg.active-loop-back path {
+  stroke-dasharray: 6 6 !important;
+  animation: flowDashesReverse 0.35s linear infinite !important;
+  stroke: #c4c0ff !important;
+  stroke-width: 2px !important;
+  filter: drop-shadow(0 0 4px rgba(196, 192, 255, 0.5));
+}
+
+.loop-back-wire-path,
+path.loop-back-wire-path,
+.loop-back-wire-path path,
+g.loop-back-wire-path path,
+svg.loop-back-wire-path path {
+  pointer-events: stroke !important;
+}
+
+.loop-back-wire-path:hover,
+path.loop-back-wire-path:hover,
 .loop-back-wire-path path:hover,
-.group\/loop-wire:hover .loop-back-wire-path path {
+g.loop-back-wire-path:hover path,
+svg.loop-back-wire-path:hover path {
   cursor: pointer;
-  animation: flowDashesRightToLeft 0.5s linear infinite !important;
+  stroke-dasharray: 6 6 !important;
+  animation: flowDashesReverse 0.35s linear infinite !important;
+  stroke: #e0dfff !important;
 }
 
 /* Instagram Moving Glow & Shimmer Effect */

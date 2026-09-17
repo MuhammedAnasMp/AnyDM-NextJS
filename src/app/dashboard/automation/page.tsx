@@ -114,6 +114,7 @@ export default function AutomationsDashboard() {
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedAutomation, setSelectedAutomation] = useState<Automation | null>(null);
+  const [deleteConfirmTarget, setDeleteConfirmTarget] = useState<Automation | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("automation_view_mode");
@@ -179,15 +180,47 @@ export default function AutomationsDashboard() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this automation?")) return;
+  const confirmDeleteProcess = async () => {
+    if (!deleteConfirmTarget) return;
+    const item = deleteConfirmTarget;
+    const id = item.id;
     setDeletingId(id);
+
     try {
-      const response = await api.delete(`/automations/${id}/`);
-      if (response.data && response.data.success) {
-        setAutomations(prev => prev.filter(item => item.id !== id));
-        showToast("Automation deleted successfully.", "success");
+      const isSpecialFlow = item.name === "Welcome Message Flow" || item.name === "Persistent Menu Flow";
+      if (isSpecialFlow) {
+        if (item.name === "Welcome Message Flow") {
+          try {
+            await api.delete(`/crm/messenger-profile/ice-breakers/` + (activeAccountId ? `?account_id=${activeAccountId}` : ''));
+          } catch (e) {
+            console.error("Error deleting icebreakers from Instagram:", e);
+          }
+        } else if (item.name === "Persistent Menu Flow") {
+          try {
+            await api.delete(`/crm/messenger-profile/persistent-menu/` + (activeAccountId ? `?account_id=${activeAccountId}` : ''));
+          } catch (e) {
+            console.error("Error deleting persistent menu from Instagram:", e);
+          }
+        }
+
+        if (typeof window !== 'undefined') {
+          const storageKey = `anydm_welcome_settings_${activeAccountId || 'default'}`;
+          localStorage.removeItem(storageKey);
+        }
       }
+
+      try {
+        await api.delete(`/automations/${id}/`);
+      } catch (e) {
+        console.error("Error deleting automation rule:", e);
+      }
+
+      setAutomations(prev => prev.filter(a => a.id !== id));
+      if (selectedAutomation?.id === id) {
+        setSelectedAutomation(null);
+      }
+      setDeleteConfirmTarget(null);
+      showToast(isSpecialFlow ? "Automation and Instagram profile configuration deleted." : "Automation deleted successfully.", "success");
     } catch (error) {
       console.error("Error deleting automation:", error);
       showToast("Failed to delete automation.", "error");
@@ -480,7 +513,10 @@ export default function AutomationsDashboard() {
                         </a>
 
                         <button
-                          onClick={() => handleDelete(item.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteConfirmTarget(item);
+                          }}
                           disabled={deletingId === item.id}
                           className="p-1.5 rounded hover:bg-rose-500/10 text-[#8e9192] hover:text-rose-400 transition-colors cursor-pointer border border-[#2a2a2a]"
                           title="Delete automation"
@@ -583,17 +619,13 @@ export default function AutomationsDashboard() {
                       </a>
 
                       <button
-                        onClick={() => {
-                          if (isSpecialFlow) {
-                            const tabParam = item.name === "Welcome Message Flow" ? "icebreakers" : "persistent_menu";
-                            window.location.href = `/dashboard/automations?welcome=${tabParam}`;
-                            return;
-                          }
-                          handleDelete(item.id);
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteConfirmTarget(item);
                         }}
                         disabled={deletingId === item.id}
                         className="p-1 rounded bg-[#20201f] border border-[#2a2a2a] hover:bg-rose-500/10 text-[#8e9192] hover:text-rose-400 transition-colors cursor-pointer"
-                        title={isSpecialFlow ? "Configure Settings" : "Delete Automation"}
+                        title="Delete Automation"
                       >
                         {deletingId === item.id ? (
                           <div className="w-3 h-3 border-2 border-t-transparent border-white rounded-full animate-spin" />
@@ -714,16 +746,18 @@ export default function AutomationsDashboard() {
                 <div className="p-3 px-4 bg-[#1c1b1b] border-t border-[#2a2a2a] flex items-center justify-between gap-2 shrink-0">
                   <button
                     onClick={() => {
-                      if (isSpecialFlow) {
-                        const tabParam = item.name === "Welcome Message Flow" ? "icebreakers" : "persistent_menu";
-                        window.location.href = `/dashboard/automations?welcome=${tabParam}`;
-                        return;
-                      }
-                      handleDelete(item.id);
+                      setSelectedAutomation(null);
+                      setDeleteConfirmTarget(item);
                     }}
+                    disabled={deletingId === item.id}
                     className="px-2.5 py-1.5 rounded bg-[#20201f] hover:bg-rose-500/10 border border-[#2a2a2a] text-[#8e9192] hover:text-rose-400 text-xs font-semibold transition-colors cursor-pointer"
+                    title="Delete automation"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    {deletingId === item.id ? (
+                      <div className="w-3.5 h-3.5 border-2 border-t-transparent border-white rounded-full animate-spin" />
+                    ) : (
+                      <Trash2 className="w-3.5 h-3.5" />
+                    )}
                   </button>
 
                   <div className="flex items-center gap-2">
@@ -745,6 +779,85 @@ export default function AutomationsDashboard() {
                       <span>Configure</span>
                     </a>
                   </div>
+                </div>
+              </motion.div>
+            </div>
+          );
+        })()}
+      </AnimatePresence>
+
+      {/* Delete Confirmation Warning Modal */}
+      <AnimatePresence>
+        {deleteConfirmTarget && (() => {
+          const item = deleteConfirmTarget;
+          const isSpecialFlow = item.name === "Welcome Message Flow" || item.name === "Persistent Menu Flow";
+
+          return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm font-sans">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.15 }}
+                className="relative w-full max-w-md bg-[#141414] border border-[#2a2a2a] rounded-xl overflow-hidden shadow-2xl flex flex-col text-[#e5e2e1]"
+              >
+                {/* Header */}
+                <div className="p-4 border-b border-[#2a2a2a] flex items-center justify-between bg-[#1c1b1b]">
+                  <div className="flex items-center gap-2 text-rose-400">
+                    <AlertTriangle className="w-5 h-5 shrink-0" />
+                    <h3 className="text-sm font-bold text-white">Delete Automation Warning</h3>
+                  </div>
+                  <button
+                    onClick={() => setDeleteConfirmTarget(null)}
+                    className="p-1 rounded bg-[#20201f] border border-[#2a2a2a] text-[#8e9192] hover:text-white transition-colors cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Body */}
+                <div className="p-5 space-y-3">
+                  <h4 className="text-sm font-semibold text-white">{item.name}</h4>
+
+                  {isSpecialFlow ? (
+                    <div className="p-3.5 rounded-lg border border-rose-500/30 bg-rose-500/10 text-rose-200 text-xs leading-relaxed space-y-2">
+                      <p className="font-bold text-rose-300">
+                        ⚠️ Deleting from Instagram Profile
+                      </p>
+                      <p>
+                        Deleting this automation will remove it from AnyDM and <strong className="text-white underline font-semibold">permanently delete this {item.name === "Welcome Message Flow" ? "Welcome Message (Icebreakers)" : "Persistent Menu"} from Instagram</strong>.
+                      </p>
+                      <p className="text-[11px] text-rose-300/80 italic">
+                        It will no longer be available or visible to visitors in your Instagram direct messages.
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-[#8e9192] leading-relaxed">
+                      Are you sure you want to delete <strong className="text-white">{item.name}</strong>? This action cannot be undone and automated responses will be stopped.
+                    </p>
+                  )}
+                </div>
+
+                {/* Footer */}
+                <div className="p-4 bg-[#1c1b1b] border-t border-[#2a2a2a] flex items-center justify-end gap-2.5">
+                  <button
+                    onClick={() => setDeleteConfirmTarget(null)}
+                    className="px-3.5 py-1.5 rounded bg-[#20201f] border border-[#2a2a2a] text-xs font-semibold text-[#8e9192] hover:text-white hover:border-[#444748] transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmDeleteProcess}
+                    disabled={deletingId === item.id}
+                    className="px-4 py-1.5 rounded bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 shadow-lg shadow-rose-600/20 disabled:opacity-50"
+                  >
+                    {deletingId === item.id ? (
+                      <div className="w-3.5 h-3.5 border-2 border-t-transparent border-white rounded-full animate-spin" />
+                    ) : (
+                      <Trash2 className="w-3.5 h-3.5" />
+                    )}
+                    <span>Delete Automation</span>
+                  </button>
                 </div>
               </motion.div>
             </div>

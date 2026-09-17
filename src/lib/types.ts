@@ -53,4 +53,8 @@ export interface FlowState {
   past?: { name: string; nodes: FlowNode[]; edges: FlowEdge[] }[];
   future?: { name: string; nodes: FlowNode[]; edges: FlowEdge[] }[];
   lastEdit?: { id: string; key: string } | null;
+  isLoading?: boolean;
+  autoAdjust?: boolean;
 }
+
+

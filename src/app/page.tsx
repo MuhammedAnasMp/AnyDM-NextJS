@@ -21,6 +21,9 @@ import {
 import { auth } from "@/lib/firebase";
 import { authService } from "@/lib/services/auth.service";
 import { onAuthStateChanged } from "firebase/auth";
+import api from "@/lib/services/api.service";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store";
 
 const GithubIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
   <svg className={className} fill="currentColor" viewBox="0 0 24 24">
@@ -29,16 +32,39 @@ const GithubIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
 );
 
 export default function LandingPage() {
+  const appUser = useSelector((state: RootState) => state.auth.user);
   const [scrolled, setScrolled] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [productsOpen, setProductsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [sysSettings, setSysSettings] = useState<any>(null);
 
   const showDashboard = mounted && isLoggedIn;
 
   useEffect(() => {
     setMounted(true);
+    const fetchSettings = async () => {
+      try {
+        const res = await api.get("/accounts/settings/system/");
+        setSysSettings(res.data);
+      } catch (e) {
+        console.error("Failed to load system settings on landing page:", e);
+      }
+    };
+    fetchSettings();
+
+    if (typeof window !== "undefined") {
+      if (window.location.pathname === "/pricing" || window.location.hash === "#pricing") {
+        setTimeout(() => {
+          const el = document.getElementById("pricing");
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth" });
+          }
+        }, 150);
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -56,6 +82,7 @@ export default function LandingPage() {
   useEffect(() => {
     if (!auth) {
       setIsLoggedIn(false);
+      setAuthLoading(false);
       return;
     }
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -69,6 +96,7 @@ export default function LandingPage() {
       } else {
         setIsLoggedIn(false);
       }
+      setAuthLoading(false);
     });
     return () => unsubscribe();
   }, []);
@@ -142,7 +170,7 @@ export default function LandingPage() {
                       className="absolute top-full left-0 mt-2 w-[480px] bg-white border border-zinc-200/90 rounded-2xl p-3 shadow-[0_20px_50px_rgba(0,0,0,0.08)] grid grid-cols-2 gap-2 z-50"
                     >
                       <Link
-                        href="/dashboard/automations"
+                        href={showDashboard ? "/dashboard/automations" : "/signup"}
                         className="p-3 rounded-xl hover:bg-zinc-50 transition-all group border border-transparent hover:border-zinc-200/60"
                       >
                         <div className="flex items-center gap-2.5 mb-1">
@@ -159,7 +187,7 @@ export default function LandingPage() {
                       </Link>
 
                       <Link
-                        href="/dashboard/bio"
+                        href={showDashboard ? "/dashboard/bio" : "/signup"}
                         className="p-3 rounded-xl hover:bg-zinc-50 transition-all group border border-transparent hover:border-zinc-200/60"
                       >
                         <div className="flex items-center gap-2.5 mb-1">
@@ -176,7 +204,7 @@ export default function LandingPage() {
                       </Link>
 
                       <Link
-                        href="/dashboard/products/website"
+                        href={showDashboard ? "/dashboard/products/website" : "/signup"}
                         className="p-3 rounded-xl hover:bg-zinc-50 transition-all group border border-transparent hover:border-zinc-200/60"
                       >
                         <div className="flex items-center gap-2.5 mb-1">
@@ -193,7 +221,7 @@ export default function LandingPage() {
                       </Link>
 
                       <Link
-                        href="/dashboard"
+                        href={showDashboard ? "/dashboard/analytics" : "/signup"}
                         className="p-3 rounded-xl hover:bg-zinc-50 transition-all group border border-transparent hover:border-zinc-200/60"
                       >
                         <div className="flex items-center gap-2.5 mb-1">
@@ -217,7 +245,7 @@ export default function LandingPage() {
                 Features
               </a>
 
-              <a href="#pricing" className="text-xs font-bold text-zinc-600 hover:text-black transition-colors">
+              <a href="/#pricing" className="text-xs font-bold text-zinc-600 hover:text-black transition-colors">
                 Pricing
               </a>
 
@@ -252,7 +280,9 @@ export default function LandingPage() {
             </a>
 
             {/* Auth / Dashboard Button */}
-            {showDashboard ? (
+            {!mounted || authLoading ? (
+              <div className="h-9 w-24 rounded-md bg-zinc-200/80 animate-pulse border border-zinc-300/50" />
+            ) : showDashboard ? (
               <Link
                 href="/dashboard"
                 className="relative group inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-white rounded-md bg-black hover:bg-zinc-800 transition-all shadow-md hover:shadow-lg cursor-pointer"
@@ -304,43 +334,64 @@ export default function LandingPage() {
                   Products &amp; Tools
                 </div>
                 <Link
-                  href="/dashboard/automations"
+                  href={showDashboard ? "/dashboard/automations" : "/signup"}
                   onClick={() => setMobileMenuOpen(false)}
                   className="flex items-center gap-3 p-2.5 rounded-xl bg-zinc-50 hover:bg-zinc-100 text-xs font-bold text-zinc-900 border border-zinc-100"
                 >
                   <Zap className="w-4 h-4 text-purple-600" />
-                  <span>DM Automations</span>
+                  <span>DM Automation</span>
                 </Link>
+
                 <Link
-                  href="/dashboard/bio"
+                  href={showDashboard ? "/dashboard/bio" : "/signup"}
                   onClick={() => setMobileMenuOpen(false)}
                   className="flex items-center gap-3 p-2.5 rounded-xl bg-zinc-50 hover:bg-zinc-100 text-xs font-bold text-zinc-900 border border-zinc-100"
                 >
                   <Layers className="w-4 h-4 text-indigo-600" />
-                  <span>Link-in-Bio Storefront</span>
+                  <span>Bio Link Storefront</span>
                 </Link>
+
+                <Link
+                  href={showDashboard ? "/dashboard/products/catalog" : "/signup"}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 p-2.5 rounded-xl bg-zinc-50 hover:bg-zinc-100 text-xs font-bold text-zinc-900 border border-zinc-100"
+                >
+                  <ShoppingBag className="w-4 h-4 text-pink-600" />
+                  <span>Digital Product Store</span>
+                </Link>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <a
+                  href="#features"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-xs font-bold text-zinc-700 px-2 py-1.5"
+                >
+                  Features
+                </a>
+                <a
+                  href="/#pricing"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-xs font-bold text-zinc-700 px-2 py-1.5"
+                >
+                  Pricing
+                </a>
                 <Link
                   href="/docs"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-3 p-2.5 rounded-xl bg-zinc-50 hover:bg-zinc-100 text-xs font-bold text-zinc-900 border border-zinc-100"
+                  className="text-xs font-bold text-zinc-700 px-2 py-1.5 flex items-center justify-between"
                 >
-                  <BookOpen className="w-4 h-4 text-zinc-700" />
                   <span>Documentation</span>
+                  <span className="px-1.5 py-0.2 rounded bg-zinc-100 text-[9px] font-black text-zinc-600 border border-zinc-200 uppercase">
+                    Docs
+                  </span>
                 </Link>
-                <a
-                  href="https://github.com/anydm"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-3 p-2.5 rounded-xl bg-zinc-50 hover:bg-zinc-100 text-xs font-bold text-zinc-900 border border-zinc-100"
-                >
-                  <GithubIcon className="w-4 h-4 text-zinc-800" />
-                  <span>GitHub Repository (★ 1.4k)</span>
-                </a>
               </div>
 
               <div className="pt-1 flex items-center justify-between gap-3">
-                {showDashboard ? (
+                {!mounted || authLoading ? (
+                  <div className="w-full h-11 rounded-xl bg-zinc-200/80 animate-pulse border border-zinc-300/50" />
+                ) : showDashboard ? (
                   <Link
                     href="/dashboard"
                     onClick={() => setMobileMenuOpen(false)}
@@ -403,16 +454,20 @@ export default function LandingPage() {
             transition={{ duration: 0.5, delay: 0.3 }}
             className="flex flex-col sm:flex-row gap-4"
           >
-            <Link
-              href={showDashboard ? "/dashboard" : "/signup"}
-              className="text-white text-base font-semibold px-8 py-3.5 rounded-lg shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 text-center flex items-center justify-center gap-2"
-              style={{
-                background: "linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)"
-              }}
-            >
-              <span>{showDashboard ? "Go to Dashboard" : "Start Free Trial"}</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
+            {!mounted || authLoading ? (
+              <div className="h-[52px] w-[185px] rounded-lg bg-zinc-200/80 animate-pulse border border-zinc-300/50" />
+            ) : (
+              <Link
+                href={showDashboard ? "/dashboard" : "/signup"}
+                className="text-white text-base font-semibold px-8 py-3.5 rounded-lg shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 text-center flex items-center justify-center gap-2"
+                style={{
+                  background: "linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)"
+                }}
+              >
+                <span>{showDashboard ? "Go to Dashboard" : "Start Free Trial"}</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            )}
             <button className="border border-[#eaeaea] bg-white text-black px-8 py-3.5 rounded-lg text-base font-semibold hover:bg-[#f3f3f3] transition-colors duration-200">
               Book a Demo
             </button>
@@ -526,10 +581,10 @@ export default function LandingPage() {
             <div className="bg-white p-6 rounded-2xl border border-[#eaeaea] flex flex-col justify-between transition-all duration-300 hover:border-black shadow-xs">
               <div>
                 <span className="text-[10px] font-bold text-[#5e5e5e] tracking-widest uppercase block mb-3">Starter</span>
-                <h3 className="text-base font-bold text-black">14-Day Free Trial</h3>
+                <h3 className="text-base font-bold text-black">{sysSettings?.trial_days || 14}-Day Free Trial</h3>
                 <div className="mt-3 flex items-baseline gap-1">
                   <span className="text-3xl font-extrabold text-black">₹0</span>
-                  <span className="text-[#5e5e5e] text-xs font-semibold">/ 14 days</span>
+                  <span className="text-[#5e5e5e] text-xs font-semibold">/ {sysSettings?.trial_days || 14} days</span>
                 </div>
                 <p className="text-xs text-[#888888] mt-2 leading-relaxed">
                   Test out Instagram keyword replies and storefront tools. No credit card needed.
@@ -550,10 +605,10 @@ export default function LandingPage() {
                 </ul>
               </div>
               <Link
-                href="/signup"
+                href={showDashboard ? "/dashboard" : "/signup"}
                 className="mt-6 block w-full text-center border border-black py-2.5 rounded-xl text-xs font-bold hover:bg-[#f3f3f3] transition-colors"
               >
-                Start 14-Day Trial
+                {showDashboard ? "Go to Dashboard" : `Start ${sysSettings?.trial_days || 14}-Day Trial`}
               </Link>
             </div>
 
@@ -566,7 +621,7 @@ export default function LandingPage() {
                 <span className="text-[10px] font-bold text-[#5e5e5e] tracking-widest uppercase block mb-3">Full Suite</span>
                 <h3 className="text-base font-bold text-black">Creator Pro</h3>
                 <div className="mt-3 flex items-baseline gap-1">
-                  <span className="text-3xl font-extrabold text-black">₹499</span>
+                  <span className="text-3xl font-extrabold text-black">₹{sysSettings?.premium_plan_price !== undefined ? sysSettings.premium_plan_price : 499}</span>
                   <span className="text-[#5e5e5e] text-xs font-semibold">/ month</span>
                 </div>
                 <p className="text-xs text-[#888888] mt-2 leading-relaxed">
@@ -592,13 +647,13 @@ export default function LandingPage() {
                 </ul>
               </div>
               <Link
-                href="/signup"
+                href={showDashboard ? "/dashboard/pricing" : "/signup"}
                 className="mt-6 block w-full text-center py-2.5 rounded-xl text-xs font-bold text-white hover:opacity-95 transition-opacity"
                 style={{
                   background: "linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)"
                 }}
               >
-                Get Creator Pro
+                {showDashboard ? "Upgrade in Dashboard" : "Get Creator Pro"}
               </Link>
             </div>
 
@@ -618,7 +673,7 @@ export default function LandingPage() {
                 <ul className="space-y-2.5 mt-6 text-xs text-zinc-300 font-medium border-t border-white/10 pt-4">
                   <li className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-sm text-white">paid</span>
-                    <span><strong>10%–20% Commission</strong> on first purchases</span>
+                    <span><strong>{sysSettings?.creator_commission_percent !== undefined ? sysSettings.creator_commission_percent : 10}% Commission</strong> on paid sales</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-sm text-white">account_balance</span>
@@ -634,14 +689,23 @@ export default function LandingPage() {
                   </li>
                 </ul>
               </div>
-              <a
-                href="https://ig.me/m/anydm.in"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-6 block w-full text-center bg-white text-black py-2.5 rounded-xl text-xs font-bold hover:bg-[#eaeaea] transition-colors"
-              >
-                Contact anydm.in
-              </a>
+              {showDashboard && appUser?.is_creator_vip ? (
+                <Link
+                  href="/dashboard/creator"
+                  className="mt-6 block w-full text-center bg-white text-black py-2.5 rounded-xl text-xs font-bold hover:bg-[#eaeaea] transition-colors"
+                >
+                  Open Creator Hub
+                </Link>
+              ) : (
+                <a
+                  href="https://ig.me/m/anydm.in"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-6 block w-full text-center bg-white text-black py-2.5 rounded-xl text-xs font-bold hover:bg-[#eaeaea] transition-colors"
+                >
+                  Contact anydm.in
+                </a>
+              )}
             </div>
           </div>
         </section>
@@ -663,10 +727,10 @@ export default function LandingPage() {
               Join 2,000+ brands using AnyDM to handle their social interactions with clinical precision.
             </p>
             <Link
-              href="/signup"
+              href={showDashboard ? "/dashboard" : "/signup"}
               className="bg-white text-black px-8 py-4 rounded-xl text-sm font-bold hover:scale-105 transition-all duration-200 relative z-10 shadow-md inline-block border border-white/10"
             >
-              Start Your 14-Day Free Trial
+              {showDashboard ? "Go to Dashboard" : `Start Your ${sysSettings?.trial_days || 14}-Day Free Trial`}
             </Link>
           </div>
         </section>
@@ -680,10 +744,10 @@ export default function LandingPage() {
             <p className="text-xs text-[#888888]">© 2024 AnyDM Automation. All rights reserved.</p>
           </div>
           <div className="flex gap-6 items-center text-xs text-[#5e5e5e]">
-            <a className="hover:text-black transition-colors" href="#">Privacy Policy</a>
-            <a className="hover:text-black transition-colors" href="#">Terms of Service</a>
-            <a className="hover:text-black transition-colors" href="#">Support</a>
-            <a className="hover:text-black transition-colors" href="#">Twitter</a>
+            <Link className="hover:text-black transition-colors" href="/privacy">Privacy Policy</Link>
+            <Link className="hover:text-black transition-colors" href="/terms">Terms of Service</Link>
+            <a className="hover:text-black transition-colors" href="mailto:support@anydm.in">Support</a>
+            <a className="hover:text-black transition-colors" href="https://twitter.com" target="_blank" rel="noopener noreferrer">Twitter</a>
           </div>
         </div>
       </footer>
