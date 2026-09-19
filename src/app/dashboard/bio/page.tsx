@@ -1255,9 +1255,9 @@ export default function LinkInBioDashboard() {
               handleSavePageSettings({ is_published: nextPublished });
             }}
             className={cn(
-              "flex items-center gap-2.5 px-1.5 pl-2 py-1 rounded-full border text-xs font-bold transition-all duration-200 cursor-pointer select-none shrink-0 shadow-sm active:scale-95",
+              "flex items-center gap-2.5 px-1.5 pl-2 py-1 rounded-full .border text-xs font-bold transition-all duration-200 cursor-pointer select-none shrink-0 shadow-sm active:scale-95",
               page.is_published
-                ? "bg-emerald-500/10 border-emerald-500/35 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.15)] hover:bg-emerald-500/20"
+                ? ".bg-emerald-500/10 border-emerald-500/35 text-emerald-400 .shadow-[0_0_15px_rgba(16,185,129,0.15)] hover:bg-emerald-500/20"
                 : "bg-[#121214] border-[#2c2c2c] text-zinc-400 hover:text-zinc-200 hover:border-zinc-700"
             )}
             title={page.is_published ? "Status: Live & Active (Click to Disable)" : "Status: Offline & Inactive (Click to Enable)"}
@@ -1320,7 +1320,7 @@ export default function LinkInBioDashboard() {
             >
               {saving ? (
                 <>
-                  <div className="w-3 h-3 border-2 border-black border-t-transparent rounded-full animate-spin" />
+
                   <span>Saving…</span>
                 </>
               ) : (

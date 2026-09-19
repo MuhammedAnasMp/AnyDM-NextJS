@@ -474,21 +474,21 @@ function computeBaseTemplateStyles(templateId: string, themeId: string): Templat
       bodyClass: "bg-[#0a0a0a] text-white",
       navClass: "bg-[#0a0a0a] border-b-2 border-white",
       cardClass: isRed
-        ? "bg-[#111111] border-2 border-[#1f1f1f] rounded-none hover:border-[#ff0000] transition-all duration-200 group"
+        ? "bg-[#111111] border-2 border-[#1f1f1f] rounded-none hover:border-[#ff0000]/40 transition-opacity hover:opacity-90 duration-200 group"
         : isOrange
-          ? "bg-[#111111] border-2 border-[#1f1f1f] rounded-none hover:border-[#ff5a00] transition-all duration-200 group"
-          : "bg-[#111111] border-2 border-[#1f1f1f] rounded-none hover:border-[#7c3aed] transition-all duration-200 group",
+          ? "bg-[#111111] border-2 border-[#1f1f1f] rounded-none hover:border-[#ff5a00]/40 transition-opacity hover:opacity-90 duration-200 group"
+          : "bg-[#111111] border-2 border-[#1f1f1f] rounded-none hover:border-[#7c3aed]/40 transition-opacity hover:opacity-90 duration-200 group",
       modalClass: "bg-[#111111] text-white border-2 border-white",
       buttonClass: isRed
-        ? "bg-[#ff0000] text-white font-black tracking-widest text-sm py-4 px-8 rounded-none hover:brightness-110 transition-all active:scale-95"
+        ? "bg-[#ff0000] text-white font-black tracking-widest text-sm py-4 px-8 rounded-none hover:opacity-85 transition-opacity active:scale-95"
         : isOrange
-          ? "bg-[#ff5a00] text-white font-black tracking-widest text-sm py-4 px-8 rounded-none hover:brightness-110 transition-all active:scale-95"
-          : "bg-[#7c3aed] text-white font-black tracking-widest text-sm py-4 px-8 rounded-none hover:brightness-110 transition-all active:scale-95",
+          ? "bg-[#ff5a00] text-white font-black tracking-widest text-sm py-4 px-8 rounded-none hover:opacity-85 transition-opacity active:scale-95"
+          : "bg-[#7c3aed] text-white font-black tracking-widest text-sm py-4 px-8 rounded-none hover:opacity-85 transition-opacity active:scale-95",
       badgeClass: isRed
-        ? "bg-[#ff0000] text-white font-black text-[9px] tracking-widest px-2 py-0.5 rounded-none"
+        ? "bg-[#ff0000]/80 text-white font-black text-[9px] tracking-widest px-2 py-0.5 rounded-none"
         : isOrange
-          ? "bg-[#ff5a00] text-white font-black text-[9px] tracking-widest px-2 py-0.5 rounded-none"
-          : "bg-[#7c3aed] text-white font-black text-[9px] tracking-widest px-2 py-0.5 rounded-none",
+          ? "bg-[#ff5a00]/80 text-white font-black text-[9px] tracking-widest px-2 py-0.5 rounded-none"
+          : "bg-[#7c3aed]/80 text-white font-black text-[9px] tracking-widest px-2 py-0.5 rounded-none",
       textColorClass: "text-white",
       textMutedClass: "text-zinc-400",
       priceClass: "text-white font-black text-lg",
@@ -497,27 +497,27 @@ function computeBaseTemplateStyles(templateId: string, themeId: string): Templat
       containerClass: "max-w-screen-xl mx-auto px-4 sm:px-6",
       whatsappButtonClass: "bg-[#1f1f1f] text-white border-2 border-white/20 font-bold tracking-widest text-xs py-4 hover:bg-white hover:text-black transition-all text-center rounded-none",
       instagramButtonClass: isRed
-        ? "bg-[#ff0000] text-white font-black tracking-widest text-xs py-4 hover:brightness-110 transition-all text-center rounded-none"
+        ? "bg-[#ff0000] text-white font-black tracking-widest text-xs py-4 hover:opacity-85 transition-opacity text-center rounded-none"
         : isOrange
-          ? "bg-[#ff5a00] text-white font-black tracking-widest text-xs py-4 hover:brightness-110 transition-all text-center rounded-none"
-          : "bg-[#7c3aed] text-white font-black tracking-widest text-xs py-4 hover:brightness-110 transition-all text-center rounded-none",
+          ? "bg-[#ff5a00] text-white font-black tracking-widest text-xs py-4 hover:opacity-85 transition-opacity text-center rounded-none"
+          : "bg-[#7c3aed] text-white font-black tracking-widest text-xs py-4 hover:opacity-85 transition-opacity text-center rounded-none",
       logoWrapperClass: "w-9 h-9 rounded-none overflow-hidden bg-transparent border-2 border-white flex items-center justify-center",
       inputClass: isRed
-        ? "bg-[#111111] border-2 border-[#1f1f1f] text-white placeholder-zinc-500 font-bold rounded-none px-4 py-2.5 focus:outline-none focus:border-[#ff0000] transition-colors"
+        ? "bg-[#111111] border-2 border-[#1f1f1f] text-white placeholder-zinc-500 font-bold rounded-none px-4 py-2.5 focus:outline-none focus:border-white/60 transition-colors"
         : isOrange
-          ? "bg-[#111111] border-2 border-[#1f1f1f] text-white placeholder-zinc-500 font-bold rounded-none px-4 py-2.5 focus:outline-none focus:border-[#ff5a00] transition-colors"
-          : "bg-[#111111] border-2 border-[#1f1f1f] text-white placeholder-zinc-500 font-bold rounded-none px-4 py-2.5 focus:outline-none focus:border-[#7c3aed] transition-colors",
+          ? "bg-[#111111] border-2 border-[#1f1f1f] text-white placeholder-zinc-500 font-bold rounded-none px-4 py-2.5 focus:outline-none focus:border-white/60 transition-colors"
+          : "bg-[#111111] border-2 border-[#1f1f1f] text-white placeholder-zinc-500 font-bold rounded-none px-4 py-2.5 focus:outline-none focus:border-white/60 transition-colors",
       dividerClass: "border-white/15",
       filterPillClass: isRed
-        ? "px-4 py-1.5 text-xs font-black border-2 border-[#1f1f1f] text-zinc-400 hover:border-[#ff0000] hover:text-[#ff0000] transition-all bg-[#0a0a0a]"
+        ? "px-4 py-1.5 text-xs font-black border-2 border-[#1f1f1f] text-zinc-400 hover:border-white/40 hover:text-white transition-opacity hover:opacity-80 bg-[#0a0a0a]"
         : isOrange
-          ? "px-4 py-1.5 text-xs font-black border-2 border-[#1f1f1f] text-zinc-400 hover:border-[#ff5a00] hover:text-[#ff5a00] transition-all bg-[#0a0a0a]"
-          : "px-4 py-1.5 text-xs font-black border-2 border-[#1f1f1f] text-zinc-400 hover:border-[#7c3aed] hover:text-[#7c3aed] transition-all bg-[#0a0a0a]",
+          ? "px-4 py-1.5 text-xs font-black border-2 border-[#1f1f1f] text-zinc-400 hover:border-white/40 hover:text-white transition-opacity hover:opacity-80 bg-[#0a0a0a]"
+          : "px-4 py-1.5 text-xs font-black border-2 border-[#1f1f1f] text-zinc-400 hover:border-white/40 hover:text-white transition-opacity hover:opacity-80 bg-[#0a0a0a]",
       filterPillActiveClass: isRed
-        ? "px-4 py-1.5 text-xs font-black border-2 border-[#ff0000] text-[#ff0000] bg-[#0a0a0a]"
+        ? "px-4 py-1.5 text-xs font-black border-2 border-[#ff0000]/60 text-white bg-[#ff0000]/20"
         : isOrange
-          ? "px-4 py-1.5 text-xs font-black border-2 border-[#ff5a00] text-[#ff5a00] bg-[#0a0a0a]"
-          : "px-4 py-1.5 text-xs font-black border-2 border-[#7c3aed] text-[#7c3aed] bg-[#0a0a0a]",
+          ? "px-4 py-1.5 text-xs font-black border-2 border-[#ff5a00]/60 text-white bg-[#ff5a00]/20"
+          : "px-4 py-1.5 text-xs font-black border-2 border-[#7c3aed]/60 text-white bg-[#7c3aed]/20",
     };
   }
 

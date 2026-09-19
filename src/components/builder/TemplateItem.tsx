@@ -93,7 +93,7 @@ export function TemplateItem({ title, desc, icon: Icon, onClick, nodeType, templ
       onDragStart={handleDragStart}
       onClick={handleClick}
       className={cn(
-        "flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer select-none active:scale-[0.99] transition-all group",
+        "flex items-center gap-3 p-2 rounded-xl border cursor-pointer select-none active:scale-[0.99] transition-all group",
         isSelected && colors
           ? cn(colors.border, colors.bg, colors.shadow)
           : "border-white/5 bg-white/5 hover:bg-white/10 hover:border-white/10"

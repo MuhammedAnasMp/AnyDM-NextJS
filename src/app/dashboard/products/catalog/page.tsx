@@ -187,6 +187,8 @@ export default function CatalogPage() {
     if (!matchesSearch) return false;
 
     if (selectedFilter === "All") return true;
+    if (selectedFilter === "Physical") return p.product_type !== "DIGITAL";
+    if (selectedFilter === "Digital") return p.product_type === "DIGITAL";
     if (selectedFilter === "Published") return p.status?.toUpperCase() === "PUBLISHED";
     if (selectedFilter === "Drafts") return p.status?.toUpperCase() === "DRAFT";
     return true;
@@ -266,7 +268,7 @@ export default function CatalogPage() {
           </div> */}
           <div className="h-4 w-[1px] bg-[#2a2a2a] hidden sm:block" />
           <div className="flex p-0.5 bg-[#131313] border border-[#2a2a2a] rounded">
-            {["All", "Published", "Drafts"].map((filter) => (
+            {["All", "Physical", "Digital", "Published", "Drafts"].map((filter) => (
               <button
                 key={filter}
                 onClick={() => setSelectedFilter(filter)}
@@ -404,10 +406,12 @@ export default function CatalogPage() {
                           </div>
                           <div className="space-y-0.5 min-w-0">
                             <p className="font-medium text-white truncate flex items-center gap-1.5">
-                              {titleText}
-                              {/* {isInstagramProduct && (
-                                <InstagramIcon className="w-3.5 h-3.5 text-pink-500 shrink-0 inline" />
-                              )} */}
+                              <span>{titleText}</span>
+                              {p.product_type === "DIGITAL" && (
+                                <span className="px-1.5 py-0.5 rounded text-[9px] bg-cyan-950/60 text-cyan-300 border border-cyan-500/30 font-medium shrink-0 flex items-center gap-1">
+                                  ⚡ Digital
+                                </span>
+                              )}
                             </p>
                             <p className="text-[10px] text-[#8e9192] truncate">
                               SKU: {skuCode} • Updated {formatUpdatedTime(p.updated_at)}
@@ -423,7 +427,11 @@ export default function CatalogPage() {
 
                       {/* Stock Column */}
                       <td className="px-6 py-3.5 font-medium text-white">
-                        {p.stock !== null && p.stock !== undefined ? p.stock : '—'}
+                        {p.product_type === "DIGITAL" || p.is_unlimited_stock ? (
+                          <span className="text-[#c4c7c8] text-xs">∞ (Unlimited)</span>
+                        ) : (
+                          p.stock !== null && p.stock !== undefined ? p.stock : '—'
+                        )}
                       </td>
 
                       {/* Inquiries */}

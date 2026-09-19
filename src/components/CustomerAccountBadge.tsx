@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { resolveCustomerSession, CustomerSessionData } from "@/lib/services/customerSession";
 import { User, ShieldCheck, ChevronRight } from "lucide-react";
+import UserAvatar from "@/components/UserAvatar";
 import Link from "next/link";
 import { TemplateStyle } from "@/components/templates/TemplateProvider";
 import { cn } from "@/lib/utils";
@@ -31,20 +32,37 @@ export default function CustomerAccountBadge({ className = "", styles, username,
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    resolveCustomerSession().then((res) => {
+    resolveCustomerSession(username).then((res) => {
       if (res) {
         setSession(res);
       }
       setIsLoading(false);
     });
-  }, []);
+  }, [username]);
 
   if (isLoading || !session) return null;
 
   const isInstagram = !!session.instagram_username;
-  const displayName = session.instagram_username
+  let displayName = session.instagram_username
     ? `@${session.instagram_username}`
-    : session.saved_address?.customer_name || "Guest Customer";
+    : session.saved_address?.customer_name;
+
+  if (!displayName && typeof window !== "undefined") {
+    try {
+      const storedOrders = JSON.parse(localStorage.getItem("anydm_customer_orders") || "[]");
+      const cleanUser = (username || "").replace(/^@/, "").toLowerCase().trim();
+      const lastOrder = storedOrders.slice().reverse().find((o: any) =>
+        (!cleanUser || !o.username || o.username.toLowerCase() === cleanUser) && (o.name || o.email)
+      );
+      if (lastOrder) {
+        displayName = lastOrder.name || lastOrder.email?.split("@")[0];
+      }
+    } catch (e) {}
+  }
+
+  if (!displayName) {
+    displayName = "Guest Customer";
+  }
 
   const targetUsername = username || session.instagram_username || "";
 
@@ -69,32 +87,21 @@ export default function CustomerAccountBadge({ className = "", styles, username,
         "relative flex items-center gap-2 p-1 pl-1.5 pr-2.5 rounded-full transition-all text-xs border shadow-sm group cursor-pointer active:scale-95",
         styles
           ? cn(
-              isLight ? "bg-white/90 border-black/15 text-black hover:bg-white" : "bg-[#1c1b1b]/90 border-[#444748]/70 text-white hover:bg-[#1c1b1b]"
-            )
+            isLight ? "bg-white/90 border-black/15 text-black hover:bg-white" : "bg-[#1c1b1b]/90 border-[#444748]/70 text-white hover:bg-[#1c1b1b]"
+          )
           : "bg-[#1c1b1b] border-[#444748] text-white hover:border-white/40",
         className
       )}
     >
-      {session.instagram_profile_pic ? (
-        <div className="relative w-6 h-6 shrink-0">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={session.instagram_profile_pic}
-            alt={displayName}
-            className="w-full h-full rounded-full object-cover ring-1 ring-emerald-500/60"
-          />
-          <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-black" />
-        </div>
-      ) : (
-        <div className="relative w-6 h-6 rounded-full bg-emerald-500/10 border border-emerald-500/40 flex items-center justify-center shrink-0">
-          {isInstagram ? (
-            <InstagramIcon className="w-3.5 h-3.5 text-pink-400" />
-          ) : (
-            <User className="w-3.5 h-3.5 text-emerald-400" />
-          )}
-          <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-black" />
-        </div>
-      )}
+      <div className="relative shrink-0">
+        <UserAvatar
+          src={session.instagram_profile_pic}
+          name={displayName}
+          className="w-6 h-6 rounded-full text-[10px]"
+          iconClassName="w-3.5 h-3.5"
+        />
+        {/* <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-black" /> */}
+      </div>
 
       <div className="flex flex-col text-left leading-tight min-w-0">
         <span className="font-extrabold max-w-[100px] truncate text-[11px]">

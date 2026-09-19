@@ -27,11 +27,10 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Exclude static assets, internal paths, API routes, and tracking pages
+  // Exclude static assets, internal paths, and API routes
   if (
     url.pathname.startsWith('/_next') ||
     url.pathname.startsWith('/api') ||
-    url.pathname.startsWith('/track') ||
     url.pathname.includes('.')
   ) {
     return NextResponse.next();
@@ -49,6 +48,12 @@ export function middleware(request: NextRequest) {
     currentHost === 'localhost' ||
     currentHost === '127.0.0.1' ||
     currentHost.endsWith('.vercel.app');
+
+  // Redirect any legacy /track routes directly to /orders
+  if (url.pathname.startsWith('/track')) {
+    const newPath = url.pathname.replace(/^\/track/, '/orders');
+    return NextResponse.redirect(new URL(newPath + url.search, request.url), 308);
+  }
 
   if (!isAppHost) {
     let tenantSlug = '';
@@ -77,7 +82,7 @@ export function middleware(request: NextRequest) {
       // 3. For tenant domains (subdomains & custom domains), redirect redundant merchant username paths (e.g. /zoira_lawns on me1.zoyee.in) to store root /
       const pathParts = url.pathname.split('/').filter(Boolean);
       const firstSegment = pathParts[0];
-      const KNOWN_STORE_PATHS = ['product', 'terms', 'privacy', 'track', 'account', '_next', 'api', 'favicon.ico'];
+      const KNOWN_STORE_PATHS = ['product', 'terms', 'privacy', 'orders', 'account', '_next', 'api', 'favicon.ico'];
       if (firstSegment && !KNOWN_STORE_PATHS.includes(firstSegment)) {
         const remainingPath = '/' + pathParts.slice(1).join('/');
         return NextResponse.redirect(new URL(remainingPath + url.search, request.url));

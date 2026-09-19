@@ -386,6 +386,22 @@ export default function LinkInBioPublicView({
     setRedirectError(null);
     setRedirectResult(null);
 
+    const queryStr = pasteInput.trim().toLowerCase();
+    const matchingBlock = blocks.find(
+      (b) =>
+        b.is_active &&
+        (b.title?.toLowerCase().includes(queryStr) ||
+          b.subtitle?.toLowerCase().includes(queryStr) ||
+          b.url?.toLowerCase().includes(queryStr))
+    );
+
+    if (matchingBlock) {
+      const blockEl = document.getElementById(`block-${matchingBlock.id}`) || sectionRefs.current["blocks"];
+      if (blockEl) {
+        blockEl.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }
+
     try {
       const cleanHandle = username.replace(/^@/, "");
       const res = await api.post<RedirectResultPayload>(`/accounts/public/link-in-bio/${cleanHandle}/resolve-redirect/`, {
@@ -397,12 +413,14 @@ export default function LinkInBioPublicView({
         if (res.data.destination_type === "url" && !isPreviewMode) {
           window.open(res.data.destination_value, "_blank");
         }
-      } else {
+      } else if (!matchingBlock) {
         setRedirectError(res.data.message || "No matching destination link found.");
       }
     } catch (err: unknown) {
-      const apiErr = err as { response?: { data?: { message?: string } } };
-      setRedirectError(apiErr.response?.data?.message || "Could not resolve link.");
+      if (!matchingBlock) {
+        const apiErr = err as { response?: { data?: { message?: string } } };
+        setRedirectError(apiErr.response?.data?.message || "Could not resolve link.");
+      }
     } finally {
       setIsResolving(false);
     }

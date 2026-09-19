@@ -75,6 +75,39 @@ export function getAccountUrl(username: string): string {
 }
 
 /**
+ * Get store Customer Orders & Status URL depending on whether user is on a tenant domain or main app path.
+ */
+export function getOrdersUrl(username: string): string {
+  if (isTenantDomain()) {
+    return `/orders`;
+  }
+  return `/${username}/orders`;
+}
+
+export function getOrderDetailUrl(username: string, orderId: string): string {
+  const cleanUser = (username || "").replace(/^@/, "");
+  if (isTenantDomain()) {
+    return `/orders/${orderId}`;
+  }
+  return `/${cleanUser}/orders/${orderId}`;
+}
+
+/**
+ * Get store Customer Tracking URL (specific or general) depending on whether user is on a tenant domain or main app path.
+ */
+export function getTrackUrl(username: string, orderId?: string): string {
+  const cleanUser = (username || "").replace(/^@/, "");
+  if (orderId) {
+    return getOrderDetailUrl(cleanUser, orderId);
+  }
+  if (isTenantDomain()) {
+    return `/orders`;
+  }
+  return `/${cleanUser}/orders`;
+}
+
+
+/**
  * Resolves the public storefront URL for a merchant according to active domain priority:
  * Priority 1: Custom Domain (e.g. https://12.com) - if custom domain is present & verified/configured
  * Priority 2: Subdomain (e.g. https://12.zoyee.in)
@@ -135,3 +168,4 @@ export interface CarouselSlide {
   subtitle?: string;
   public_id?: string;
 }
+

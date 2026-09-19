@@ -2,7 +2,7 @@
 
 import React, { use, useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Globe, RefreshCw, ShoppingBag, ArrowRight, Star, X, Heart,
   Search, ChevronDown, MessageCircle, User,
@@ -21,7 +21,7 @@ const InstagramIcon = ({ className }: { className?: string }) => (
 import api from "@/lib/services/api.service";
 import { getTemplateStyles, TemplateStyle } from "@/components/templates/TemplateProvider";
 import { cn } from "@/lib/utils";
-import { getProductUrl, getStoreHomeUrl, getAccountUrl, getTermsUrl, getPrivacyUrl, isTenantDomain, CarouselSlide } from "@/lib/utils/domain";
+import { getProductUrl, getStoreHomeUrl, getAccountUrl, getOrdersUrl, getTrackUrl, getTermsUrl, getPrivacyUrl, isTenantDomain, CarouselSlide } from "@/lib/utils/domain";
 import LinkInBioPublicView from "@/components/bio/LinkInBioPublicView";
 import CustomerAccountBadge from "@/components/CustomerAccountBadge";
 
@@ -96,6 +96,7 @@ export default function StorefrontPage({ params }: PageProps) {
 
 function StorefrontView({ username }: { username: string }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [supplier, setSupplier] = useState<SupplierData | null>(null);
@@ -104,12 +105,12 @@ function StorefrontView({ username }: { username: string }) {
 
   // UI State
   const [searchQuery, setSearchQuery] = useState("");
+  const [apiSearchResults, setApiSearchResults] = useState<ProductData[] | null>(null);
+  const [isSearchingApi, setIsSearchingApi] = useState(false);
   const [activeCategory, setActiveCategory] = useState("All");
   const [sortOrder, setSortOrder] = useState<"default" | "price_asc" | "price_desc">("default");
   const [showSearch, setShowSearch] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isTrackingOpen, setIsTrackingOpen] = useState(false);
-  const [inputOrderId, setInputOrderId] = useState("");
   const [localOrders, setLocalOrders] = useState<any[]>([]);
   const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null);
   const [activePolicyModal, setActivePolicyModal] = useState<"privacy" | "terms" | null>(null);
@@ -118,6 +119,46 @@ function StorefrontView({ username }: { username: string }) {
   const [scrolled, setScrolled] = useState(false);
   const [quickViewProduct, setQuickViewProduct] = useState<ProductData | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+
+  // Debounced API search when query changes
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setApiSearchResults(null);
+      setIsSearchingApi(false);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setIsSearchingApi(true);
+      try {
+        const response = await api.get(`/accounts/public/store/${username}/?q=${encodeURIComponent(searchQuery.trim())}`);
+        if (response.data?.products) {
+          const normalized = (response.data.products || []).map((prod: any) => ({
+            ...prod,
+            main_media_url: prod.main_media_url || prod.media_url,
+            is_negotiable: prod.negotiable !== undefined ? prod.negotiable : prod.is_negotiable,
+          }));
+          setApiSearchResults(normalized);
+        }
+      } catch (err) {
+        console.error("Storefront API search error:", err);
+      } finally {
+        setIsSearchingApi(false);
+      }
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [searchQuery, username]);
+
+  // Initialize search from URL query parameter (e.g. ?search= or ?q=)
+  useEffect(() => {
+    const q = searchParams?.get("search") || searchParams?.get("q") || searchParams?.get("s");
+    if (q) {
+      setSearchQuery(q);
+      setShowSearch(true);
+      setTimeout(() => {
+        document.getElementById("product-grid")?.scrollIntoView({ behavior: "smooth" });
+      }, 400);
+    }
+  }, [searchParams]);
 
   // Scroll detection for nav
   useEffect(() => {
@@ -128,9 +169,17 @@ function StorefrontView({ username }: { username: string }) {
 
   // Load wishlist from localStorage
   useEffect(() => {
-    const favs = JSON.parse(localStorage.getItem("anydm_favorites") || "[]");
-    setWishlist(favs);
-  }, []);
+    if (username) {
+      const favKey = `anydm_favorites_${username.toLowerCase()}`;
+      try {
+        const raw = JSON.parse(localStorage.getItem(favKey) || localStorage.getItem("anydm_favorites") || "[]");
+        const sanitized = Array.from(new Set((Array.isArray(raw) ? raw : []).map(Number).filter(n => !isNaN(n) && n > 0)));
+        setWishlist(sanitized);
+      } catch (e) {
+        setWishlist([]);
+      }
+    }
+  }, [username]);
 
   // Load local orders
   useEffect(() => {
@@ -139,7 +188,7 @@ function StorefrontView({ username }: { username: string }) {
       const supplierOrders = orders.filter((o: any) => o.username?.toLowerCase() === username?.toLowerCase());
       setLocalOrders(supplierOrders);
     }
-  }, [isTrackingOpen, username]);
+  }, [username]);
 
   // Fetch storefront data
   useEffect(() => {
@@ -179,20 +228,55 @@ function StorefrontView({ username }: { username: string }) {
   const toggleWishlist = (productId: number, e: React.MouseEvent) => {
     e.stopPropagation();
     setWishlist(prev => {
-      const next = prev.includes(productId) ? prev.filter(id => id !== productId) : [...prev, productId];
+      const uniquePrev = Array.from(new Set(prev));
+      const next = uniquePrev.includes(productId) ? uniquePrev.filter(id => id !== productId) : [...uniquePrev, productId];
+      if (username) {
+        localStorage.setItem(`anydm_favorites_${username.toLowerCase()}`, JSON.stringify(next));
+      }
       localStorage.setItem("anydm_favorites", JSON.stringify(next));
       return next;
     });
   };
 
+  const handleSearchSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (activeCategory !== "All") setActiveCategory("All");
+    document.getElementById("product-grid")?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const handleSearchChange = (val: string) => {
+    setSearchQuery(val);
+    if (val.trim() && activeCategory !== "All") {
+      setActiveCategory("All");
+    }
+    if (val.trim()) {
+      const productGrid = document.getElementById("product-grid");
+      if (productGrid) {
+        const rect = productGrid.getBoundingClientRect();
+        if (rect.top > window.innerHeight || rect.top < 0) {
+          productGrid.scrollIntoView({ behavior: "smooth" });
+        }
+      }
+    }
+  };
+
   // Derived data
+  const wishlistedProducts = products.filter(p => wishlist.includes(p.id));
   const categories = ["All", ...Array.from(new Set(products.map(p => p.category).filter(Boolean))) as string[]];
 
   const filteredProducts = products
     .filter(p => {
-      const matchesSearch = searchQuery.trim() === "" ||
-        p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (p.description || "").toLowerCase().includes(searchQuery.toLowerCase());
+      const q = searchQuery.trim().toLowerCase();
+      if (!q) {
+        return activeCategory === "All" || p.category === activeCategory;
+      }
+      const matchesTitle = p.title.toLowerCase().includes(q);
+      const matchesDesc = (p.description || "").toLowerCase().includes(q);
+      const matchesCat = (p.category || "").toLowerCase().includes(q);
+      const matchesPrice = (p.price || "").toString().includes(q);
+      const matchesMeta = p.metadata ? JSON.stringify(p.metadata).toLowerCase().includes(q) : false;
+      const matchesSearch = matchesTitle || matchesDesc || matchesCat || matchesPrice || matchesMeta;
+
       const matchesCategory = activeCategory === "All" || p.category === activeCategory;
       return matchesSearch && matchesCategory;
     })
@@ -289,7 +373,7 @@ function StorefrontView({ username }: { username: string }) {
               All Products
             </button>
             <button
-              onClick={() => setIsTrackingOpen(true)}
+              onClick={() => router.push(getOrdersUrl(username))}
               className={cn("text-xs font-semibold tracking-wide hover:opacity-80 transition-opacity", styles.textMutedClass)}
             >
               Track Order
@@ -313,13 +397,13 @@ function StorefrontView({ username }: { username: string }) {
               aria-label="View wishlist"
               className={cn("relative w-9 h-9 flex items-center justify-center rounded-full transition-colors hover:opacity-80", styles.textColorClass)}
             >
-              <Heart className={cn("w-4.5 h-4.5 transition-all", wishlist.length > 0 ? "fill-current text-red-500" : "")} />
-              {wishlist.length > 0 && (
+              <Heart className={cn("w-4.5 h-4.5 transition-all", wishlistedProducts.length > 0 ? "fill-current text-red-500" : "")} />
+              {wishlistedProducts.length > 0 && (
                 <span
                   className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center"
                   style={{ backgroundColor: styles.accentColor, color: styles.isDark ? "#000" : "#fff" }}
                 >
-                  {wishlist.length}
+                  {wishlistedProducts.length}
                 </span>
               )}
             </button>
@@ -339,26 +423,105 @@ function StorefrontView({ username }: { username: string }) {
 
         {/* Search bar (slides in) */}
         {showSearch && (
-          <div className={cn("border-t py-3 shadow-inner", styles.dividerClass, styles.navClass)}>
-            <div className={cn("flex items-center gap-3", styles.containerClass)}>
+          <div className={cn("border-t py-3 shadow-inner transition-all relative", styles.dividerClass, styles.navClass)}>
+            <form onSubmit={handleSearchSubmit} className={cn("flex items-center gap-2.5", styles.containerClass)}>
               <Search className={cn("w-4 h-4 shrink-0", styles.textMutedClass)} />
               <input
                 ref={searchRef}
                 type="text"
                 value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
+                onChange={e => handleSearchChange(e.target.value)}
                 placeholder={`Search ${storeName} products…`}
                 className={cn("flex-1 bg-transparent text-sm focus:outline-none", styles.textColorClass, "placeholder:opacity-50")}
               />
               {searchQuery && (
-                <button onClick={() => setSearchQuery("")} className={styles.textMutedClass}>
+                <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/10 shrink-0", styles.textMutedClass)}>
+                  {(apiSearchResults || filteredProducts).length} {(apiSearchResults || filteredProducts).length === 1 ? "match" : "matches"}
+                </span>
+              )}
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setApiSearchResults(null);
+                  }}
+                  className={cn("p-1 rounded-full hover:opacity-80 shrink-0", styles.textMutedClass)}
+                  aria-label="Clear search"
+                >
                   <X className="w-4 h-4" />
                 </button>
               )}
-              <button onClick={() => setShowSearch(false)} className={cn("text-xs font-bold px-3 py-1 rounded", styles.badgeClass)}>
+              <button
+                type="submit"
+                className={cn("h-9 px-4 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer shadow-sm flex items-center justify-center", styles.buttonClass)}
+              >
+                Search
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowSearch(false);
+                  setSearchQuery("");
+                  setApiSearchResults(null);
+                }}
+                className={cn("h-9 px-4 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer border border-black/15 dark:border-white/15 opacity-80 hover:opacity-100 flex items-center justify-center", styles.badgeClass)}
+              >
                 Close
               </button>
-            </div>
+            </form>
+
+            {/* Selectable Search Results Dropdown List */}
+            {searchQuery.trim() !== "" && (
+              <div className={cn("absolute left-0 right-0 top-full mt-1 z-[60] max-h-96 overflow-y-auto rounded-xl border shadow-2xl p-2 space-y-1 backdrop-blur-xl", styles.modalClass, styles.dividerClass, styles.containerClass)}>
+                {isSearchingApi && (
+                  <div className="p-4 text-center text-xs opacity-70 flex items-center justify-center gap-2">
+                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    <span>Searching catalog via API…</span>
+                  </div>
+                )}
+                {!isSearchingApi && (apiSearchResults || filteredProducts).length === 0 && (
+                  <div className="p-4 text-center text-xs opacity-70">
+                    No products found matching &ldquo;{searchQuery}&rdquo;
+                  </div>
+                )}
+                {!isSearchingApi && (apiSearchResults || filteredProducts).map((product) => (
+                  <div
+                    key={product.id}
+                    onClick={() => {
+                      setQuickViewProduct(product);
+                      setShowSearch(false);
+                    }}
+                    className={cn("p-2.5 rounded-lg border border-transparent hover:border-black/10 dark:hover:border-white/10 transition-all cursor-pointer flex items-center gap-3", styles.cardClass)}
+                  >
+                    <div className="w-10 h-10 rounded-md overflow-hidden bg-black/5 dark:bg-white/5 shrink-0 border border-black/10 dark:border-white/10">
+                      {product.main_media_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={product.main_media_url} alt={product.title} className="w-full h-full object-cover" />
+                      ) : (
+                        <ShoppingBag className="w-4 h-4 m-auto text-zinc-400" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h4 className={cn("text-xs font-bold truncate", styles.textColorClass)}>{product.title}</h4>
+                        {product.category && (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/10 font-semibold opacity-70 shrink-0">
+                            {product.category}
+                          </span>
+                        )}
+                      </div>
+                      <p className={cn("text-[11px] opacity-60 truncate", styles.textMutedClass)}>
+                        {product.description ? product.description.slice(0, 60) : "Click to view product"}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className={cn("text-xs font-black", styles.priceClass)}>₹{product.price}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </header>
@@ -374,7 +537,7 @@ function StorefrontView({ username }: { username: string }) {
             >
               <X className="w-4 h-4" />
             </button>
-            <div className="flex items-center gap-3 mb-6 pt-2">
+            <div className="flex items-center gap-3 mb-5 pt-2">
               <div className={styles.logoWrapperClass}>
                 {settings.store_logo ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -385,6 +548,35 @@ function StorefrontView({ username }: { username: string }) {
               </div>
               <span className={cn("text-base font-bold", styles.textColorClass)}>{storeName}</span>
             </div>
+
+            {/* Search Input in Mobile Drawer */}
+            <form
+              onSubmit={e => {
+                e.preventDefault();
+                setMobileMenuOpen(false);
+                setShowSearch(true);
+                handleSearchSubmit(e);
+              }}
+              className="mb-4 relative flex items-center"
+            >
+              <Search className={cn("w-4 h-4 absolute left-3 pointer-events-none opacity-60", styles.textMutedClass)} />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => handleSearchChange(e.target.value)}
+                placeholder={`Search products…`}
+                className={cn("w-full pl-9 pr-8 py-2 text-xs rounded-xl focus:outline-none border bg-transparent", styles.inputClass)}
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className={cn("absolute right-2.5 p-1 text-xs opacity-60 hover:opacity-100", styles.textColorClass)}
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </form>
 
             {/* Customer Account Details Badge in 3-line Mobile Drawer */}
             <div className="mb-6 pb-4 border-b border-white/10">
@@ -404,7 +596,7 @@ function StorefrontView({ username }: { username: string }) {
                 All Products
               </button>
               <button
-                onClick={() => { setIsTrackingOpen(true); setMobileMenuOpen(false); }}
+                onClick={() => { setMobileMenuOpen(false); router.push(getOrdersUrl(username)); }}
                 className={cn("w-full text-left py-3 px-4 rounded-xl text-xs font-bold tracking-wider uppercase transition-colors hover:opacity-80 border", styles.dividerClass)}
               >
                 Track My Order
@@ -712,7 +904,7 @@ function StorefrontView({ username }: { username: string }) {
           <div className="space-y-3">
             <h4 className={cn("text-xs font-bold tracking-widest uppercase", styles.textColorClass)}>Customer Service</h4>
             <div className="space-y-2">
-              <button onClick={() => setIsTrackingOpen(true)} className={cn("block text-xs hover:underline text-left cursor-pointer", styles.textMutedClass)}>
+              <button onClick={() => router.push(getOrdersUrl(username))} className={cn("block text-xs hover:underline text-left cursor-pointer", styles.textMutedClass)}>
                 Track Order Status
               </button>
               <button onClick={() => router.push(getPrivacyUrl(username))} className={cn("block text-xs hover:underline text-left cursor-pointer", styles.textMutedClass)}>
@@ -798,30 +990,30 @@ function StorefrontView({ username }: { username: string }) {
           {/* Panel */}
           <div
             className={cn(
-              "relative w-full max-w-sm h-full flex flex-col shadow-2xl",
+              "relative w-full max-w-sm h-full flex flex-col shadow-2xl border-l border-black/10 dark:border-white/10 transition-colors",
               styles.modalClass
             )}
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}
-            <div className={cn("flex items-center justify-between px-6 py-5 border-b shrink-0", styles.dividerClass)}>
+            <div className={cn("flex items-center justify-between px-5 py-4 border-b border-black/10 dark:border-white/10 shrink-0", styles.textColorClass)}>
               <div className="flex items-center gap-2.5">
                 <Heart className="w-4.5 h-4.5 fill-current text-red-500" />
                 <span className={cn("text-base font-bold tracking-tight", styles.textColorClass)}>
                   Saved Wishlist
                 </span>
-                {wishlist.length > 0 && (
+                {wishlistedProducts.length > 0 && (
                   <span
-                    className="w-5 h-5 rounded-full text-[10px] font-black flex items-center justify-center"
+                    className="w-5 h-5 rounded-full text-[10px] font-black flex items-center justify-center shadow-xs"
                     style={{ backgroundColor: styles.accentColor, color: styles.isDark ? "#000" : "#fff" }}
                   >
-                    {wishlist.length}
+                    {wishlistedProducts.length}
                   </span>
                 )}
               </div>
               <button
                 onClick={() => setWishlistOpen(false)}
-                className={cn("w-8 h-8 flex items-center justify-center rounded-full border hover:opacity-80 transition-opacity", styles.dividerClass)}
+                className={cn("w-8 h-8 flex items-center justify-center rounded-full bg-black/5 dark:bg-white/10 hover:opacity-80 transition-all cursor-pointer", styles.textColorClass)}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -829,14 +1021,14 @@ function StorefrontView({ username }: { username: string }) {
 
             {/* Items */}
             <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3">
-              {wishlist.length === 0 ? (
+              {wishlistedProducts.length === 0 ? (
                 /* Empty state */
                 <div className="flex flex-col items-center justify-center h-full gap-4 px-6 text-center">
                   <div
-                    className="w-16 h-16 rounded-full flex items-center justify-center border"
-                    style={{ backgroundColor: `${styles.accentColor}15`, borderColor: `${styles.accentColor}30` }}
+                    className="w-16 h-16 rounded-full flex items-center justify-center border border-black/10 dark:border-white/10"
+                    style={{ backgroundColor: `${styles.accentColor}15` }}
                   >
-                    <Heart className={cn("w-7 h-7", styles.textMutedClass)} />
+                    <Heart className={cn("w-7 h-7 text-red-500/80")} />
                   </div>
                   <div>
                     <p className={cn("text-base font-bold mb-1", styles.textColorClass)}>Your wishlist is empty</p>
@@ -846,94 +1038,95 @@ function StorefrontView({ username }: { username: string }) {
                   </div>
                   <button
                     onClick={() => setWishlistOpen(false)}
-                    className={cn("mt-2 text-xs font-bold px-6 py-3 uppercase tracking-wider", styles.buttonClass)}
+                    className={cn("mt-2 text-xs font-bold px-6 py-3 rounded-xl transition-opacity hover:opacity-85 cursor-pointer", styles.buttonClass)}
                   >
                     Explore Store Catalog
                   </button>
                 </div>
               ) : (
-                products
-                  .filter(p => wishlist.includes(p.id))
-                  .map(product => (
+                wishlistedProducts.map(product => (
+                  <div
+                    key={product.id}
+                    className={cn("flex gap-3 p-3 rounded-xl border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 transition-all hover:border-black/20 dark:hover:border-white/20")}
+                  >
+                    {/* Thumbnail */}
                     <div
-                      key={product.id}
-                      className={cn("flex gap-3 p-3 rounded-xl border transition-all", styles.cardClass)}
+                      className="w-20 h-24 shrink-0 rounded-lg overflow-hidden bg-black/10 dark:bg-white/10 border border-black/10 dark:border-white/10 cursor-pointer"
+                      onClick={() => { setWishlistOpen(false); router.push(getProductUrl(username, product.id)); }}
                     >
-                      {/* Thumbnail */}
-                      <div
-                        className="w-20 h-24 shrink-0 rounded-lg overflow-hidden bg-zinc-900 cursor-pointer"
-                        onClick={() => { setWishlistOpen(false); router.push(getProductUrl(username, product.id)); }}
-                      >
-                        {isVideoUrl(product.main_media_url) ? (
-                          <video
-                            src={product.main_media_url}
-                            muted
-                            playsInline
-                            preload="metadata"
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={product.main_media_url}
-                            alt={product.title}
-                            className="w-full h-full object-cover"
-                            onError={e => {
-                              (e.target as HTMLImageElement).src =
-                                "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBmaWxsPSIjMWYyOTM3Ij48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIi8+PC9zdmc+";
-                            }}
-                          />
+                      {isVideoUrl(product.main_media_url) ? (
+                        <video
+                          src={product.main_media_url}
+                          muted
+                          playsInline
+                          preload="metadata"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={product.main_media_url}
+                          alt={product.title}
+                          className="w-full h-full object-cover"
+                          onError={e => {
+                            (e.target as HTMLImageElement).src =
+                              "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBmaWxsPSIjMWYyOTM3Ij48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIi8+PC9zdmc+";
+                          }}
+                        />
+                      )}
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+                      <div>
+                        <h4
+                          className={cn("text-xs font-bold line-clamp-2 leading-snug cursor-pointer hover:underline", styles.textColorClass)}
+                          onClick={() => { setWishlistOpen(false); router.push(getProductUrl(username, product.id)); }}
+                        >
+                          {product.title}
+                        </h4>
+                        <p className={cn("text-xs font-extrabold mt-1", styles.priceClass)}>
+                          {product.price ? `${product.price} ${product.currency}` : "Price on request"}
+                        </p>
+                        {product.stock === 0 && (
+                          <span className="text-[9px] font-bold text-red-500 tracking-wider mt-0.5 block uppercase">Out of stock</span>
                         )}
                       </div>
-
-                      {/* Info */}
-                      <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
-                        <div>
-                          <h4
-                            className={cn("text-xs font-bold line-clamp-2 leading-snug cursor-pointer hover:underline", styles.textColorClass)}
-                            onClick={() => { setWishlistOpen(false); router.push(getProductUrl(username, product.id)); }}
-                          >
-                            {product.title}
-                          </h4>
-                          <p className={cn("text-xs font-extrabold mt-1", styles.priceClass)}>
-                            {product.price ? `${product.price} ${product.currency}` : "Price on request"}
-                          </p>
-                          {product.stock === 0 && (
-                            <span className="text-[9px] font-bold text-red-500 tracking-wider mt-0.5 block uppercase">Out of stock</span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 mt-2">
-                          <button
-                            onClick={() => { setWishlistOpen(false); router.push(getProductUrl(username, product.id)); }}
-                            className={cn("flex-1 text-[10px] font-bold py-2 flex items-center justify-center gap-1 transition-all uppercase tracking-wider", styles.buttonClass)}
-                          >
-                            View Product <ArrowRight className="w-3 h-3" />
-                          </button>
-                          <button
-                            onClick={e => toggleWishlist(product.id, e)}
-                            className={cn("w-7 h-7 flex items-center justify-center rounded-full hover:opacity-75 transition-opacity shrink-0 border", styles.dividerClass)}
-                            aria-label="Remove from wishlist"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                      <div className="flex items-center gap-2 mt-2">
+                        <button
+                          onClick={() => { setWishlistOpen(false); router.push(getProductUrl(username, product.id)); }}
+                          className={cn("flex-1 text-[10px] font-bold py-2 rounded-lg flex items-center justify-center gap-1 transition-opacity hover:opacity-85 cursor-pointer", styles.buttonClass)}
+                        >
+                          View <ArrowRight className="w-3 h-3" />
+                        </button>
+                        <button
+                          onClick={e => toggleWishlist(product.id, e)}
+                          className={cn("w-7 h-7 flex items-center justify-center rounded-full bg-black/5 dark:bg-white/10 text-gray-400 hover:text-red-500 hover:bg-red-500/10 transition-colors shrink-0 cursor-pointer")}
+                          aria-label="Remove from wishlist"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
-                  ))
+                  </div>
+                ))
               )}
             </div>
 
             {/* Footer */}
-            {wishlist.length > 0 && (
-              <div className={cn("px-6 py-4 border-t shrink-0", styles.dividerClass)}>
+            {wishlistedProducts.length > 0 && (
+              <div className={cn("px-5 py-4 border-t border-black/10 dark:border-white/10 shrink-0")}>
                 <button
                   onClick={() => {
                     setWishlist([]);
-                    localStorage.setItem("anydm_favorites", "[]");
+                    if (username) {
+                      localStorage.removeItem(`anydm_favorites_${username.toLowerCase()}`);
+                    }
+                    localStorage.removeItem("anydm_favorites");
                   }}
-                  className={cn("w-full text-xs font-bold py-2.5 rounded-lg opacity-80 hover:opacity-100 transition-opacity border", styles.dividerClass, styles.textColorClass)}
+                  className={cn("w-full text-xs font-bold py-2.5 rounded-xl transition-all border border-red-500/20 bg-red-500/10 text-red-500 hover:bg-red-500/20 cursor-pointer")}
                 >
-                  Clear Wishlist ({wishlist.length})
+                  Clear Wishlist ({wishlistedProducts.length})
                 </button>
               </div>
             )}
@@ -949,7 +1142,7 @@ function StorefrontView({ username }: { username: string }) {
         >
           <div
             className={cn(
-              "relative w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl flex flex-col sm:flex-row border",
+              "relative w-full max-w-xl max-h-[90vh] overflow-y-auto rounded shadow-2xl flex flex-col sm:flex-row border",
               styles.modalClass
             )}
             onClick={e => e.stopPropagation()}
@@ -1020,7 +1213,7 @@ function StorefrontView({ username }: { username: string }) {
                 }}
                 className={cn("w-full text-xs font-extrabold py-3.5 mt-auto flex items-center justify-center gap-2 uppercase tracking-wider", styles.buttonClass)}
               >
-                View Full Product Details <ArrowRight className="w-4 h-4" />
+                View Details <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -1051,93 +1244,6 @@ function StorefrontView({ username }: { username: string }) {
         </div>
       )}
 
-      {/* ── Order Tracking Modal ───────────────────────────────── */}
-      {isTrackingOpen && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
-          <div className={cn("w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-5 border", styles.modalClass)}>
-            <div className={cn("flex justify-between items-center pb-3 border-b", styles.dividerClass)}>
-              <div className="flex items-center gap-2">
-                <Package className="w-5 h-5" style={{ color: styles.accentColor }} />
-                <span className={cn("text-base font-bold", styles.textColorClass)}>Track Your Order</span>
-              </div>
-              <button
-                onClick={() => { setIsTrackingOpen(false); setInputOrderId(""); }}
-                className={cn("w-8 h-8 flex items-center justify-center rounded-full border hover:opacity-80 transition-colors", styles.dividerClass)}
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form
-              onSubmit={e => {
-                e.preventDefault();
-                if (inputOrderId.trim()) router.push(`/track/${inputOrderId.trim()}`);
-              }}
-              className="space-y-4"
-            >
-              <div>
-                <label className={cn("text-xs font-bold uppercase tracking-wider block mb-2", styles.textMutedClass)}>
-                  Enter Order Reference ID
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    required
-                    value={inputOrderId}
-                    onChange={e => setInputOrderId(e.target.value)}
-                    placeholder="e.g. AMD-20260712-..."
-                    className={cn("flex-1 text-xs rounded-xl px-4 py-3 border outline-none", styles.inputClass)}
-                  />
-                  <button
-                    type="submit"
-                    className={cn("px-5 py-3 rounded-xl text-xs font-extrabold uppercase tracking-wider shadow-md", styles.buttonClass)}
-                  >
-                    Track
-                  </button>
-                </div>
-              </div>
-            </form>
-
-            {localOrders.length > 0 && (
-              <div className={cn("space-y-3 pt-3 border-t", styles.dividerClass)}>
-                <span className={cn("text-xs font-bold uppercase tracking-wider block", styles.textMutedClass)}>
-                  Recent Orders ({localOrders.length})
-                </span>
-                <div className="max-h-48 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
-                  {localOrders.map((order, idx) => (
-                    <div
-                      key={idx}
-                      onClick={() => router.push(`/track/${order.order_id}`)}
-                      className={cn("w-full flex items-center justify-between text-left p-3 rounded-xl border transition-all cursor-pointer hover:scale-[1.01]", styles.cardClass)}
-                    >
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className={cn("text-xs font-mono font-bold", styles.textColorClass)}>{order.order_id}</span>
-                          <button
-                            onClick={e => {
-                              e.stopPropagation();
-                              navigator.clipboard?.writeText(order.order_id);
-                              setCopiedOrderId(order.order_id);
-                              setTimeout(() => setCopiedOrderId(null), 2000);
-                            }}
-                            className={cn("text-[9px] font-bold px-2 py-0.5 rounded border uppercase", styles.badgeClass)}
-                          >
-                            {copiedOrderId === order.order_id ? "Copied!" : "Copy"}
-                          </button>
-                        </div>
-                        {order.product_name && (
-                          <span className={cn("text-[10px] block truncate max-w-[200px]", styles.textMutedClass)}>{order.product_name}</span>
-                        )}
-                      </div>
-                      <ChevronRight className="w-4 h-4 opacity-70 shrink-0" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

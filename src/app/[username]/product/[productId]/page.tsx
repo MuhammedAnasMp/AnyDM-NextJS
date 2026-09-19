@@ -14,12 +14,18 @@ import {
   ChevronLeft,
   ChevronRight,
   Heart,
-  X
+  X,
+  Zap,
+  Download,
+  FileText,
+  Lock,
+  CheckCircle2,
+  Sparkles
 } from "lucide-react";
 import api from "@/lib/services/api.service";
 import { getTemplateStyles, TemplateStyle } from "@/components/templates/TemplateProvider";
 import { cn } from "@/lib/utils";
-import { getProductUrl, getStoreHomeUrl, getTermsUrl, getPrivacyUrl } from "@/lib/utils/domain";
+import { getProductUrl, getStoreHomeUrl, getTermsUrl, getPrivacyUrl, getTrackUrl } from "@/lib/utils/domain";
 import { resolveCustomerSession } from "@/lib/services/customerSession";
 import CustomerAccountBadge from "@/components/CustomerAccountBadge";
 
@@ -93,6 +99,10 @@ interface ProductDetail {
   metadata?: Record<string, any>;
   cod_enabled?: boolean;
   status?: string;
+  product_type?: string;
+  show_in_store?: boolean;
+  digital_access_instructions?: string;
+  digital_resources?: any[];
 }
 
 interface RelatedProduct {
@@ -103,6 +113,15 @@ interface RelatedProduct {
   main_media_url: string;
   thumbnail_url: string;
 }
+
+const PAYMENT_METHODS = [
+  { name: "UPI", icon: "https://upload.wikimedia.org/wikipedia/commons/e/e1/UPI-Logo-vector.svg" },
+  { name: "GPay", icon: "https://upload.wikimedia.org/wikipedia/commons/f/f2/Google_Pay_Logo.svg" },
+  { name: "Paytm", icon: "https://upload.wikimedia.org/wikipedia/commons/2/24/Paytm_Logo_%28standalone%29.svg" },
+  { name: "PhonePe", icon: "https://upload.wikimedia.org/wikipedia/commons/7/71/PhonePe_Logo.svg" },
+  { name: "Mastercard", icon: "https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" },
+  { name: "Crypto", icon: "https://upload.wikimedia.org/wikipedia/commons/4/46/Bitcoin.svg" }
+];
 
 export default function ProductDetailPage({ params }: PageProps) {
   const { username, productId } = use(params);
@@ -141,7 +160,7 @@ export default function ProductDetailPage({ params }: PageProps) {
   const [instagramProfile, setInstagramProfile] = useState<{ username?: string | null; profile_pic?: string | null } | null>(null);
 
   useEffect(() => {
-    resolveCustomerSession().then((sess) => {
+    resolveCustomerSession(username).then((sess) => {
       if (sess) {
         setCustomerSessionToken(sess.token);
         if (sess.instagram_username) {
@@ -166,14 +185,16 @@ export default function ProductDetailPage({ params }: PageProps) {
 
   useEffect(() => {
     if (product) {
-      const favs = JSON.parse(localStorage.getItem("anydm_favorites") || "[]");
+      const favKey = `anydm_favorites_${username.toLowerCase()}`;
+      const favs = JSON.parse(localStorage.getItem(favKey) || localStorage.getItem("anydm_favorites") || "[]");
       setIsFavorited(favs.includes(product.id));
     }
-  }, [product]);
+  }, [product, username]);
 
   const toggleFavorite = () => {
     if (!product) return;
-    let favs = JSON.parse(localStorage.getItem("anydm_favorites") || "[]");
+    const favKey = `anydm_favorites_${username.toLowerCase()}`;
+    let favs = JSON.parse(localStorage.getItem(favKey) || localStorage.getItem("anydm_favorites") || "[]");
     if (favs.includes(product.id)) {
       favs = favs.filter((id: number) => id !== product.id);
       setIsFavorited(false);
@@ -181,23 +202,26 @@ export default function ProductDetailPage({ params }: PageProps) {
       favs.push(product.id);
       setIsFavorited(true);
     }
-    localStorage.setItem("anydm_favorites", JSON.stringify(favs));
+    localStorage.setItem(favKey, JSON.stringify(favs));
   };
 
   const openCheckout = () => {
-    if (isOutOfStock) {
+    if (product?.product_type !== "DIGITAL" && (product?.stock ?? 0) <= 0) {
       alert("This product is currently out of stock.");
       return;
     }
-    const isCodAvailable = settings?.cod_enabled && product?.cod_enabled;
-    const isOnlineAvailable = !!settings?.online_payment_enabled;
-
-    if (isOnlineAvailable && !isCodAvailable) {
+    const isDigital = product?.product_type === "DIGITAL";
+    if (isDigital) {
       setCheckoutPaymentMethod("RAZORPAY");
-    } else if (isCodAvailable) {
-      setCheckoutPaymentMethod("COD");
     } else {
-      setCheckoutPaymentMethod("COD");
+      const isCodAvailable = settings?.cod_enabled && product?.cod_enabled;
+      const isOnlineAvailable = !!settings?.online_payment_enabled;
+
+      if (isOnlineAvailable && !isCodAvailable) {
+        setCheckoutPaymentMethod("RAZORPAY");
+      } else {
+        setCheckoutPaymentMethod("COD");
+      }
     }
     setIsCheckoutOpen(true);
   };
@@ -219,10 +243,20 @@ export default function ProductDetailPage({ params }: PageProps) {
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!product || !username) return;
-    if (!checkoutName || !checkoutEmail || !checkoutPhone || !checkoutAddress || !checkoutPincode || !checkoutPlace || !checkoutDistrict || !checkoutState) {
-      alert("Please fill in all fields.");
-      return;
+
+    const isDigital = product.product_type === "DIGITAL";
+    if (isDigital) {
+      if (!checkoutName || !checkoutEmail || !checkoutPhone) {
+        alert("Please fill in your Name, Email, and Phone.");
+        return;
+      }
+    } else {
+      if (!checkoutName || !checkoutEmail || !checkoutPhone || !checkoutAddress || !checkoutPincode || !checkoutPlace || !checkoutDistrict || !checkoutState) {
+        alert("Please fill in all address fields.");
+        return;
+      }
     }
+
     setIsSubmittingOrder(true);
     try {
       const res = await api.post("/crm/store/checkout/", {
@@ -231,12 +265,12 @@ export default function ProductDetailPage({ params }: PageProps) {
         customer_name: checkoutName,
         customer_email: checkoutEmail,
         customer_phone: checkoutPhone,
-        shipping_address: checkoutAddress,
-        shipping_pincode: checkoutPincode,
-        shipping_place: checkoutPlace,
-        shipping_district: checkoutDistrict,
-        shipping_state: checkoutState,
-        payment_method: checkoutPaymentMethod,
+        shipping_address: isDigital ? "Digital Delivery (Instant Access)" : checkoutAddress,
+        shipping_pincode: isDigital ? "000000" : checkoutPincode,
+        shipping_place: isDigital ? "Digital" : checkoutPlace,
+        shipping_district: isDigital ? "Digital" : checkoutDistrict,
+        shipping_state: isDigital ? "Digital" : checkoutState,
+        payment_method: isDigital ? "RAZORPAY" : checkoutPaymentMethod,
         customer_session_token: customerSessionToken
       });
 
@@ -272,14 +306,17 @@ export default function ProductDetailPage({ params }: PageProps) {
                   tracking_token: res.data.tracking_token,
                   username: username,
                   product_name: product.title,
+                  name: checkoutName,
                   email: checkoutEmail,
                   phone: checkoutPhone,
                   timestamp: new Date().toISOString()
                 });
                 localStorage.setItem("anydm_customer_orders", JSON.stringify(existing));
-                alert("Payment verified and order placed successfully!");
+                // alert("Payment verified and order placed successfully!");
                 setIsCheckoutOpen(false);
-                router.push(`/track/${res.data.order_id}`);
+                const trackUrl = getTrackUrl(username, res.data.order_id);
+                const redirectUrl = trackUrl.includes("?") ? `${trackUrl}&downloadInvoice=true` : `${trackUrl}?downloadInvoice=true`;
+                router.push(redirectUrl);
               }
             } catch (err: any) {
               alert(err.response?.data?.error || "Payment verification failed.");
@@ -307,6 +344,7 @@ export default function ProductDetailPage({ params }: PageProps) {
             tracking_token: res.data.tracking_token,
             username: username,
             product_name: product.title,
+            name: checkoutName,
             email: checkoutEmail,
             phone: checkoutPhone,
             timestamp: new Date().toISOString()
@@ -314,8 +352,10 @@ export default function ProductDetailPage({ params }: PageProps) {
           localStorage.setItem("anydm_customer_orders", JSON.stringify(existing));
           alert("Order placed successfully!");
           setIsCheckoutOpen(false);
-          // Redirect to order tracking page
-          router.push(`/track/${res.data.order_id}`);
+          // Redirect to order tracking page with automatic invoice download
+          const trackUrl = getTrackUrl(username, res.data.order_id);
+          const redirectUrl = trackUrl.includes("?") ? `${trackUrl}&downloadInvoice=true` : `${trackUrl}?downloadInvoice=true`;
+          router.push(redirectUrl);
         }
       }
     } catch (err: any) {
@@ -442,7 +482,8 @@ export default function ProductDetailPage({ params }: PageProps) {
     );
   }
 
-  const isOutOfStock = product ? (product.stock <= 0 || product.status === "OUT_OF_STOCK") : true;
+  const isDigital = product?.product_type === "DIGITAL";
+  const isOutOfStock = product ? (!isDigital && product.stock <= 0 || product.status === "OUT_OF_STOCK") : true;
 
   const styles: TemplateStyle = getTemplateStyles(settings.template_id, settings.theme_id, settings.custom_settings);
   const isLight = !styles.isDark;
@@ -496,151 +537,157 @@ export default function ProductDetailPage({ params }: PageProps) {
 
           {/* Details (5 Columns) */}
           <div className="lg:col-span-5 lg:sticky lg:top-32 space-y-10">
-            <section className="space-y-4">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] tracking-[0.2em] font-semibold text-[#4A5D4E] ">Limited Edition</span>
-                <div className="h-px flex-1 bg-[#C2C9C3]/40"></div>
-              </div>
-              <h1 className="text-3xl md:text-4xl font-serif text-[#2D362E] leading-tight font-bold">
-                {product.title}
-              </h1>
-              <p className="text-2xl font-serif font-medium text-[#4A5D4E]">
-                {product.price} {product.currency}
-              </p>
-            </section>
-
-            <section className="space-y-6">
-              <p className="text-sm md:text-base text-[#6A786C] leading-relaxed">
-                {product.description || "A sculptural masterpiece of textile design. Hand-tailored and finished with premium organic details. Designed to age with grace and intent."}
-              </p>
-
-              {product.variants && product.variants.length > 0 && (
-                <div className="space-y-3">
-                  <span className="text-[10px] tracking-[0.15em] font-semibold text-[#2D362E] block">Select Size</span>
-                  <div className="flex flex-wrap gap-2">
-                    {product.variants.map((v) => (
-                      <button
-                        key={v}
-                        onClick={() => setSelectedVariant(v)}
-                        className={cn(
-                          "px-4 py-2 text-xs font-semibold rounded-none border transition-all",
-                          selectedVariant === v
-                            ? "bg-[#4A5D4E] text-white border-[#4A5D4E]"
-                            : "bg-transparent text-[#2D362E] border-[#C2C9C3] hover:border-[#4A5D4E]"
-                        )}
-                      >
-                        {v}
-                      </button>
-                    ))}
+            {isCheckoutOpen ? (
+              renderInlineCheckoutForm()
+            ) : (
+              <>
+                <section className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] tracking-[0.2em] font-semibold text-[#4A5D4E] ">Limited Edition</span>
+                    <div className="h-px flex-1 bg-[#C2C9C3]/40"></div>
                   </div>
-                </div>
-              )}
+                  <h1 className="text-3xl md:text-4xl font-serif text-[#2D362E] leading-tight font-bold">
+                    {product.title}
+                  </h1>
+                  <p className="text-2xl font-serif font-medium text-[#4A5D4E]">
+                    {product.price} {product.currency}
+                  </p>
+                </section>
 
-              {product.metadata && typeof product.metadata === "object" && Object.keys(product.metadata).length > 0 && (
-                <div className="space-y-3 pt-4 border-t border-[#C2C9C3]/40">
-                  <span className="text-[10px] tracking-[0.15em] font-semibold text-[#2D362E] block">Specifications</span>
-                  <div className="grid grid-cols-2 gap-4">
-                    {Object.entries(product.metadata).map(([key, value]) => (
-                      <div key={key} className="space-y-1">
-                        <span className="block text-[9px] tracking-wider text-[#6A786C]">{key}</span>
-                        <span className="block text-xs font-semibold text-[#2D362E]">{String(value)}</span>
+                <section className="space-y-6">
+                  <p className="text-sm md:text-base text-[#6A786C] leading-relaxed">
+                    {product.description || "A sculptural masterpiece of textile design. Hand-tailored and finished with premium organic details. Designed to age with grace and intent."}
+                  </p>
+
+                  {product.variants && product.variants.length > 0 && (
+                    <div className="space-y-3">
+                      <span className="text-[10px] tracking-[0.15em] font-semibold text-[#2D362E] block">Select Size</span>
+                      <div className="flex flex-wrap gap-2">
+                        {product.variants.map((v) => (
+                          <button
+                            key={v}
+                            onClick={() => setSelectedVariant(v)}
+                            className={cn(
+                              "px-4 py-2 text-xs font-semibold rounded-none border transition-all",
+                              selectedVariant === v
+                                ? "bg-[#4A5D4E] text-white border-[#4A5D4E]"
+                                : "bg-transparent text-[#2D362E] border-[#C2C9C3] hover:border-[#4A5D4E]"
+                            )}
+                          >
+                            {v}
+                          </button>
+                        ))}
                       </div>
-                    ))}
+                    </div>
+                  )}
+
+                  {product.metadata && typeof product.metadata === "object" && Object.keys(product.metadata).length > 0 && (
+                    <div className="space-y-3 pt-4 border-t border-[#C2C9C3]/40">
+                      <span className="text-[10px] tracking-[0.15em] font-semibold text-[#2D362E] block">Specifications</span>
+                      <div className="grid grid-cols-2 gap-4">
+                        {Object.entries(product.metadata).map(([key, value]) => (
+                          <div key={key} className="space-y-1">
+                            <span className="block text-[9px] tracking-wider text-[#6A786C]">{key}</span>
+                            <span className="block text-xs font-semibold text-[#2D362E]">{String(value)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </section>
+
+                <section className="space-y-4">
+                  {/* Store Policies */}
+                  <div className="pt-2 border-t border-[#C2C9C3]/40 space-y-3 text-[#2D362E]">
+                    <span className="text-[9px] tracking-[0.15em] font-semibold text-[#6A786C] block">Store Policies</span>
+                    <div className="space-y-2 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-[#6A786C]">Returns &amp; Exchanges</span>
+                        <span className="font-semibold">{settings?.return_policy ? "Accepted" : "Not Accepted"}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-[#6A786C]">Cancellations</span>
+                        <span className="font-semibold">{settings?.cancellation_policy ? "Allowed" : "Not Allowed"}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Quantity Selector */}
+                  {!isOutOfStock && (
+                    <div className="flex items-center justify-between py-3 border-t border-[#C2C9C3]/40">
+                      <span className="text-[10px] tracking-[0.15em] font-semibold text-[#2D362E]">Quantity</span>
+                      <div className="flex items-center gap-4">
+                        <button
+                          type="button"
+                          disabled={quantity <= 1}
+                          onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
+                          className={cn("w-8 h-8 border flex items-center justify-center font-bold text-sm transition-all",
+                            quantity <= 1 ? "opacity-30 cursor-not-allowed border-[#C2C9C3] text-[#6A786C]" : "border-[#4A5D4E] text-[#4A5D4E] hover:bg-[#4A5D4E]/5")}
+                        >-</button>
+                        <span className="w-6 text-center text-sm font-black text-[#2D362E]">{quantity}</span>
+                        <button
+                          type="button"
+                          disabled={quantity >= product.stock}
+                          onClick={() => setQuantity(prev => Math.min(product.stock, prev + 1))}
+                          className={cn("w-8 h-8 border flex items-center justify-center font-bold text-sm transition-all",
+                            quantity >= product.stock ? "opacity-30 cursor-not-allowed border-[#C2C9C3] text-[#6A786C]" : "border-[#4A5D4E] text-[#4A5D4E] hover:bg-[#4A5D4E]/5")}
+                        >+</button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Buy Now */}
+                  <button
+                    onClick={openCheckout}
+                    disabled={isOutOfStock}
+                    className={cn(
+                      "w-full h-11 flex items-center justify-center gap-2.5 px-4 font-bold text-xs tracking-wider transition-all",
+                      isOutOfStock
+                        ? "bg-[#C2C9C3]/40 text-[#6A786C] cursor-not-allowed"
+                        : "bg-[#4A5D4E] text-white hover:bg-[#4A5D4E]/90"
+                    )}
+                  >
+                    <ShoppingBag className="w-4 h-4 shrink-0" />
+                    <span>{isOutOfStock ? "Out of Stock" : "Buy Now / Checkout"}</span>
+                  </button>
+
+                  {settings.enable_instagram_button && product.instagram_permalink && !isOutOfStock && (
+                    <a
+                      href={product.instagram_permalink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full h-11 flex items-center justify-center gap-2.5 px-4 bg-gradient-to-r from-orange-400/90 via-rose-500/90 to-pink-500/90 text-white font-bold text-xs tracking-wider hover:opacity-80 transition-opacity shadow-sm"
+                    >
+                      <InstagramIcon className="w-4 h-4 shrink-0" />
+                      <span>Acquire on Instagram</span>
+                    </a>
+                  )}
+
+                  {settings.enable_whatsapp_button && !isOutOfStock && (
+                    <a
+                      href={whatsappUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full h-11 flex items-center justify-center gap-2.5 px-4 border border-[#25D366]/40 text-[#2D362E] font-bold text-xs hover:bg-[#25D366]/10 transition-colors tracking-wider"
+                    >
+                      <MessageCircle className="w-4 h-4 shrink-0 text-[#25D366]" />
+                      <span>Order via WhatsApp</span>
+                    </a>
+                  )}
+                </section>
+
+                <div className="pt-8 border-t border-[#C2C9C3]/40 grid grid-cols-2 gap-6 text-[#2D362E]">
+                  <div className="space-y-1">
+                    <span className="block text-[9px] tracking-wider text-[#6A786C]">Origin</span>
+                    <span className="block text-xs font-semibold">Conscious Atelier</span>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="block text-[9px] tracking-wider text-[#6A786C]">Material</span>
+                    <span className="block text-xs font-semibold">{product.category || "Organic Blend"}</span>
                   </div>
                 </div>
-              )}
-            </section>
-
-            <section className="space-y-4">
-              {/* Store Policies */}
-              <div className="pt-2 border-t border-[#C2C9C3]/40 space-y-3 text-[#2D362E]">
-                <span className="text-[9px] tracking-[0.15em] font-semibold text-[#6A786C] block">Store Policies</span>
-                <div className="space-y-2 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-[#6A786C]">Returns &amp; Exchanges</span>
-                    <span className="font-semibold">{settings?.return_policy ? "Accepted" : "Not Accepted"}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#6A786C]">Cancellations</span>
-                    <span className="font-semibold">{settings?.cancellation_policy ? "Allowed" : "Not Allowed"}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Quantity Selector */}
-              {!isOutOfStock && (
-                <div className="flex items-center justify-between py-3 border-t border-[#C2C9C3]/40">
-                  <span className="text-[10px] tracking-[0.15em] font-semibold text-[#2D362E]">Quantity</span>
-                  <div className="flex items-center gap-4">
-                    <button
-                      type="button"
-                      disabled={quantity <= 1}
-                      onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
-                      className={cn("w-8 h-8 border flex items-center justify-center font-bold text-sm transition-all",
-                        quantity <= 1 ? "opacity-30 cursor-not-allowed border-[#C2C9C3] text-[#6A786C]" : "border-[#4A5D4E] text-[#4A5D4E] hover:bg-[#4A5D4E]/5")}
-                    >-</button>
-                    <span className="w-6 text-center text-sm font-black text-[#2D362E]">{quantity}</span>
-                    <button
-                      type="button"
-                      disabled={quantity >= product.stock}
-                      onClick={() => setQuantity(prev => Math.min(product.stock, prev + 1))}
-                      className={cn("w-8 h-8 border flex items-center justify-center font-bold text-sm transition-all",
-                        quantity >= product.stock ? "opacity-30 cursor-not-allowed border-[#C2C9C3] text-[#6A786C]" : "border-[#4A5D4E] text-[#4A5D4E] hover:bg-[#4A5D4E]/5")}
-                    >+</button>
-                  </div>
-                </div>
-              )}
-
-              {/* Buy Now */}
-              <button
-                onClick={openCheckout}
-                disabled={isOutOfStock}
-                className={cn(
-                  "w-full h-11 flex items-center justify-center gap-2.5 px-4 font-bold text-xs tracking-wider transition-all",
-                  isOutOfStock
-                    ? "bg-[#C2C9C3]/40 text-[#6A786C] cursor-not-allowed"
-                    : "bg-[#4A5D4E] text-white hover:bg-[#4A5D4E]/90"
-                )}
-              >
-                <ShoppingBag className="w-4 h-4 shrink-0" />
-                <span>{isOutOfStock ? "Out of Stock" : "Buy Now / Checkout"}</span>
-              </button>
-
-              {settings.enable_instagram_button && product.instagram_permalink && !isOutOfStock && (
-                <a
-                  href={product.instagram_permalink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full h-11 flex items-center justify-center gap-2.5 px-4 bg-gradient-to-r from-orange-400 via-red-400 to-pink-500 text-white font-bold text-xs tracking-wider hover:opacity-90 transition-all shadow-sm"
-                >
-                  <InstagramIcon className="w-4 h-4 shrink-0" />
-                  <span>Acquire on Instagram</span>
-                </a>
-              )}
-
-              {settings.enable_whatsapp_button && !isOutOfStock && (
-                <a
-                  href={whatsappUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full h-11 flex items-center justify-center gap-2.5 px-4 border border-[#25D366]/40 text-[#2D362E] font-bold text-xs hover:bg-[#25D366]/10 transition-colors tracking-wider"
-                >
-                  <MessageCircle className="w-4 h-4 shrink-0 text-[#25D366]" />
-                  <span>Order via WhatsApp</span>
-                </a>
-              )}
-            </section>
-
-            <div className="pt-8 border-t border-[#C2C9C3]/40 grid grid-cols-2 gap-6 text-[#2D362E]">
-              <div className="space-y-1">
-                <span className="block text-[9px] tracking-wider text-[#6A786C]">Origin</span>
-                <span className="block text-xs font-semibold">Conscious Atelier</span>
-              </div>
-              <div className="space-y-1">
-                <span className="block text-[9px] tracking-wider text-[#6A786C]">Material</span>
-                <span className="block text-xs font-semibold">{product.category || "Organic Blend"}</span>
-              </div>
-            </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -734,159 +781,165 @@ export default function ProductDetailPage({ params }: PageProps) {
 
         {/* Right Column (5 Columns) */}
         <section className="md:col-span-5 flex flex-col gap-6 sticky top-24 h-fit">
-          <div className="flex flex-col gap-2">
-            <span className="font-mono text-[10px] tracking-widest text-[#ff24e4] ">Limited Release / Series 01</span>
-            <h1 className="font-bold text-3xl md:text-4xl tracking-tight text-[#dbfcff] font-sans">
-              {product.title}
-            </h1>
-            <p className="font-mono text-xl text-[#00f0ff]">{product.price} {product.currency}</p>
-          </div>
+          {isCheckoutOpen ? (
+            renderInlineCheckoutForm()
+          ) : (
+            <>
+              <div className="flex flex-col gap-2">
+                <span className="font-mono text-[10px] tracking-widest text-[#ff24e4] ">Limited Release / Series 01</span>
+                <h1 className="font-bold text-3xl md:text-4xl tracking-tight text-[#dbfcff] font-sans">
+                  {product.title}
+                </h1>
+                <p className="font-mono text-xl text-[#00f0ff]">{product.price} {product.currency}</p>
+              </div>
 
-          <div className="flex flex-col gap-4">
-            <p className="text-sm text-[#b9cacb] leading-relaxed">
-              {product.description || "Engineered for the urban vanguard. Featuring reactive fiber integration and ultra-matte technical fabrics."}
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <span className="px-3 py-1 border border-[#00f0ff]/40 text-[#00f0ff] font-mono text-[9px] ">WATERPROOF</span>
-              <span className="px-3 py-1 border border-[#ff24e4]/40 text-[#ff24e4] font-mono text-[9px] ">THERMAL-TECH</span>
-              <span className="px-3 py-1 border border-white/20 text-white font-mono text-[9px] ">REACTIVE_GLOW</span>
-            </div>
-          </div>
+              <div className="flex flex-col gap-4">
+                <p className="text-sm text-[#b9cacb] leading-relaxed">
+                  {product.description || "Engineered for the urban vanguard. Featuring reactive fiber integration and ultra-matte technical fabrics."}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <span className="px-3 py-1 border border-[#00f0ff]/40 text-[#00f0ff] font-mono text-[9px] ">WATERPROOF</span>
+                  <span className="px-3 py-1 border border-[#ff24e4]/40 text-[#ff24e4] font-mono text-[9px] ">THERMAL-TECH</span>
+                  <span className="px-3 py-1 border border-white/20 text-white font-mono text-[9px] ">REACTIVE_GLOW</span>
+                </div>
+              </div>
 
-          {product.variants && product.variants.length > 0 && (
-            <div className="flex flex-col gap-3 font-mono">
-              <span className="text-[10px] text-[#b9cacb] tracking-widest">SELECT SIZE [EUR]</span>
-              <div className="grid grid-cols-4 gap-2">
-                {product.variants.map((v) => (
-                  <button
-                    key={v}
-                    onClick={() => setSelectedVariant(v)}
-                    className={cn(
-                      "py-3 border text-xs font-mono transition-all rounded-none",
-                      selectedVariant === v
-                        ? "border-[#00f0ff] text-[#00f0ff] bg-[#00f0ff]/5"
-                        : "border-white/10 hover:border-white/40 text-white"
-                    )}
+              {product.variants && product.variants.length > 0 && (
+                <div className="flex flex-col gap-3 font-mono">
+                  <span className="text-[10px] text-[#b9cacb] tracking-widest">SELECT SIZE [EUR]</span>
+                  <div className="grid grid-cols-4 gap-2">
+                    {product.variants.map((v) => (
+                      <button
+                        key={v}
+                        onClick={() => setSelectedVariant(v)}
+                        className={cn(
+                          "py-3 border text-xs font-mono transition-all rounded-none",
+                          selectedVariant === v
+                            ? "border-[#00f0ff] text-[#00f0ff] bg-[#00f0ff]/5"
+                            : "border-white/10 hover:border-white/40 text-white"
+                        )}
+                      >
+                        {v}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Store Policies */}
+              <div className="flex flex-col gap-2 font-mono pt-2 border-t border-white/5">
+                <span className="text-[10px] text-[#b9cacb] tracking-widest">STORE POLICIES</span>
+                <div className="flex justify-between text-xs">
+                  <span className="text-[#b9cacb]">Returns &amp; Exchanges</span>
+                  <span className={settings?.return_policy ? "text-[#00f0ff]" : "text-red-400"}>{settings?.return_policy ? "Accepted" : "Not Accepted"}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-[#b9cacb]">Cancellations</span>
+                  <span className={settings?.cancellation_policy ? "text-[#00f0ff]" : "text-red-400"}>{settings?.cancellation_policy ? "Allowed" : "Not Allowed"}</span>
+                </div>
+              </div>
+
+              {/* Quantity Selector */}
+              {!isOutOfStock && (
+                <div className="flex items-center justify-between py-3 border-t border-white/5">
+                  <span className="font-mono text-[10px] text-[#b9cacb] tracking-widest">QUANTITY</span>
+                  <div className="flex items-center gap-4">
+                    <button type="button" disabled={quantity <= 1}
+                      onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
+                      className={cn("w-8 h-8 border font-mono font-bold text-sm transition-all flex items-center justify-center",
+                        quantity <= 1 ? "opacity-30 cursor-not-allowed border-white/10 text-zinc-600" : "border-[#00f0ff]/40 text-[#00f0ff] hover:bg-[#00f0ff]/5")}>
+                      -
+                    </button>
+                    <span className="w-6 text-center font-mono font-black text-white text-sm">{quantity}</span>
+                    <button type="button" disabled={quantity >= product.stock}
+                      onClick={() => setQuantity(prev => Math.min(product.stock, prev + 1))}
+                      className={cn("w-8 h-8 border font-mono font-bold text-sm transition-all flex items-center justify-center",
+                        quantity >= product.stock ? "opacity-30 cursor-not-allowed border-white/10 text-zinc-600" : "border-[#00f0ff]/40 text-[#00f0ff] hover:bg-[#00f0ff]/5")}>
+                      +
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex flex-col gap-3 pt-4 border-t border-white/5">
+                {/* Primary Buy Button */}
+                <button
+                  onClick={openCheckout}
+                  disabled={isOutOfStock}
+                  className={cn(
+                    "w-full h-11 flex items-center justify-center gap-2.5 px-4 text-xs font-mono font-bold tracking-widest transition-all rounded-none",
+                    isOutOfStock
+                      ? "bg-zinc-800 text-zinc-500 cursor-not-allowed opacity-60 border border-white/5"
+                      : styles.buttonClass
+                  )}
+                >
+                  <ShoppingBag className="w-4 h-4 shrink-0" />
+                  <span>{isOutOfStock ? "OUT OF STOCK" : "BUY NOW / CHECKOUT"}</span>
+                </button>
+
+                {settings.enable_instagram_button && product.instagram_permalink && !isOutOfStock && (
+                  <a
+                    href={product.instagram_permalink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full h-11 flex items-center justify-center gap-2.5 px-4 bg-gradient-to-r from-orange-500/90 via-rose-500/90 to-pink-500/90 text-white font-bold tracking-widest text-xs rounded-none active:scale-95 transition-opacity hover:opacity-80"
                   >
-                    {v}
-                  </button>
-                ))}
+                    <InstagramIcon className="w-4 h-4 shrink-0" />
+                    <span>Buy on Instagram</span>
+                  </a>
+                )}
+
+                {settings.enable_whatsapp_button && !isOutOfStock && (
+                  <a
+                    href={whatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full h-11 flex items-center justify-center gap-2.5 px-4 bg-[#25D366] text-black font-bold tracking-wider text-xs rounded-none active:scale-95 transition-transform hover:shadow-[0_0_15px_rgba(37,211,102,0.5)]"
+                  >
+                    <MessageCircle className="w-4 h-4 shrink-0 text-black" />
+                    <span>Order via WhatsApp</span>
+                  </a>
+                )}
               </div>
-            </div>
-          )}
 
-          {/* Store Policies */}
-          <div className="flex flex-col gap-2 font-mono pt-2 border-t border-white/5">
-            <span className="text-[10px] text-[#b9cacb] tracking-widest">STORE POLICIES</span>
-            <div className="flex justify-between text-xs">
-              <span className="text-[#b9cacb]">Returns &amp; Exchanges</span>
-              <span className={settings?.return_policy ? "text-[#00f0ff]" : "text-red-400"}>{settings?.return_policy ? "Accepted" : "Not Accepted"}</span>
-            </div>
-            <div className="flex justify-between text-xs">
-              <span className="text-[#b9cacb]">Cancellations</span>
-              <span className={settings?.cancellation_policy ? "text-[#00f0ff]" : "text-red-400"}>{settings?.cancellation_policy ? "Allowed" : "Not Allowed"}</span>
-            </div>
-          </div>
-
-          {/* Quantity Selector */}
-          {!isOutOfStock && (
-            <div className="flex items-center justify-between py-3 border-t border-white/5">
-              <span className="font-mono text-[10px] text-[#b9cacb] tracking-widest">QUANTITY</span>
-              <div className="flex items-center gap-4">
-                <button type="button" disabled={quantity <= 1}
-                  onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
-                  className={cn("w-8 h-8 border font-mono font-bold text-sm transition-all flex items-center justify-center",
-                    quantity <= 1 ? "opacity-30 cursor-not-allowed border-white/10 text-zinc-600" : "border-[#00f0ff]/40 text-[#00f0ff] hover:bg-[#00f0ff]/5")}>
-                  -
-                </button>
-                <span className="w-6 text-center font-mono font-black text-white text-sm">{quantity}</span>
-                <button type="button" disabled={quantity >= product.stock}
-                  onClick={() => setQuantity(prev => Math.min(product.stock, prev + 1))}
-                  className={cn("w-8 h-8 border font-mono font-bold text-sm transition-all flex items-center justify-center",
-                    quantity >= product.stock ? "opacity-30 cursor-not-allowed border-white/10 text-zinc-600" : "border-[#00f0ff]/40 text-[#00f0ff] hover:bg-[#00f0ff]/5")}>
-                  +
-                </button>
+              {/* Specifications Table */}
+              <div className="bg-[#1a1c1c] p-6 border border-white/5 rounded-none font-mono">
+                <h3 className="text-[10px] tracking-widest text-[#00f0ff] mb-4 border-b border-[#00f0ff]/20 pb-2 font-bold">PRODUCT SPECIFICATIONS</h3>
+                <ul className="flex flex-col gap-3 text-xs text-[#b9cacb]">
+                  <li className="flex justify-between border-b border-white/5 pb-2">
+                    <span>CATEGORY</span>
+                    <span className="text-white">{product.category || "UNASSIGNED"}</span>
+                  </li>
+                  {product.metadata && typeof product.metadata === "object" && Object.entries(product.metadata).map(([key, value], idx, arr) => (
+                    <li key={key} className={cn("flex justify-between pb-2", idx < arr.length - 1 && "border-b border-white/5")}>
+                      <span className="">{key}</span>
+                      <span className="text-white">{String(value)}</span>
+                    </li>
+                  ))}
+                  {(!product.metadata || Object.keys(product.metadata).length === 0) && (
+                    <>
+                      <li className="flex justify-between border-b border-white/5 pb-2">
+                        <span>MATERIAL</span>
+                        <span className="text-white">{product.category || "SYNTH-FLEECE V2.0"}</span>
+                      </li>
+                      <li className="flex justify-between border-b border-white/5 pb-2">
+                        <span>HARDWARE</span>
+                        <span className="text-white">YKK AQUAGUARD</span>
+                      </li>
+                      <li className="flex justify-between border-b border-white/5 pb-2">
+                        <span>OPTICS</span>
+                        <span className="text-white">360° REACTIVE FIBER</span>
+                      </li>
+                      <li className="flex justify-between">
+                        <span>ORIGIN</span>
+                        <span className="text-white">NEO-TOKYO FACILITY</span>
+                      </li>
+                    </>
+                  )}
+                </ul>
               </div>
-            </div>
+            </>
           )}
-
-          <div className="flex flex-col gap-3 pt-4 border-t border-white/5">
-            {/* Primary Buy Button */}
-            <button
-              onClick={openCheckout}
-              disabled={isOutOfStock}
-              className={cn(
-                "w-full h-11 flex items-center justify-center gap-2.5 px-4 text-xs font-mono font-bold tracking-widest transition-all rounded-none",
-                isOutOfStock
-                  ? "bg-zinc-800 text-zinc-500 cursor-not-allowed opacity-60 border border-white/5"
-                  : styles.buttonClass
-              )}
-            >
-              <ShoppingBag className="w-4 h-4 shrink-0" />
-              <span>{isOutOfStock ? "OUT OF STOCK" : "BUY NOW / CHECKOUT"}</span>
-            </button>
-
-            {settings.enable_instagram_button && product.instagram_permalink && !isOutOfStock && (
-              <a
-                href={product.instagram_permalink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full h-11 flex items-center justify-center gap-2.5 px-4 bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 text-white font-bold tracking-widest text-xs rounded-none active:scale-95 transition-transform hover:shadow-[0_0_15px_rgba(255,36,228,0.5)]"
-              >
-                <InstagramIcon className="w-4 h-4 shrink-0" />
-                <span>Buy on Instagram</span>
-              </a>
-            )}
-
-            {settings.enable_whatsapp_button && !isOutOfStock && (
-              <a
-                href={whatsappUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full h-11 flex items-center justify-center gap-2.5 px-4 bg-[#25D366] text-black font-bold tracking-wider text-xs rounded-none active:scale-95 transition-transform hover:shadow-[0_0_15px_rgba(37,211,102,0.5)]"
-              >
-                <MessageCircle className="w-4 h-4 shrink-0 text-black" />
-                <span>Order via WhatsApp</span>
-              </a>
-            )}
-          </div>
-
-          {/* Specifications Table */}
-          <div className="bg-[#1a1c1c] p-6 border border-white/5 rounded-none font-mono">
-            <h3 className="text-[10px] tracking-widest text-[#00f0ff] mb-4 border-b border-[#00f0ff]/20 pb-2 font-bold">PRODUCT SPECIFICATIONS</h3>
-            <ul className="flex flex-col gap-3 text-xs text-[#b9cacb]">
-              <li className="flex justify-between border-b border-white/5 pb-2">
-                <span>CATEGORY</span>
-                <span className="text-white">{product.category || "UNASSIGNED"}</span>
-              </li>
-              {product.metadata && typeof product.metadata === "object" && Object.entries(product.metadata).map(([key, value], idx, arr) => (
-                <li key={key} className={cn("flex justify-between pb-2", idx < arr.length - 1 && "border-b border-white/5")}>
-                  <span className="">{key}</span>
-                  <span className="text-white">{String(value)}</span>
-                </li>
-              ))}
-              {(!product.metadata || Object.keys(product.metadata).length === 0) && (
-                <>
-                  <li className="flex justify-between border-b border-white/5 pb-2">
-                    <span>MATERIAL</span>
-                    <span className="text-white">{product.category || "SYNTH-FLEECE V2.0"}</span>
-                  </li>
-                  <li className="flex justify-between border-b border-white/5 pb-2">
-                    <span>HARDWARE</span>
-                    <span className="text-white">YKK AQUAGUARD</span>
-                  </li>
-                  <li className="flex justify-between border-b border-white/5 pb-2">
-                    <span>OPTICS</span>
-                    <span className="text-white">360° REACTIVE FIBER</span>
-                  </li>
-                  <li className="flex justify-between">
-                    <span>ORIGIN</span>
-                    <span className="text-white">NEO-TOKYO FACILITY</span>
-                  </li>
-                </>
-              )}
-            </ul>
-          </div>
         </section>
       </div>
     );
@@ -930,162 +983,166 @@ export default function ProductDetailPage({ params }: PageProps) {
 
         {/* Right Side: Scrollable Glassmorphic Panel (50% Width) */}
         <section className="w-full md:w-1/2 h-[50vh] md:h-full overflow-y-auto custom-scrollbar bg-black/20 backdrop-blur-xl border-t md:border-t-0 md:border-l border-white/10 px-6 md:px-12 py-8 md:py-12 flex flex-col justify-between">
-          <div className="max-w-xl mx-auto w-full space-y-6">
-            <div className="flex flex-col gap-1">
-              <span className="text-[10px] text-gray-400 tracking-[0.2em] font-bold">{product.category || "Apparel"}</span>
-              <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white">{product.title}</h1>
-              <p className="text-lg font-bold text-gray-200">{product.price} {product.currency}</p>
-            </div>
+          {isCheckoutOpen ? (
+            renderInlineCheckoutForm()
+          ) : (
+            <div className="max-w-xl mx-auto w-full space-y-6">
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] text-gray-400 tracking-[0.2em] font-bold">{product.category || "Apparel"}</span>
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white">{product.title}</h1>
+                <p className="text-lg font-bold text-gray-200">{product.price} {product.currency}</p>
+              </div>
 
-            <div className="space-y-4">
-              <p className="text-xs md:text-sm text-gray-300 leading-relaxed">
-                {product.description || "Crafted from signature premium materials. Dropped silhouette fits and structured comfort details."}
-              </p>
-              <div className="flex items-center gap-2">
-                <div className="flex -space-x-2">
-                  <div className="w-6 h-6 rounded-full bg-indigo-500 border border-black flex items-center justify-center text-[8px] font-bold text-white">U1</div>
-                  <div className="w-6 h-6 rounded-full bg-pink-500 border border-black flex items-center justify-center text-[8px] font-bold text-white">U2</div>
-                  <div className="w-6 h-6 rounded-full bg-emerald-500 border border-black flex items-center justify-center text-[8px] font-bold text-white">U3</div>
+              <div className="space-y-4">
+                <p className="text-xs md:text-sm text-gray-300 leading-relaxed">
+                  {product.description || "Crafted from signature premium materials. Dropped silhouette fits and structured comfort details."}
+                </p>
+                <div className="flex items-center gap-2">
+                  <div className="flex -space-x-2">
+                    <div className="w-6 h-6 rounded-full bg-indigo-500 border border-black flex items-center justify-center text-[8px] font-bold text-white">U1</div>
+                    <div className="w-6 h-6 rounded-full bg-pink-500 border border-black flex items-center justify-center text-[8px] font-bold text-white">U2</div>
+                    <div className="w-6 h-6 rounded-full bg-emerald-500 border border-black flex items-center justify-center text-[8px] font-bold text-white">U3</div>
+                  </div>
+                  <span className="text-[10px] text-gray-400">2.4k others recently purchased</span>
                 </div>
-                <span className="text-[10px] text-gray-400">2.4k others recently purchased</span>
               </div>
-            </div>
 
-            {/* Color/Theme Picker mockup */}
-            <div className="space-y-2">
-              <span className="text-[10px] font-bold text-gray-300 block">Colors</span>
-              <div className="flex gap-2">
-                <button className="w-8 h-8 rounded-full border-2 border-white bg-black"></button>
-                <button className="w-8 h-8 rounded-full border border-white/20 bg-zinc-700"></button>
-              </div>
-            </div>
-
-            {/* Size options */}
-            {product.variants && product.variants.length > 0 && (
+              {/* Color/Theme Picker mockup */}
               <div className="space-y-2">
-                <span className="text-[10px] font-bold text-gray-300 block">Select Size</span>
-                <div className="grid grid-cols-4 gap-2">
-                  {product.variants.map((v) => (
-                    <button
-                      key={v}
-                      onClick={() => setSelectedVariant(v)}
-                      className={cn(
-                        "h-10 border rounded-lg text-xs font-bold flex items-center justify-center transition-colors",
-                        selectedVariant === v
-                          ? "border-white bg-white/10"
-                          : "border-white/10 hover:bg-white/5"
-                      )}
-                    >
-                      {v}
+                <span className="text-[10px] font-bold text-gray-300 block">Colors</span>
+                <div className="flex gap-2">
+                  <button className="w-8 h-8 rounded-full border-2 border-white bg-black"></button>
+                  <button className="w-8 h-8 rounded-full border border-white/20 bg-zinc-700"></button>
+                </div>
+              </div>
+
+              {/* Size options */}
+              {product.variants && product.variants.length > 0 && (
+                <div className="space-y-2">
+                  <span className="text-[10px] font-bold text-gray-300 block">Select Size</span>
+                  <div className="grid grid-cols-4 gap-2">
+                    {product.variants.map((v) => (
+                      <button
+                        key={v}
+                        onClick={() => setSelectedVariant(v)}
+                        className={cn(
+                          "h-10 border rounded-lg text-xs font-bold flex items-center justify-center transition-colors",
+                          selectedVariant === v
+                            ? "border-white bg-white/10"
+                            : "border-white/10 hover:bg-white/5"
+                        )}
+                      >
+                        {v}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Store Policies */}
+              <div className="space-y-2 text-xs">
+                <span className="text-[10px] font-bold text-gray-300 block">Store Policies</span>
+                <div className="flex justify-between p-2 bg-white/5 border border-white/10 rounded-xl">
+                  <span className="text-gray-400">Returns &amp; Exchanges</span>
+                  <span className={settings?.return_policy ? "text-emerald-400 font-semibold" : "text-red-400 font-semibold"}>
+                    {settings?.return_policy ? "Accepted" : "Not Accepted"}
+                  </span>
+                </div>
+                <div className="flex justify-between p-2 bg-white/5 border border-white/10 rounded-xl">
+                  <span className="text-gray-400">Cancellations</span>
+                  <span className={settings?.cancellation_policy ? "text-emerald-400 font-semibold" : "text-red-400 font-semibold"}>
+                    {settings?.cancellation_policy ? "Allowed" : "Not Allowed"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Quantity Selector */}
+              {!isOutOfStock && (
+                <div className="flex items-center justify-between py-3 border-t border-white/10">
+                  <span className="text-[10px] font-bold text-gray-300">Quantity</span>
+                  <div className="flex items-center gap-4">
+                    <button type="button" disabled={quantity <= 1}
+                      onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
+                      className={cn("w-8 h-8 rounded-full border text-sm font-bold flex items-center justify-center transition-all",
+                        quantity <= 1 ? "opacity-30 cursor-not-allowed border-white/10" : "border-white/20 text-white hover:bg-white/10")}>
+                      -
                     </button>
-                  ))}
+                    <span className="w-6 text-center font-black text-white text-sm">{quantity}</span>
+                    <button type="button" disabled={quantity >= product.stock}
+                      onClick={() => setQuantity(prev => Math.min(product.stock, prev + 1))}
+                      className={cn("w-8 h-8 rounded-full border text-sm font-bold flex items-center justify-center transition-all",
+                        quantity >= product.stock ? "opacity-30 cursor-not-allowed border-white/10" : "border-white/20 text-white hover:bg-white/10")}>
+                      +
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Store Policies */}
-            <div className="space-y-2 text-xs">
-              <span className="text-[10px] font-bold text-gray-300 block">Store Policies</span>
-              <div className="flex justify-between p-2 bg-white/5 border border-white/10 rounded-xl">
-                <span className="text-gray-400">Returns &amp; Exchanges</span>
-                <span className={settings?.return_policy ? "text-emerald-400 font-semibold" : "text-red-400 font-semibold"}>
-                  {settings?.return_policy ? "Accepted" : "Not Accepted"}
-                </span>
-              </div>
-              <div className="flex justify-between p-2 bg-white/5 border border-white/10 rounded-xl">
-                <span className="text-gray-400">Cancellations</span>
-                <span className={settings?.cancellation_policy ? "text-emerald-400 font-semibold" : "text-red-400 font-semibold"}>
-                  {settings?.cancellation_policy ? "Allowed" : "Not Allowed"}
-                </span>
-              </div>
-            </div>
+              {/* CTAs */}
+              <div className="space-y-3 pt-4">
+                <button
+                  onClick={openCheckout}
+                  disabled={isOutOfStock}
+                  className={cn(
+                    "w-full h-11 rounded-xl flex items-center justify-center gap-2.5 px-4 text-xs font-bold transition-all shadow-lg active:scale-95",
+                    isOutOfStock
+                      ? "bg-gray-800 text-gray-500 cursor-not-allowed opacity-60"
+                      : "bg-white text-black hover:bg-gray-100"
+                  )}
+                >
+                  <ShoppingBag className="w-4 h-4 shrink-0" />
+                  <span>{isOutOfStock ? "Out of Stock" : "Buy Now / Checkout"}</span>
+                </button>
 
-            {/* Quantity Selector */}
-            {!isOutOfStock && (
-              <div className="flex items-center justify-between py-3 border-t border-white/10">
-                <span className="text-[10px] font-bold text-gray-300">Quantity</span>
-                <div className="flex items-center gap-4">
-                  <button type="button" disabled={quantity <= 1}
-                    onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
-                    className={cn("w-8 h-8 rounded-full border text-sm font-bold flex items-center justify-center transition-all",
-                      quantity <= 1 ? "opacity-30 cursor-not-allowed border-white/10" : "border-white/20 text-white hover:bg-white/10")}>
-                    -
-                  </button>
-                  <span className="w-6 text-center font-black text-white text-sm">{quantity}</span>
-                  <button type="button" disabled={quantity >= product.stock}
-                    onClick={() => setQuantity(prev => Math.min(product.stock, prev + 1))}
-                    className={cn("w-8 h-8 rounded-full border text-sm font-bold flex items-center justify-center transition-all",
-                      quantity >= product.stock ? "opacity-30 cursor-not-allowed border-white/10" : "border-white/20 text-white hover:bg-white/10")}>
-                    +
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* CTAs */}
-            <div className="space-y-3 pt-4">
-              <button
-                onClick={openCheckout}
-                disabled={isOutOfStock}
-                className={cn(
-                  "w-full h-11 rounded-xl flex items-center justify-center gap-2.5 px-4 text-xs font-bold transition-all shadow-lg active:scale-95",
-                  isOutOfStock
-                    ? "bg-gray-800 text-gray-500 cursor-not-allowed opacity-60"
-                    : "bg-white text-black hover:bg-gray-100"
+                {settings.enable_instagram_button && product.instagram_permalink && !isOutOfStock && (
+                  <a
+                    href={product.instagram_permalink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full h-11 rounded-xl flex items-center justify-center gap-2.5 px-4 text-xs font-bold text-white bg-gradient-to-r from-orange-500/90 via-rose-500/90 to-pink-500/90 hover:opacity-80 active:scale-95 transition-opacity shadow-sm"
+                  >
+                    <InstagramIcon className="w-4 h-4 shrink-0" />
+                    <span>Buy on Instagram</span>
+                  </a>
                 )}
-              >
-                <ShoppingBag className="w-4 h-4 shrink-0" />
-                <span>{isOutOfStock ? "Out of Stock" : "Buy Now / Checkout"}</span>
-              </button>
+                {settings.enable_whatsapp_button && !isOutOfStock && (
+                  <a
+                    href={whatsappUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full h-11 bg-[#25D366] text-white rounded-xl flex items-center justify-center gap-2.5 px-4 text-xs font-bold hover:opacity-95 active:scale-95 transition-all shadow-md"
+                  >
+                    <MessageCircle className="w-4 h-4 shrink-0 text-white" />
+                    <span>Order via WhatsApp</span>
+                  </a>
+                )}
+              </div>
 
-              {settings.enable_instagram_button && product.instagram_permalink && !isOutOfStock && (
-                <a
-                  href={product.instagram_permalink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full h-11 rounded-xl flex items-center justify-center gap-2.5 px-4 text-xs font-bold text-white bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 hover:opacity-90 active:scale-95 transition-all shadow-md"
-                >
-                  <InstagramIcon className="w-4 h-4 shrink-0" />
-                  <span>Buy on Instagram</span>
-                </a>
-              )}
-              {settings.enable_whatsapp_button && !isOutOfStock && (
-                <a
-                  href={whatsappUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full h-11 bg-[#25D366] text-white rounded-xl flex items-center justify-center gap-2.5 px-4 text-xs font-bold hover:opacity-95 active:scale-95 transition-all shadow-md"
-                >
-                  <MessageCircle className="w-4 h-4 shrink-0 text-white" />
-                  <span>Order via WhatsApp</span>
-                </a>
-              )}
-            </div>
-
-            {product.metadata && typeof product.metadata === "object" && Object.keys(product.metadata).length > 0 && (
-              <div className="p-4 bg-white/5 border border-white/10 rounded-2xl space-y-2">
-                <span className="text-[10px] font-bold text-gray-300 block">Specifications</span>
-                <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
-                  {Object.entries(product.metadata).map(([key, value]) => (
-                    <div key={key} className="flex justify-between border-b border-white/5 pb-1">
-                      <span className="text-gray-400 text-[10px]">{key}</span>
-                      <span className="text-white font-semibold">{String(value)}</span>
-                    </div>
-                  ))}
+              {product.metadata && typeof product.metadata === "object" && Object.keys(product.metadata).length > 0 && (
+                <div className="p-4 bg-white/5 border border-white/10 rounded-2xl space-y-2">
+                  <span className="text-[10px] font-bold text-gray-300 block">Specifications</span>
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-xs">
+                    {Object.entries(product.metadata).map(([key, value]) => (
+                      <div key={key} className="flex justify-between border-b border-white/5 pb-1">
+                        <span className="text-gray-400 text-[10px]">{key}</span>
+                        <span className="text-white font-semibold">{String(value)}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Reviews Peek box */}
-            <div className="p-4 bg-white/5 border border-white/10 rounded-2xl">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-[10px] font-bold text-yellow-400">★ 4.9 (128 Reviews)</span>
+              {/* Reviews Peek box */}
+              <div className="p-4 bg-white/5 border border-white/10 rounded-2xl">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-[10px] font-bold text-yellow-400">★ 4.9 (128 Reviews)</span>
+                </div>
+                <p className="text-[11px] italic text-gray-400">
+                  "The quality is insane. The fit is perfect and the fabric feels like luxury brands costing 10x more."
+                </p>
               </div>
-              <p className="text-[11px] italic text-gray-400">
-                "The quality is insane. The fit is perfect and the fabric feels like luxury brands costing 10x more."
-              </p>
             </div>
-          </div>
+          )}
         </section>
       </div>
     );
@@ -1132,196 +1189,202 @@ export default function ProductDetailPage({ params }: PageProps) {
 
           {/* Product Details Column (1/3 width on desktop) */}
           <aside className="w-full lg:w-1/3 lg:sticky lg:top-32 flex flex-col gap-8">
-            <header className="flex flex-col gap-2">
-              <span className="text-[10px] font-bold tracking-[0.2em] text-zinc-400">
-                COLLECTION 04 — {product.category || "STORE CATALOG"}
-              </span>
-              <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl font-light tracking-wide text-zinc-900 dark:text-white leading-none mt-1">
-                {product.title}
-              </h1>
-              <p className="font-serif text-xl italic text-zinc-500 dark:text-zinc-400 mt-2">
-                {product.price} {product.currency}
-              </p>
-            </header>
-
-            {/* Colors Section */}
-            <div className="flex flex-col gap-2">
-              <span className="text-xs font-semibold text-zinc-400 tracking-widest">COLOR: NOIR OBSIDIEN</span>
-              <div className="flex gap-3">
-                <div className="w-8 h-8 rounded-full border border-black dark:border-white bg-[#0e0e0e] flex items-center justify-center cursor-pointer">
-                  <div className="w-6 h-6 rounded-full bg-[#1c1b1b]"></div>
-                </div>
-                <div className="w-8 h-8 rounded-full border border-zinc-300 dark:border-zinc-800 bg-transparent flex items-center justify-center cursor-pointer hover:border-black dark:hover:border-white transition-colors">
-                  <div className="w-6 h-6 rounded-full bg-[#353535]"></div>
-                </div>
-              </div>
-            </div>
-
-            {/* Sizes Section */}
-            {product.variants && product.variants.length > 0 && (
-              <div className="flex flex-col gap-2">
-                <div className="flex justify-between items-end">
-                  <span className="text-xs font-semibold text-zinc-400 tracking-widest">SIZE</span>
-                  <span className="text-[10px] text-zinc-400 underline cursor-pointer hover:text-black dark:hover:text-white">SIZE GUIDE</span>
-                </div>
-                <div className="grid grid-cols-4 gap-2">
-                  {product.variants.map((v) => {
-                    const isActive = selectedVariant === v;
-                    return (
-                      <button
-                        key={v}
-                        onClick={() => setSelectedVariant(v)}
-                        className={cn(
-                          "py-3 border text-xs font-semibold transition-all rounded-none",
-                          isActive
-                            ? "border-black dark:border-white bg-black dark:bg-white text-white dark:text-black"
-                            : "border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 hover:border-black dark:hover:border-white"
-                        )}
-                      >
-                        {v}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Store Policies */}
-            <div className="flex flex-col gap-2">
-              <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 space-y-2 text-xs">
-                <span className="text-xs font-semibold text-zinc-400 tracking-widest block">Store Policies</span>
-                <div className="flex justify-between">
-                  <span className="text-zinc-500">Returns &amp; Exchanges</span>
-                  <span className={settings?.return_policy ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "text-red-500 font-semibold"}>
-                    {settings?.return_policy ? "Accepted" : "Not Accepted"}
+            {isCheckoutOpen ? (
+              renderInlineCheckoutForm()
+            ) : (
+              <>
+                <header className="flex flex-col gap-2">
+                  <span className="text-[10px] font-bold tracking-[0.2em] text-zinc-400">
+                    COLLECTION 04 — {product.category || "STORE CATALOG"}
                   </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-zinc-500">Cancellations</span>
-                  <span className={settings?.cancellation_policy ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "text-red-500 font-semibold"}>
-                    {settings?.cancellation_policy ? "Allowed" : "Not Allowed"}
-                  </span>
-                </div>
-              </div>
-            </div>
+                  <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl font-light tracking-wide text-zinc-900 dark:text-white leading-none mt-1">
+                    {product.title}
+                  </h1>
+                  <p className="font-serif text-xl italic text-zinc-500 dark:text-zinc-400 mt-2">
+                    {product.price} {product.currency}
+                  </p>
+                </header>
 
-            {/* Quantity Selector */}
-            {!isOutOfStock && (
-              <div className="flex items-center justify-between py-3 border-t border-zinc-200 dark:border-zinc-800">
-                <span className="text-xs font-semibold text-zinc-400 tracking-widest">Quantity</span>
-                <div className="flex items-center gap-4">
-                  <button type="button" disabled={quantity <= 1}
-                    onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
-                    className={cn("w-8 h-8 border rounded font-bold text-sm flex items-center justify-center transition-all",
-                      quantity <= 1
-                        ? "opacity-30 cursor-not-allowed border-zinc-200 dark:border-zinc-800 text-zinc-400"
-                        : "border-zinc-300 dark:border-zinc-700 hover:border-black dark:hover:border-white")}>
-                    -
-                  </button>
-                  <span className="w-6 text-center font-black text-sm text-zinc-900 dark:text-white">{quantity}</span>
-                  <button type="button" disabled={quantity >= product.stock}
-                    onClick={() => setQuantity(prev => Math.min(product.stock, prev + 1))}
-                    className={cn("w-8 h-8 border rounded font-bold text-sm flex items-center justify-center transition-all",
-                      quantity >= product.stock
-                        ? "opacity-30 cursor-not-allowed border-zinc-200 dark:border-zinc-800 text-zinc-400"
-                        : "border-zinc-300 dark:border-zinc-700 hover:border-black dark:hover:border-white")}>
-                    +
-                  </button>
+                {/* Colors Section */}
+                <div className="flex flex-col gap-2">
+                  <span className="text-xs font-semibold text-zinc-400 tracking-widest">COLOR: NOIR OBSIDIEN</span>
+                  <div className="flex gap-3">
+                    <div className="w-8 h-8 rounded-full border border-black dark:border-white bg-[#0e0e0e] flex items-center justify-center cursor-pointer">
+                      <div className="w-6 h-6 rounded-full bg-[#1c1b1b]"></div>
+                    </div>
+                    <div className="w-8 h-8 rounded-full border border-zinc-300 dark:border-zinc-800 bg-transparent flex items-center justify-center cursor-pointer hover:border-black dark:hover:border-white transition-colors">
+                      <div className="w-6 h-6 rounded-full bg-[#353535]"></div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
 
-            {/* Purchase / Enquire CTAs */}
-            <div className="flex flex-col gap-3 pt-2">
-              <button
-                onClick={openCheckout}
-                disabled={isOutOfStock}
-                className={cn(
-                  "w-full h-11 bg-black dark:bg-white text-white dark:text-black font-semibold text-xs tracking-widest flex items-center justify-center gap-2.5 px-4 hover:opacity-90 transition-all active:scale-[0.98]",
-                  isOutOfStock && "opacity-50 cursor-not-allowed"
+                {/* Sizes Section */}
+                {product.variants && product.variants.length > 0 && (
+                  <div className="flex flex-col gap-2">
+                    <div className="flex justify-between items-end">
+                      <span className="text-xs font-semibold text-zinc-400 tracking-widest">SIZE</span>
+                      <span className="text-[10px] text-zinc-400 underline cursor-pointer hover:text-black dark:hover:text-white">SIZE GUIDE</span>
+                    </div>
+                    <div className="grid grid-cols-4 gap-2">
+                      {product.variants.map((v) => {
+                        const isActive = selectedVariant === v;
+                        return (
+                          <button
+                            key={v}
+                            onClick={() => setSelectedVariant(v)}
+                            className={cn(
+                              "py-3 border text-xs font-semibold transition-all rounded-none",
+                              isActive
+                                ? "border-black dark:border-white bg-black dark:bg-white text-white dark:text-black"
+                                : "border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 hover:border-black dark:hover:border-white"
+                            )}
+                          >
+                            {v}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 )}
-              >
-                <ShoppingBag className="w-4 h-4 shrink-0" />
-                <span>{isOutOfStock ? "OUT OF STOCK" : "BUY NOW / CHECKOUT"}</span>
-              </button>
 
-              {settings.enable_instagram_button && product.instagram_permalink && !isOutOfStock && (
-                <a
-                  href={product.instagram_permalink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full h-11 bg-black dark:bg-white text-white dark:text-black font-semibold text-xs tracking-widest flex items-center justify-center gap-2.5 px-4 hover:opacity-90 transition-all active:scale-[0.98]"
-                >
-                  <InstagramIcon className="w-4 h-4 shrink-0" />
-                  <span>PURCHASE ON INSTAGRAM</span>
-                </a>
-              )}
-              {settings.enable_whatsapp_button && !isOutOfStock && (
-                <a
-                  href={whatsappUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full h-11 border border-zinc-300 dark:border-zinc-800 flex items-center justify-center gap-2.5 px-4 rounded-none hover:border-black dark:hover:border-white transition-all text-xs font-semibold tracking-widest text-zinc-800 dark:text-zinc-200"
-                >
-                  <MessageCircle className="w-4 h-4 text-[#25D366] shrink-0" />
-                  <span>ENQUIRE VIA WHATSAPP</span>
-                </a>
-              )}
-            </div>
+                {/* Store Policies */}
+                <div className="flex flex-col gap-2">
+                  <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 space-y-2 text-xs">
+                    <span className="text-xs font-semibold text-zinc-400 tracking-widest block">Store Policies</span>
+                    <div className="flex justify-between">
+                      <span className="text-zinc-500">Returns &amp; Exchanges</span>
+                      <span className={settings?.return_policy ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "text-red-500 font-semibold"}>
+                        {settings?.return_policy ? "Accepted" : "Not Accepted"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-zinc-500">Cancellations</span>
+                      <span className={settings?.cancellation_policy ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "text-red-500 font-semibold"}>
+                        {settings?.cancellation_policy ? "Allowed" : "Not Allowed"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
 
-            {/* Accordion Details */}
-            <div className="border border-zinc-200 dark:border-zinc-800 p-6 rounded-xl flex flex-col gap-4 bg-white/[0.01] dark:bg-white/[0.02] backdrop-blur-md">
-              <p className="text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed font-sans">
-                {product.description || "A masterclass in modern tailoring. This floor-sweeping gown features asymmetrical architectural draping that captures the light as you move. Crafted from our signature heavy-weight silk crepe, it offers a structural silhouette with the fluid breathability of a second skin."}
-              </p>
+                {/* Quantity Selector */}
+                {!isOutOfStock && (
+                  <div className="flex items-center justify-between py-3 border-t border-zinc-200 dark:border-zinc-800">
+                    <span className="text-xs font-semibold text-zinc-400 tracking-widest">Quantity</span>
+                    <div className="flex items-center gap-4">
+                      <button type="button" disabled={quantity <= 1}
+                        onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
+                        className={cn("w-8 h-8 border rounded font-bold text-sm flex items-center justify-center transition-all",
+                          quantity <= 1
+                            ? "opacity-30 cursor-not-allowed border-zinc-200 dark:border-zinc-800 text-zinc-400"
+                            : "border-zinc-300 dark:border-zinc-700 hover:border-black dark:hover:border-white")}>
+                        -
+                      </button>
+                      <span className="w-6 text-center font-black text-sm text-zinc-900 dark:text-white">{quantity}</span>
+                      <button type="button" disabled={quantity >= product.stock}
+                        onClick={() => setQuantity(prev => Math.min(product.stock, prev + 1))}
+                        className={cn("w-8 h-8 border rounded font-bold text-sm flex items-center justify-center transition-all",
+                          quantity >= product.stock
+                            ? "opacity-30 cursor-not-allowed border-zinc-200 dark:border-zinc-800 text-zinc-400"
+                            : "border-zinc-300 dark:border-zinc-700 hover:border-black dark:hover:border-white")}>
+                        +
+                      </button>
+                    </div>
+                  </div>
+                )}
 
-              {/* Accordion 1: Specifications (from real metadata) */}
-              <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800">
-                <button
-                  onClick={() => setIsDetailsOpen(!isDetailsOpen)}
-                  className="w-full flex justify-between items-center text-xs font-bold tracking-wider py-1 text-zinc-800 dark:text-zinc-200 hover:opacity-85 transition-opacity"
-                >
-                  <span>DETAILS &amp; CARE</span>
-                  <ChevronRight className={cn("w-4 h-4 transition-transform duration-200", isDetailsOpen && "rotate-90")} />
-                </button>
-                {isDetailsOpen && (
-                  <div className="pt-2 text-xs text-zinc-500 dark:text-zinc-400 font-sans leading-relaxed space-y-2">
-                    {product.metadata && typeof product.metadata === "object" && Object.keys(product.metadata).length > 0 ? (
-                      <ul className="space-y-1">
-                        {Object.entries(product.metadata).map(([key, value]) => (
-                          <li key={key} className="flex justify-between border-b border-zinc-100 dark:border-zinc-800 pb-1">
-                            <span className="text-[10px] tracking-wider font-semibold">{key}</span>
-                            <span className="text-zinc-800 dark:text-zinc-200 font-medium">{String(value)}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <ul className="list-disc list-inside space-y-1">
-                        <li>Premium quality materials</li>
-                        <li>Category: {product.category || "General"}</li>
-                        <li>Stock: {product.stock || "Available"}</li>
-                      </ul>
+                {/* Purchase / Enquire CTAs */}
+                <div className="flex flex-col gap-3 pt-2">
+                  <button
+                    onClick={openCheckout}
+                    disabled={isOutOfStock}
+                    className={cn(
+                      "w-full h-11 bg-black dark:bg-white text-white dark:text-black font-semibold text-xs tracking-widest flex items-center justify-center gap-2.5 px-4 hover:opacity-90 transition-all active:scale-[0.98]",
+                      isOutOfStock && "opacity-50 cursor-not-allowed"
+                    )}
+                  >
+                    <ShoppingBag className="w-4 h-4 shrink-0" />
+                    <span>{isOutOfStock ? "OUT OF STOCK" : "BUY NOW / CHECKOUT"}</span>
+                  </button>
+
+                  {settings.enable_instagram_button && product.instagram_permalink && !isOutOfStock && (
+                    <a
+                      href={product.instagram_permalink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full h-11 bg-black dark:bg-white text-white dark:text-black font-semibold text-xs tracking-widest flex items-center justify-center gap-2.5 px-4 hover:opacity-90 transition-all active:scale-[0.98]"
+                    >
+                      <InstagramIcon className="w-4 h-4 shrink-0" />
+                      <span>PURCHASE ON INSTAGRAM</span>
+                    </a>
+                  )}
+                  {settings.enable_whatsapp_button && !isOutOfStock && (
+                    <a
+                      href={whatsappUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full h-11 border border-zinc-300 dark:border-zinc-800 flex items-center justify-center gap-2.5 px-4 rounded-none hover:border-black dark:hover:border-white transition-all text-xs font-semibold tracking-widest text-zinc-800 dark:text-zinc-200"
+                    >
+                      <MessageCircle className="w-4 h-4 text-[#25D366] shrink-0" />
+                      <span>ENQUIRE VIA WHATSAPP</span>
+                    </a>
+                  )}
+                </div>
+
+                {/* Accordion Details */}
+                <div className="border border-zinc-200 dark:border-zinc-800 p-6 rounded-xl flex flex-col gap-4 bg-white/[0.01] dark:bg-white/[0.02] backdrop-blur-md">
+                  <p className="text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed font-sans">
+                    {product.description || "A masterclass in modern tailoring. This floor-sweeping gown features asymmetrical architectural draping that captures the light as you move. Crafted from our signature heavy-weight silk crepe, it offers a structural silhouette with the fluid breathability of a second skin."}
+                  </p>
+
+                  {/* Accordion 1: Specifications (from real metadata) */}
+                  <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800">
+                    <button
+                      onClick={() => setIsDetailsOpen(!isDetailsOpen)}
+                      className="w-full flex justify-between items-center text-xs font-bold tracking-wider py-1 text-zinc-800 dark:text-zinc-200 hover:opacity-85 transition-opacity"
+                    >
+                      <span>DETAILS &amp; CARE</span>
+                      <ChevronRight className={cn("w-4 h-4 transition-transform duration-200", isDetailsOpen && "rotate-90")} />
+                    </button>
+                    {isDetailsOpen && (
+                      <div className="pt-2 text-xs text-zinc-500 dark:text-zinc-400 font-sans leading-relaxed space-y-2">
+                        {product.metadata && typeof product.metadata === "object" && Object.keys(product.metadata).length > 0 ? (
+                          <ul className="space-y-1">
+                            {Object.entries(product.metadata).map(([key, value]) => (
+                              <li key={key} className="flex justify-between border-b border-zinc-100 dark:border-zinc-800 pb-1">
+                                <span className="text-[10px] tracking-wider font-semibold">{key}</span>
+                                <span className="text-zinc-800 dark:text-zinc-200 font-medium">{String(value)}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <ul className="list-disc list-inside space-y-1">
+                            <li>Premium quality materials</li>
+                            <li>Category: {product.category || "General"}</li>
+                            <li>Stock: {product.stock || "Available"}</li>
+                          </ul>
+                        )}
+                      </div>
                     )}
                   </div>
-                )}
-              </div>
 
-              {/* Accordion 2 */}
-              <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800">
-                <button
-                  onClick={() => setIsShippingOpen(!isShippingOpen)}
-                  className="w-full flex justify-between items-center text-xs font-bold tracking-wider py-1 text-zinc-800 dark:text-zinc-200 hover:opacity-85 transition-opacity"
-                >
-                  <span>SHIPPING &amp; RETURNS</span>
-                  <ChevronRight className={cn("w-4 h-4 transition-transform duration-200", isShippingOpen && "rotate-90")} />
-                </button>
-                {isShippingOpen && (
-                  <div className="pt-2 text-xs text-zinc-500 dark:text-zinc-400 font-sans leading-relaxed">
-                    Complimentary global shipping on all orders over $1,500. Returns accepted within 14 days of delivery.
+                  {/* Accordion 2 */}
+                  <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800">
+                    <button
+                      onClick={() => setIsShippingOpen(!isShippingOpen)}
+                      className="w-full flex justify-between items-center text-xs font-bold tracking-wider py-1 text-zinc-800 dark:text-zinc-200 hover:opacity-85 transition-opacity"
+                    >
+                      <span>SHIPPING &amp; RETURNS</span>
+                      <ChevronRight className={cn("w-4 h-4 transition-transform duration-200", isShippingOpen && "rotate-90")} />
+                    </button>
+                    {isShippingOpen && (
+                      <div className="pt-2 text-xs text-zinc-500 dark:text-zinc-400 font-sans leading-relaxed">
+                        Complimentary global shipping on all orders over $1,500. Returns accepted within 14 days of delivery.
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </div>
+                </div>
+              </>
+            )}
           </aside>
         </div>
 
@@ -1413,189 +1476,195 @@ export default function ProductDetailPage({ params }: PageProps) {
 
           {/* Right Column: Details & Actions (5 Columns) */}
           <section className="lg:col-span-5 space-y-6">
-            <div className="bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-6 space-y-6">
-
-              {/* Category & Inventory Alert */}
-              <div className="flex justify-between items-center">
-                <span className="bg-[#ffe600] text-black border border-black px-2.5 py-0.5 font-bold text-xs tracking-wider">
-                  {product.category || "Apparel"}
-                </span>
-                {product.stock > 0 && product.stock <= 10 && (
-                  <span className="text-red-600 font-bold text-xs flex items-center gap-1">
-                    <span className="text-red-600">⚠</span>
-                    <span>{product.stock} units left</span>
-                  </span>
-                )}
-              </div>
-
-              {/* Title & Price */}
-              <div>
-                <h1 className="font-sans tracking-tight font-black text-3xl lg:text-4xl leading-none">
-                  {product.title}
-                </h1>
-                <p className="font-mono text-xl lg:text-2xl font-black text-zinc-900 mt-2">
-                  {product.price} {product.currency}
-                </p>
-              </div>
-
-              {/* Description Divider & Text */}
-              <div className="border-t border-black pt-4">
-                <p className="text-xs font-bold leading-relaxed text-zinc-700">
-                  {product.description || "A limited edition piece from our automation collection. Engineered for comfort and style, this item bridges the gap between high-performance utility and modern aesthetic."}
-                </p>
-              </div>
-
-              {/* Size Option Picker (if available) */}
-              {product.variants && product.variants.length > 0 && (
-                <div className="space-y-2 border-t border-black pt-4">
-                  <span className="text-[10px] font-black block">Select Option / Size</span>
-                  <div className="flex flex-wrap gap-2">
-                    {product.variants.map((v) => {
-                      const isActive = selectedVariant === v;
-                      return (
-                        <button
-                          key={v}
-                          onClick={() => setSelectedVariant(v)}
-                          className={cn(
-                            "px-4 py-2 text-xs font-black border-2 border-black bg-white transition-all shadow-[2px_2px_0px_#000] hover:translate-y-0.5 active:translate-y-1 active:shadow-none",
-                            isActive && "bg-[#0038ff] text-white shadow-none translate-x-[2px] translate-y-[2px]"
-                          )}
-                        >
-                          {v}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Store Policies */}
-              <div className="space-y-2 pt-4 border-t border-black">
-                <span className="text-[10px] font-black ">Store Policies</span>
-                <div className="grid grid-cols-2 gap-2 text-xs font-bold">
-                  <div className="border-2 border-black p-2 flex flex-col gap-0.5">
-                    <span className="text-zinc-500 font-bold text-[9px] ">Returns &amp; Exchanges</span>
-                    <span className={settings?.return_policy ? "text-emerald-600" : "text-red-600"}>
-                      {settings?.return_policy ? "Accepted" : "Not Accepted"}
+            {isCheckoutOpen ? (
+              renderInlineCheckoutForm()
+            ) : (
+              <>
+                <div className="bg-white border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-6 space-y-6">
+                  {/* Category & Inventory Alert */}
+                  <div className="flex justify-between items-center">
+                    <span className="bg-[#ffe600] text-black border border-black px-2.5 py-0.5 font-bold text-xs tracking-wider">
+                      {product.category || "Apparel"}
                     </span>
+                    {product.stock > 0 && product.stock <= 10 && (
+                      <span className="text-red-600 font-bold text-xs flex items-center gap-1">
+                        <span className="text-red-600">⚠</span>
+                        <span>{product.stock} units left</span>
+                      </span>
+                    )}
                   </div>
-                  <div className="border-2 border-black p-2 flex flex-col gap-0.5">
-                    <span className="text-zinc-500 font-bold text-[9px] ">Cancellations</span>
-                    <span className={settings?.cancellation_policy ? "text-emerald-600" : "text-red-600"}>
-                      {settings?.cancellation_policy ? "Allowed" : "Not Allowed"}
-                    </span>
-                  </div>
-                </div>
-              </div>
 
-              {/* Quantity Selector */}
-              {!isOutOfStock && (
-                <div className="flex items-center justify-between py-3 border-t border-black">
-                  <span className="text-[10px] font-black ">Quantity</span>
-                  <div className="flex items-center gap-4">
-                    <button type="button" disabled={quantity <= 1}
-                      onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
-                      className={cn("w-8 h-8 border-2 border-black font-black text-sm flex items-center justify-center shadow-[2px_2px_0px_#000] transition-all",
-                        quantity <= 1 ? "opacity-30 cursor-not-allowed" : "hover:-translate-y-0.5 active:translate-y-0.5 active:shadow-none")}>
-                      -
-                    </button>
-                    <span className="w-6 text-center font-black text-sm text-black">{quantity}</span>
-                    <button type="button" disabled={quantity >= product.stock}
-                      onClick={() => setQuantity(prev => Math.min(product.stock, prev + 1))}
-                      className={cn("w-8 h-8 border-2 border-black font-black text-sm flex items-center justify-center shadow-[2px_2px_0px_#000] transition-all",
-                        quantity >= product.stock ? "opacity-30 cursor-not-allowed" : "hover:-translate-y-0.5 active:translate-y-0.5 active:shadow-none")}>
-                      +
-                    </button>
+                  {/* Title & Price */}
+                  <div>
+                    <h1 className="font-sans tracking-tight font-black text-3xl lg:text-4xl leading-none">
+                      {product.title}
+                    </h1>
+                    <p className="font-mono text-xl lg:text-2xl font-black text-zinc-900 mt-2">
+                      {product.price} {product.currency}
+                    </p>
                   </div>
-                </div>
-              )}
 
-              {/* CTAs */}
-              <div className="space-y-3 pt-4 border-t border-black">
-                <button
-                  onClick={openCheckout}
-                  disabled={isOutOfStock}
-                  className={cn(
-                    "w-full h-11 font-black text-xs tracking-wider border-2 border-black flex items-center justify-center gap-2.5 px-4 shadow-[3px_3px_0px_#000] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all",
-                    isOutOfStock ? "bg-gray-300 text-gray-600 cursor-not-allowed" : "bg-[#FFE600] text-black"
+                  {/* Description Divider & Text */}
+                  <div className="border-t border-black pt-4">
+                    <p className="text-xs font-bold leading-relaxed text-zinc-700">
+                      {product.description || "A limited edition piece from our automation collection. Engineered for comfort and style, this item bridges the gap between high-performance utility and modern aesthetic."}
+                    </p>
+                  </div>
+
+                  {/* Size Option Picker (if available) */}
+                  {product.variants && product.variants.length > 0 && (
+                    <div className="space-y-2 border-t border-black pt-4">
+                      <span className="text-[10px] font-black block">Select Option / Size</span>
+                      <div className="flex flex-wrap gap-2">
+                        {product.variants.map((v) => {
+                          const isActive = selectedVariant === v;
+                          return (
+                            <button
+                              key={v}
+                              onClick={() => setSelectedVariant(v)}
+                              className={cn(
+                                "px-4 py-2 text-xs font-black border-2 border-black bg-white transition-all shadow-[2px_2px_0px_#000] hover:translate-y-0.5 active:translate-y-1 active:shadow-none",
+                                isActive && "bg-[#0038ff] text-white shadow-none translate-x-[2px] translate-y-[2px]"
+                              )}
+                            >
+                              {v}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                   )}
-                >
-                  <ShoppingBag className="w-4 h-4 shrink-0" />
-                  <span>{isOutOfStock ? "OUT OF STOCK" : "BUY NOW / CHECKOUT"}</span>
-                </button>
 
-                {settings.enable_instagram_button && product.instagram_permalink && !isOutOfStock && (
-                  <a
-                    href={product.instagram_permalink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full h-11 bg-gradient-to-r from-orange-400 via-red-400 to-pink-500 text-white border-2 border-black font-black text-xs tracking-wider shadow-[3px_3px_0px_#000] hover:translate-y-0.5 active:translate-y-1 active:shadow-none flex items-center justify-center gap-2.5 px-4"
-                  >
-                    <InstagramIcon className="w-4 h-4 shrink-0" />
-                    <span>PURCHASE ON INSTAGRAM</span>
-                  </a>
-                )}
-                {settings.enable_whatsapp_button && !isOutOfStock && (
-                  <a
-                    href={whatsappUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full h-11 bg-[#25D366] text-white border-2 border-black font-black text-xs tracking-wider shadow-[3px_3px_0px_#000] hover:translate-y-0.5 active:translate-y-1 active:shadow-none flex items-center justify-center gap-2.5 px-4"
-                  >
-                    <MessageCircle className="w-4 h-4 shrink-0" />
-                    <span>ORDER VIA WHATSAPP</span>
-                  </a>
-                )}
-              </div>
+                  {/* Store Policies */}
+                  <div className="space-y-2 pt-4 border-t border-black">
+                    <span className="text-[10px] font-black ">Store Policies</span>
+                    <div className="grid grid-cols-2 gap-2 text-xs font-bold">
+                      <div className="border-2 border-black p-2 flex flex-col gap-0.5">
+                        <span className="text-zinc-500 font-bold text-[9px] ">Returns &amp; Exchanges</span>
+                        <span className={settings?.return_policy ? "text-emerald-600" : "text-red-600"}>
+                          {settings?.return_policy ? "Accepted" : "Not Accepted"}
+                        </span>
+                      </div>
+                      <div className="border-2 border-black p-2 flex flex-col gap-0.5">
+                        <span className="text-zinc-500 font-bold text-[9px] ">Cancellations</span>
+                        <span className={settings?.cancellation_policy ? "text-emerald-600" : "text-red-600"}>
+                          {settings?.cancellation_policy ? "Allowed" : "Not Allowed"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
 
-              {/* Trust Badges */}
-              <div className="grid grid-cols-2 gap-3 pt-4 border-t border-black text-xs font-bold">
-                <div className="border-2 border-black p-3 flex items-center gap-2 bg-white">
-                  <span className="text-base">🚚</span>
-                  <span>Fast Global Delivery</span>
+                  {/* Quantity Selector */}
+                  {!isOutOfStock && (
+                    <div className="flex items-center justify-between py-3 border-t border-black">
+                      <span className="text-[10px] font-black ">Quantity</span>
+                      <div className="flex items-center gap-4">
+                        <button type="button" disabled={quantity <= 1}
+                          onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
+                          className={cn("w-8 h-8 border-2 border-black font-black text-sm flex items-center justify-center shadow-[2px_2px_0px_#000] transition-all",
+                            quantity <= 1 ? "opacity-30 cursor-not-allowed" : "hover:-translate-y-0.5 active:translate-y-0.5 active:shadow-none")}>
+                          -
+                        </button>
+                        <span className="w-6 text-center font-black text-sm text-black">{quantity}</span>
+                        <button type="button" disabled={quantity >= product.stock}
+                          onClick={() => setQuantity(prev => Math.min(product.stock, prev + 1))}
+                          className={cn("w-8 h-8 border-2 border-black font-black text-sm flex items-center justify-center shadow-[2px_2px_0px_#000] transition-all",
+                            quantity >= product.stock ? "opacity-30 cursor-not-allowed" : "hover:-translate-y-0.5 active:translate-y-0.5 active:shadow-none")}>
+                          +
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* CTAs */}
+                  <div className="space-y-3 pt-4 border-t border-black">
+                    <button
+                      onClick={openCheckout}
+                      disabled={isOutOfStock}
+                      className={cn(
+                        "w-full h-11 font-black text-xs tracking-wider border-2 border-black flex items-center justify-center gap-2.5 px-4 shadow-[3px_3px_0px_#000] hover:translate-y-0.5 active:translate-y-1 active:shadow-none transition-all",
+                        isOutOfStock ? "bg-gray-300 text-gray-600 cursor-not-allowed" : "bg-[#FFE600] text-black"
+                      )}
+                    >
+                      <ShoppingBag className="w-4 h-4 shrink-0" />
+                      <span>{isOutOfStock ? "OUT OF STOCK" : "BUY NOW / CHECKOUT"}</span>
+                    </button>
+
+                    {settings.enable_instagram_button && product.instagram_permalink && !isOutOfStock && (
+                      <a
+                        href={product.instagram_permalink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full h-11 font-black text-xs tracking-wider border-2 border-black flex items-center justify-center gap-2.5 px-4 bg-gradient-to-r from-orange-400/90 via-rose-500/90 to-pink-500/90 text-white shadow-[3px_3px_0px_#000] hover:opacity-85 transition-opacity"
+                      >
+                        <InstagramIcon className="w-4 h-4 shrink-0" />
+                        <span>Buy on Instagram</span>
+                      </a>
+                    )}
+
+                    {settings.enable_whatsapp_button && !isOutOfStock && (
+                      <a
+                        href={whatsappUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full h-11 bg-[#25D366] text-white border-2 border-black font-black text-xs tracking-wider shadow-[3px_3px_0px_#000] hover:translate-y-0.5 active:translate-y-1 active:shadow-none flex items-center justify-center gap-2.5 px-4"
+                      >
+                        <MessageCircle className="w-4 h-4 shrink-0" />
+                        <span>ORDER VIA WHATSAPP</span>
+                      </a>
+                    )}
+                  </div>
+
+                  {/* Trust Badges */}
+                  <div className="grid grid-cols-2 gap-3 pt-4 border-t border-black text-xs font-bold">
+                    <div className="border-2 border-black p-3 flex items-center gap-2 bg-white">
+                      <span className="text-base">🚚</span>
+                      <span>Fast Global Delivery</span>
+                    </div>
+                    <div className="border-2 border-black p-3 flex items-center gap-2 bg-white">
+                      <span className="text-base">✓</span>
+                      <span>Authentic Goods</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="border-2 border-black p-3 flex items-center gap-2 bg-white">
-                  <span className="text-base">✓</span>
-                  <span>Authentic Goods</span>
-                </div>
-              </div>
-            </div>
 
-            {/* Info Pane Details */}
-            <div className="bg-white border-2 border-black shadow-[4px_4px_0px_#000] p-4 text-black space-y-3">
-              <h3 className="font-black text-xs flex items-center gap-1.5 ">
-                <span>ℹ</span>
-                <span>Specifications</span>
-              </h3>
-              <ul className="space-y-2 text-xs font-bold text-zinc-700">
-                <li className="flex justify-between border-b border-black/10 pb-1.5">
-                  <span>SKU:</span>
-                  <span className="text-black font-mono">ANY-{product.id || "0012"}-TX</span>
-                </li>
-                <li className="flex justify-between border-b border-black/10 pb-1.5">
-                  <span>Category:</span>
-                  <span className="text-black">{product.category || "General"}</span>
-                </li>
-                {product.metadata && typeof product.metadata === "object" && Object.entries(product.metadata).map(([key, value], idx, arr) => (
-                  <li key={key} className={cn("flex justify-between pb-1.5", idx < arr.length - 1 && "border-b border-black/10")}>
-                    <span>{key}:</span>
-                    <span className="text-black">{String(value)}</span>
-                  </li>
-                ))}
-                {(!product.metadata || Object.keys(product.metadata).length === 0) && (
-                  <li className="flex justify-between">
-                    <span>Stock:</span>
-                    <span className="text-black">{product.stock > 0 ? `${product.stock} units` : "Out of stock"}</span>
-                  </li>
-                )}
-              </ul>
-            </div>
+                {/* Info Pane Details */}
+                <div className="bg-white border-2 border-black shadow-[4px_4px_0px_#000] p-4 text-black space-y-3">
+                  <h3 className="font-black text-xs flex items-center gap-1.5 ">
+                    <span>ℹ</span>
+                    <span>Specifications</span>
+                  </h3>
+                  <ul className="space-y-2 text-xs font-bold text-zinc-700">
+                    <li className="flex justify-between border-b border-black/10 pb-1.5">
+                      <span>SKU:</span>
+                      <span className="text-black font-mono">ANY-{product.id || "0012"}-TX</span>
+                    </li>
+                    <li className="flex justify-between border-b border-black/10 pb-1.5">
+                      <span>Category:</span>
+                      <span className="text-black">{product.category || "General"}</span>
+                    </li>
+                    {product.metadata && typeof product.metadata === "object" && Object.entries(product.metadata).map(([key, value], idx, arr) => (
+                      <li key={key} className={cn("flex justify-between pb-1.5", idx < arr.length - 1 && "border-b border-black/10")}>
+                        <span>{key}:</span>
+                        <span className="text-black">{String(value)}</span>
+                      </li>
+                    ))}
+                    {(!product.metadata || Object.keys(product.metadata).length === 0) && (
+                      <li className="flex justify-between">
+                        <span>Stock:</span>
+                        <span className="text-black">{product.stock > 0 ? `${product.stock} units` : "Out of stock"}</span>
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              </>
+            )}
           </section>
 
         </div>
 
         {/* Bento Grid Recommendations Section */}
-        {settings.show_related_products && relatedProducts.length > 0 && (
+        {product?.show_in_store !== false && settings.show_related_products && relatedProducts.length > 0 && (
           <section className="mt-16 border-t-2 border-black pt-12">
             <h2 className="font-sans tracking-tight font-black text-2xl lg:text-3xl mb-8 text-black">
               Complete the look
@@ -1714,232 +1783,235 @@ export default function ProductDetailPage({ params }: PageProps) {
             )}
           </div>
 
-          {/* Right Column: Floating Info and Purchase Card */}
+          {/* Right Column: Floating Info and Purchase Card / Inline Checkout */}
           <aside className="w-full lg:w-[45%] lg:sticky lg:top-24 space-y-6">
-            {/* ── Product Details Panel ── */}
-            <div className={cn("p-6 md:p-8 space-y-6 shadow-2xl relative overflow-hidden", styles.cardClass)}>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className={cn("text-[10px] tracking-widest font-black", styles.badgeClass)}>
-                    {product.category || "Apparel"}
-                  </span>
-                  {product.stock > 0 ? (
-                    <span className="text-[10px] font-bold text-emerald-400">In Stock</span>
-                  ) : (
-                    <span className="text-[10px] font-bold text-red-500">Sold Out</span>
-                  )}
-                </div>
-
-                <h1 className={cn("text-2xl md:text-3xl font-black tracking-tight", styles.fontHeadline, styles.textColorClass)}>
-                  {product.title}
-                </h1>
-
-                <div className="flex items-baseline gap-2 pt-1">
-                  <span className={cn("text-2xl font-black", styles.priceClass)}>
-                    {product.price ? `${product.price} ${product.currency}` : "Price TBD"}
-                  </span>
-                  {product.original_price && (
-                    <span className="text-xs text-gray-500 line-through">
-                      {product.original_price} {product.currency}
-                    </span>
-                  )}
-                  {product.is_negotiable && (
-                    <span className={cn("text-[9px] font-bold py-0.5 px-2 rounded-full", styles.badgeClass)}>
-                      Negotiable
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div className={cn("h-px", isLight ? "bg-black/10" : "bg-white/5")}></div>
-
-              {/* Description */}
-              {product.description && (
-                <p className={cn("text-xs leading-relaxed", styles.textColorClass, "opacity-80")}>
-                  {product.description}
-                </p>
-              )}
-
-              {/* Variants Picker (if available) */}
-              {product.variants && product.variants.length > 0 && (
+            {isCheckoutOpen ? (
+              renderInlineCheckoutForm()
+            ) : (
+              <div className={cn("p-6 md:p-8 space-y-6 shadow-2xl relative overflow-hidden", styles.cardClass)}>
                 <div className="space-y-3">
-                  <span className={cn("text-[10px] tracking-wider font-bold block", styles.textMutedClass)}>
-                    Select Option / Size
-                  </span>
-                  <div className="flex flex-wrap gap-2">
-                    {product.variants.map((v) => {
-                      const isActive = selectedVariant === v;
-                      return (
-                        <button
-                          key={v}
-                          onClick={() => setSelectedVariant(v)}
-                          className={cn(
-                            "px-4 py-2 rounded-lg text-xs font-bold border transition-all select-none",
-                            isLight
-                              ? isActive
-                                ? "bg-black text-white border-black"
-                                : "bg-black/5 text-black border-black/20 hover:border-black/40"
-                              : isActive
-                                ? "bg-white text-black border-white"
-                                : "bg-white/5 text-white border-white/10 hover:border-white/20"
-                          )}
-                        >
-                          {v}
-                        </button>
-                      );
-                    })}
+                  <div className="flex items-center justify-between">
+                    <span className={cn("text-[10px] tracking-widest font-black", styles.badgeClass)}>
+                      {product.category || "Apparel"}
+                    </span>
+                    {product.stock > 0 ? (
+                      <span className="text-[10px] font-bold text-emerald-400">In Stock</span>
+                    ) : (
+                      <span className="text-[10px] font-bold text-red-500">Sold Out</span>
+                    )}
+                  </div>
+
+                  <h1 className={cn("text-2xl md:text-3xl font-black tracking-tight", styles.fontHeadline, styles.textColorClass)}>
+                    {product.title}
+                  </h1>
+
+                  <div className="flex items-baseline gap-2 pt-1">
+                    <span className={cn("text-2xl font-black", styles.priceClass)}>
+                      {product.price ? `${product.price} ${product.currency}` : "Price TBD"}
+                    </span>
+                    {product.original_price && (
+                      <span className="text-xs text-gray-500 line-through">
+                        {product.original_price} {product.currency}
+                      </span>
+                    )}
+                    {product.is_negotiable && (
+                      <span className={cn("text-[9px] font-bold py-0.5 px-2 rounded-full", styles.badgeClass)}>
+                        Negotiable
+                      </span>
+                    )}
                   </div>
                 </div>
-              )}
 
-              {/* Specifications — shown inline after size picker */}
-              {product.metadata && typeof product.metadata === "object" && Object.keys(product.metadata).length > 0 && (
-                <div className="space-y-2">
-                  <span className={cn("text-[10px] tracking-wider font-bold block", styles.textMutedClass)}>
-                    Specifications
-                  </span>
-                  <div className={cn("rounded-lg border divide-y overflow-hidden text-xs", isLight ? "border-black/10 divide-black/10" : "border-white/10 divide-white/5")}>
-                    {Object.entries(product.metadata).map(([key, value]) => (
-                      <div key={key} className={cn("flex justify-between items-center px-3 py-2", isLight ? "bg-black/[0.02]" : "bg-white/[0.02]")}>
-                        <span className={cn("font-semibold tracking-wide text-[10px]", styles.textMutedClass)}>{key}</span>
-                        <span className={cn("font-bold", styles.textColorClass)}>{String(value)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+                <div className={cn("h-px", isLight ? "bg-black/10" : "bg-white/5")}></div>
 
-              {/* Return & Cancellation Policies */}
-              <div className="space-y-2 pt-1">
-                <span className={cn("text-[10px] tracking-wider font-bold block", styles.textMutedClass)}>
-                  Store Policies
-                </span>
-                <div className={cn("rounded-lg border p-3 space-y-2.5 text-xs", isLight ? "border-black/10" : "border-white/10")}>
-                  <div className="flex flex-col gap-0.5">
-                    <span className="font-semibold text-zinc-400 text-[10px] tracking-wider">Return & Exchange Policy</span>
-                    <p className={cn("text-xs leading-normal opacity-95", styles.textColorClass)}>
-                      {settings?.return_policy ? "Returns and exchanges are accepted." : "Returns and exchanges are not accepted."}
-                    </p>
-                  </div>
-                  <div className="flex flex-col gap-0.5">
-                    <span className="font-semibold text-zinc-400 text-[10px] tracking-wider">Cancellation Policy</span>
-                    <p className={cn("text-xs leading-normal opacity-95", styles.textColorClass)}>
-                      {settings?.cancellation_policy ? "Cancellations are allowed before order shipment." : "Cancellations are not allowed once order is placed."}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Quantity Selector */}
-              {!isOutOfStock && (
-                <div className="flex items-center justify-between py-3.5 border-t border-b border-white/5 my-2">
-                  <span className={cn("text-xs font-bold tracking-wider", styles.textMutedClass)}>
-                    Quantity
-                  </span>
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      disabled={quantity <= 1}
-                      onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
-                      className={cn(
-                        "w-8 h-8 rounded-full border flex items-center justify-center font-bold text-sm transition-all focus:outline-none",
-                        quantity <= 1
-                          ? "opacity-30 cursor-not-allowed border-white/10 text-zinc-550"
-                          : "border-white/20 text-white hover:bg-white/5 active:scale-95"
-                      )}
-                    >
-                      -
-                    </button>
-                    <span className="w-8 text-center text-sm font-black text-white">{quantity}</span>
-                    <button
-                      type="button"
-                      disabled={quantity >= product.stock}
-                      onClick={() => setQuantity(prev => Math.min(product.stock, prev + 1))}
-                      className={cn(
-                        "w-8 h-8 rounded-full border flex items-center justify-center font-bold text-sm transition-all focus:outline-none",
-                        quantity >= product.stock
-                          ? "opacity-30 cursor-not-allowed border-white/10 text-zinc-550"
-                          : "border-white/20 text-white hover:bg-white/5 active:scale-95"
-                      )}
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Purchase Trigger Actions - No Add to Cart button required */}
-              <div className="space-y-2.5">
-                {/* Buy Now / Checkout */}
-                <button
-                  onClick={openCheckout}
-                  disabled={isOutOfStock}
-                  className={cn(
-                    "w-full h-11 flex items-center justify-center gap-2.5 px-4 rounded-xl text-xs font-bold transition-all active:scale-[0.98] shadow-sm",
-                    isOutOfStock
-                      ? "bg-zinc-800 text-zinc-500 cursor-not-allowed opacity-60 border border-white/5"
-                      : styles.buttonClass || "bg-[#605ca2] text-white hover:bg-[#605ca2]/90"
-                  )}
-                >
-                  <ShoppingBag className="w-4 h-4 shrink-0" />
-                  <span>{isOutOfStock ? "Out of Stock" : "Buy Now / Checkout"}</span>
-                </button>
-
-                {/* Purchase on Instagram */}
-                {settings.enable_instagram_button && product.instagram_permalink && !isOutOfStock && (
-                  <a
-                    href={product.instagram_permalink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full h-11 flex items-center justify-center gap-2.5 px-4 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 hover:opacity-90 transition-all active:scale-[0.98] shadow-sm"
-                  >
-                    <InstagramIcon className="w-4 h-4 shrink-0" />
-                    <span>Purchase on Instagram</span>
-                  </a>
+                {/* Description */}
+                {product.description && (
+                  <p className={cn("text-xs leading-relaxed", styles.textColorClass, "opacity-80")}>
+                    {product.description}
+                  </p>
                 )}
 
-                {/* Order via WhatsApp */}
-                {settings.enable_whatsapp_button && !isOutOfStock && (
-                  <a
-                    href={whatsappUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full h-11 flex items-center justify-center gap-2.5 px-4 rounded-xl text-xs font-bold text-[#25D366] bg-[#25D366]/10 border border-[#25D366]/30 hover:bg-[#25D366]/20 transition-all active:scale-[0.98] shadow-sm"
-                  >
-                    <MessageCircle className="w-4 h-4 shrink-0 text-[#25D366]" />
-                    <span>Order via WhatsApp</span>
-                  </a>
+                {/* Variants Picker (if available) */}
+                {product.variants && product.variants.length > 0 && (
+                  <div className="space-y-3">
+                    <span className={cn("text-[10px] tracking-wider font-bold block", styles.textMutedClass)}>
+                      Select Option / Size
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {product.variants.map((v) => {
+                        const isActive = selectedVariant === v;
+                        return (
+                          <button
+                            key={v}
+                            onClick={() => setSelectedVariant(v)}
+                            className={cn(
+                              "px-4 py-2 rounded-lg text-xs font-bold border transition-all select-none",
+                              isLight
+                                ? isActive
+                                  ? "bg-black text-white border-black"
+                                  : "bg-black/5 text-black border-black/20 hover:border-black/40"
+                                : isActive
+                                  ? "bg-white text-black border-white"
+                                  : "bg-white/5 text-white border-white/10 hover:border-white/20"
+                            )}
+                          >
+                            {v}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 )}
 
-                {/* Add to Favorites */}
-                <button
-                  onClick={toggleFavorite}
-                  className={cn(
-                    "w-full h-11 flex items-center justify-center gap-2.5 px-4 rounded-xl text-xs font-bold border transition-all active:scale-[0.98]",
-                    isFavorited
-                      ? "bg-rose-500/10 border-rose-500/30 text-rose-500 hover:bg-rose-500/20"
-                      : isLight
-                        ? "bg-transparent border-black/20 text-black hover:border-black/40 hover:bg-black/5"
-                        : "bg-transparent border-white/20 text-white hover:border-white/40 hover:bg-white/5"
-                  )}
-                >
-                  <Heart className={cn("w-4 h-4 shrink-0", isFavorited && "fill-current")} />
-                  <span>{isFavorited ? "Saved to Favorites" : "Add to Favorites"}</span>
-                </button>
-              </div>
+                {/* Specifications — shown inline after size picker */}
+                {product.metadata && typeof product.metadata === "object" && Object.keys(product.metadata).length > 0 && (
+                  <div className="space-y-2">
+                    <span className={cn("text-[10px] tracking-wider font-bold block", styles.textMutedClass)}>
+                      Specifications
+                    </span>
+                    <div className={cn("rounded-lg border divide-y overflow-hidden text-xs", isLight ? "border-black/10 divide-black/10" : "border-white/10 divide-white/5")}>
+                      {Object.entries(product.metadata).map(([key, value]) => (
+                        <div key={key} className={cn("flex justify-between items-center px-3 py-2", isLight ? "bg-black/[0.02]" : "bg-white/[0.02]")}>
+                          <span className={cn("font-semibold tracking-wide text-[10px]", styles.textMutedClass)}>{key}</span>
+                          <span className={cn("font-bold", styles.textColorClass)}>{String(value)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-              {/* Storefront trust features */}
-              <div className="pt-4 flex flex-col gap-2.5 border-t border-white/5">
-                <div className={cn("flex items-center gap-2 text-[10px] font-semibold", styles.textMutedClass)}>
-                  <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Verified Supplier Catalog</span>
+                {/* Return & Cancellation Policies */}
+                <div className="space-y-2 pt-1">
+                  <span className={cn("text-[10px] tracking-wider font-bold block", styles.textMutedClass)}>
+                    Store Policies
+                  </span>
+                  <div className={cn("rounded-lg border p-3 space-y-2.5 text-xs", isLight ? "border-black/10" : "border-white/10")}>
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-semibold text-zinc-400 text-[10px] tracking-wider">Return & Exchange Policy</span>
+                      <p className={cn("text-xs leading-normal opacity-95", styles.textColorClass)}>
+                        {settings?.return_policy ? "Returns and exchanges are accepted." : "Returns and exchanges are not accepted."}
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-semibold text-zinc-400 text-[10px] tracking-wider">Cancellation Policy</span>
+                      <p className={cn("text-xs leading-normal opacity-95", styles.textColorClass)}>
+                        {settings?.cancellation_policy ? "Cancellations are allowed before order shipment." : "Cancellations are not allowed once order is placed."}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <div className={cn("flex items-center gap-2 text-[10px] font-semibold", styles.textMutedClass)}>
-                  <Truck className="w-4 h-4 text-sky-400 shrink-0" />
-                  <span>Doorstep delivery available</span>
+
+                {/* Quantity Selector */}
+                {!isOutOfStock && (
+                  <div className="flex items-center justify-between py-3.5 border-t border-b border-white/5 my-2">
+                    <span className={cn("text-xs font-bold tracking-wider", styles.textMutedClass)}>
+                      Quantity
+                    </span>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        disabled={quantity <= 1}
+                        onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
+                        className={cn(
+                          "w-8 h-8 rounded-full border flex items-center justify-center font-bold text-sm transition-all focus:outline-none",
+                          quantity <= 1
+                            ? "opacity-30 cursor-not-allowed border-white/10 text-zinc-550"
+                            : "border-white/20 text-white hover:bg-white/5 active:scale-95"
+                        )}
+                      >
+                        -
+                      </button>
+                      <span className="w-8 text-center text-sm font-black text-white">{quantity}</span>
+                      <button
+                        type="button"
+                        disabled={quantity >= product.stock}
+                        onClick={() => setQuantity(prev => Math.min(product.stock, prev + 1))}
+                        className={cn(
+                          "w-8 h-8 rounded-full border flex items-center justify-center font-bold text-sm transition-all focus:outline-none",
+                          quantity >= product.stock
+                            ? "opacity-30 cursor-not-allowed border-white/10 text-zinc-550"
+                            : "border-white/20 text-white hover:bg-white/5 active:scale-95"
+                        )}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Purchase Trigger Actions - No Add to Cart button required */}
+                <div className="space-y-2.5">
+                  {/* Buy Now / Checkout */}
+                  <button
+                    onClick={openCheckout}
+                    disabled={isOutOfStock}
+                    className={cn(
+                      "w-full h-11 flex items-center justify-center gap-2.5 px-4 rounded-xl text-xs font-bold transition-all active:scale-[0.98] shadow-sm",
+                      isOutOfStock
+                        ? "bg-zinc-800 text-zinc-500 cursor-not-allowed opacity-60 border border-white/5"
+                        : styles.buttonClass || "bg-[#605ca2] text-white hover:bg-[#605ca2]/90"
+                    )}
+                  >
+                    <ShoppingBag className="w-4 h-4 shrink-0" />
+                    <span>{isOutOfStock ? "Out of Stock" : "Buy Now / Checkout"}</span>
+                  </button>
+
+                  {/* Purchase on Instagram */}
+                  {settings.enable_instagram_button && product.instagram_permalink && !isOutOfStock && (
+                    <a
+                      href={product.instagram_permalink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full h-11 flex items-center justify-center gap-2.5 px-4 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-orange-500/90 via-rose-500/90 to-pink-500/90 hover:opacity-80 transition-opacity active:scale-[0.98] shadow-sm"
+                    >
+                      <InstagramIcon className="w-4 h-4 shrink-0" />
+                      <span>Purchase on Instagram</span>
+                    </a>
+                  )}
+
+                  {/* Order via WhatsApp */}
+                  {settings.enable_whatsapp_button && !isOutOfStock && (
+                    <a
+                      href={whatsappUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full h-11 flex items-center justify-center gap-2.5 px-4 rounded-xl text-xs font-bold text-[#25D366] bg-[#25D366]/10 border border-[#25D366]/30 hover:bg-[#25D366]/20 transition-all active:scale-[0.98] shadow-sm"
+                    >
+                      <MessageCircle className="w-4 h-4 shrink-0 text-[#25D366]" />
+                      <span>Order via WhatsApp</span>
+                    </a>
+                  )}
+
+                  {/* Add to Favorites */}
+                  <button
+                    onClick={toggleFavorite}
+                    className={cn(
+                      "w-full h-11 flex items-center justify-center gap-2.5 px-4 rounded-xl text-xs font-bold border transition-all active:scale-[0.98]",
+                      isFavorited
+                        ? "bg-rose-500/10 border-rose-500/30 text-rose-500 hover:bg-rose-500/20"
+                        : isLight
+                          ? "bg-transparent border-black/20 text-black hover:border-black/40 hover:bg-black/5"
+                          : "bg-transparent border-white/20 text-white hover:border-white/40 hover:bg-white/5"
+                    )}
+                  >
+                    <Heart className={cn("w-4 h-4 shrink-0", isFavorited && "fill-current")} />
+                    <span>{isFavorited ? "Saved to Favorites" : "Add to Favorites"}</span>
+                  </button>
+                </div>
+
+                {/* Storefront trust features */}
+                <div className="pt-4 flex flex-col gap-2.5 border-t border-white/5">
+                  <div className={cn("flex items-center gap-2 text-[10px] font-semibold", styles.textMutedClass)}>
+                    <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>Verified Supplier Catalog</span>
+                  </div>
+                  <div className={cn("flex items-center gap-2 text-[10px] font-semibold", styles.textMutedClass)}>
+                    <Truck className="w-4 h-4 text-sky-400 shrink-0" />
+                    <span>Doorstep delivery available</span>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </aside>
         </div>
 
@@ -1957,7 +2029,7 @@ export default function ProductDetailPage({ params }: PageProps) {
         <hr className="w-full mt-6" />
 
         {/* Related Products Grid (if enabled) */}
-        {settings.show_related_products && relatedProducts.length > 0 && (
+        {product?.show_in_store !== false && settings.show_related_products && relatedProducts.length > 0 && (
           <section className=" pt-12 border-t border-white/5 space-y-6">
             <h3 className={cn("text-base font-bold tracking-wider", styles.textColorClass)}>
               Related Products
@@ -2014,7 +2086,427 @@ export default function ProductDetailPage({ params }: PageProps) {
     );
   };
 
+  const renderInlineCheckoutForm = () => {
+    const isDigital = product.product_type === "DIGITAL";
+
+    return (
+      <div className={cn("p-6 md:p-8 space-y-5 shadow-2xl relative overflow-hidden rounded-2xl border transition-all text-left", styles.cardClass)}>
+        {/* Back button */}
+        <button
+          type="button"
+          onClick={() => setIsCheckoutOpen(false)}
+          className={cn("flex items-center gap-1.5 text-xs font-bold hover:opacity-80 transition-opacity mb-1 cursor-pointer", styles.textColorClass)}
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back to Product Details</span>
+        </button>
+
+        {isDigital ? (
+          /* ── DIGITAL INLINE CHECKOUT ── */
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <h3 className={cn("text-lg font-bold tracking-tight pt-3", styles.fontHeadline, styles.textColorClass)}>
+                Digital Checkout
+              </h3>
+            </div>
+            <p className={cn("text-xs opacity-75 leading-relaxed", styles.textMutedClass)}>
+              Your invoice will download automatically after payment and available items will be displayed for instant access.
+            </p>
+
+
+
+            {/* Digital Order summary */}
+            <div className={cn("flex items-center gap-3 p-3.5 rounded-xl border bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10")}>
+              {activeMediaUrl && (
+                <img src={activeMediaUrl} alt={product.title} className="w-14 h-14 object-cover rounded-lg shrink-0 border border-black/10 dark:border-white/10" />
+              )}
+              <div className="flex-1 min-w-0">
+                <p className={cn("text-xs font-bold truncate", styles.textColorClass)}>{product.title}</p>
+                <p className={cn("text-xs font-bold mt-1", styles.priceClass)}>{product.price ? `${product.price} ${product.currency}` : "Price TBD"}</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleCheckout} className="space-y-4">
+              <div className="flex flex-col gap-1">
+                <label className={cn("text-[10px] font-bold tracking-wider uppercase opacity-75", styles.textMutedClass)}>Full Name</label>
+                <input type="text" required value={checkoutName} onChange={(e) => setCheckoutName(e.target.value)} placeholder="Enter your full name"
+                  className={cn("w-full px-3.5 py-2.5 text-xs rounded-xl border outline-none", styles.inputClass)} />
+              </div>
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center justify-between">
+                  <label className={cn("text-[10px] font-bold tracking-wider uppercase opacity-75", styles.textMutedClass)}>Email Address</label>
+                  {/* <span className={cn("text-[9px] font-medium opacity-60", styles.textMutedClass)}>Sent to your inbox</span> */}
+                </div>
+                <input type="email" required value={checkoutEmail} onChange={(e) => setCheckoutEmail(e.target.value)} placeholder="Enter email address"
+                  className={cn("w-full px-3.5 py-2.5 text-xs rounded-xl border outline-none", styles.inputClass)} />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className={cn("text-[10px] font-bold tracking-wider uppercase opacity-75", styles.textMutedClass)}>Phone Number</label>
+                <input type="tel" required value={checkoutPhone} onChange={(e) => setCheckoutPhone(e.target.value)} placeholder="Enter mobile number"
+                  className={cn("w-full px-3.5 py-2.5 text-xs rounded-xl border outline-none", styles.inputClass)} />
+              </div>
+
+              <div className="flex flex-col gap-1.5 text-left pt-1">
+                <label className={cn("text-[10px] font-bold tracking-wider uppercase opacity-75", styles.textMutedClass)}>Payment Method</label>
+
+                {/* Supported Payment Icons */}
+                <div className="p-3 rounded-xl border bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className={cn("text-[10px] font-bold  tracking-wider opacity-75", styles.textMutedClass)}>
+                      Supported Online Payment Methods
+                    </span>
+                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded text-gray-500 ${styles.textMutedClass}`}>
+                      Encrypted Checkout
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 pt-1">
+                    {PAYMENT_METHODS.map((pay) => (
+                      <div key={pay.name} className="flex items-center justify-center p-2.5 rounded-lg bg-white .dark:bg-black/60 border border-black/10 dark:border-white/10 shadow-xs transition-all">
+                        <img src={pay.icon} alt={pay.name} className="h-4 sm:h-5 max-w-full object-contain" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                {/* <button
+                  type="button"
+                  onClick={() => setIsCheckoutOpen(false)}
+                  className={cn("h-11 px-5 rounded-xl text-xs font-bold border transition-all shrink-0 hover:opacity-80 cursor-pointer flex items-center justify-center", styles.dividerClass, styles.textColorClass)}
+                >
+                  Cancel
+                </button> */}
+                <button
+                  type="submit"
+                  disabled={isSubmittingOrder}
+                  className={cn("h-11 flex-1 px-5 rounded-xl text-xs font-bold transition-opacity hover:opacity-85 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2", styles.buttonClass || "bg-black text-white dark:bg-white dark:text-black")}
+                >
+                  <span>{isSubmittingOrder ? "Processing..." : `Pay ${product.price ? `${product.price} ${product.currency}` : ""}`}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        ) : (
+          /* ── PHYSICAL INLINE CHECKOUT ── */
+          <div className="space-y-4">
+            <h3 className={cn("text-lg font-bold tracking-tight", styles.fontHeadline, styles.textColorClass)}>Order Checkout — Physical Delivery</h3>
+
+
+            {/* Order summary */}
+            <div className={cn("flex items-center gap-3 p-3.5 rounded-xl border", styles.cardClass)}>
+              {activeMediaUrl && (
+                <img src={activeMediaUrl} alt={product.title} className="w-14 h-14 object-cover rounded-lg shrink-0 bg-zinc-900" />
+              )}
+              <div className="flex-1 min-w-0">
+                <p className={cn("text-xs font-bold truncate", styles.textColorClass)}>{product.title}</p>
+                {selectedVariant && <p className={cn("text-[10px] font-semibold opacity-75 mt-0.5", styles.textMutedClass)}>Option: {selectedVariant}</p>}
+                <p className={cn("text-xs font-extrabold mt-0.5", styles.priceClass)}>{product.price ? `${product.price} ${product.currency}` : "Price TBD"}</p>
+              </div>
+              <span className={cn("text-[10px] font-bold px-2.5 py-1 rounded-full border", styles.badgeClass)}>×{quantity}</span>
+            </div>
+
+            <form onSubmit={handleCheckout} className="space-y-4">
+              <div className="flex flex-col gap-1">
+                <label className={cn("text-[10px] font-bold tracking-wider uppercase opacity-75", styles.textMutedClass)}>Full Name</label>
+                <input type="text" required value={checkoutName} onChange={(e) => setCheckoutName(e.target.value)} placeholder="Enter your full name"
+                  className={cn("w-full px-3.5 py-2.5 text-xs rounded-xl border outline-none", styles.inputClass)} />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className={cn("text-[10px] font-bold tracking-wider uppercase opacity-75", styles.textMutedClass)}>Email Address</label>
+                <input type="email" required value={checkoutEmail} onChange={(e) => setCheckoutEmail(e.target.value)} placeholder="Enter email address"
+                  className={cn("w-full px-3.5 py-2.5 text-xs rounded-xl border outline-none", styles.inputClass)} />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className={cn("text-[10px] font-bold tracking-wider uppercase opacity-75", styles.textMutedClass)}>Phone Number</label>
+                <input type="tel" required value={checkoutPhone} onChange={(e) => setCheckoutPhone(e.target.value)} placeholder="Enter mobile number"
+                  className={cn("w-full px-3.5 py-2.5 text-xs rounded-xl border outline-none", styles.inputClass)} />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className={cn("text-[10px] font-bold tracking-wider uppercase opacity-75", styles.textMutedClass)}>Delivery Address</label>
+                <textarea required rows={2} value={checkoutAddress} onChange={(e) => setCheckoutAddress(e.target.value)} placeholder="House/Flat No., Street, Area"
+                  className={cn("w-full px-3.5 py-2.5 text-xs rounded-xl border outline-none resize-none", styles.inputClass)} />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex flex-col gap-1">
+                  <label className={cn("text-[10px] font-bold tracking-wider uppercase opacity-75", styles.textMutedClass)}>Pincode</label>
+                  <input type="text" required value={checkoutPincode} onChange={(e) => setCheckoutPincode(e.target.value)} placeholder="6-digit Pincode"
+                    className={cn("w-full px-3.5 py-2.5 text-xs rounded-xl border outline-none", styles.inputClass)} />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className={cn("text-[10px] font-bold tracking-wider uppercase opacity-75", styles.textMutedClass)}>City / Place</label>
+                  <input type="text" required value={checkoutPlace} onChange={(e) => setCheckoutPlace(e.target.value)} placeholder="City / Town"
+                    className={cn("w-full px-3.5 py-2.5 text-xs rounded-xl border outline-none", styles.inputClass)} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex flex-col gap-1">
+                  <label className={cn("text-[10px] font-bold tracking-wider uppercase opacity-75", styles.textMutedClass)}>District</label>
+                  <input type="text" required value={checkoutDistrict} onChange={(e) => setCheckoutDistrict(e.target.value)} placeholder="District"
+                    className={cn("w-full px-3.5 py-2.5 text-xs rounded-xl border outline-none", styles.inputClass)} />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className={cn("text-[10px] font-bold tracking-wider uppercase opacity-75", styles.textMutedClass)}>State</label>
+                  <input type="text" required value={checkoutState} onChange={(e) => setCheckoutState(e.target.value)} placeholder="State"
+                    className={cn("w-full px-3.5 py-2.5 text-xs rounded-xl border outline-none", styles.inputClass)} />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5 text-left">
+                <label className={cn("text-[10px] font-bold tracking-wider uppercase opacity-75", styles.textMutedClass)}>Payment Method</label>
+                {(() => {
+                  const isCodAvailable = settings?.cod_enabled && product?.cod_enabled;
+                  const isOnlineAvailable = !!settings?.online_payment_enabled;
+                  if (isCodAvailable && isOnlineAvailable) {
+                    return (
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-2 gap-2">
+                          <button type="button" onClick={() => setCheckoutPaymentMethod("COD")}
+                            className={cn("py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer",
+                              checkoutPaymentMethod === "COD" ? styles.filterPillActiveClass : styles.filterPillClass)}
+                          >
+                            Cash on Delivery
+                          </button>
+                          <button type="button" onClick={() => setCheckoutPaymentMethod("RAZORPAY")}
+                            className={cn("py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer",
+                              checkoutPaymentMethod === "RAZORPAY" ? styles.filterPillActiveClass : styles.filterPillClass)}
+                          >
+                            Online Payment
+                          </button>
+                        </div>
+                        {checkoutPaymentMethod === "RAZORPAY" && (
+                          <div className="p-3 rounded-xl border bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className={cn("text-[10px] font-bold tracking-wider opacity-75", styles.textMutedClass)}>
+                                Supported Online Payment Methods
+                              </span>
+                              <span className={`text-[9px] font-bold px-2 py-0.5 rounded ${styles.textMutedClass}`}>
+                                Encrypted Checkout
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 pt-1">
+                              {PAYMENT_METHODS.map((pay) => (
+                                <div key={pay.name} className="flex items-center justify-center p-2.5 rounded-lg bg-white .dark:bg-black/60 border border-black/10 dark:border-white/10 shadow-xs transition-all">
+                                  <img src={pay.icon} alt={pay.name} className="h-4 sm:h-5 max-w-full object-contain" />
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  } else if (isCodAvailable) {
+                    return <button type="button" onClick={() => setCheckoutPaymentMethod("COD")} className={cn("py-2.5 rounded-xl text-xs font-bold border text-center w-full", styles.filterPillActiveClass)}>Cash on Delivery</button>;
+                  } else if (isOnlineAvailable) {
+                    return (
+                      <div className="space-y-2">
+                        <button type="button" onClick={() => setCheckoutPaymentMethod("RAZORPAY")} className={cn("py-2.5 rounded-xl text-xs font-bold border text-center w-full", styles.filterPillActiveClass)}>Online Payment</button>
+                        <div className="p-3 rounded-xl border bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className={cn("text-[10px] font-bold tracking-wider opacity-75", styles.textMutedClass)}>
+                              Supported Online Payment Methods
+                            </span>
+                            <span className="text-[9px] font-bold px-2 py-0.5 rounded ">
+                              Encrypted Checkout
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 pt-1">
+                            {PAYMENT_METHODS.map((pay) => (
+                              <div key={pay.name} className="flex items-center justify-center p-2.5 rounded-lg bg-white .dark:bg-black/60 border border-black/10 dark:border-white/10 shadow-xs transition-all">
+                                <img src={pay.icon} alt={pay.name} className="h-4 sm:h-5 max-w-full object-contain" />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  } else {
+                    return (
+                      <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-center">
+                        <p className="text-xs font-bold text-red-500">No Payment Methods Available</p>
+                        <p className={cn("text-[10px] mt-1", styles.textMutedClass)}>This store is currently not accepting new orders.</p>
+                      </div>
+                    );
+                  }
+                })()}
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                {/* <button
+                  type="button"
+                  onClick={() => setIsCheckoutOpen(false)}
+                  className={cn("h-11 px-5 rounded-xl text-xs font-bold border transition-all shrink-0 hover:opacity-80 cursor-pointer flex items-center justify-center", styles.dividerClass, styles.textColorClass)}
+                >
+                  Cancel
+                </button> */}
+                <button
+                  type="submit"
+                  disabled={isSubmittingOrder}
+                  className={cn("h-11 flex-1 px-5 rounded-xl text-xs font-bold transition-opacity hover:opacity-85 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2 shadow-xs", styles.buttonClass || "bg-black text-white dark:bg-white dark:text-black")}
+                >
+                  <span>{isSubmittingOrder ? "Processing Order..." : "Confirm & Place Order"}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderDigitalProductLayout = () => {
+    const resources = product.digital_resources || [];
+
+    return (
+      <main className={cn("pt-8 md:pt-12 px-6 max-w-7xl mx-auto flex-1 w-full", styles.containerClass)}>
+        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-start">
+          {/* Left Column: Digital Product Media / Preview */}
+          <div className="w-full lg:w-[48%] space-y-4 shrink-0">
+            <div className={cn("relative overflow-hidden aspect-[4/5] max-h-[480px] md:max-h-[520px] bg-black/10 flex items-center justify-center rounded-2xl border border-white/5 shadow-inner mx-auto group")}>
+              {activeMediaType === "VIDEO" ? (
+                <video src={activeMediaUrl} controls autoPlay muted loop className="w-full h-full max-h-[520px] object-contain" />
+              ) : (
+                <img
+                  src={activeMediaUrl}
+                  alt={product.title}
+                  className="w-full h-full max-h-[520px] object-contain transition-transform duration-500 group-hover:scale-105"
+                />
+              )}
+            </div>
+
+            {/* Gallery Thumbnails List */}
+            {product.gallery && product.gallery.length > 1 && (
+              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin">
+                {product.gallery.map((media) => {
+                  const isActive = activeMediaUrl === media.media_url;
+                  return (
+                    <button
+                      key={media.id}
+                      onClick={() => {
+                        setActiveMediaUrl(media.media_url);
+                        setActiveMediaType(media.media_type);
+                      }}
+                      className={cn(
+                        "relative w-16 h-20 rounded-lg overflow-hidden border bg-white/5 transition-all shrink-0 aspect-[4/5]",
+                        isActive ? "border-current opacity-100 scale-[0.98]" : "border-white/10 hover:border-white/30 opacity-70"
+                      )}
+                    >
+                      <img src={media.thumbnail_url || media.media_url} alt="Thumbnail" className="w-full h-full object-cover" />
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Right Column: Floating Digital Purchase Card / Inline Checkout */}
+          <aside className="w-full lg:w-[45%] lg:sticky lg:top-24 space-y-6">
+            {isCheckoutOpen ? (
+              renderInlineCheckoutForm()
+            ) : (
+              <div className={cn("p-6 md:p-8 space-y-6 shadow-2xl relative overflow-hidden rounded-2xl border", styles.cardClass)}>
+                <div className="space-y-3">
+                  <h1 className={cn("text-2xl md:text-3xl font-bold tracking-tight", styles.fontHeadline, styles.textColorClass)}>
+                    {product.title}
+                  </h1>
+
+                  <div className="flex items-baseline gap-2 pt-1">
+                    <span className={cn("text-2xl font-bold", styles.priceClass)}>
+                      {product.price ? `${product.price} ${product.currency}` : "Price TBD"}
+                    </span>
+                    {product.original_price && (
+                      <span className="text-xs text-gray-500 line-through">
+                        {product.original_price} {product.currency}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className={cn("h-px", isLight ? "bg-black/10" : "bg-white/5")}></div>
+
+                {/* Description */}
+                {product.description && (
+                  <p className={cn("text-xs leading-relaxed", styles.textColorClass, "opacity-85")}>
+                    {product.description}
+                  </p>
+                )}
+
+                {/* Included Digital Resources & Access Card */}
+                <div className={cn("rounded-xl border p-4 space-y-3 bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10", styles.dividerClass)}>
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4 opacity-70 shrink-0" />
+                    <span className={cn("text-xs font-semibold tracking-wide", styles.textColorClass)}>
+                      Included Deliverables
+                    </span>
+                  </div>
+
+                  {resources.length > 0 ? (
+                    <div className="space-y-2">
+                      {resources.map((res: any, idx: number) => (
+                        <div key={idx} className={cn("flex items-center justify-between p-2.5 rounded-lg border text-xs bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10")}>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <FileText className="w-4 h-4 opacity-60 shrink-0" />
+                            <span className={cn("font-medium truncate text-xs", styles.textColorClass)}>{res.title || res.file_name || `Resource #${idx + 1}`}</span>
+                          </div>
+                          <span className="text-[9px] font-medium px-2 py-0.5 rounded bg-black/10 dark:bg-white/10 border border-black/10 dark:border-white/10 shrink-0 opacity-80">
+                            {res.type === "LINK" ? "External Link" : res.file_type || "Download"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className={cn("text-xs leading-relaxed opacity-75", styles.textMutedClass)}>
+                      Download links and access instructions provided immediately upon checkout.
+                    </p>
+                  )}
+
+                  {product.digital_access_instructions && (
+                    <div className={cn("pt-2 border-t text-xs space-y-1 border-black/10 dark:border-white/10", styles.textMutedClass)}>
+                      <span className="font-semibold text-[10px] block opacity-80">Access Note:</span>
+                      <p className="text-xs leading-normal opacity-90">{product.digital_access_instructions}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Features Checklist */}
+                <div className="space-y-2 text-xs">
+                  <div className={cn("flex items-center gap-2 text-[11px]", styles.textColorClass)}>
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                    <span><strong>Digital Delivery:</strong> Sent via email after payment</span>
+                  </div>
+                  <div className={cn("flex items-center gap-2 text-[11px]", styles.textColorClass)}>
+                    <Lock className="w-3.5 h-3.5 opacity-70 shrink-0" />
+                    <span><strong>Secure Payment:</strong> Encrypted Razorpay checkout</span>
+                  </div>
+                </div>
+
+                {/* Digital Buy Now Action */}
+                <div className="pt-2">
+                  <button
+                    onClick={openCheckout}
+                    disabled={isOutOfStock}
+                    className={cn(
+                      "w-full h-12 flex items-center justify-center gap-2 px-6 rounded-xl text-xs font-bold transition-opacity hover:opacity-85 active:scale-[0.98] shadow-xs cursor-pointer",
+                      isOutOfStock
+                        ? "bg-zinc-800 text-zinc-500 cursor-not-allowed opacity-60 border border-white/5"
+                        : styles.buttonClass || "bg-black text-white dark:bg-white dark:text-black"
+                    )}
+                  >
+                    <span>{isOutOfStock ? "Currently Unavailable" : "Buy Now"}</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </aside>
+        </div>
+      </main>
+    );
+  };
+
   const renderContent = () => {
+    if (product.product_type === "DIGITAL") {
+      return renderDigitalProductLayout();
+    }
     switch (settings.template_id) {
       case "organic_minimalist":
         return renderOrganicMinimalist();
@@ -2037,7 +2529,7 @@ export default function ProductDetailPage({ params }: PageProps) {
       {(() => {
         const annText = settings?.custom_settings?.announcement_text !== undefined
           ? settings.custom_settings.announcement_text
-          : "✦ Fast Doorstep Delivery & Easy Returns | 100% Genuine Products";
+          : "Fast Doorstep Delivery & Easy Returns | 100% Genuine Products";
         if (!annText || !annText.trim()) return null;
         return (
           <div className={cn("w-full text-center py-2 px-4 text-[11px] font-semibold tracking-wide border-b transition-colors select-none", styles.dividerClass)} style={{ backgroundColor: `${styles.accentColor}12` }}>
@@ -2047,13 +2539,10 @@ export default function ProductDetailPage({ params }: PageProps) {
       })()}
 
       {/* Top Navbar */}
-      <header className={cn("sticky top-0 z-40 px-6 h-16 flex items-center justify-between w-full max-w-full mx-auto", styles.navClass)}>
-        <button onClick={() => router.push(getStoreHomeUrl(username))} className="flex items-center gap-1.5 text-xs font-bold hover:opacity-80 transition-opacity">
-          <ArrowLeft className="w-4 h-4" />
-          <span>Back to Store</span>
-        </button>
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full overflow-hidden border border-white/10 flex items-center justify-center bg-white/5">
+      <header className={cn("sticky top-0 z-40 px-4 sm:px-6 h-16 flex items-center justify-between w-full max-w-7xl mx-auto", styles.navClass)}>
+        {/* Left: Store Branding */}
+        <Link href={getStoreHomeUrl(username)} className="flex items-center gap-3 group shrink-0">
+          <div className="w-8 h-8 rounded-full overflow-hidden border border-black/10 dark:border-white/10 flex items-center justify-center bg-black/5 dark:bg-white/5 transition-transform group-hover:scale-105">
             {settings.store_logo ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={settings.store_logo} alt={settings.store_name} className="w-full h-full object-cover" />
@@ -2061,19 +2550,48 @@ export default function ProductDetailPage({ params }: PageProps) {
               <ShoppingBag className="w-4 h-4" />
             )}
           </div>
-          <span className={cn("text-sm font-bold tracking-tight hidden sm:inline", styles.fontHeadline, styles.textColorClass)}>
+          <span className={cn("text-base font-bold tracking-tight", styles.fontHeadline, styles.textColorClass)}>
             {settings.store_name || supplier.full_name || supplier.username}
           </span>
-        </div>
+        </Link>
 
-        {/* Navigation links - Login and Signup hidden for visitors */}
+        {/* Right: Navigation links & Account badge */}
         <nav className="flex items-center gap-4 text-xs font-semibold">
-          <Link href={getStoreHomeUrl(username)} className={cn("hover:opacity-80 transition-opacity", styles.textMutedClass)}>
-            Storefront
-          </Link>
+          {product?.show_in_store !== false && (
+            <Link href={getStoreHomeUrl(username)} className={cn("hidden sm:inline-block hover:opacity-80 transition-opacity", styles.textMutedClass)}>
+              Storefront
+            </Link>
+          )}
           <CustomerAccountBadge styles={styles} username={username} />
         </nav>
       </header>
+
+      {/* Sub-bar: Back Button & Breadcrumbs */}
+      {product?.show_in_store !== false && (
+        <div className={cn("w-full border-b py-2.5 px-4 sm:px-6 transition-colors", styles.dividerClass)}>
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+            <button
+              onClick={() => {
+                if (typeof window !== "undefined" && window.history.length > 1) {
+                  router.back();
+                } else {
+                  router.push(getStoreHomeUrl(username));
+                }
+              }}
+              className={cn(
+                "inline-flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-lg border border-black/15 dark:border-white/20 hover:opacity-80 transition-all cursor-pointer shadow-xs",
+                styles.filterPillClass
+              )}
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Back to Storefront</span>
+            </button>
+            <div className={cn("text-xs font-medium opacity-60 truncate hidden sm:block", styles.textMutedClass)}>
+              <span>Products</span> / <span className="opacity-100 font-bold">{product.title}</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {renderContent()}
 
@@ -2157,7 +2675,9 @@ export default function ProductDetailPage({ params }: PageProps) {
                 {[
                   { label: "Privacy Policy", action: () => router.push(getPrivacyUrl(username)) },
                   { label: "Terms of Service", action: () => router.push(getTermsUrl(username)) },
-                  { label: "Visit Storefront", action: () => router.push(getStoreHomeUrl(username)) },
+                  ...(product?.show_in_store !== false
+                    ? [{ label: "Visit Storefront", action: () => router.push(getStoreHomeUrl(username)) }]
+                    : []),
                 ].map(({ label, action }) => (
                   <button key={label} onClick={action} className={cn("flex items-center gap-2 text-xs hover:text-[#b6b2ff] transition-colors group w-full text-left", styles.textColorClass)}>
                     <span className="w-1 h-1 rounded-full bg-[#605ca2] group-hover:scale-150 transition-transform shrink-0" />
@@ -2174,151 +2694,7 @@ export default function ProductDetailPage({ params }: PageProps) {
           </div>
         </footer>
       )}
-      {/* ── Global Checkout Modal ── */}
-      {isCheckoutOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4"
-          onClick={() => setIsCheckoutOpen(false)}
-        >
-          <div
-            className={cn(
-              "w-full max-w-lg rounded-2xl p-6 md:p-8 shadow-2xl overflow-y-auto max-h-[90vh] relative border text-left",
-              styles.modalClass
-            )}
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Close Button */}
-            <button
-              onClick={() => setIsCheckoutOpen(false)}
-              className={cn("absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full border hover:opacity-80 transition-colors", styles.dividerClass)}
-            >
-              <X className="w-4 h-4" />
-            </button>
 
-            <h3 className={cn("text-lg font-bold tracking-tight mb-4", styles.fontHeadline, styles.textColorClass)}>Checkout Order</h3>
-
-            {instagramProfile?.username && (
-              <div className="flex items-center gap-2.5 p-3 rounded-xl mb-4 bg-[#131313] border border-[#444748] text-xs text-[#e5e2e1]">
-                {instagramProfile.profile_pic ? (
-                  <img src={instagramProfile.profile_pic} alt={instagramProfile.username} className="w-7 h-7 rounded-full object-cover border border-[#444748] shrink-0" />
-                ) : (
-                  <InstagramIcon className="w-5 h-5 text-[#c4c0ff] shrink-0" />
-                )}
-                <div className="flex-1 min-w-0">
-                  <span className="text-[9px] text-[#8e9192] block font-semibold uppercase tracking-wider">Instagram Customer Session</span>
-                  <span className="font-bold text-white text-xs truncate">@{instagramProfile.username}</span>
-                </div>
-                <span className="text-[9px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold shrink-0">Auto-Linked</span>
-              </div>
-            )}
-
-            {/* Order summary */}
-            <div className={cn("flex items-center gap-3 p-3.5 rounded-xl mb-4 border", styles.cardClass)}>
-              {activeMediaUrl && (
-                <img src={activeMediaUrl} alt={product.title} className="w-14 h-14 object-cover rounded-lg shrink-0 bg-zinc-900" />
-              )}
-              <div className="flex-1 min-w-0">
-                <p className={cn("text-xs font-bold truncate", styles.textColorClass)}>{product.title}</p>
-                {selectedVariant && <p className={cn("text-[10px] font-semibold opacity-75 mt-0.5", styles.textMutedClass)}>Option: {selectedVariant}</p>}
-                <p className={cn("text-xs font-extrabold mt-0.5", styles.priceClass)}>{product.price ? `${product.price} ${product.currency}` : "Price TBD"}</p>
-              </div>
-              <span className={cn("text-[10px] font-bold px-2.5 py-1 rounded-full border", styles.badgeClass)}>×{quantity}</span>
-            </div>
-
-            <form onSubmit={handleCheckout} className="space-y-4">
-              <div className="flex flex-col gap-1">
-                <label className={cn("text-[10px] font-bold tracking-wider uppercase opacity-75", styles.textMutedClass)}>Full Name</label>
-                <input type="text" required value={checkoutName} onChange={(e) => setCheckoutName(e.target.value)} placeholder="Enter your full name"
-                  className={cn("w-full px-3.5 py-2.5 text-xs rounded-xl border outline-none", styles.inputClass)} />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className={cn("text-[10px] font-bold tracking-wider uppercase opacity-75", styles.textMutedClass)}>Email Address</label>
-                <input type="email" required value={checkoutEmail} onChange={(e) => setCheckoutEmail(e.target.value)} placeholder="Enter email address"
-                  className={cn("w-full px-3.5 py-2.5 text-xs rounded-xl border outline-none", styles.inputClass)} />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className={cn("text-[10px] font-bold tracking-wider uppercase opacity-75", styles.textMutedClass)}>Phone Number</label>
-                <input type="tel" required value={checkoutPhone} onChange={(e) => setCheckoutPhone(e.target.value)} placeholder="Enter mobile number"
-                  className={cn("w-full px-3.5 py-2.5 text-xs rounded-xl border outline-none", styles.inputClass)} />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className={cn("text-[10px] font-bold tracking-wider uppercase opacity-75", styles.textMutedClass)}>Delivery Address</label>
-                <textarea required rows={2} value={checkoutAddress} onChange={(e) => setCheckoutAddress(e.target.value)} placeholder="House/Flat No., Street, Area"
-                  className={cn("w-full px-3.5 py-2.5 text-xs rounded-xl border outline-none resize-none", styles.inputClass)} />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="flex flex-col gap-1">
-                  <label className={cn("text-[10px] font-bold tracking-wider uppercase opacity-75", styles.textMutedClass)}>Pincode</label>
-                  <input type="text" required value={checkoutPincode} onChange={(e) => setCheckoutPincode(e.target.value)} placeholder="6-digit Pincode"
-                    className={cn("w-full px-3.5 py-2.5 text-xs rounded-xl border outline-none", styles.inputClass)} />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className={cn("text-[10px] font-bold tracking-wider uppercase opacity-75", styles.textMutedClass)}>City / Place</label>
-                  <input type="text" required value={checkoutPlace} onChange={(e) => setCheckoutPlace(e.target.value)} placeholder="City / Town"
-                    className={cn("w-full px-3.5 py-2.5 text-xs rounded-xl border outline-none", styles.inputClass)} />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="flex flex-col gap-1">
-                  <label className={cn("text-[10px] font-bold tracking-wider uppercase opacity-75", styles.textMutedClass)}>District</label>
-                  <input type="text" required value={checkoutDistrict} onChange={(e) => setCheckoutDistrict(e.target.value)} placeholder="District"
-                    className={cn("w-full px-3.5 py-2.5 text-xs rounded-xl border outline-none", styles.inputClass)} />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className={cn("text-[10px] font-bold tracking-wider uppercase opacity-75", styles.textMutedClass)}>State</label>
-                  <input type="text" required value={checkoutState} onChange={(e) => setCheckoutState(e.target.value)} placeholder="State"
-                    className={cn("w-full px-3.5 py-2.5 text-xs rounded-xl border outline-none", styles.inputClass)} />
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-1.5 text-left">
-                <label className={cn("text-[10px] font-bold tracking-wider uppercase opacity-75", styles.textMutedClass)}>Payment Method</label>
-                {(() => {
-                  const isCodAvailable = settings?.cod_enabled && product?.cod_enabled;
-                  const isOnlineAvailable = !!settings?.online_payment_enabled;
-                  if (isCodAvailable && isOnlineAvailable) {
-                    return (
-                      <div className="grid grid-cols-2 gap-2">
-                        <button type="button" onClick={() => setCheckoutPaymentMethod("COD")}
-                          className={cn("py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer",
-                            checkoutPaymentMethod === "COD" ? styles.filterPillActiveClass : styles.filterPillClass)}
-                        >
-                          Cash on Delivery
-                        </button>
-                        <button type="button" onClick={() => setCheckoutPaymentMethod("RAZORPAY")}
-                          className={cn("py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer",
-                            checkoutPaymentMethod === "RAZORPAY" ? styles.filterPillActiveClass : styles.filterPillClass)}
-                        >
-                          Online Payment
-                        </button>
-                      </div>
-                    );
-                  } else if (isCodAvailable) {
-                    return <button type="button" onClick={() => setCheckoutPaymentMethod("COD")} className={cn("py-2.5 rounded-xl text-xs font-bold border text-center w-full", styles.filterPillActiveClass)}>Cash on Delivery</button>;
-                  } else if (isOnlineAvailable) {
-                    return <button type="button" onClick={() => setCheckoutPaymentMethod("RAZORPAY")} className={cn("py-2.5 rounded-xl text-xs font-bold border text-center w-full", styles.filterPillActiveClass)}>Online Payment</button>;
-                  } else {
-                    return (
-                      <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-center">
-                        <p className="text-xs font-bold text-red-500">No Payment Methods Available</p>
-                        <p className={cn("text-[10px] mt-1", styles.textMutedClass)}>This store is currently not accepting new orders.</p>
-                      </div>
-                    );
-                  }
-                })()}
-              </div>
-
-              <button
-                type="submit"
-                disabled={isSubmittingOrder}
-                className={cn("w-full mt-3 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50 shadow-lg cursor-pointer", styles.buttonClass)}
-              >
-                {isSubmittingOrder ? "Processing Order..." : "Confirm & Place Order"}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* Policy Modal */}
       {activePolicyModal && (

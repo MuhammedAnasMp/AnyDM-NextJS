@@ -35,7 +35,14 @@ import {
   AlertCircle,
   CheckCircle2,
   Volume2,
-  VolumeX
+  VolumeX,
+  FileText,
+  Zap,
+  Package,
+  Lock,
+  Eye,
+  FileCode,
+  Download
 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -59,6 +66,19 @@ interface MediaItem {
   cloudinary_metadata?: any;
 }
 
+export interface DigitalResource {
+  id: string;
+  type: "FILE" | "LINK";
+  title: string;
+  url: string;
+  file_name?: string;
+  file_size?: string;
+  file_type?: string;
+  thumbnail_url?: string;
+  is_private?: boolean;
+  notes?: string;
+}
+
 export default function ProductCreatePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -66,6 +86,7 @@ export default function ProductCreatePage() {
   // URL Query Parameters
   const editId = searchParams.get("edit");
   const sourceParam = searchParams.get("source");
+  const typeParam = searchParams.get("type");
   const mediaIdParam = searchParams.get("media_id");
   const mediaUrlParam = searchParams.get("media_url");
   const mediaTypeParam = searchParams.get("media_type");
@@ -73,6 +94,26 @@ export default function ProductCreatePage() {
   const thumbnailUrlParam = searchParams.get("thumbnail_url");
 
   const isEditing = !!editId;
+
+  // Digital vs Physical Product Type State
+  const [productType, setProductType] = useState<"PHYSICAL" | "DIGITAL">(
+    typeParam?.toUpperCase() === "DIGITAL" ? "DIGITAL" : "PHYSICAL"
+  );
+  const [isUnlimitedStock, setIsUnlimitedStock] = useState(true);
+  const [showInStore, setShowInStore] = useState(true);
+  const [digitalAccessInstructions, setDigitalAccessInstructions] = useState("");
+  const [digitalResources, setDigitalResources] = useState<DigitalResource[]>([]);
+
+  // Add Link state for Digital Resources
+  const [newLinkTitle, setNewLinkTitle] = useState("");
+  const [newLinkUrl, setNewLinkUrl] = useState("");
+  const [newLinkNotes, setNewLinkNotes] = useState("");
+  const [newLinkIsPrivate, setNewLinkIsPrivate] = useState(false);
+  const [newLinkThumbnail, setNewLinkThumbnail] = useState("");
+
+  const [uploadingDigitalFile, setUploadingDigitalFile] = useState(false);
+  const [digitalFileUploadProgress, setDigitalFileUploadProgress] = useState(0);
+  const digitalFileInputRef = useRef<HTMLInputElement>(null);
 
   // Form Fields State
   const [title, setTitle] = useState("");
@@ -570,9 +611,24 @@ export default function ProductCreatePage() {
       setLocation(product.location || "");
       setNegotiable(product.negotiable || false);
       setStatus(product.status || "PUBLISHED");
+      setShowInStore(product.show_in_store !== false);
       setProductSource(product.source === "instagram" ? "instagram" : "manual");
       setSourceId(product.source_id || null);
       setInstagramPermalink(product.instagram_permalink || null);
+
+      setProductType(product.product_type === "DIGITAL" ? "DIGITAL" : "PHYSICAL");
+      setIsUnlimitedStock(product.is_unlimited_stock || product.product_type === "DIGITAL");
+      setDigitalAccessInstructions(product.digital_access_instructions || "");
+      if (product.digital_resources && Array.isArray(product.digital_resources)) {
+        setDigitalResources(product.digital_resources);
+      } else if (product.digital_file_url) {
+        setDigitalResources([{
+          id: "legacy_1",
+          type: "FILE",
+          title: product.digital_file_name || "Download File",
+          url: product.digital_file_url
+        }]);
+      }
 
       if (product.gallery && product.gallery.length > 0) {
         setMediaList(product.gallery.map((g: any, i: number) => {
@@ -937,6 +993,110 @@ export default function ProductCreatePage() {
     }
   }
 
+  const handleDigitalFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadingDigitalFile(true);
+    setDigitalFileUploadProgress(10);
+
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("folder", "anydm_digital_files");
+
+        const res = await fetch("/api/cloudinary/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Upload failed");
+
+        const fileExt = file.name.split(".").pop()?.toLowerCase() || "file";
+        const sizeMb = (file.size / (1024 * 1024)).toFixed(1) + " MB";
+
+        const newResItem: DigitalResource = {
+          id: `file_${Date.now()}_${i}`,
+          type: "FILE",
+          title: file.name.replace(/\.[^/.]+$/, ""),
+          url: data.url,
+          file_name: file.name,
+          file_size: sizeMb,
+          file_type: fileExt,
+          thumbnail_url: "",
+        };
+
+        setDigitalResources((prev) => [...prev, newResItem]);
+        setDigitalFileUploadProgress(Math.round(((i + 1) / files.length) * 100));
+      }
+      showToast(`Uploaded ${files.length} file(s) successfully`, "success");
+    } catch (err: any) {
+      showToast(err.message || "Failed to upload digital file", "error");
+    } finally {
+      setUploadingDigitalFile(false);
+      setDigitalFileUploadProgress(0);
+      e.target.value = "";
+    }
+  };
+
+  const handleAddExternalLink = () => {
+    if (!newLinkUrl.trim()) {
+      showToast("Please enter a link URL", "error");
+      return;
+    }
+    let url = newLinkUrl.trim();
+    if (!/^https?:\/\//i.test(url)) {
+      url = `https://${url}`;
+    }
+
+    let defaultTitle = newLinkTitle.trim();
+    if (!defaultTitle) {
+      if (url.includes("youtube.com") || url.includes("youtu.be")) {
+        defaultTitle = "YouTube Video Resource";
+      } else if (url.includes("drive.google.com")) {
+        defaultTitle = "Google Drive Link";
+      } else if (url.includes("loom.com")) {
+        defaultTitle = "Loom Video";
+      } else {
+        defaultTitle = "External Resource Link";
+      }
+    }
+
+    let autoThumb = newLinkThumbnail.trim();
+    if (!autoThumb && (url.includes("youtube.com") || url.includes("youtu.be"))) {
+      const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+      if (ytMatch && ytMatch[1]) {
+        autoThumb = `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`;
+      }
+    }
+
+    const newLinkItem: DigitalResource = {
+      id: `link_${Date.now()}`,
+      type: "LINK",
+      title: defaultTitle,
+      url: url,
+      notes: newLinkNotes.trim() || undefined,
+      is_private: newLinkIsPrivate,
+      thumbnail_url: autoThumb || undefined,
+    };
+
+    setDigitalResources((prev) => [...prev, newLinkItem]);
+    setNewLinkTitle("");
+    setNewLinkUrl("");
+    setNewLinkNotes("");
+    setNewLinkIsPrivate(false);
+    setNewLinkThumbnail("");
+    showToast("Resource link added", "success");
+  };
+
+  const handleRemoveDigitalResource = (idToRemove: string) => {
+    setDigitalResources((prev) => prev.filter((r) => r.id !== idToRemove));
+    showToast("Resource removed", "info");
+  };
+
   const handleAddCategory = () => {
     if (newCategory.trim() && !categories.includes(newCategory.trim())) {
       setCategories([...categories, newCategory.trim()]);
@@ -996,10 +1156,15 @@ export default function ProductCreatePage() {
       metadata: { ...metadataObject, variants: variants.join(",") },
       currency,
       category,
-      stock: parseInt(stock) || 0,
+      stock: productType === "DIGITAL" ? 9999 : (parseInt(stock) || 0),
       location,
       negotiable,
       status: submitStatus,
+      show_in_store: showInStore,
+      product_type: productType,
+      is_unlimited_stock: productType === "DIGITAL" ? true : isUnlimitedStock,
+      digital_access_instructions: productType === "DIGITAL" ? digitalAccessInstructions : "",
+      digital_resources: productType === "DIGITAL" ? digitalResources : [],
       media_url: mainMedia.url,
       media_type: mainMedia.type,
       source: productSource,
@@ -1130,6 +1295,61 @@ export default function ProductCreatePage() {
 
           {/* Left Column: Form Fields */}
           <div className="lg:col-span-8 space-y-6">
+
+            {/* Product Type Segmented Selector Card */}
+            <div className="bg-[#1c1b1b] border border-[#444748]/50 rounded-[6px] p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold tracking-wide text-white flex items-center gap-2">
+                    {productType === "DIGITAL" ? <Zap size={16} className="text-cyan-400" /> : <Package size={16} className="text-lavender-400" />}
+                    Product Type
+                  </h3>
+                  <p className="text-[11px] text-[#c4c7c8]/70 mt-0.5">
+                    Select physical delivery vs instant digital access.
+                  </p>
+                </div>
+              </div>
+
+              {/* Segmented Control */}
+              <div className="grid grid-cols-2 gap-2 bg-[#131313] p-1 rounded-[4px] border border-[#444748]/40">
+                <button
+                  type="button"
+                  onClick={() => setProductType("PHYSICAL")}
+                  className={cn(
+                    "flex items-center justify-center gap-2 py-2.5 px-3 rounded-[4px] text-xs font-semibold transition-all",
+                    productType === "PHYSICAL"
+                      ? "bg-white text-[#131313] shadow-sm"
+                      : "text-[#c4c7c8] hover:text-white hover:bg-[#1c1b1b]"
+                  )}
+                >
+                  <Package size={15} strokeWidth={1.75} />
+                  <span>Physical Product</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setProductType("DIGITAL")}
+                  className={cn(
+                    "flex items-center justify-center gap-2 py-2.5 px-3 rounded-[4px] text-xs font-semibold transition-all",
+                    productType === "DIGITAL"
+                      ? "bg-white text-[#131313] shadow-sm"
+                      : "text-[#c4c7c8] hover:text-white hover:bg-[#1c1b1b]"
+                  )}
+                >
+                  <Zap size={15} strokeWidth={1.75} />
+                  <span> Digital Product</span>
+                </button>
+              </div>
+
+              {productType === "DIGITAL" && (
+                <div className="p-3 bg-cyan-950/30 border border-cyan-500/20 rounded-[4px] flex items-start gap-2.5 text-xs text-cyan-200">
+
+                  <div>
+                    Multi-file uploads, YouTube/external video link support, post-purchase DM access.
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Media Assets Section */}
             <div className="space-y-4">
@@ -1274,7 +1494,9 @@ export default function ProductCreatePage() {
                   </div>
 
                   <div>
-                    <label className="text-xs text-[#c4c7c8] block mb-1.5 font-medium">Price (includes delivery)</label>
+                    <label className="text-xs text-[#c4c7c8] block mb-1.5 font-medium">
+                      {productType === "DIGITAL" ? "Price (₹)" : "Price (includes delivery)"}
+                    </label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8e9192] text-xs font-semibold">₹</span>
                       <input
@@ -1313,58 +1535,60 @@ export default function ProductCreatePage() {
                     )}
                   </div>
 
-                  <div>
-                    <label className="text-xs text-[#c4c7c8] block mb-1.5 font-medium">Return Deduction Charge (₹)</label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8e9192] text-xs font-semibold">₹</span>
-                      <input
-                        value={returnDeductionCharge}
-                        onChange={(e) => setReturnDeductionCharge(e.target.value)}
-                        type="number"
-                        step="0.01"
-                        placeholder="0.00"
-                        className="w-full bg-[#1c1b1b] border border-[#444748]/60 rounded-[4px] pl-8 pr-3 py-2 text-sm focus:border-white outline-none transition-colors text-white placeholder:text-[#8e9192]"
-                      />
+                  {productType === "PHYSICAL" && (
+                    <div>
+                      <label className="text-xs text-[#c4c7c8] block mb-1.5 font-medium">Return Deduction Charge (₹)</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8e9192] text-xs font-semibold">₹</span>
+                        <input
+                          value={returnDeductionCharge}
+                          onChange={(e) => setReturnDeductionCharge(e.target.value)}
+                          type="number"
+                          step="0.01"
+                          placeholder="0.00"
+                          className="w-full bg-[#1c1b1b] border border-[#444748]/60 rounded-[4px] pl-8 pr-3 py-2 text-sm focus:border-white outline-none transition-colors text-white placeholder:text-[#8e9192]"
+                        />
+                      </div>
+                      <p className="text-[11px] text-[#8e9192] mt-1">Deducted from customer refund when item is returned.</p>
+
+                      {/* Return Deduction Payout Breakdown Box */}
+                      {(() => {
+                        const r = parseFloat(returnDeductionCharge) || 0;
+                        const activeCommRateVal = payoutHoldMode === "INSTANT" ? Number(instantCommPct) : Number(globalCommPct);
+                        const feeRatePct = (isNaN(activeCommRateVal) ? 3 : activeCommRateVal) + 2;
+                        const feeAmount = r * (feeRatePct / 100);
+                        const supplierGetOnReturn = Math.max(0, r - feeAmount);
+
+                        return (
+                          <div className="mt-2.5 p-3 rounded-[4px] bg-[#131313] border border-[#444748]/70 space-y-2 text-xs text-[#e5e2e1]">
+                            <div className="flex justify-between items-center pb-1.5 border-b border-[#444748]/50">
+                              <span className="text-[11px] font-semibold text-[#c4c7c8] tracking-wide uppercase flex items-center gap-1.5">
+                                <span>When Customer Returns Order</span>
+                              </span>
+                              <span className="text-[10px] text-[#8e9192]">
+                                Platform Fee: {feeRatePct.toFixed(2)}%
+                              </span>
+                            </div>
+
+                            <div className="flex justify-between items-center text-xs">
+                              <span className="text-[#c4c7c8]">Return Deduction Charge:</span>
+                              <span className="font-mono text-white font-medium">₹{r.toFixed(2)}</span>
+                            </div>
+
+                            <div className="flex justify-between items-center text-xs text-red-400">
+                              <span>Minus Platform Charge ({feeRatePct.toFixed(2)}%):</span>
+                              <span className="font-mono font-medium">- ₹{feeAmount.toFixed(2)}</span>
+                            </div>
+
+                            <div className="pt-1.5 border-t border-[#444748]/50 flex justify-between items-center text-xs font-semibold">
+                              <span className="text-zinc-200">Amount you will get on return:</span>
+                              <span className="font-mono text-emerald-400 text-sm">₹{supplierGetOnReturn.toFixed(2)}</span>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
-                    <p className="text-[11px] text-[#8e9192] mt-1">Deducted from customer refund when item is returned.</p>
-
-                    {/* Return Deduction Payout Breakdown Box */}
-                    {(() => {
-                      const r = parseFloat(returnDeductionCharge) || 0;
-                      const activeCommRateVal = payoutHoldMode === "INSTANT" ? Number(instantCommPct) : Number(globalCommPct);
-                      const feeRatePct = (isNaN(activeCommRateVal) ? 3 : activeCommRateVal) + 2;
-                      const feeAmount = r * (feeRatePct / 100);
-                      const supplierGetOnReturn = Math.max(0, r - feeAmount);
-
-                      return (
-                        <div className="mt-2.5 p-3 rounded-[4px] bg-[#131313] border border-[#444748]/70 space-y-2 text-xs text-[#e5e2e1]">
-                          <div className="flex justify-between items-center pb-1.5 border-b border-[#444748]/50">
-                            <span className="text-[11px] font-semibold text-[#c4c7c8] tracking-wide uppercase flex items-center gap-1.5">
-                              <span>When Customer Returns Order</span>
-                            </span>
-                            <span className="text-[10px] text-[#8e9192]">
-                              Platform Fee: {feeRatePct.toFixed(2)}%
-                            </span>
-                          </div>
-
-                          <div className="flex justify-between items-center text-xs">
-                            <span className="text-[#c4c7c8]">Return Deduction Charge:</span>
-                            <span className="font-mono text-white font-medium">₹{r.toFixed(2)}</span>
-                          </div>
-
-                          <div className="flex justify-between items-center text-xs text-red-400">
-                            <span>Minus Platform Charge ({feeRatePct.toFixed(2)}%):</span>
-                            <span className="font-mono font-medium">- ₹{feeAmount.toFixed(2)}</span>
-                          </div>
-
-                          <div className="pt-1.5 border-t border-[#444748]/50 flex justify-between items-center text-xs font-semibold">
-                            <span className="text-zinc-200">Amount you will get on return:</span>
-                            <span className="font-mono text-emerald-400 text-sm">₹{supplierGetOnReturn.toFixed(2)}</span>
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </div>
+                  )}
                 </div>
 
                 {/* Dynamic Commission & Earnings Breakdown using DESIGN.md (Glass Monochrome & Google Inter Font) */}
@@ -1398,7 +1622,7 @@ export default function ProductCreatePage() {
                         </span>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+                      <div className={cn("grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs", productType === "PHYSICAL" && "lg:grid-cols-3")}>
                         <div className="bg-[#131313] p-3 rounded-[4px] border border-[#ffb4ab]/30 space-y-1">
                           <div className="text-[11px] text-[#c4c7c8] font-semibold tracking-wide uppercase">
                             Fee and tax
@@ -1423,17 +1647,19 @@ export default function ProductCreatePage() {
                           </p>
                         </div>
 
-                        <div className="bg-[#131313] p-3 rounded-[4px] border border-emerald-500/30 space-y-1">
-                          <div className="text-[11px] text-[#c4c7c8] font-semibold tracking-wide uppercase">
-                            You get on return
+                        {productType === "PHYSICAL" && (
+                          <div className="bg-[#131313] p-3 rounded-[4px] border border-emerald-500/30 space-y-1">
+                            <div className="text-[11px] text-[#c4c7c8] font-semibold tracking-wide uppercase">
+                              You get on return
+                            </div>
+                            <div className="text-base text-emerald-400 tracking-tight font-mono font-bold">
+                              ₹{supplierGetOnReturn.toFixed(2)}
+                            </div>
+                            <p className="text-[11px] text-[#c4c7c8] leading-normal">
+                              Return charge ₹{r.toFixed(2)} (-{returnFeeRatePct.toFixed(2)}% platform charge)
+                            </p>
                           </div>
-                          <div className="text-base text-emerald-400 tracking-tight font-mono font-bold">
-                            ₹{supplierGetOnReturn.toFixed(2)}
-                          </div>
-                          <p className="text-[11px] text-[#c4c7c8] leading-normal">
-                            Return charge ₹{r.toFixed(2)} (-{returnFeeRatePct.toFixed(2)}% platform charge)
-                          </p>
-                        </div>
+                        )}
                       </div>
                     </div>
                   );
@@ -1448,6 +1674,209 @@ export default function ProductCreatePage() {
                     className="w-full bg-[#1c1b1b] border border-[#444748]/60 rounded-[4px] px-3 py-2 text-sm h-36 focus:border-white outline-none transition-colors text-white placeholder:text-[#8e9192] leading-relaxed resize-none"
                   />
                 </div>
+
+                {/* Digital Product Content & Resources Manager Card */}
+                {productType === "DIGITAL" && (
+                  <div className="bg-[#1c1b1b] border border-[#444748]/50 rounded-[6px] p-5 space-y-5 mt-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#444748]/30 pb-3 gap-3">
+                      <div>
+                        <h3 className="text-sm font-semibold tracking-wide text-white flex items-center gap-2">
+                          <Zap size={16} className="text-cyan-400" />
+                          Digital Resources & Media Links
+                        </h3>
+                        <p className="text-[11px] text-[#c4c7c8]/70 mt-0.5">
+                          Upload multiple files (PDFs, ZIPs, MP3s, MP4s) or add YouTube/Loom video links.
+                        </p>
+                      </div>
+                      <input
+                        type="file"
+                        ref={digitalFileInputRef}
+                        onChange={handleDigitalFileUpload}
+                        className="hidden"
+                        multiple
+                      />
+                      <button
+                        type="button"
+                        onClick={() => digitalFileInputRef.current?.click()}
+                        disabled={uploadingDigitalFile}
+                        className="px-3 py-1.5 rounded-[4px] bg-white text-[#131313] hover:bg-[#e5e2e1] text-xs font-semibold flex items-center gap-1.5 transition-colors disabled:opacity-50 shrink-0"
+                      >
+                        <Upload size={14} strokeWidth={1.75} />
+                        <span>{uploadingDigitalFile ? "Uploading..." : "+ Upload File(s)"}</span>
+                      </button>
+                    </div>
+
+                    {/* Upload Progress Bar */}
+                    {uploadingDigitalFile && (
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-xs text-[#c4c7c8]">
+                          <span>Uploading digital asset...</span>
+                          <span>{digitalFileUploadProgress}%</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-[#131313] rounded-full overflow-hidden border border-[#444748]/30">
+                          <div className="h-full bg-cyan-400 transition-all duration-150" style={{ width: `${digitalFileUploadProgress}%` }} />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Attached Resources List */}
+                    <div className="space-y-3">
+                      <h4 className="text-xs font-medium text-[#c4c7c8] tracking-wider uppercase flex items-center gap-1.5">
+                        <span>Attached Deliverables</span>
+                        <span className="bg-[#131313] px-2 py-0.5 rounded text-[10px] text-white border border-[#444748]">
+                          {digitalResources.length}
+                        </span>
+                      </h4>
+
+                      {digitalResources.length === 0 ? (
+                        <div className="border border-dashed border-[#444748]/50 rounded-[4px] p-6 text-center text-xs text-[#8e9192] space-y-2 bg-[#131313]">
+                          <FileText size={24} className="mx-auto text-[#444748]" />
+                          <p className="text-white font-medium">No files or video links attached yet.</p>
+                          <p className="text-[11px] text-[#c4c7c8]/60">
+                            Upload your product files above or add a YouTube/Drive link below.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {digitalResources.map((res) => (
+                            <div
+                              key={res.id}
+                              className="flex items-center justify-between gap-3 p-3 bg-[#131313] border border-[#444748]/40 rounded-[4px] hover:border-[#8e9192] transition-colors"
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                {res.thumbnail_url ? (
+                                  <img src={res.thumbnail_url} alt="" className="w-10 h-10 rounded-[3px] object-cover border border-[#444748]/40 shrink-0" />
+                                ) : res.type === "LINK" ? (
+                                  <div className="w-10 h-10 rounded-[3px] bg-red-950/40 border border-red-500/20 flex items-center justify-center shrink-0 text-red-400">
+                                    <VideoIcon size={18} />
+                                  </div>
+                                ) : (
+                                  <div className="w-10 h-10 rounded-[3px] bg-cyan-950/40 border border-cyan-500/20 flex items-center justify-center shrink-0 text-cyan-400">
+                                    <FileText size={18} />
+                                  </div>
+                                )}
+
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-xs font-semibold text-white truncate">{res.title}</p>
+                                    {res.is_private && (
+                                      <span className="px-1.5 py-0.5 rounded text-[9px] bg-amber-950/60 text-amber-300 border border-amber-500/30 font-medium shrink-0">
+                                        Private Link
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-[11px] text-[#8e9192] truncate mt-0.5 flex items-center gap-2">
+                                    <span>{res.type === "FILE" ? `File (${res.file_size || res.file_type || "asset"})` : `URL: ${res.url}`}</span>
+                                    {res.notes && <span className="text-[#c4c7c8]">· Note: {res.notes}</span>}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <a
+                                  href={res.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="p-1.5 text-[#c4c7c8] hover:text-white hover:bg-[#1c1b1b] rounded transition-colors"
+                                  title="Preview resource"
+                                >
+                                  <Eye size={14} />
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveDigitalResource(res.id)}
+                                  className="p-1.5 text-red-400 hover:text-red-300 hover:bg-[#1c1b1b] rounded transition-colors"
+                                  title="Delete resource"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Add External Link Form */}
+                    <div className="border-t border-[#444748]/30 pt-4 space-y-3">
+                      <h4 className="text-xs font-semibold text-white flex items-center gap-1.5">
+                        <LinkIcon size={14} className="text-cyan-400" />
+                        <span>Add Video or External Resource Link (YouTube, Google Drive, Loom, Notion)</span>
+                      </h4>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[11px] text-[#c4c7c8] block mb-1">Resource Title</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Masterclass Video 1 (YouTube)"
+                            value={newLinkTitle}
+                            onChange={(e) => setNewLinkTitle(e.target.value)}
+                            className="w-full bg-[#131313] border border-[#444748]/60 rounded-[4px] px-3 py-1.5 text-xs text-white placeholder:text-[#8e9192] outline-none focus:border-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[11px] text-[#c4c7c8] block mb-1">URL / Link</label>
+                          <input
+                            type="text"
+                            placeholder="https://youtube.com/watch?v=..."
+                            value={newLinkUrl}
+                            onChange={(e) => setNewLinkUrl(e.target.value)}
+                            className="w-full bg-[#131313] border border-[#444748]/60 rounded-[4px] px-3 py-1.5 text-xs text-white placeholder:text-[#8e9192] outline-none focus:border-white"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[11px] text-[#c4c7c8] block mb-1">Passcode / Access Notes (Optional)</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Password: mysecretcourse"
+                            value={newLinkNotes}
+                            onChange={(e) => setNewLinkNotes(e.target.value)}
+                            className="w-full bg-[#131313] border border-[#444748]/60 rounded-[4px] px-3 py-1.5 text-xs text-white placeholder:text-[#8e9192] outline-none focus:border-white"
+                          />
+                        </div>
+                        <div className="flex items-center gap-3 pt-5">
+                          <label className="flex items-center gap-2 cursor-pointer text-xs text-[#c4c7c8]">
+                            <input
+                              type="checkbox"
+                              checked={newLinkIsPrivate}
+                              onChange={(e) => setNewLinkIsPrivate(e.target.checked)}
+                              className="rounded bg-[#131313] border-[#444748] text-white focus:ring-0"
+                            />
+                            <span>Private Link</span>
+                          </label>
+                          <button
+                            type="button"
+                            onClick={handleAddExternalLink}
+                            className="ml-auto px-3 py-1.5 bg-white text-[#131313] hover:bg-[#e5e2e1] text-xs font-semibold rounded-[4px] transition-colors"
+                          >
+                            + Add Link
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Post Purchase Access Instructions */}
+                    <div className="border-t border-[#444748]/30 pt-4 space-y-2">
+                      <label className="text-xs font-semibold text-white block">
+                        Post-Purchase Access Instructions
+                      </label>
+                      <p className="text-[11px] text-[#c4c7c8]/70">
+                        Instructions displayed on the customer's order tracking page and DM receipt after payment confirmation.
+                      </p>
+                      <textarea
+                        rows={3}
+                        value={digitalAccessInstructions}
+                        onChange={(e) => setDigitalAccessInstructions(e.target.value)}
+                        placeholder="e.g. Thanks for your order! Click the file link above to download your templates. If you face any issues, DM us anytime."
+                        className="w-full bg-[#131313] border border-[#444748]/60 rounded-[4px] p-3 text-xs text-white placeholder:text-[#8e9192] outline-none focus:border-white transition-colors"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -1527,110 +1956,144 @@ export default function ProductCreatePage() {
                   </select>
                 </div>
 
-                <div>
-                  <label className="text-[10px] text-[#c4c7c8] tracking-wider font-medium block mb-1">Category</label>
-                  {!isAddingCategory ? (
-                    <div className="flex gap-2">
-                      <select
-                        value={category}
-                        onChange={(e) => setCategory(e.target.value)}
-                        className="flex-1 bg-[#1c1b1b] border border-[#444748]/60 rounded-[4px] px-3 py-2 text-xs focus:border-white outline-none text-white cursor-pointer"
-                      >
-                        {categories.map(cat => (
-                          <option key={cat} value={cat} className="bg-[#1c1b1b]">{cat}</option>
-                        ))}
-                      </select>
-                      <button
-                        onClick={() => setIsAddingCategory(true)}
-                        className="p-2 border border-[#444748]/60 rounded-[4px] bg-[#1c1b1b] text-[#c4c7c8] hover:text-white transition-colors"
-                      >
-                        <Plus size={14} strokeWidth={1.75} />
-                      </button>
+                {/* Show in Store Toggle Card */}
+                <div className="p-3.5 rounded-[4px] bg-[#1c1b1b] border border-[#444748]/60 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <span className="text-xs font-semibold text-white block">Show in Web Store</span>
+                      <span className="text-[10px] text-[#8e9192] block mt-0.5 leading-tight">
+                        {showInStore ? "Publicly listed on store catalog" : "Hidden from catalog (DM / direct link only)"}
+                      </span>
                     </div>
-                  ) : (
-                    <div className="flex gap-2">
-                      <input
-                        value={newCategory}
-                        onChange={(e) => setNewCategory(e.target.value)}
-                        placeholder="Add category"
-                        type="text"
-                        className="flex-1 bg-[#1c1b1b] border border-[#444748]/60 rounded-[4px] px-3 py-1.5 text-xs focus:border-white outline-none text-white"
-                      />
-                      <button
-                        onClick={handleAddCategory}
-                        className="p-1.5 bg-white text-[#131313] rounded-[4px] hover:bg-[#eaeaea]"
-                      >
-                        <Check size={14} strokeWidth={1.75} />
-                      </button>
-                      <button
-                        onClick={() => setIsAddingCategory(false)}
-                        className="p-1.5 border border-[#444748] text-[#c4c7c8] rounded-[4px] hover:text-white bg-[#1c1b1b]"
-                      >
-                        <X size={14} strokeWidth={1.75} />
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="text-[10px] text-[#c4c7c8] tracking-wider font-medium block mb-1">Stock quantity</label>
-                  <input
-                    value={stock}
-                    onChange={(e) => setStock(e.target.value)}
-                    type="number"
-                    placeholder="10"
-                    className="w-full bg-[#1c1b1b] border border-[#444748]/60 rounded-[4px] px-3 py-2 text-xs focus:border-white outline-none text-white placeholder:text-[#8e9192]"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[10px] text-[#c4c7c8] tracking-wider font-medium block mb-1">Physical location</label>
-                  <input
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    type="text"
-                    placeholder="e.g. Mumbai, IN"
-                    className="w-full bg-[#1c1b1b] border border-[#444748]/60 rounded-[4px] px-3 py-2 text-xs focus:border-white outline-none text-white placeholder:text-[#8e9192]"
-                  />
-                </div>
-              </div>
-
-              {/* Active Variants Area */}
-              <div className="mt-4 pt-4 border-t border-[#444748]/20 space-y-2">
-                <label className="text-[10px] text-[#c4c7c8] tracking-wider font-medium block">Active variants</label>
-                <div className="flex flex-wrap gap-1.5">
-                  {variants.map(v => (
-                    <span
-                      key={v}
-                      className="px-2.5 py-0.5 bg-[#1c1b1b] rounded-full text-[10px] font-medium border border-[#444748]/40 flex items-center gap-1 text-[#c4c7c8]"
+                    <button
+                      type="button"
+                      onClick={() => setShowInStore(!showInStore)}
+                      className={cn(
+                        "w-10 h-6 rounded-full transition-colors p-0.5 flex items-center shrink-0 cursor-pointer",
+                        showInStore ? "bg-emerald-500 justify-end" : "bg-[#2a2a2a] justify-start"
+                      )}
                     >
-                      {v}
-                      <button
-                        onClick={() => handleRemoveVariant(v)}
-                        className="p-0.5 text-[#8e9192] hover:text-white hover:bg-white/5 rounded-full"
-                      >
-                        <X size={10} strokeWidth={2} />
-                      </button>
-                    </span>
-                  ))}
+                      <div className="w-5 h-5 rounded-full bg-white shadow-sm" />
+                    </button>
+                  </div>
                 </div>
 
-                <div className="flex gap-2 pt-1">
-                  <input
-                    value={newVariant}
-                    onChange={(e) => setNewVariant(e.target.value)}
-                    placeholder="e.g. Red, XL"
-                    type="text"
-                    className="flex-1 bg-[#1c1b1b] border border-[#444748]/60 rounded-[4px] px-3 py-1.5 text-xs focus:border-white outline-none text-white placeholder:text-[#8e9192]"
-                  />
-                  <button
-                    onClick={handleAddVariant}
-                    className="px-3 py-1 bg-white text-[#131313] font-semibold text-xs rounded-[4px] hover:bg-[#eaeaea] transition-colors"
-                  >
-                    Add
-                  </button>
-                </div>
+                {/* Physical Product Specific Fields */}
+                {productType === "PHYSICAL" && (
+                  <>
+                    <div>
+                      <label className="text-[10px] text-[#c4c7c8] tracking-wider font-medium block mb-1">Category</label>
+                      {!isAddingCategory ? (
+                        <div className="flex gap-2">
+                          <select
+                            value={category}
+                            onChange={(e) => setCategory(e.target.value)}
+                            className="flex-1 bg-[#1c1b1b] border border-[#444748]/60 rounded-[4px] px-3 py-2 text-xs focus:border-white outline-none text-white cursor-pointer"
+                          >
+                            {categories.map(cat => (
+                              <option key={cat} value={cat} className="bg-[#1c1b1b]">{cat}</option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={() => setIsAddingCategory(true)}
+                            className="p-2 border border-[#444748]/60 rounded-[4px] bg-[#1c1b1b] text-[#c4c7c8] hover:text-white transition-colors"
+                          >
+                            <Plus size={14} strokeWidth={1.75} />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2">
+                          <input
+                            value={newCategory}
+                            onChange={(e) => setNewCategory(e.target.value)}
+                            placeholder="Add category"
+                            type="text"
+                            className="flex-1 bg-[#1c1b1b] border border-[#444748]/60 rounded-[4px] px-3 py-1.5 text-xs focus:border-white outline-none text-white"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleAddCategory}
+                            className="p-1.5 bg-white text-[#131313] rounded-[4px] hover:bg-[#eaeaea]"
+                          >
+                            <Check size={14} strokeWidth={1.75} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setIsAddingCategory(false)}
+                            className="p-1.5 border border-[#444748] text-[#c4c7c8] rounded-[4px] hover:text-white bg-[#1c1b1b]"
+                          >
+                            <X size={14} strokeWidth={1.75} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] text-[#c4c7c8] tracking-wider font-medium block mb-1">Stock quantity</label>
+                      <input
+                        value={stock}
+                        onChange={(e) => setStock(e.target.value)}
+                        type="number"
+                        placeholder="10"
+                        className="w-full bg-[#1c1b1b] border border-[#444748]/60 rounded-[4px] px-3 py-2 text-xs focus:border-white outline-none text-white placeholder:text-[#8e9192]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] text-[#c4c7c8] tracking-wider font-medium block mb-1">Physical location</label>
+                      <input
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                        type="text"
+                        placeholder="e.g. Mumbai, IN"
+                        className="w-full bg-[#1c1b1b] border border-[#444748]/60 rounded-[4px] px-3 py-2 text-xs focus:border-white outline-none text-white placeholder:text-[#8e9192]"
+                      />
+                    </div>
+                  </>
+                )}
               </div>
+
+              {/* Active Variants Area (Physical Products Only) */}
+              {productType === "PHYSICAL" && (
+                <div className="mt-4 pt-4 border-t border-[#444748]/20 space-y-2">
+                  <label className="text-[10px] text-[#c4c7c8] tracking-wider font-medium block">Active variants</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {variants.map(v => (
+                      <span
+                        key={v}
+                        className="px-2.5 py-0.5 bg-[#1c1b1b] rounded-full text-[10px] font-medium border border-[#444748]/40 flex items-center gap-1 text-[#c4c7c8]"
+                      >
+                        {v}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveVariant(v)}
+                          className="p-0.5 text-[#8e9192] hover:text-white hover:bg-white/5 rounded-full"
+                        >
+                          <X size={10} strokeWidth={2} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="flex gap-2 pt-1">
+                    <input
+                      value={newVariant}
+                      onChange={(e) => setNewVariant(e.target.value)}
+                      placeholder="e.g. Red, XL"
+                      type="text"
+                      className="flex-1 bg-[#1c1b1b] border border-[#444748]/60 rounded-[4px] px-3 py-1.5 text-xs focus:border-white outline-none text-white placeholder:text-[#8e9192]"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddVariant}
+                      className="px-3 py-1 bg-white text-[#131313] font-semibold text-xs rounded-[4px] hover:bg-[#eaeaea] transition-colors"
+                    >
+                      Add
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* ── Also Post to Instagram Card ── */}

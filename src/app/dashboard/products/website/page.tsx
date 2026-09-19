@@ -220,6 +220,12 @@ export default function WebsiteSettingsPage() {
   const instagramAccounts = useSelector((state: RootState) => state.auth.instagramAccounts);
   const activeAccount = instagramAccounts.find((acc) => acc.id === appUser?.active_instagram_account_id) || instagramAccounts[0];
 
+  const hasPaidPro = Boolean(
+    (appUser?.pro_purchase_count && appUser.pro_purchase_count > 0) ||
+    appUser?.has_paid_pro ||
+    appUser?.is_superuser
+  );
+
   const [storeName, setStoreName] = useState("");
   const [storeLogo, setStoreLogo] = useState("");
   const [storeSlug, setStoreSlug] = useState("");
@@ -527,6 +533,10 @@ export default function WebsiteSettingsPage() {
   };
 
   const handleConfirmCustomDomainEdit = async () => {
+    if (!hasPaidPro) {
+      showToast("Custom Domain mapping requires a paid Pro Plan (₹499). Please upgrade your account.", "error");
+      return;
+    }
     if (isEditingCustomDomain) {
       setIsEditingCustomDomain(false);
       await handleSaveSettings({ custom_domain: customDomain });
@@ -1313,8 +1323,33 @@ export default function WebsiteSettingsPage() {
 
                   <Field label="Custom Domain">
                     <div className="space-y-3.5">
+                      {!hasPaidPro && (
+                        <div className="p-3.5 rounded border border-[#2a2a2a] bg-[#1a1919] space-y-2">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+                                <Lock className="w-3.5 h-3.5" strokeWidth={1.75} />
+                              </div>
+                              <span className="text-xs font-semibold text-[#e5e2e1]">
+                                Exclusive Paid Pro Feature (₹499)
+                              </span>
+                            </div>
+                            <a
+                              href="/dashboard/pricing"
+                              className="px-3 py-1.5 rounded bg-white hover:bg-zinc-200 text-black text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1 shrink-0 self-start sm:self-auto"
+                            >
+                              <span>Upgrade — ₹499</span>
+                              <ArrowRight className="w-3.5 h-3.5" strokeWidth={2} />
+                            </a>
+                          </div>
+                          <p className="text-[11px] text-[#c4c7c8]/80 leading-relaxed">
+                            Custom domain setup is strictly reserved for creators who have purchased the Pro Plan (₹499). Free Reward Mode plans (VIP Free Pro Access & Commission Earnings) do not include custom domain mapping.
+                          </p>
+                        </div>
+                      )}
+
                       {/* Step 1 Card */}
-                      <div className="p-3.5 rounded border bg-[#101010] border-[#2c2c2c] space-y-2.5">
+                      <div className={`p-3.5 rounded border bg-[#101010] border-[#2c2c2c] space-y-2.5 ${!hasPaidPro ? "opacity-75" : ""}`}>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-400 text-[10px] font-bold flex items-center justify-center border border-cyan-500/30">
@@ -1324,6 +1359,12 @@ export default function WebsiteSettingsPage() {
                               Step 1: Enter Custom Domain
                             </span>
                           </div>
+                          {!hasPaidPro && (
+                            <span className="px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-medium flex items-center gap-1">
+                              <Lock className="w-3 h-3" strokeWidth={1.75} />
+                              <span>Paid Pro Only</span>
+                            </span>
+                          )}
                         </div>
 
                         <div className="flex items-center gap-2">
@@ -1334,9 +1375,10 @@ export default function WebsiteSettingsPage() {
                             <input
                               ref={customDomainInputRef}
                               type="text"
-                              disabled={!isEditingCustomDomain && !cfSyncing}
+                              disabled={!hasPaidPro || (!isEditingCustomDomain && !cfSyncing)}
                               value={customDomain}
                               onChange={(e) => {
+                                if (!hasPaidPro) return;
                                 const val = e.target.value
                                   .toLowerCase()
                                   .replace(/^https?:\/\//, "")
@@ -1349,31 +1391,38 @@ export default function WebsiteSettingsPage() {
                                   handleConfirmCustomDomainEdit();
                                 }
                               }}
-                              className="w-full text-xs px-3 py-2 bg-transparent focus:outline-none text-zinc-100"
-                              placeholder="yourdomain.com"
+                              className={`w-full text-xs px-3 py-2 bg-transparent focus:outline-none ${!hasPaidPro ? "text-zinc-500 cursor-not-allowed select-none" : "text-zinc-100"}`}
+                              placeholder={hasPaidPro ? "yourdomain.com" : "Upgrade to Pro to set custom domain"}
                             />
                           </div>
 
                           <button
                             type="button"
-                            disabled={cfSyncing || loading}
+                            disabled={!hasPaidPro || cfSyncing || loading}
                             onClick={handleConfirmCustomDomainEdit}
-                            className="px-4 py-2 text-xs font-bold rounded flex items-center justify-center gap-1.5 shrink-0 transition-all cursor-pointer whitespace-nowrap bg-white text-black hover:bg-zinc-200 shadow-sm disabled:opacity-50"
+                            className={`px-4 py-2 text-xs font-bold rounded flex items-center justify-center gap-1.5 shrink-0 transition-all whitespace-nowrap bg-white text-black hover:bg-zinc-200 shadow-sm disabled:opacity-50 ${!hasPaidPro ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
                           >
-                            {cfSyncing ? (
+                            {!hasPaidPro ? (
+                              <>
+                                <Lock className="w-3.5 h-3.5 text-black" strokeWidth={1.75} />
+                                <span>Locked</span>
+                              </>
+                            ) : cfSyncing ? (
                               <RefreshCw className="w-3.5 h-3.5 animate-spin text-black" />
                             ) : isEditingCustomDomain ? (
                               <Check className="w-3.5 h-3.5 text-black" strokeWidth={2.5} />
                             ) : (
                               <Pencil className="w-3.5 h-3.5 text-black" strokeWidth={1.75} />
                             )}
-                            <span>
-                              {cfSyncing
-                                ? "Connecting..."
-                                : isEditingCustomDomain
-                                  ? "Connect"
-                                  : "Edit Domain"}
-                            </span>
+                            {hasPaidPro && (
+                              <span>
+                                {cfSyncing
+                                  ? "Connecting..."
+                                  : isEditingCustomDomain
+                                    ? "Connect"
+                                    : "Edit Domain"}
+                              </span>
+                            )}
                           </button>
                         </div>
                       </div>
