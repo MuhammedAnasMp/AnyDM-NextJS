@@ -7,6 +7,7 @@ import { useSelector } from "react-redux";
 import { RootState } from "@/store";
 import api from "@/lib/services/api.service";
 import InstagramImportModal from "@/components/InstagramImportModal";
+import CreateProductTypeModal from "@/components/CreateProductTypeModal";
 import Toast from "@/components/Toast";
 import InstagramIcon from "@/components/ui/InstagramIcon";
 import {
@@ -40,6 +41,7 @@ export default function CatalogPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("All");
+  const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
 
   // Toast notifications
   const [toastMessage, setToastMessage] = useState("");
@@ -89,6 +91,17 @@ export default function CatalogPage() {
     setSelectedFilter("All");
     loadProducts();
   }, [activeAccountId, isPremiumActive]);
+
+  useEffect(() => {
+    const handleOpenTypeModal = () => setIsTypeModalOpen(true);
+    const handleRefresh = () => loadProducts();
+    window.addEventListener("open-create-product-type", handleOpenTypeModal);
+    window.addEventListener("refresh-catalog", handleRefresh);
+    return () => {
+      window.removeEventListener("open-create-product-type", handleOpenTypeModal);
+      window.removeEventListener("refresh-catalog", handleRefresh);
+    };
+  }, []);
 
   if (!isPremiumActive) {
     return (
@@ -213,45 +226,38 @@ export default function CatalogPage() {
       className="space-y-6 text-[#e5e2e1]"
     >
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#20201f] pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between  border-b border-[#20201f] pb-5">
         <div>
           <h1 className="text-xl font-semibold text-white tracking-tight">All Products</h1>
           <p className="text-xs text-[#c4c7c8] mt-0.5">Manage, track, and optimize your synchronized ecommerce inventory.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 justify-end">
           <button
-            onClick={() => router.push("/dashboard/products/catalog?import=instagram")}
-            className="h-9 px-4 rounded border border-[#2a2a2a] hover:bg-white/[0.02] text-white flex items-center gap-2 text-xs font-medium transition-colors bg-transparent active:scale-[0.98]"
-          >
-            <InstagramIcon className="w-4 h-4 text-pink-500" />
-            <span>Create from Instagram</span>
-          </button>
-          <button
-            onClick={() => router.push("/dashboard/products/catalog/create")}
-            className="h-9 px-4 rounded bg-white hover:bg-[#e2e2e2] text-[#131313] flex items-center gap-1.5 text-xs font-semibold transition-colors active:scale-[0.98]"
+            onClick={() => setIsTypeModalOpen(true)}
+            className="hidden sm:flex h-9 px-4 rounded bg-white hover:bg-[#e2e2e2] text-[#131313] items-center gap-1.5 text-xs font-semibold transition-colors active:scale-[0.98] cursor-pointer"
           >
             <Plus className="w-4 h-4" strokeWidth={2} />
-            <span>Create normal product</span>
+            <span>Create Product</span>
           </button>
         </div>
       </div>
 
       {/* Stats Bento Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         {bentoStats.map((stat, i) => {
           const Icon = stat.icon;
           return (
-            <div key={i} className="p-4 rounded bg-[#1c1b1b] border border-[#2a2a2a] flex items-start justify-between">
-              <div className="space-y-1.5">
-                <p className="text-[11px] font-medium text-[#c4c7c8]">{stat.label}</p>
-                <p className="text-2xl font-semibold text-white tracking-tight">{stat.val}</p>
-                <p className="text-[10px] text-[#8e9192] flex items-center gap-1">
-                  <span className="w-1 h-1 rounded-full bg-neutral-600 inline-block" />
-                  {stat.meta}
+            <div key={i} className="p-3 sm:p-4 rounded bg-[#1c1b1b] border border-[#2a2a2a] flex items-start justify-between gap-1">
+              <div className="space-y-1 min-w-0">
+                <p className="text-[10px] sm:text-[11px] font-medium text-[#c4c7c8] truncate">{stat.label}</p>
+                <p className="text-lg sm:text-2xl font-semibold text-white tracking-tight">{stat.val}</p>
+                <p className="text-[9px] sm:text-[10px] text-[#8e9192] flex items-center gap-1 truncate">
+                  <span className="w-1 h-1 rounded-full bg-neutral-600 inline-block shrink-0" />
+                  <span className="truncate">{stat.meta}</span>
                 </p>
               </div>
-              <div className="w-8 h-8 rounded bg-[#131313] border border-[#2a2a2a] flex items-center justify-center text-[#8e9192]">
-                <Icon className="w-4 h-4" strokeWidth={1.75} />
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded bg-[#131313] border border-[#2a2a2a] flex items-center justify-center text-[#8e9192] shrink-0">
+                <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" strokeWidth={1.75} />
               </div>
             </div>
           );
@@ -510,13 +516,18 @@ export default function CatalogPage() {
         )}
       </div>
 
-      {/* Instagram Selector Overlap Drawer/Modal */}
       <InstagramImportModal
         isOpen={isImportOpen}
         onClose={() => {
           router.push("/dashboard/products/catalog");
           loadProducts();
         }}
+      />
+
+      {/* Select Product Creation Type Modal */}
+      <CreateProductTypeModal
+        isOpen={isTypeModalOpen}
+        onClose={() => setIsTypeModalOpen(false)}
       />
 
       {/* Action Notification Feed */}

@@ -14,6 +14,7 @@ import {
   Copy,
   Check,
   ChevronRight,
+  ChevronLeft,
   Zap,
   FileText,
   Search,
@@ -26,6 +27,7 @@ import { getTemplateStyles, TemplateStyle } from "@/components/templates/Templat
 import { cn } from "@/lib/utils";
 import { getStoreHomeUrl, getAccountUrl, getOrderDetailUrl } from "@/lib/utils/domain";
 import UserAvatar from "@/components/UserAvatar";
+import StoreFooter from "@/components/StoreFooter";
 
 const InstagramIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
@@ -53,6 +55,8 @@ function OrdersContent({ username }: { username: string }) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"ALL" | "PROCESSING" | "DELIVERED">("ALL");
   const [orderSearchQuery, setOrderSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   const cleanUsername = decodeURIComponent(username || "").replace(/^@/, "");
 
@@ -84,6 +88,11 @@ function OrdersContent({ username }: { username: string }) {
       router.replace(getOrderDetailUrl(cleanUsername, initialOrderId));
     }
   }, [initialOrderId, cleanUsername, router]);
+
+  // Reset page number on filter/search change (Placed before conditional returns)
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, orderSearchQuery]);
 
   const copyToClipboard = (text: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -167,6 +176,10 @@ function OrdersContent({ username }: { username: string }) {
     return matchesTab && (matchesId || matchesName || matchesStatus || matchesAmount);
   });
 
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedOrders = filteredOrders.slice(startIndex, startIndex + itemsPerPage);
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const cleanId = searchOrderId.trim();
@@ -176,11 +189,11 @@ function OrdersContent({ username }: { username: string }) {
   };
 
   return (
-    <div className={cn("min-h-screen flex flex-col transition-colors duration-300 font-sans antialiased", styles.bodyClass, styles.fontBody)}>
+    <div className={cn("min-h-screen flex flex-col justify-between transition-colors duration-300 font-sans antialiased", styles.bodyClass, styles.fontBody)}>
 
       {/* Top Store Navigation Header */}
       <header className={cn("sticky top-0 z-40 border-b backdrop-blur-md transition-colors shadow-sm", styles.navClass, styles.dividerClass)}>
-        <div className={cn("h-14 flex items-center justify-between gap-3 px-3 sm:px-6 max-w-5xl mx-auto", styles.containerClass)}>
+        <div className={cn("h-14 flex items-center justify-between gap-3 px-3 sm:px-6 max-w-7xl mx-auto", styles.containerClass)}>
           {/* Left: Store Brand */}
           <Link href={getStoreHomeUrl(cleanUsername)} className="flex items-center gap-2 group min-w-0">
             <div className={cn("w-7.5 h-7.5 sm:w-8 sm:h-8 rounded-lg overflow-hidden border flex items-center justify-center shrink-0 transition-transform group-hover:scale-105", styles.logoWrapperClass)}>
@@ -191,7 +204,7 @@ function OrdersContent({ username }: { username: string }) {
                 <ShoppingBag className="w-4 h-4" />
               )}
             </div>
-            <span className={cn("text-xs sm:text-sm font-bold tracking-tight truncate", styles.fontHeadline, styles.textColorClass)}>
+            <span className={cn("text-xs sm:text-sm font-semibold tracking-tight truncate", styles.fontHeadline, styles.textColorClass)}>
               {storeName}
             </span>
           </Link>
@@ -205,7 +218,7 @@ function OrdersContent({ username }: { username: string }) {
                 className="w-7 h-7 rounded-full text-[11px]"
                 iconClassName="w-3.5 h-3.5"
               />
-              <span className={cn("text-xs font-bold hidden md:inline truncate max-w-[120px]", styles.textColorClass)}>
+              <span className={cn("text-xs font-medium hidden md:inline truncate max-w-[120px]", styles.textColorClass)}>
                 {displayName}
               </span>
             </Link>
@@ -214,10 +227,12 @@ function OrdersContent({ username }: { username: string }) {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 w-full max-w-5xl mx-auto px-3.5 sm:px-6 py-4 sm:py-6 space-y-4">
+      <main className="flex-1 w-full max-w-7xl mx-auto px-3.5 sm:px-6 py-4 sm:py-6 space-y-4 min-h-[70vh]">
 
         {/* Navigation Actions */}
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center justify-between">
+
+
           <button
             onClick={() => {
               if (typeof window !== "undefined" && window.history.length > 1) {
@@ -226,51 +241,59 @@ function OrdersContent({ username }: { username: string }) {
                 router.push(getStoreHomeUrl(cleanUsername));
               }
             }}
-            className={cn("flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border border-black/10 dark:border-white/10 hover:opacity-75 transition-opacity shrink-0 cursor-pointer", styles.filterPillClass)}
+            className={cn(
+              "inline-flex items-center gap-2 text-xs font-medium hover:opacity-80 transition-opacity",
+              styles.textMutedClass
+            )}
           >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Back to Store</span>
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back</span>
           </button>
 
-          <Link
+          {/* <Link
             href={getAccountUrl(cleanUsername)}
             className={cn("flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border border-black/10 dark:border-white/10 hover:opacity-75 transition-opacity shrink-0", styles.filterPillClass)}
           >
             <User className="w-3.5 h-3.5" />
             <span>Account</span>
-          </Link>
+          </Link> */}
         </div>
 
-        {/* Customer Orders Hero Banner */}
-        <div className={cn("p-3.5 sm:p-4 rounded-xl border shadow-sm relative overflow-hidden flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3", styles.cardClass)}>
-          <div className="flex items-center gap-3">
-            <div className="relative shrink-0">
-              <UserAvatar
-                src={session?.instagram_profile_pic}
-                name={displayName}
-                className="w-14 h-14 sm:w-16 sm:h-16 rounded-full text-2xl sm:text-3xl font-black border border-white/20 shadow-md"
-                iconClassName="w-7 h-7"
-              />
-              {isInstagram && (
-                <div className="absolute -bottom-0.5 -right-0.5 bg-gradient-to-tr from-yellow-500 via-red-500 to-purple-500 p-0.5 rounded-full text-white shadow-sm" title="Instagram Verified Session">
-                  <InstagramIcon className="w-3 h-3" />
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-0.5 min-w-0">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <h1 className={cn("text-lg sm:text-xl font-extrabold tracking-tight truncate", styles.fontHeadline, styles.textColorClass)}>
-                  Order Status & Tracking
-                </h1>
-              </div>
-              <p className={cn("text-[11px] opacity-70 flex items-center gap-2 flex-wrap", styles.textMutedClass)}>
-                <span>{allOrders.length} {allOrders.length === 1 ? 'Order' : 'Orders'} Recorded</span>
-                <span>•</span>
-                <span>Customer: {displayName}</span>
-              </p>
-            </div>
+        {/* Main Hero Feature: Direct Order Lookup Card */}
+        <div className={cn("p-4 sm:p-5 rounded-xl border space-y-2.5 shadow-xs", styles.cardClass)}>
+          <div className="flex items-center gap-2">
+            <Search className="w-4 h-4 opacity-80" />
+            <h2 className={cn("text-xs sm:text-sm font-semibold tracking-tight", styles.textColorClass)}>
+              Lookup Any Order Status
+            </h2>
           </div>
+
+          <form onSubmit={handleSearchSubmit} className="flex flex-col sm:flex-row items-center gap-2 pt-1">
+            <div className="relative w-full">
+              <input
+                type="text"
+                required
+                value={searchOrderId}
+                onChange={(e) => setSearchOrderId(e.target.value)}
+                placeholder="AMD-2026..."
+                className={cn(
+                  "w-full px-3.5 py-2 text-xs rounded-lg border outline-none bg-black/5 dark:bg-white/5 border-current/10 focus:border-current/30 transition-all font-normal",
+                  styles.textColorClass
+                )}
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={!searchOrderId.trim()}
+              className={cn(
+                "w-full sm:w-auto px-5 py-2 text-xs font-semibold rounded-lg shrink-0 cursor-pointer transition-all disabled:opacity-40 border border-black/10 dark:border-white/15 flex items-center justify-center gap-1.5",
+                styles.buttonClass.replace(/\b(py|px|p)-\S+/g, "")
+              )}
+            >
+              <span>Track Order</span>
+              <ChevronRight className="w-3.5 h-3.5 opacity-80" />
+            </button>
+          </form>
         </div>
 
         {/* Navigation Tabs & Search Bar */}
@@ -279,9 +302,9 @@ function OrdersContent({ username }: { username: string }) {
             <button
               onClick={() => setActiveTab("ALL")}
               className={cn(
-                "pb-2 px-1 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap",
+                "pb-2 px-1 text-xs font-medium border-b-2 transition-all cursor-pointer whitespace-nowrap",
                 activeTab === "ALL"
-                  ? "border-current opacity-100"
+                  ? "border-current opacity-100 font-semibold"
                   : "border-transparent opacity-60 hover:opacity-100"
               )}
             >
@@ -291,9 +314,9 @@ function OrdersContent({ username }: { username: string }) {
             <button
               onClick={() => setActiveTab("PROCESSING")}
               className={cn(
-                "pb-2 px-1 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap",
+                "pb-2 px-1 text-xs font-medium border-b-2 transition-all cursor-pointer whitespace-nowrap",
                 activeTab === "PROCESSING"
-                  ? "border-current opacity-100"
+                  ? "border-current opacity-100 font-semibold"
                   : "border-transparent opacity-60 hover:opacity-100"
               )}
             >
@@ -303,9 +326,9 @@ function OrdersContent({ username }: { username: string }) {
             <button
               onClick={() => setActiveTab("DELIVERED")}
               className={cn(
-                "pb-2 px-1 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap",
+                "pb-2 px-1 text-xs font-medium border-b-2 transition-all cursor-pointer whitespace-nowrap",
                 activeTab === "DELIVERED"
-                  ? "border-current opacity-100"
+                  ? "border-current opacity-100 font-semibold"
                   : "border-transparent opacity-60 hover:opacity-100"
               )}
             >
@@ -346,7 +369,7 @@ function OrdersContent({ username }: { username: string }) {
           <div className="lg:col-span-2 space-y-4">
             {filteredOrders.length > 0 ? (
               <div className="space-y-4">
-                {filteredOrders.map((order: any, idx: number) => {
+                {paginatedOrders.map((order: any, idx: number) => {
                   const status = (order.order_status || "CONFIRMED").toUpperCase();
                   const isDelivered = status === "DELIVERED" || status === "COMPLETED";
                   const isCancelled = status === "CANCELLED" || status === "REFUNDED";
@@ -359,10 +382,10 @@ function OrdersContent({ username }: { username: string }) {
                       {/* E-Commerce Order Header Bar */}
                       <div className={cn("px-3.5 py-2 border-b grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs bg-black/5 dark:bg-white/5", styles.dividerClass)}>
                         <div>
-                          <span className={cn("text-[9px] font-medium opacity-60 block uppercase tracking-wider", styles.textMutedClass)}>
+                          <span className={cn("text-[9px] font-normal opacity-60 block uppercase tracking-wider", styles.textMutedClass)}>
                             Order Placed
                           </span>
-                          <span className={cn("font-semibold text-[11px] sm:text-xs", styles.textColorClass)}>
+                          <span className={cn("font-medium text-[11px] sm:text-xs", styles.textColorClass)}>
                             {order.created_at || order.date
                               ? new Date(order.created_at || order.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
                               : "Recent"}
@@ -370,34 +393,34 @@ function OrdersContent({ username }: { username: string }) {
                         </div>
 
                         <div>
-                          <span className={cn("text-[9px] font-medium opacity-60 block uppercase tracking-wider", styles.textMutedClass)}>
+                          <span className={cn("text-[9px] font-normal opacity-60 block uppercase tracking-wider", styles.textMutedClass)}>
                             Total Paid
                           </span>
-                          <span className={cn("font-extrabold text-[11px] sm:text-xs", styles.priceClass)}>
+                          <span className={cn("font-semibold text-[11px] sm:text-xs", styles.priceClass)}>
                             ₹{order.total_amount}
                           </span>
                         </div>
 
                         <div>
-                          <span className={cn("text-[9px] font-medium opacity-60 block uppercase tracking-wider", styles.textMutedClass)}>
+                          <span className={cn("text-[9px] font-normal opacity-60 block uppercase tracking-wider", styles.textMutedClass)}>
                             Recipient
                           </span>
-                          <span className={cn("font-semibold text-[11px] sm:text-xs truncate block", styles.textColorClass)}>
+                          <span className={cn("font-medium text-[11px] sm:text-xs truncate block", styles.textColorClass)}>
                             {session?.saved_address?.customer_name || "Customer"}
                           </span>
                         </div>
 
                         <div className="text-left sm:text-right">
-                          <span className={cn("text-[9px] font-medium opacity-60 block uppercase tracking-wider", styles.textMutedClass)}>
+                          <span className={cn("text-[9px] font-normal opacity-60 block uppercase tracking-wider", styles.textMutedClass)}>
                             Order ID
                           </span>
                           <button
                             onClick={(e) => copyToClipboard(order.order_id, e)}
-                            className={cn("text-[11px] sm:text-xs font-mono font-bold opacity-80 hover:opacity-100 transition-opacity inline-flex items-center gap-1 cursor-pointer", styles.textColorClass)}
+                            className={cn("text-[11px] sm:text-xs font-mono font-medium opacity-80 hover:opacity-100 transition-opacity inline-flex items-center gap-1 cursor-pointer", styles.textColorClass)}
                           >
                             <span>{order.order_id.length > 12 ? `${order.order_id.slice(0, 4)}...${order.order_id.slice(-4)}` : order.order_id}</span>
                             {copiedId === order.order_id ? (
-                              <Check className="w-3.5 h-3.5 text-emerald-500" />
+                              <Check className="w-3.5 h-3.5 opacity-80" />
                             ) : (
                               <Copy className="w-3 h-3 opacity-40" />
                             )}
@@ -411,14 +434,14 @@ function OrdersContent({ username }: { username: string }) {
                           <div className="flex items-center gap-2">
                             <span className={cn(
                               "w-2 h-2 rounded-full shrink-0",
-                              isDelivered ? "bg-emerald-500" : isCancelled ? "bg-rose-500" : "bg-amber-500 animate-pulse"
+                              isDelivered ? "bg-black dark:bg-white" : isCancelled ? "bg-rose-500" : "bg-black/40 dark:bg-white/40 animate-pulse"
                             )} />
-                            <span className={cn("font-bold text-xs", isDelivered ? "text-emerald-500" : isCancelled ? "text-rose-500" : styles.textColorClass)}>
+                            <span className={cn("font-semibold text-xs", styles.textColorClass)}>
                               {isDelivered ? "Delivered" : isCancelled ? "Order Cancelled" : status.replace(/_/g, " ")}
                             </span>
                           </div>
 
-                          <span className={cn("text-[10px] font-medium opacity-60", styles.textMutedClass)}>
+                          <span className={cn("text-[10px] font-normal opacity-60", styles.textMutedClass)}>
                             {isDelivered ? "Handed to recipient" : "Standard Express Fulfill"}
                           </span>
                         </div>
@@ -439,21 +462,21 @@ function OrdersContent({ username }: { username: string }) {
                                   <Package className="w-4 h-4 opacity-50" />
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                  <h4 className={cn("font-bold text-xs sm:text-sm truncate", styles.textColorClass)}>
+                                  <h4 className={cn("font-semibold text-xs sm:text-sm truncate", styles.textColorClass)}>
                                     {order.product_name || "Store Item Purchase"}
                                   </h4>
-                                  <p className={cn("text-[10px] opacity-60 font-mono", styles.textMutedClass)}>
+                                  <p className={cn("text-[10px] opacity-60 font-mono font-normal", styles.textMutedClass)}>
                                     Ref: {order.order_id}
                                   </p>
                                 </div>
                               </div>
 
                               <div className="flex items-center gap-3 shrink-0 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-2 sm:pt-0 border-current/10">
-                                <span className={cn("font-extrabold text-xs sm:text-sm", styles.priceClass)}>₹{order.total_amount}</span>
+                                <span className={cn("font-semibold text-xs sm:text-sm", styles.priceClass)}>₹{order.total_amount}</span>
                                 <Link
                                   href={getOrderDetailUrl(cleanUsername, order.order_id)}
                                   className={cn(
-                                    "px-4 py-2 text-xs font-bold rounded-lg shadow-xs transition-all hover:opacity-90 active:scale-[0.98] inline-flex items-center justify-center gap-1.5 cursor-pointer shrink-0 border border-black/10 dark:border-white/15",
+                                    "px-4 py-2 text-xs font-semibold rounded-lg shadow-xs transition-all hover:opacity-90 active:scale-[0.98] inline-flex items-center justify-center gap-1.5 cursor-pointer shrink-0 border border-black/10 dark:border-white/15",
                                     styles.buttonClass.replace(/\b(py|px|p)-\S+/g, "")
                                   )}
                                 >
@@ -474,6 +497,58 @@ function OrdersContent({ username }: { username: string }) {
                     </div>
                   );
                 })}
+
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                  <div className={cn("flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t", styles.dividerClass)}>
+                    <div className={cn("text-xs opacity-70 font-medium", styles.textMutedClass)}>
+                      Showing <span className={cn("font-semibold opacity-100", styles.textColorClass)}>{startIndex + 1}</span>–<span className={cn("font-semibold opacity-100", styles.textColorClass)}>{Math.min(startIndex + itemsPerPage, filteredOrders.length)}</span> of <span className={cn("font-semibold opacity-100", styles.textColorClass)}>{filteredOrders.length}</span> orders
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                        disabled={currentPage === 1}
+                        className={cn(
+                          "inline-flex items-center justify-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all disabled:opacity-30 disabled:cursor-not-allowed border cursor-pointer",
+                          styles.filterPillClass
+                        )}
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                        <span>Prev</span>
+                      </button>
+
+                      <div className="flex items-center gap-1 px-1">
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                          <button
+                            key={pageNum}
+                            onClick={() => setCurrentPage(pageNum)}
+                            className={cn(
+                              "w-7 h-7 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center justify-center",
+                              currentPage === pageNum
+                                ? styles.buttonClass
+                                : cn("hover:bg-black/5 dark:hover:bg-white/5 opacity-70 hover:opacity-100", styles.textColorClass)
+                            )}
+                          >
+                            {pageNum}
+                          </button>
+                        ))}
+                      </div>
+
+                      <button
+                        onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                        disabled={currentPage === totalPages}
+                        className={cn(
+                          "inline-flex items-center justify-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all disabled:opacity-30 disabled:cursor-not-allowed border cursor-pointer",
+                          styles.filterPillClass
+                        )}
+                      >
+                        <span>Next</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className={cn("p-8 rounded-xl border text-center space-y-2.5", styles.cardClass)}>
@@ -514,47 +589,8 @@ function OrdersContent({ username }: { username: string }) {
             )}
           </div>
 
-          {/* Right Sidebar: Track Any Order & Delivery Address */}
+          {/* Right Sidebar: Delivery Address & Highlights */}
           <div className="space-y-4">
-
-            {/* Direct Order Lookup Card */}
-            <div className={cn("p-4 rounded-xl border space-y-3 shadow-xs", styles.cardClass)}>
-              <div className={cn("flex justify-between items-center border-b pb-2.5", styles.dividerClass)}>
-                <h3 className={cn("text-xs font-semibold flex items-center gap-1.5", styles.textColorClass)}>
-                  <Search className="w-3.5 h-3.5 opacity-80" />
-                  <span>Lookup Any Order</span>
-                </h3>
-              </div>
-
-              <form onSubmit={handleSearchSubmit} className="space-y-2">
-                <p className={cn("text-[11px] opacity-70 leading-relaxed", styles.textMutedClass)}>
-                  Enter your Order Reference ID (e.g. AMD-2026...) to track live status:
-                </p>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    required
-                    value={searchOrderId}
-                    onChange={(e) => setSearchOrderId(e.target.value)}
-                    placeholder="Order Reference ID"
-                    className={cn(
-                      "w-full px-3 py-1.5 text-xs font-mono rounded-md border outline-none bg-black/5 dark:bg-white/5 border-current/10 focus:border-current/30 transition-all",
-                      styles.textColorClass
-                    )}
-                  />
-                  <button
-                    type="submit"
-                    disabled={!searchOrderId.trim()}
-                    className={cn(
-                      "px-3 py-1.5 text-xs font-bold rounded-md shrink-0 cursor-pointer transition-all disabled:opacity-40 border border-black/10 dark:border-white/15",
-                      styles.buttonClass.replace(/\b(py|px|p)-\S+/g, "")
-                    )}
-                  >
-                    Track
-                  </button>
-                </div>
-              </form>
-            </div>
 
             {/* Delivery Address Book Card */}
             <div className={cn("p-4 rounded-xl border space-y-3 shadow-xs", styles.cardClass)}>
@@ -568,44 +604,44 @@ function OrdersContent({ username }: { username: string }) {
               {session?.saved_address?.shipping_address ? (
                 <div className="space-y-2 text-xs">
                   <div className="space-y-0.5">
-                    <span className={cn("font-bold text-xs sm:text-sm block", styles.textColorClass)}>
+                    <span className={cn("font-semibold text-xs sm:text-sm block", styles.textColorClass)}>
                       {session.saved_address.customer_name}
                     </span>
-                    <p className={cn("opacity-80 leading-relaxed text-xs", styles.textColorClass)}>
+                    <p className={cn("opacity-80 leading-relaxed text-xs font-normal", styles.textColorClass)}>
                       {session.saved_address.shipping_address}
                     </p>
                   </div>
 
-                  <div className={cn("pt-2 border-t space-y-0.5 text-xs opacity-75", styles.dividerClass, styles.textMutedClass)}>
+                  <div className={cn("pt-2 border-t space-y-0.5 text-xs opacity-75 font-normal", styles.dividerClass, styles.textMutedClass)}>
                     {session.saved_address.shipping_pincode && (
-                      <p>Pincode: <strong className={styles.textColorClass}>{session.saved_address.shipping_pincode}</strong></p>
+                      <p>Pincode: <span className={cn("font-medium", styles.textColorClass)}>{session.saved_address.shipping_pincode}</span></p>
                     )}
                     {session.saved_address.customer_phone && (
-                      <p>Phone: <strong className={styles.textColorClass}>{session.saved_address.customer_phone}</strong></p>
+                      <p>Phone: <span className={cn("font-medium", styles.textColorClass)}>{session.saved_address.customer_phone}</span></p>
                     )}
                   </div>
                 </div>
               ) : (
                 <div className="py-4 text-center text-xs opacity-70 space-y-0.5">
                   <p className={cn("font-medium", styles.textColorClass)}>No address saved</p>
-                  <p className={cn("text-[11px]", styles.textMutedClass)}>Your delivery details will automatically save on your next checkout.</p>
+                  <p className={cn("text-[11px] font-normal", styles.textMutedClass)}>Your delivery details will automatically save on your next checkout.</p>
                 </div>
               )}
             </div>
 
             {/* Store Guarantee / Feature highlights */}
             <div className={cn("p-4 rounded-xl border space-y-3 shadow-xs text-xs", styles.cardClass)}>
-              <div className="flex items-center gap-2 text-sky-500">
-                <Truck className="w-4 h-4 shrink-0" />
-                <span className="font-semibold text-xs text-current">Live Shipment Updates</span>
+              <div className={cn("flex items-center gap-2.5 opacity-80", styles.textColorClass)}>
+                <Truck className="w-4 h-4 shrink-0 opacity-70" />
+                <span className="font-medium text-xs">Live Shipment Updates</span>
               </div>
-              <div className="flex items-center gap-2 text-amber-500">
-                <Zap className="w-4 h-4 shrink-0" />
-                <span className="font-semibold text-xs text-current">Instant Digital Downloads</span>
+              <div className={cn("flex items-center gap-2.5 opacity-80", styles.textColorClass)}>
+                <Zap className="w-4 h-4 shrink-0 opacity-70" />
+                <span className="font-medium text-xs">Instant Digital Downloads</span>
               </div>
-              <div className="flex items-center gap-2 text-purple-500">
-                <FileText className="w-4 h-4 shrink-0" />
-                <span className="font-semibold text-xs text-current">Official PDF Tax Invoices</span>
+              <div className={cn("flex items-center gap-2.5 opacity-80", styles.textColorClass)}>
+                <FileText className="w-4 h-4 shrink-0 opacity-70" />
+                <span className="font-medium text-xs">Official PDF Tax Invoices</span>
               </div>
             </div>
 
@@ -616,9 +652,7 @@ function OrdersContent({ username }: { username: string }) {
       </main>
 
       {/* Footer */}
-      <footer className={cn("border-t py-4 text-center text-xs mt-8 opacity-75", styles.dividerClass, styles.textMutedClass)}>
-        <p>© 2026 {storeName}. All rights reserved.</p>
-      </footer>
+      <StoreFooter username={cleanUsername} storeSettings={storeSettings} supplier={supplier} styles={styles} />
     </div>
   );
 }

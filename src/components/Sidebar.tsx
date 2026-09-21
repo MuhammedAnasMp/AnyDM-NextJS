@@ -7,6 +7,7 @@ import { useSelector } from "react-redux";
 import { RootState } from "@/store";
 import { cn } from "@/lib/utils";
 import { auth } from "@/lib/firebase";
+import api from "@/lib/services/api.service";
 import type { User as FirebaseUser } from "firebase/auth";
 import {
   LayoutDashboard,
@@ -23,6 +24,11 @@ import {
   CalendarClock,
   DollarSign,
   Link2,
+  Menu,
+  Plus,
+  RefreshCw,
+  Eye,
+  QrCode,
 } from "lucide-react";
 import { UserAvatar, getUserDisplayName, getAvatarRingClass } from "@/components/Avatar";
 
@@ -35,6 +41,9 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
   const appUser = useSelector((state: RootState) => state.auth.user);
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
+  const [isVisibleOnScroll, setIsVisibleOnScroll] = useState(true);
+  const [enableAi, setEnableAi] = useState(false);
+  const [isModalActive, setIsModalActive] = useState(false);
 
   useEffect(() => {
     if (!auth) return;
@@ -42,6 +51,54 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       setFirebaseUser(user);
     });
     return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const checkAiEnabled = async () => {
+      try {
+        const sysRes = await api.get("/accounts/settings/system/");
+        if (sysRes.data && sysRes.data.enable_ai !== undefined) {
+          setEnableAi(sysRes.data.enable_ai);
+        }
+      } catch (err) {
+        console.error("Error loading system settings in Sidebar:", err);
+      }
+    };
+    checkAiEnabled();
+  }, []);
+
+  // Scroll direction listener (scroll down -> hide, scroll up -> show)
+  useEffect(() => {
+    let lastScrollY = typeof window !== "undefined" ? window.scrollY : 0;
+
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      if (currentScrollY > lastScrollY && currentScrollY > 40) {
+        setIsVisibleOnScroll(false);
+      } else if (currentScrollY < lastScrollY || currentScrollY <= 20) {
+        setIsVisibleOnScroll(true);
+      }
+      lastScrollY = currentScrollY;
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // MutationObserver: hide nav when any modal/dialog is open
+  useEffect(() => {
+    const checkModals = () => {
+      const hasModal = document.querySelector(
+        '[role="dialog"], [aria-modal="true"], [data-modal="true"]'
+      ) !== null;
+      setIsModalActive(hasModal);
+    };
+
+    checkModals();
+
+    const observer = new MutationObserver(checkModals);
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["role", "aria-modal", "data-modal"] });
+    return () => observer.disconnect();
   }, []);
 
   const getActiveTab = () => {
@@ -70,16 +127,108 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     { name: "Link-in-Bio", icon: Link2, href: "/dashboard/bio" },
     { name: "Automations", icon: Zap, href: "/dashboard/automation" },
     { name: "Schedule Posts", icon: CalendarClock, href: "/dashboard/schedule" },
-    // { name: "Videos", icon: Video, href: "/dashboard/videos" },
-    // { name: "Games", icon: Gamepad2, href: "/dashboard/games/spin" },
     { name: "Products", icon: Package, href: "/dashboard/products/catalog" },
-    { name: "Inbox", icon: MessageSquare, href: "/dashboard/inbox" },
+    { name: "Inbox", icon: MessageSquare, href: "/dashboard/inbox/chats" },
     { name: "Refer & Earn", icon: Gift, href: "/dashboard/refer" },
     ...(appUser?.is_creator_vip ? [{ name: "Creator Hub", icon: DollarSign, href: "/dashboard/creator" }] : []),
     { name: "Pricing", icon: CreditCard, href: "/dashboard/pricing" },
     { name: "Settings", icon: Settings, href: "/dashboard/settings/accounts" },
     ...(isAdmin ? [{ name: "Admin Panel", icon: ShieldAlert, href: "/dashboard/admin" }] : []),
   ];
+
+  const mobileNavPillItems = [
+    { name: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
+    { name: "Link-in-Bio", icon: Link2, href: "/dashboard/bio/styling" },
+    { name: "Automations", icon: Zap, href: "/dashboard/automation" },
+    { name: "Schedule Posts", icon: CalendarClock, href: "/dashboard/schedule" },
+    { name: "Products", icon: Package, href: "/dashboard/products/catalog" },
+    { name: "Inbox", icon: MessageSquare, href: "/dashboard/inbox/chats" },
+  ];
+
+  const getSubNavItems = () => {
+    if (activeTab === "Link-in-Bio") {
+      return [
+        { name: "Styling", href: "/dashboard/bio/styling" },
+        { name: "Analytics", href: "/dashboard/bio/analytics" },
+      ];
+    }
+    if (activeTab === "Dashboard") {
+      return [
+        { name: "Overview", href: "/dashboard" },
+        { name: "Analytics", href: "/dashboard/analytics" },
+        { name: "Revenue", href: "/dashboard/revenue" },
+      ];
+    }
+    if (activeTab === "Products") {
+      return [
+        { name: "Products", href: "/dashboard/products/catalog" },
+        { name: "Orders", href: "/dashboard/products/orders" },
+        { name: "Website", href: "/dashboard/products/website" },
+      ];
+    }
+    if (activeTab === "Automations") {
+      return [
+        { name: "Automations", href: "/dashboard/automation" },
+        { name: "Builder", href: "/dashboard/automations" },
+      ];
+    }
+    if (activeTab === "Inbox") {
+      return [
+        { name: "Chats", href: "/dashboard/inbox/chats" },
+        { name: "Contacts", href: "/dashboard/inbox/contacts" },
+      ];
+    }
+    if (activeTab === "Settings") {
+      return [
+        { name: "Accounts", href: "/dashboard/settings/accounts" },
+        { name: "Seller KYC", href: "/dashboard/settings/kyc" },
+        ...(enableAi ? [{ name: "AI Settings", href: "/dashboard/settings/ai" }] : []),
+      ];
+    }
+    if (activeTab === "Admin Panel") {
+      return [
+        { name: "System", href: "/dashboard/admin" },
+        { name: "Users", href: "/dashboard/admin/users" },
+        { name: "Verify KYC", href: "/dashboard/admin/verify-kyc" },
+        { name: "Orders", href: "/dashboard/admin/order-settings" },
+        { name: "Settlements", href: "/dashboard/admin/payment-settlement" },
+      ];
+    }
+    return [];
+  };
+
+  const currentSubNavItems = getSubNavItems();
+
+  const isSubItemActive = (href: string) => {
+    if (href === "/dashboard") return pathname === "/dashboard";
+    if (href === "/dashboard/automation") return pathname === "/dashboard/automation" || pathname.startsWith("/dashboard/automation?");
+    return pathname === href || pathname.startsWith(href);
+  };
+
+  interface MobileCtaItem {
+    label: string;
+    href?: string;
+    event?: string;
+    icon?: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+    isInstagram?: boolean;
+  }
+
+  // CTA chips shown at end of sub-nav mini pill for action-oriented pages
+  const getMobileCtas = (): MobileCtaItem[] => {
+    if (activeTab === "Automations") return [{ label: "+ New", href: "/dashboard/automations", icon: Plus }];
+    if (activeTab === "Schedule Posts") return [{ label: "+ Post", event: "open-schedule-create", icon: Plus }];
+    if (activeTab === "Products" && pathname === "/dashboard/products/catalog") return [{ label: "+ Product", event: "open-create-product-type", icon: Plus }];
+    if (activeTab === "Settings" && pathname === "/dashboard/settings/accounts") return [{ label: "+ Account", event: "trigger-add-instagram", isInstagram: true, icon: Plus }];
+    if (activeTab === "Link-in-Bio" && !pathname.includes("/analytics")) {
+      return [
+        { label: "QR Code", event: "open-bio-qr-modal", icon: QrCode },
+        { label: "Preview", event: "open-bio-preview-modal", icon: Eye },
+      ];
+    }
+    return [];
+  };
+
+  const mobileCtas = getMobileCtas();
 
   const userDisplayName = getUserDisplayName(appUser);
   const googlePhoto = firebaseUser?.providerData?.find((p: { providerId: string; photoURL?: string | null }) => p.providerId === "google.com")?.photoURL || firebaseUser?.photoURL;
@@ -123,6 +272,18 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       onClose();
     }
   };
+
+  const [isMobileChatActive, setIsMobileChatActive] = useState(false);
+
+  useEffect(() => {
+    const handleChatActive = (e: CustomEvent) => {
+      setIsMobileChatActive(!!e.detail?.isActive);
+    };
+    window.addEventListener("mobile-chat-active", handleChatActive as EventListener);
+    return () => {
+      window.removeEventListener("mobile-chat-active", handleChatActive as EventListener);
+    };
+  }, []);
 
   return (
     <>
@@ -253,6 +414,161 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           {isRailMode ? <ChevronRight className="w-5 h-5 text-[#c4c0ff]" /> : <ChevronLeft className="w-5 h-5 text-zinc-400" />}
         </button>
       </aside>
+
+      {/* Floating Glass Navigation System (Mobile View) */}
+      <div
+        className={cn(
+          "fixed bottom-2.5 left-0 right-0 z-40 px-3.5 lg:hidden pointer-events-none transition-all duration-300 ease-in-out flex flex-col items-center gap-2",
+          (!isVisibleOnScroll || isModalActive || isOpen || isMobileChatActive || pathname.startsWith("/dashboard/automations") || pathname === "/dashboard/products/catalog/create") ? "translate-y-28 opacity-0 pointer-events-none" : "translate-y-0 opacity-100"
+        )}
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        {/* Tier-2 Sub-Nav Mini Glass Pill */}
+        {(currentSubNavItems.length > 0 || mobileCtas.length > 0) && (
+          <div className="pointer-events-auto max-w-[335px] w-full flex items-center justify-center">
+            <div className="h-[34px] rounded-full px-1.5 bg-[#141414]/90 backdrop-blur-[24px] backdrop-saturate-[180%] border border-white/[0.14] shadow-[0_8px_25px_rgba(0,0,0,0.6)] flex items-center gap-1 overflow-x-auto max-w-full scrollbar-hide">
+              {currentSubNavItems.map((sub) => {
+                const isActive = isSubItemActive(sub.href);
+                return (
+                  <Link
+                    key={sub.name}
+                    href={sub.href}
+                    onClick={(e) => {
+                      handleLinkClick();
+                      if (isActive) {
+                        if (sub.href === "/dashboard") {
+                          window.dispatchEvent(new CustomEvent("refresh-dashboard-overview"));
+                        } else if (sub.href === "/dashboard/analytics") {
+                          window.dispatchEvent(new CustomEvent("refresh-dashboard-analytics"));
+                        } else if (sub.href === "/dashboard/revenue") {
+                          window.dispatchEvent(new CustomEvent("refresh-dashboard-revenue"));
+                        } else if (sub.href.startsWith("/dashboard/automation")) {
+                          window.dispatchEvent(new CustomEvent("refresh-automations"));
+                        } else if (sub.href.startsWith("/dashboard/products/catalog")) {
+                          window.dispatchEvent(new CustomEvent("refresh-catalog"));
+                        } else if (sub.href.startsWith("/dashboard/products/orders")) {
+                          window.dispatchEvent(new CustomEvent("refresh-orders"));
+                        } else if (sub.href.startsWith("/dashboard/schedule")) {
+                          window.dispatchEvent(new CustomEvent("refresh-schedule"));
+                        } else if (sub.href.startsWith("/dashboard/inbox/chats") || sub.href === "/dashboard/inbox") {
+                          window.dispatchEvent(new CustomEvent("refresh-chats"));
+                          window.dispatchEvent(new CustomEvent("refresh-inbox"));
+                        } else if (sub.href === "/dashboard/inbox/contacts") {
+                          window.dispatchEvent(new CustomEvent("refresh-contacts"));
+                        } else {
+                          window.dispatchEvent(new CustomEvent("refresh-active-page"));
+                        }
+                      }
+                    }}
+                    className={cn(
+                      "px-3 py-1 rounded-full text-[11px] font-medium whitespace-nowrap transition-all duration-200 select-none active:scale-95 cursor-pointer",
+                      isActive
+                        ? "bg-white text-black font-semibold shadow-sm"
+                        : "text-white/70 hover:text-white hover:bg-white/10"
+                    )}
+                  >
+                    {sub.name}
+                  </Link>
+                );
+              })}
+
+              {/* Primary CTA chips */}
+              {mobileCtas.length > 0 && (
+                <>
+                  {/* Only show divider if there are also sub-items */}
+                  {currentSubNavItems.length > 0 && (
+                    <div className="w-px h-4 bg-white/15 mx-0.5 shrink-0" />
+                  )}
+                  {mobileCtas.map((cta, idx) => {
+                    const Icon = cta.icon || Plus;
+                    return cta.href ? (
+                      <Link
+                        key={idx}
+                        href={cta.href}
+                        onClick={handleLinkClick}
+                        className={cn(
+                          "px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all duration-200 select-none active:scale-95 flex items-center gap-1 shrink-0",
+                          cta.isInstagram
+                            ? "bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 text-white font-bold shadow-md border-none"
+                            : "bg-white/15 text-white border border-white/25 hover:bg-white/25"
+                        )}
+                      >
+                        <Icon className="w-3 h-3" strokeWidth={2} />
+                        <span>{cta.label.replace("+ ", "")}</span>
+                      </Link>
+                    ) : (
+                      <button
+                        key={idx}
+                        onClick={() => {
+                          if (cta.event) window.dispatchEvent(new CustomEvent(cta.event));
+                        }}
+                        className={cn(
+                          "px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap transition-all duration-200 select-none active:scale-95 flex items-center gap-1 shrink-0 cursor-pointer",
+                          cta.isInstagram
+                            ? "bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 text-white font-bold shadow-md border-none"
+                            : "bg-white/15 text-white border border-white/25 hover:bg-white/25"
+                        )}
+                      >
+                        <Icon className="w-3 h-3" strokeWidth={2} />
+                        <span>{cta.label.replace("+ ", "")}</span>
+                      </button>
+                    );
+                  })}
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Tier-1 Main Bottom Navigation Bar */}
+        <div className="w-full max-w-[335px] flex items-center justify-end gap-2 pointer-events-auto">
+          {/* Glass Navigation Pill */}
+          <nav className="flex-1 h-[48px] rounded-full bg-white/[0.08] backdrop-blur-[28px] backdrop-saturate-[180%] border border-white/[0.14] shadow-[0_12px_40px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-1px_0_rgba(255,255,255,0.03)] flex items-center justify-around gap-0.5">
+            {mobileNavPillItems.map((item) => {
+              const isActive = activeTab === item.name;
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  onClick={handleLinkClick}
+                  className={cn(
+                    "w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200 active:scale-[0.84]",
+                    isActive
+                      ? "bg-white/15 text-white border border-white/20 shadow-sm"
+                      : "text-white/60 hover:text-white hover:bg-white/10"
+                  )}
+                  title={item.name}
+                >
+                  <Icon className="w-[18px] h-[18px]" strokeWidth={isActive ? 2 : 1.5} />
+                </Link>
+              );
+            })}
+
+
+          </nav>
+
+          {/* Floating Circle Button (Menu / Drawer Toggle) */}
+          <button
+            type="button"
+            onClick={() => {
+              if (isOpen) {
+                onClose();
+              } else {
+                window.dispatchEvent(new CustomEvent("open-sidebar"));
+              }
+            }}
+            className="shrink-0 w-[46px] h-[46px] rounded-full bg-white/[0.095] backdrop-blur-[28px] backdrop-saturate-[180%] border border-white/[0.16] shadow-[0_12px_32px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.16)] flex items-center justify-center text-white transition-all duration-200 active:scale-[0.84] hover:bg-white/20"
+            title={isOpen ? "Close Menu" : "All Navigation Options"}
+          >
+            {isOpen ? (
+              <X className="w-4.5 h-4.5 text-white" strokeWidth={2} />
+            ) : (
+              <Menu className="w-4.5 h-4.5 text-white" strokeWidth={2} />
+            )}
+          </button>
+        </div>
+      </div>
     </>
   );
 }

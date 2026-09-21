@@ -300,12 +300,14 @@ export default function ProductDetailPage({ params }: PageProps) {
               });
               if (verifyRes.data && verifyRes.data.order_id) {
                 // Save order session in local storage
+                const isDigital = product.product_type === "DIGITAL";
                 const existing = JSON.parse(localStorage.getItem("anydm_customer_orders") || "[]");
                 existing.push({
                   order_id: res.data.order_id,
                   tracking_token: res.data.tracking_token,
                   username: username,
                   product_name: product.title,
+                  order_status: isDigital ? "DELIVERED" : "CONFIRMED",
                   name: checkoutName,
                   email: checkoutEmail,
                   phone: checkoutPhone,
@@ -350,7 +352,7 @@ export default function ProductDetailPage({ params }: PageProps) {
             timestamp: new Date().toISOString()
           });
           localStorage.setItem("anydm_customer_orders", JSON.stringify(existing));
-          alert("Order placed successfully!");
+          // alert("Order placed successfully!");
           setIsCheckoutOpen(false);
           // Redirect to order tracking page with automatic invoice download
           const trackUrl = getTrackUrl(username, res.data.order_id);

@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 import { getProductUrl, getStoreHomeUrl, getAccountUrl, getOrdersUrl, getTrackUrl, getTermsUrl, getPrivacyUrl, isTenantDomain, CarouselSlide } from "@/lib/utils/domain";
 import LinkInBioPublicView from "@/components/bio/LinkInBioPublicView";
 import CustomerAccountBadge from "@/components/CustomerAccountBadge";
+import StoreFooter from "@/components/StoreFooter";
 
 const isVideoUrl = (url: string) => {
   if (!url) return false;
@@ -531,22 +532,22 @@ function StorefrontView({ username }: { username: string }) {
         <div className="fixed inset-0 z-[60] flex">
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
           <div className={cn("relative ml-auto w-80 h-full flex flex-col p-6 shadow-2xl", styles.modalClass)}>
-            <button
-              onClick={() => setMobileMenuOpen(false)}
-              className={cn("absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-full border hover:opacity-80 transition-opacity", styles.dividerClass)}
-            >
-              <X className="w-4 h-4" />
-            </button>
-            <div className="flex items-center gap-3 mb-5 pt-2">
-              <div className={styles.logoWrapperClass}>
-                {settings.store_logo ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={settings.store_logo} alt={storeName} className="w-full h-full object-cover" />
-                ) : (
-                  <ShoppingBag className="w-4 h-4" />
-                )}
-              </div>
-              <span className={cn("text-base font-bold", styles.textColorClass)}>{storeName}</span>
+            
+            {/* Header: User Profile on Top & Close Button */}
+            <div className={cn("flex items-center justify-between gap-3 mb-5 pr-8 pt-1 border-b pb-4", styles.dividerClass)}>
+              <CustomerAccountBadge
+                variant="flat"
+                styles={styles}
+                username={username}
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex-1"
+              />
+              <button
+                onClick={() => setMobileMenuOpen(false)}
+                className={cn("absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-full border hover:opacity-80 transition-opacity shrink-0", styles.dividerClass)}
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
             {/* Search Input in Mobile Drawer */}
@@ -557,7 +558,7 @@ function StorefrontView({ username }: { username: string }) {
                 setShowSearch(true);
                 handleSearchSubmit(e);
               }}
-              className="mb-4 relative flex items-center"
+              className="mb-6 relative flex items-center"
             >
               <Search className={cn("w-4 h-4 absolute left-3 pointer-events-none opacity-60", styles.textMutedClass)} />
               <input
@@ -577,16 +578,6 @@ function StorefrontView({ username }: { username: string }) {
                 </button>
               )}
             </form>
-
-            {/* Customer Account Details Badge in 3-line Mobile Drawer */}
-            <div className="mb-6 pb-4 border-b border-white/10">
-              <CustomerAccountBadge
-                styles={styles}
-                username={username}
-                onClick={() => setMobileMenuOpen(false)}
-                className="w-full justify-between py-2.5 px-3 text-xs"
-              />
-            </div>
 
             <nav className="space-y-2 flex-1">
               <button
@@ -878,108 +869,7 @@ function StorefrontView({ username }: { username: string }) {
       </main>
 
       {/* ── Footer ─────────────────────────────────────────────── */}
-      <footer className={cn("border-t mt-12", styles.dividerClass)}>
-        <div className={cn("py-12 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-10", styles.containerClass)}>
-          {/* Brand */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <div className={styles.logoWrapperClass}>
-                {settings.store_logo ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={settings.store_logo} alt={storeName} className="w-full h-full object-cover" />
-                ) : (
-                  <ShoppingBag className="w-4 h-4" />
-                )}
-              </div>
-              <span className={cn("text-base font-bold", styles.textColorClass)}>{storeName}</span>
-            </div>
-            {settings.store_description && (
-              <p className={cn("text-xs leading-relaxed max-w-xs", styles.textMutedClass)}>
-                {settings.store_description}
-              </p>
-            )}
-          </div>
-
-          {/* Quick Links */}
-          <div className="space-y-3">
-            <h4 className={cn("text-xs font-bold tracking-widest uppercase", styles.textColorClass)}>Customer Service</h4>
-            <div className="space-y-2">
-              <button onClick={() => router.push(getOrdersUrl(username))} className={cn("block text-xs hover:underline text-left cursor-pointer", styles.textMutedClass)}>
-                Track Order Status
-              </button>
-              <button onClick={() => router.push(getPrivacyUrl(username))} className={cn("block text-xs hover:underline text-left cursor-pointer", styles.textMutedClass)}>
-                Privacy Policy
-              </button>
-              <button onClick={() => router.push(getTermsUrl(username))} className={cn("block text-xs hover:underline text-left cursor-pointer", styles.textMutedClass)}>
-                Terms of Service
-              </button>
-            </div>
-          </div>
-
-          {/* Contact */}
-          {(settings.contact_email || settings.contact_phone || settings.shipping_address) && (
-            <div className="space-y-3">
-              <h4 className={cn("text-xs font-bold tracking-widest uppercase", styles.textColorClass)}>Contact Info</h4>
-              <div className="space-y-2">
-                {settings.contact_email && (
-                  <div className={cn("flex items-center gap-2 text-xs", styles.textMutedClass)}>
-                    <Mail className="w-3.5 h-3.5 shrink-0" />
-                    <a href={`mailto:${settings.contact_email}`} className="hover:underline truncate">
-                      {settings.contact_email}
-                    </a>
-                  </div>
-                )}
-                {settings.contact_phone && (
-                  <div className={cn("flex items-center gap-2 text-xs", styles.textMutedClass)}>
-                    <Phone className="w-3.5 h-3.5 shrink-0" />
-                    <a href={`tel:${settings.contact_phone}`} className="hover:underline">
-                      {settings.contact_phone}
-                    </a>
-                  </div>
-                )}
-                {settings.shipping_address && (
-                  <div className={cn("flex items-start gap-2 text-xs", styles.textMutedClass)}>
-                    <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                    <span className="leading-relaxed">{settings.shipping_address}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Bottom bar */}
-        <div className={cn("border-t py-6 flex flex-col sm:flex-row items-center justify-between gap-3", styles.dividerClass, styles.containerClass)}>
-          <p className={cn("text-xs", styles.textMutedClass)}>
-            © 2026 <span className={styles.textColorClass}>{storeName}</span>. Powered by{" "}
-            <span style={{ color: styles.accentColor }} className="font-bold">AnyDM</span>.
-          </p>
-          <div className="flex items-center gap-4">
-            {settings.enable_instagram_button && (
-              <a
-                href={`https://instagram.com/${username}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={cn("flex items-center gap-1.5 text-xs font-semibold hover:opacity-75 transition-opacity", styles.textColorClass)}
-              >
-                <InstagramIcon className="w-4 h-4" />
-                Instagram
-              </a>
-            )}
-            {settings.enable_whatsapp_button && (
-              <a
-                href={`https://wa.me/${settings.contact_phone?.replace(/\D/g, "")}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={cn("flex items-center gap-1.5 text-xs font-semibold hover:opacity-75 transition-opacity", styles.textColorClass)}
-              >
-                <MessageCircle className="w-4 h-4" />
-                WhatsApp
-              </a>
-            )}
-          </div>
-        </div>
-      </footer>
+      <StoreFooter username={username} storeSettings={settings} supplier={supplier} styles={styles} />
 
       {/* ── Wishlist Drawer ─────────────────────────────────────── */}
       {wishlistOpen && (

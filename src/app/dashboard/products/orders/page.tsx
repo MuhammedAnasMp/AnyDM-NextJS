@@ -149,6 +149,16 @@ function SellerOrdersContent() {
     fetchOrders();
   }, [activeAccountId]);
 
+  useEffect(() => {
+    const handleRefresh = () => fetchOrders();
+    window.addEventListener("refresh-orders", handleRefresh);
+    window.addEventListener("refresh-active-page", handleRefresh);
+    return () => {
+      window.removeEventListener("refresh-orders", handleRefresh);
+      window.removeEventListener("refresh-active-page", handleRefresh);
+    };
+  }, []);
+
 
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     setUpdatingOrderId(orderId);
@@ -242,14 +252,14 @@ function SellerOrdersContent() {
       className="space-y-6 text-[#e5e2e1] pb-16"
     >
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#20201f] pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#20201f] pb-5">
         <div>
           <h1 className="text-xl font-semibold text-white tracking-tight">Orders list</h1>
           <p className="text-xs text-[#c4c7c8] mt-0.5">Manage customer orders, shipping details, tracking numbers, and payouts.</p>
         </div>
         <button
           onClick={fetchOrders}
-          className="h-9 px-4 rounded border border-[#2a2a2a] hover:bg-white/[0.02] text-white flex items-center gap-2 text-xs font-medium transition-colors bg-transparent active:scale-[0.98]"
+          className="hidden sm:flex h-9 px-4 rounded border border-[#2a2a2a] hover:bg-white/[0.02] text-white items-center gap-2 text-xs font-medium transition-colors bg-transparent active:scale-[0.98]"
         >
           <RefreshCw className="w-3.5 h-3.5" />
           <span>Refresh List</span>
@@ -697,17 +707,17 @@ function SellerOrdersContent() {
                                 </span>
                               )}
                             </td>
-                          <td className="px-5 py-3 text-right">
-                            <button
-                              onClick={() => setSelectedOrder(o)}
-                              className="px-2.5 py-1 rounded bg-white/5 hover:bg-white/10 text-white text-[10px] font-semibold border border-white/10 transition-colors"
-                            >
-                              View Details
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })
+                            <td className="px-5 py-3 text-right">
+                              <button
+                                onClick={() => setSelectedOrder(o)}
+                                className="px-2.5 py-1 rounded bg-white/5 hover:bg-white/10 text-white text-[10px] font-semibold border border-white/10 transition-colors"
+                              >
+                                View Details
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
                   )}
                 </tbody>
               </table>

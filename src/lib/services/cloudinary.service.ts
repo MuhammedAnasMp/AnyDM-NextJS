@@ -12,7 +12,7 @@ export interface CloudinaryUploadResult {
 }
 
 export const uploadToCloudinary = (
-  file: File | Blob,
+  file: File | Blob | string,
   options: CloudinaryUploadOptions = {}
 ): Promise<CloudinaryUploadResult> => {
   const cloudName = options.cloudName || process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "";

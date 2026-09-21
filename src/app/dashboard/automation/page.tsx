@@ -158,6 +158,12 @@ export default function AutomationsDashboard() {
     fetchAutomations();
   }, [activeAccountId]);
 
+  useEffect(() => {
+    const handleRefresh = () => fetchAutomations();
+    window.addEventListener("refresh-automations", handleRefresh);
+    return () => window.removeEventListener("refresh-automations", handleRefresh);
+  }, []);
+
   const handleToggle = async (id: string, currentStatus: "active" | "disabled" | "completed") => {
     setTogglingId(id);
     const nextEnabled = currentStatus !== "active";
@@ -242,9 +248,9 @@ export default function AutomationsDashboard() {
   return (
     <div className="relative space-y-4 overflow-hidden text-[#e5e2e1] pb-16 w-full font-sans">
       {/* Background Soft Ambient Glow */}
-      <div
-        className="pointer-events-none absolute left-1/2 top-[-50px] h-[300px] w-[550px] -translate-x-1/2 rounded-[50%] bg-gradient-to-r from-[#c4c0ff]/0 via-[#c4c0ff]/12 to-[#c4c0ff]/0 blur-3xl"
-      />
+      {/* <div
+        abount="pointer-events-none absolute left-1/2 top-[-50px] h-[300px] w-[550px] -translate-x-1/2 rounded-[50%] bg-gradient-to-r from-[#c4c0ff]/0 via-[#c4c0ff]/12 to-[#c4c0ff]/0 blur-3xl"
+      /> */}
 
       {/* Toast Notification */}
       <AnimatePresence>
@@ -273,7 +279,7 @@ export default function AutomationsDashboard() {
       </AnimatePresence>
 
       {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#1c1b1b] p-4 rounded border border-[#2a2a2a] shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#1c1b1b] p-3 rounded border border-[#2a2a2a] shadow-sm">
         <div className="space-y-0.5">
           <div className="flex items-center gap-2">
             <h1 className="text-lg font-semibold tracking-tight text-[#e5e2e1]">
@@ -289,7 +295,7 @@ export default function AutomationsDashboard() {
           <button
             onClick={() => fetchAutomations()}
             disabled={loading}
-            className="p-2 rounded bg-[#20201f] border border-[#2a2a2a] text-[#8e9192] hover:text-white hover:border-[#444748] transition-colors cursor-pointer disabled:opacity-50"
+            className="hidden sm:flex p-2 rounded bg-[#20201f] border border-[#2a2a2a] text-[#8e9192] hover:text-white hover:border-[#444748] transition-colors cursor-pointer disabled:opacity-50"
             title="Refresh automations"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-[#c4c0ff]" : ""}`} />
@@ -297,7 +303,7 @@ export default function AutomationsDashboard() {
 
           <Link
             href="/dashboard/automations"
-            className="px-4 py-2 bg-white hover:bg-zinc-200 text-zinc-950 text-xs font-semibold rounded flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="hidden sm:flex px-4 py-2 bg-white hover:bg-zinc-200 text-zinc-950 text-xs font-semibold rounded items-center gap-1.5 transition-colors cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Create Automation</span>
@@ -375,7 +381,7 @@ export default function AutomationsDashboard() {
           </div>
 
           {/* View Mode Toggle Switcher */}
-          <div className="bg-[#101115] border border-[#2a2a2a] rounded p-0.5 flex gap-0.5 text-[11px]">
+          {/* <div className="bg-[#101115] border border-[#2a2a2a] rounded p-0.5 flex gap-0.5 text-[11px]">
             <button
               type="button"
               onClick={() => handleViewModeChange("grid")}
@@ -400,7 +406,7 @@ export default function AutomationsDashboard() {
               <List className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">List</span>
             </button>
-          </div>
+          </div> */}
         </div>
 
         {/* Content Rendering */}

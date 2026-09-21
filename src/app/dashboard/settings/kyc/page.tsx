@@ -220,9 +220,9 @@ export default function SellerKYCPage() {
   return (
     <div className="relative space-y-6 overflow-hidden py-2 text-[#e5e2e1] w-full">
       {/* Background Soft Purple/Lavender Ambient Glow */}
-      <div
-        className="pointer-events-none absolute left-1/2 top-[-50px] h-[320px] w-[600px] -translate-x-1/2 rounded-[50%] bg-gradient-to-r from-[#c4c0ff]/0 via-[#c4c0ff]/15 to-[#c4c0ff]/0 blur-3xl"
-      />
+      {/* <div
+      //   className="pointer-events-none absolute left-1/2 top-[-50px] h-[320px] w-[600px] -translate-x-1/2 rounded-[50%] bg-gradient-to-r from-[#c4c0ff]/0 via-[#c4c0ff]/15 to-[#c4c0ff]/0 blur-3xl"
+      /> */}
 
       {/* SECTION HEADER */}
       <div className="relative text-center max-w-xl mx-auto space-y-2">
@@ -327,8 +327,8 @@ export default function SellerKYCPage() {
                   }}
                   placeholder="As per PAN & Bank Account"
                   className={`w-full bg-[#101115] border rounded-md px-3.5 py-2.5 text-xs text-[#e5e2e1] placeholder-[#8e9192] outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed ${formErrors.full_name
-                      ? "border-rose-500 focus:border-rose-400"
-                      : "border-[#2a2a2a] focus:border-[#c4c0ff]"
+                    ? "border-rose-500 focus:border-rose-400"
+                    : "border-[#2a2a2a] focus:border-[#c4c0ff]"
                     }`}
                 />
                 {formErrors.full_name && (
@@ -353,8 +353,8 @@ export default function SellerKYCPage() {
                   }}
                   placeholder="ABCDE1234F"
                   className={`w-full bg-[#101115] border rounded-md px-3.5 py-2.5 text-xs text-[#e5e2e1] placeholder-[#8e9192] outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed ${formErrors.pan_number
-                      ? "border-rose-500 focus:border-rose-400"
-                      : "border-[#2a2a2a] focus:border-[#c4c0ff]"
+                    ? "border-rose-500 focus:border-rose-400"
+                    : "border-[#2a2a2a] focus:border-[#c4c0ff]"
                     }`}
                 />
                 {formErrors.pan_number && (
@@ -379,8 +379,8 @@ export default function SellerKYCPage() {
                   }}
                   placeholder="12-digit Aadhaar Number"
                   className={`w-full bg-[#101115] border rounded-md px-3.5 py-2.5 text-xs text-[#e5e2e1] placeholder-[#8e9192] outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed ${formErrors.aadhaar_number
-                      ? "border-rose-500 focus:border-rose-400"
-                      : "border-[#2a2a2a] focus:border-[#c4c0ff]"
+                    ? "border-rose-500 focus:border-rose-400"
+                    : "border-[#2a2a2a] focus:border-[#c4c0ff]"
                     }`}
                 />
                 {formErrors.aadhaar_number && (
@@ -419,11 +419,10 @@ export default function SellerKYCPage() {
                   if (formErrors.bank_name) setFormErrors((prev) => ({ ...prev, bank_name: "" }));
                 }}
                 placeholder="e.g. HDFC Bank, SBI"
-                className={`w-full bg-[#101115] border rounded-md px-3.5 py-2.5 text-xs text-[#e5e2e1] placeholder-[#8e9192] outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                  formErrors.bank_name
-                    ? "border-rose-500 focus:border-rose-400"
-                    : "border-[#2a2a2a] focus:border-[#c4c0ff]"
-                }`}
+                className={`w-full bg-[#101115] border rounded-md px-3.5 py-2.5 text-xs text-[#e5e2e1] placeholder-[#8e9192] outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed ${formErrors.bank_name
+                  ? "border-rose-500 focus:border-rose-400"
+                  : "border-[#2a2a2a] focus:border-[#c4c0ff]"
+                  }`}
               />
               {formErrors.bank_name && (
                 <p className="text-[11px] text-rose-400 flex items-center gap-1 mt-1 font-medium">
@@ -446,11 +445,10 @@ export default function SellerKYCPage() {
                   if (formErrors.bank_ifsc) setFormErrors((prev) => ({ ...prev, bank_ifsc: "" }));
                 }}
                 placeholder="HDFC0001234"
-                className={`w-full bg-[#101115] border rounded-md px-3.5 py-2.5 text-xs text-[#e5e2e1] placeholder-[#8e9192] outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                  formErrors.bank_ifsc
-                    ? "border-rose-500 focus:border-rose-400"
-                    : "border-[#2a2a2a] focus:border-[#c4c0ff]"
-                }`}
+                className={`w-full bg-[#101115] border rounded-md px-3.5 py-2.5 text-xs text-[#e5e2e1] placeholder-[#8e9192] outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed ${formErrors.bank_ifsc
+                  ? "border-rose-500 focus:border-rose-400"
+                  : "border-[#2a2a2a] focus:border-[#c4c0ff]"
+                  }`}
               />
               {formErrors.bank_ifsc && (
                 <p className="text-[11px] text-rose-400 flex items-center gap-1 mt-1 font-medium">
@@ -488,11 +486,10 @@ export default function SellerKYCPage() {
                       setFormErrors((prev) => ({ ...prev, bank_account_number: "" }));
                   }}
                   placeholder="Account Number"
-                  className={`w-full bg-[#101115] border rounded-md pl-3.5 pr-9 py-2.5 text-xs text-[#e5e2e1] placeholder-[#8e9192] outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                    formErrors.bank_account_number
-                      ? "border-rose-500 focus:border-rose-400"
-                      : "border-[#2a2a2a] focus:border-[#c4c0ff]"
-                  }`}
+                  className={`w-full bg-[#101115] border rounded-md pl-3.5 pr-9 py-2.5 text-xs text-[#e5e2e1] placeholder-[#8e9192] outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed ${formErrors.bank_account_number
+                    ? "border-rose-500 focus:border-rose-400"
+                    : "border-[#2a2a2a] focus:border-[#c4c0ff]"
+                    }`}
                 />
                 <Lock className="w-3.5 h-3.5 text-[#8e9192] absolute right-3 pointer-events-none" />
               </div>
@@ -521,11 +518,10 @@ export default function SellerKYCPage() {
                     setFormErrors((prev) => ({ ...prev, confirm_account_number: "" }));
                 }}
                 placeholder="Re-enter Account Number"
-                className={`w-full bg-[#101115] border rounded-md px-3.5 py-2.5 text-xs text-[#e5e2e1] placeholder-[#8e9192] outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                  formErrors.confirm_account_number
-                    ? "border-rose-500 focus:border-rose-400"
-                    : "border-[#2a2a2a] focus:border-[#c4c0ff]"
-                }`}
+                className={`w-full bg-[#101115] border rounded-md px-3.5 py-2.5 text-xs text-[#e5e2e1] placeholder-[#8e9192] outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed ${formErrors.confirm_account_number
+                  ? "border-rose-500 focus:border-rose-400"
+                  : "border-[#2a2a2a] focus:border-[#c4c0ff]"
+                  }`}
               />
               {formErrors.confirm_account_number && (
                 <p className="text-[11px] text-rose-400 flex items-center gap-1 mt-1 font-medium">

@@ -1,9 +1,9 @@
 "use client";
 
 import { Suspense } from "react";
-import BioDashboardClient from "./BioDashboardClient";
+import BioDashboardClient from "../BioDashboardClient";
 
-export default function BioMainPage() {
+export default function BioStylingPage() {
   return (
     <Suspense
       fallback={

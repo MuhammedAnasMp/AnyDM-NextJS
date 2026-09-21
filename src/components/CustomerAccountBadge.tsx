@@ -24,9 +24,10 @@ interface CustomerAccountBadgeProps {
   styles?: TemplateStyle;
   username?: string;
   onClick?: () => void;
+  variant?: "pill" | "flat";
 }
 
-export default function CustomerAccountBadge({ className = "", styles, username, onClick }: CustomerAccountBadgeProps) {
+export default function CustomerAccountBadge({ className = "", styles, username, onClick, variant = "pill" }: CustomerAccountBadgeProps) {
   const router = useRouter();
   const [session, setSession] = useState<CustomerSessionData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -40,12 +41,10 @@ export default function CustomerAccountBadge({ className = "", styles, username,
     });
   }, [username]);
 
-  if (isLoading || !session) return null;
-
-  const isInstagram = !!session.instagram_username;
-  let displayName = session.instagram_username
+  const isInstagram = !!session?.instagram_username;
+  let displayName = session?.instagram_username
     ? `@${session.instagram_username}`
-    : session.saved_address?.customer_name;
+    : session?.saved_address?.customer_name;
 
   if (!displayName && typeof window !== "undefined") {
     try {
@@ -64,7 +63,7 @@ export default function CustomerAccountBadge({ className = "", styles, username,
     displayName = "Guest Customer";
   }
 
-  const targetUsername = username || session.instagram_username || "";
+  const targetUsername = username || session?.instagram_username || "";
 
   const handleAccountClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -77,6 +76,46 @@ export default function CustomerAccountBadge({ className = "", styles, username,
   };
 
   const isLight = styles ? !styles.isDark : false;
+
+  // Flat Variant (Clean borderless header matching store details layout without outer oval box shape)
+  if (variant === "flat") {
+    return (
+      <button
+        type="button"
+        onClick={handleAccountClick}
+        title={`Account: ${displayName} - View Account & Orders`}
+        className={cn(
+          "flex items-center gap-3 text-left transition-opacity hover:opacity-85 cursor-pointer min-w-0 group",
+          className
+        )}
+      >
+        <div className="relative shrink-0">
+          <UserAvatar
+            src={session?.instagram_profile_pic}
+            name={displayName}
+            className="w-9.5 h-9.5 rounded-lg text-sm font-bold border border-current/20 shadow-2xs"
+            iconClassName="w-4.5 h-4.5"
+          />
+          {isInstagram && (
+            <div className="absolute -bottom-1 -right-1 bg-gradient-to-tr from-yellow-500 via-red-500 to-purple-500 p-0.5 rounded-full text-white shadow-2xs">
+              <InstagramIcon className="w-2.5 h-2.5" />
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-col text-left leading-tight min-w-0 flex-1">
+          <span className={cn("font-bold text-sm truncate group-hover:underline decoration-1 underline-offset-2", styles ? styles.textColorClass : "text-white")}>
+            {displayName}
+          </span>
+          <span className={cn("text-[10.5px] font-medium opacity-65 truncate mt-0.5", styles ? styles.textMutedClass : "text-zinc-400")}>
+            My Account & Orders
+          </span>
+        </div>
+      </button>
+    );
+  }
+
+  if (isLoading || !session) return null;
 
   return (
     <button
@@ -100,7 +139,6 @@ export default function CustomerAccountBadge({ className = "", styles, username,
           className="w-6 h-6 rounded-full text-[10px]"
           iconClassName="w-3.5 h-3.5"
         />
-        {/* <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-black" /> */}
       </div>
 
       <div className="flex flex-col text-left leading-tight min-w-0">

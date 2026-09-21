@@ -381,7 +381,7 @@ export function CanvasNode({ id }: { id: string }) {
                 if (node.data.dm_format === 'loop_back') {
                     customPill = 'LOOP BACK';
                     customPillColor = 'bg-[#CECBF6] text-[#26215b] font-black leading-none';
-                    customTitle = '🔄 Loop to Previous DM';
+                    customTitle = 'Loop to Previous DM';
                     CustomIcon = RotateCcw;
                 } else if (node.data.is_cf_following) {
                     customPill = 'FOLLOWING';

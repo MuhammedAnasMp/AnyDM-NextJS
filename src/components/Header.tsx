@@ -106,6 +106,9 @@ export default function Header({ onMenuClick }: HeaderProps) {
     try {
       await authService.setActiveInstagramAccount(accountId);
       setIsAccountMenuOpen(false);
+      if (pathname.startsWith("/dashboard/inbox/chats")) {
+        router.replace("/dashboard/inbox/chats");
+      }
     } catch (err) {
       console.error("Failed to switch account:", err);
     }
@@ -156,7 +159,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
     ],
     Automations: automationsSubNav,
     Inbox: [
-      { name: "Inbox", href: "/dashboard/inbox" },
+      { name: "Chats", href: "/dashboard/inbox/chats" },
       { name: "Contacts", href: "/dashboard/inbox/contacts" },
     ],
     Games: [
@@ -176,7 +179,10 @@ export default function Header({ onMenuClick }: HeaderProps) {
       { name: "Order Settings", href: "/dashboard/admin/order-settings" },
       { name: "Payment Settlements", href: "/dashboard/admin/payment-settlement" },
     ],
-    Bio: [],
+    Bio: [
+      { name: "Styling", href: "/dashboard/bio/styling" },
+      { name: "Analytics", href: "/dashboard/bio/analytics" },
+    ],
     Schedule: [],
     Refer: [],
     Pricing: [],
@@ -414,7 +420,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
       {/* Tier 2: Sub-Navigation Bar */}
       {!pathname.startsWith("/dashboard/automations") && !pathname.includes("/products/catalog/create") && items.length > 0 && (
-        <nav className="bg-[#181817]/40 backdrop-blur-xl border-t border-white/5 px-4 lg:px-lg h-9 flex items-center overflow-x-auto scrollbar-hide">
+        <nav className="hidden lg:flex bg-[#181817]/40 backdrop-blur-xl border-t border-white/5 px-4 lg:px-lg h-9 items-center overflow-x-auto scrollbar-hide">
           <div className="flex items-center gap-3 md:gap-3 text-xs font-semibold h-full whitespace-nowrap">
             {items.map((item) => {
               const pathBase = item.href.split("?")[0];

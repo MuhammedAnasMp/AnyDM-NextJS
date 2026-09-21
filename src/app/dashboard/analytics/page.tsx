@@ -98,6 +98,16 @@ export default function AnalyticsPage() {
     fetchAnalytics(timeframe);
   }, [timeframe, fetchAnalytics]);
 
+  useEffect(() => {
+    const handleRefresh = () => fetchAnalytics(timeframe, true);
+    window.addEventListener("refresh-dashboard-analytics", handleRefresh);
+    window.addEventListener("refresh-active-page", handleRefresh);
+    return () => {
+      window.removeEventListener("refresh-dashboard-analytics", handleRefresh);
+      window.removeEventListener("refresh-active-page", handleRefresh);
+    };
+  }, [timeframe, fetchAnalytics]);
+
   /* ── Derived funnel ── */
   const funnelSteps = useMemo(() => {
     if (data?.funnel_steps && data.funnel_steps.length > 0) return data.funnel_steps;
@@ -135,10 +145,10 @@ export default function AnalyticsPage() {
   return (
     <div className="relative space-y-4 overflow-hidden text-[#e5e2e1] pb-16 w-full font-sans">
       {/* Top Ambient Glow */}
-      <div className="pointer-events-none absolute left-1/2 top-[-50px] h-[300px] w-[550px] -translate-x-1/2 rounded-[50%] bg-gradient-to-r from-[#c4c0ff]/0 via-[#c4c0ff]/12 to-[#c4c0ff]/0 blur-3xl" />
+      {/* <div abount="pointer-events-none absolute left-1/2 top-[-50px] h-[300px] w-[550px] -translate-x-1/2 rounded-[50%] bg-gradient-to-r from-[#c4c0ff]/0 via-[#c4c0ff]/12 to-[#c4c0ff]/0 blur-3xl" /> */}
 
       {/* ── Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#1c1b1b] p-4 rounded border border-[#2a2a2a] shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#1c1b1b] p-3 rounded border border-[#2a2a2a] shadow-sm">
         <div className="space-y-0.5">
           <div className="flex items-center gap-2">
             <h1 className="text-lg font-semibold tracking-tight text-[#e5e2e1]">Analytics</h1>
@@ -167,7 +177,7 @@ export default function AnalyticsPage() {
           <button
             onClick={() => fetchAnalytics(timeframe, true)}
             disabled={refreshing}
-            className="p-2 rounded bg-[#20201f] border border-[#2a2a2a] text-[#8e9192] hover:text-white transition-colors cursor-pointer"
+            className="hidden sm:flex p-2 rounded bg-[#20201f] border border-[#2a2a2a] text-[#8e9192] hover:text-white transition-colors cursor-pointer"
             title="Refresh"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin text-[#c4c0ff]" : ""}`} />

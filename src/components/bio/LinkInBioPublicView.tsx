@@ -575,8 +575,12 @@ export default function LinkInBioPublicView({
         >
           <div className="relative group flex items-center justify-center">
             <div
-              className={cn("rounded-full overflow-hidden p-1 shadow-2xl border-2 bg-[#131313]", isPreviewMode ? "w-20 h-20" : "w-24 h-24 sm:w-28 sm:h-28")}
-              style={{ borderColor: theme.accentColor }}
+              className={cn("rounded-full overflow-hidden p-1 transition-all duration-300 border backdrop-blur-md", isPreviewMode ? "w-20 h-20" : "w-24 h-24 sm:w-28 sm:h-28")}
+              style={{
+                borderColor: theme.accentColor ? `${theme.accentColor}66` : "rgba(255, 255, 255, 0.2)",
+                boxShadow: theme.accentColor ? `0 8px 25px ${theme.accentColor}33` : "0 8px 25px rgba(0,0,0,0.4)",
+                backgroundColor: "rgba(255, 255, 255, 0.05)",
+              }}
             >
               {page.profile_image_url || creator?.profile_picture_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -586,16 +590,10 @@ export default function LinkInBioPublicView({
                   className="w-full h-full object-cover rounded-full bg-zinc-900"
                 />
               ) : (
-                <div className="w-full h-full rounded-full bg-[#20201f] border border-[#2a2a2a] flex items-center justify-center text-[#e5e2e1] text-2xl sm:text-3xl font-bold select-none">
+                <div className="w-full h-full rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-[#e5e2e1] text-2xl sm:text-3xl font-bold select-none">
                   {(page.title || page.username || creator?.username || "U").slice(0, 1).toUpperCase()}
                 </div>
               )}
-            </div>
-            <div
-              className="absolute bottom-0 right-0 w-5.5 h-5.5 rounded-full flex items-center justify-center shadow-lg border-2 border-[#131313]"
-              style={{ backgroundColor: theme.accentColor, color: theme.isDark ? "#000" : "#fff" }}
-            >
-              <CheckCircle2 className="w-3.5 h-3.5 stroke-[2.5]" />
             </div>
           </div>
 

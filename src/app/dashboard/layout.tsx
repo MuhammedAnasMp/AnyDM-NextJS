@@ -28,7 +28,7 @@ function DashboardLayoutContent({
   const dispatch = useDispatch();
 
   const isBuilder = pathname === "/dashboard/automations" || pathname.startsWith("/dashboard/automations");
-  const isFullBleed = isBuilder || pathname === "/dashboard/inbox";
+  const isFullBleed = isBuilder || pathname.startsWith("/dashboard/inbox");
 
   useEffect(() => {
     dispatch(hydrateFromStorage());
@@ -135,7 +135,7 @@ function DashboardLayoutContent({
           "flex-1 w-full mx-auto",
           isFullBleed
             ? "flex flex-col flex-1 min-h-0 p-0 max-w-none overflow-hidden"
-            : "w-full px-3 py-3 sm:px-4 sm:py-3.5"
+            : "w-full px-3 py-3 sm:px-4 sm:py-3.5 pb-24 lg:pb-3.5"
         )}>
           {firebaseUser || isAnalyticsPreview ? children : null}
         </main>

@@ -399,7 +399,34 @@ export default function WebsiteSettingsPage() {
       if (response.data) {
         const d = response.data;
         setStoreName(d.store_name || "");
-        setStoreLogo(d.store_logo || "");
+        let initialLogo = d.store_logo || "";
+        const fallbackLogo = activeAccount?.profile_picture_url || appUser?.photo_url || appUser?.profile_picture_url || "";
+        if (!initialLogo && fallbackLogo) {
+          initialLogo = fallbackLogo;
+        }
+
+        if (initialLogo) {
+          if (initialLogo.includes("cloudinary.com")) {
+            setStoreLogo(initialLogo);
+          } else {
+            // Upload direct Instagram / external profile image to Cloudinary
+            uploadToCloudinary(initialLogo)
+              .then((res) => {
+                if (res?.secure_url) {
+                  setStoreLogo(res.secure_url);
+                  api.put("/accounts/website-settings/", { store_logo: res.secure_url }).catch(() => {});
+                } else {
+                  setStoreLogo(initialLogo);
+                }
+              })
+              .catch(() => {
+                setStoreLogo(initialLogo);
+              });
+          }
+        } else {
+          setStoreLogo("");
+        }
+
         setStoreSlug(d.store_slug || "");
         setCustomDomain(d.custom_domain || "");
         setIsCustomDomainVerified(!!d.custom_domain_verified);
@@ -457,7 +484,24 @@ export default function WebsiteSettingsPage() {
       if (isInitial) {
         // showToast("Using local storefront configs.", "info");
         setStoreName(activeAccount?.full_name || activeAccount?.username || "");
-        setStoreLogo(activeAccount?.profile_picture_url || "");
+        const fallbackLogo = activeAccount?.profile_picture_url || appUser?.photo_url || appUser?.profile_picture_url || "";
+        if (fallbackLogo) {
+          if (fallbackLogo.includes("cloudinary.com")) {
+            setStoreLogo(fallbackLogo);
+          } else {
+            uploadToCloudinary(fallbackLogo)
+              .then((res) => {
+                if (res?.secure_url) {
+                  setStoreLogo(res.secure_url);
+                } else {
+                  setStoreLogo(fallbackLogo);
+                }
+              })
+              .catch(() => setStoreLogo(fallbackLogo));
+          }
+        } else {
+          setStoreLogo("");
+        }
         setStoreSlug("");
         setCustomDomain("");
       }

@@ -49,7 +49,7 @@ export default function AdminDocsPage() {
   const [copied, setCopied] = useState(false);
 
   const renderedHtml = useMemo(() => {
-    return marked.parse(adminSystemDocsMarkdown);
+    return marked.parse(adminSystemDocsMarkdown) as string;
   }, []);
 
   const handleCopyMarkdown = () => {

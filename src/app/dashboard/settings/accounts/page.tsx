@@ -314,6 +314,16 @@ function AccountsContent() {
   }, []);
 
   useEffect(() => {
+    const handleTrigger = () => {
+      handleAddInstagram();
+    };
+    window.addEventListener("trigger-add-instagram", handleTrigger);
+    return () => {
+      window.removeEventListener("trigger-add-instagram", handleTrigger);
+    };
+  }, [accounts, appUser]);
+
+  useEffect(() => {
     if (appUser?.display_name && !isEditingName) {
       setTempName(appUser.display_name);
     }
@@ -687,9 +697,9 @@ function AccountsContent() {
   return (
     <div className="relative space-y-6 overflow-hidden  text-[#e5e2e1]">
       {/* Background Soft Purple/Lavender Ambient Glow */}
-      <div
-        className="pointer-events-none absolute left-1/2 top-[-50px] h-[320px] w-[600px] -translate-x-1/2 rounded-[50%] bg-gradient-to-r from-[#c4c0ff]/0 via-[#c4c0ff]/15 to-[#c4c0ff]/0 blur-3xl"
-      />
+      {/* <div
+      // className="pointer-events-none absolute left-1/2 top-[-50px] h-[320px] w-[600px] -translate-x-1/2 rounded-[50%] bg-gradient-to-r from-[#c4c0ff]/0 via-[#c4c0ff]/15 to-[#c4c0ff]/0 blur-3xl"
+      /> */}
 
 
 
@@ -829,7 +839,7 @@ function AccountsContent() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2.5 shrink-0 sm:ml-3 flex-wrap">
+              <div className="flex items-center justify-end sm:justify-start gap-2.5 shrink-0 ml-auto sm:ml-3 flex-wrap w-full sm:w-auto">
                 <button
                   onClick={handleAddInstagram}
                   disabled={isInstagramLinking}

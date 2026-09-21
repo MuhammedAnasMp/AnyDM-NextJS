@@ -225,7 +225,7 @@ const deleteNodeRecursively = (state: FlowState, nodeId: string, visited: Set<st
     if (targetNode) {
         const mediaUrls = extractMediaUrlsFromNode(targetNode);
         mediaUrls.forEach(url => {
-            deleteFromCloudinary(url).catch(() => {});
+            deleteFromCloudinary(url).catch(() => { });
         });
     }
 
@@ -841,7 +841,7 @@ export const flowSlice = createSlice({
                     id: `edge-loop-${sourceId}-${targetId}-${Date.now()}`,
                     source: sourceId,
                     target: targetId,
-                    label: '🔄 Loop Back',
+                    label: 'Loop Back',
                 });
             }
         },

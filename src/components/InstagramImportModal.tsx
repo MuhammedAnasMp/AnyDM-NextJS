@@ -148,6 +148,9 @@ export default function InstagramImportModal({ isOpen, onClose, onSelectImport }
           {/* Modal Container */}
           <div className="fixed inset-0 flex items-center justify-center z-[101] pointer-events-none p-4 md:p-6">
             <motion.div
+              role="dialog"
+              aria-modal="true"
+              data-modal="true"
               initial={{ opacity: 0, scale: 0.96, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 15 }}
