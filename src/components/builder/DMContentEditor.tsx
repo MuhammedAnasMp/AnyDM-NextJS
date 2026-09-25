@@ -25,7 +25,8 @@ import {
   UserCheck,
   ExternalLink,
   ShieldCheck,
-  CheckCircle2
+  CheckCircle2,
+  Globe
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { deleteFromCloudinary } from '@/lib/services/cloudinary.service';
@@ -33,6 +34,7 @@ import api from '@/lib/services/api.service';
 import { getStorefrontPreviewUrl, getAbsoluteProductUrl } from '@/lib/utils/domain';
 import { InstagramMediaPicker } from './InstagramMediaPicker';
 import { InstagramProfileCard } from './InstagramProfileCard';
+import { WebLinkCard } from './WebLinkCard';
 
 // --- Fallback Products ---
 const DEFAULT_PRODUCTS = [
@@ -211,7 +213,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
   }, [triggerNode]);
 
   // --- Local Editor States ---
-  type DMFormatType = 'text' | 'quick_reply' | 'button_template' | 'generic_template' | 'attachment' | 'show_profile' | 'check_follow';
+  type DMFormatType = 'text' | 'quick_reply' | 'button_template' | 'generic_template' | 'attachment' | 'show_profile' | 'check_follow' | 'web_url';
   const [dmFormat, setDmFormat] = React.useState<DMFormatType>('button_template');
   const [rateLimitCount, setRateLimitCount] = React.useState<number>(1);
   const [rateLimitWindow, setRateLimitWindow] = React.useState<number>(86400);
@@ -262,6 +264,10 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
   const [profileUrl, setProfileUrl] = React.useState<string>('');
   const [profileMessageText, setProfileMessageText] = React.useState<string>('Check out our Instagram profile for more updates!');
   const [profileButtonText, setProfileButtonText] = React.useState<string>('👤 Visit Profile');
+
+  // --- Web Link States ---
+  const [webLinkUrl, setWebLinkUrl] = React.useState<string>('https://example.com');
+  const [webLinkTitle, setWebLinkTitle] = React.useState<string>('🌐 Open Web Link');
 
   // --- Check Follow States ---
   const [followCheckPreviewState, setFollowCheckPreviewState] = React.useState<'following' | 'not_following'>('following');
@@ -681,8 +687,8 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
     const current = carouselElementsRef.current;
 
     const firstImg = current[0]?.image_url || '';
-    const DEFAULT_PIXABAY = 'https://loremflickr.com/400/300/cat';
-    const DEFAULT_THUMB = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRN2z0ERwXQUqH29urPuzWueLXKhJAY6SMyAA&s';
+    const DEFAULT_PIXABAY = '/icons/dark-placeholder.png';
+    const DEFAULT_THUMB = '/icons/dark-placeholder.png';
 
     // A "custom image" is any URL that is NOT empty and NOT one of our known placeholder defaults
     const isCustomImage = firstImg &&
@@ -853,7 +859,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
       elems = [{
         title: 'Welcome Product',
         subtitle: 'Premium quality slider description.',
-        image_url: 'https://loremflickr.com/400/300/cat',
+        image_url: '/icons/dark-placeholder.png',
         default_action: { type: 'web_url', url: 'https://shop.example.com' },
         buttons: [{ type: 'web_url', title: '🛒 Buy Now', url: 'https://shop.example.com' }]
       }];
@@ -894,6 +900,10 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
     setProfileUrl(node.data?.profile_url || `https://instagram.com/${username}`);
     setProfileMessageText(node.data?.profile_message_text || 'Check out our Instagram profile for more updates!');
     setProfileButtonText(node.data?.profile_button_text || '👤 Visit Profile');
+
+    // Load Web Link data
+    setWebLinkUrl(node.data?.url || node.data?.profile_url || 'https://example.com');
+    setWebLinkTitle(node.data?.title || node.data?.parent_label || '🌐 Open Web Link');
 
     // Load Check Follow data
     setFollowingFormat(node.data?.following_format || 'text');
@@ -1125,6 +1135,10 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
       dispatch(updateNodeData({ id: nodeId, key: 'profile_message_text', value: profileMessageText }));
       dispatch(updateNodeData({ id: nodeId, key: 'profile_button_text', value: profileButtonText }));
       dispatch(updateNodeData({ id: nodeId, key: 'messages', value: [profileMessageText || `Profile: ${profileUrl}`] }));
+    } else if (dmFormat === 'web_url') {
+      dispatch(updateNodeData({ id: nodeId, key: 'url', value: webLinkUrl }));
+      dispatch(updateNodeData({ id: nodeId, key: 'title', value: webLinkTitle }));
+      dispatch(updateNodeData({ id: nodeId, key: 'messages', value: [`Web Link: ${webLinkUrl}`] }));
     } else if (dmFormat === 'check_follow') {
       dispatch(updateNodeData({ id: nodeId, key: 'following_format', value: followingFormat }));
       dispatch(updateNodeData({ id: nodeId, key: 'following_text', value: followingText }));
@@ -1465,7 +1479,7 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
     setCarouselElements([...carouselElements, {
       title: 'New Product Item',
       subtitle: 'Premium catalog description.',
-      image_url: 'https://loremflickr.com/400/300/cat',
+      image_url: '/icons/dark-placeholder.png',
       default_action: { type: 'web_url', url: storefrontUrl },
       buttons: [{ type: 'web_url', title: '🛒 Shop Now', url: storefrontUrl }]
     }]);
@@ -2202,6 +2216,16 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                           <InstagramProfileCard size="compact" />
                           <span className="text-[8.5px] text-[#c4c0ff]/60 italic text-center block">
                             Direct Instagram Profile Link Card
+                          </span>
+                        </div>
+                      )}
+
+                      {/* FORMAT: Web Link Preview */}
+                      {format === 'web_url' && (
+                        <div className="w-full animate-fadeIn flex flex-col gap-2">
+                          <WebLinkCard size="compact" customUrl={webLinkUrl} customTitle={webLinkTitle} />
+                          <span className="text-[8.5px] text-cyan-400/80 italic text-center block">
+                            Direct Web Link Browser Card (Opens in Popup Window)
                           </span>
                         </div>
                       )}
@@ -3314,7 +3338,12 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                   <CustomSelect
                                     labelClassName='font-sora text-[10px] font-bold text-zinc-400 tracking-wider  block mb-1.5'
                                     label="Button Type"
-                                    value={btn.type === 'postback' && btn.payload === 'TRACK_ORDER' ? 'track_order' : btn.type}
+                                    value={
+                                      btn.type === 'postback' && btn.payload === 'TRACK_ORDER' ? 'track_order' :
+                                        btn.type === 'postback' && btn.payload === 'CHECK_FOLLOW' ? 'check_follow' :
+                                          ((btn.type as string) === 'show_profile' || (btn.type === 'web_url' && btn.url?.includes('instagram.com'))) ? 'show_profile' :
+                                            btn.type
+                                    }
                                     disabled={isFirstButtonProductLocked}
                                     onChange={(val) => updateCarouselButton(activeCardIndex, bi, 'type', val)}
                                     options={[
@@ -3361,7 +3390,36 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                                       ℹ️ Prompts customers for their Order ID and replies with the current order status.
                                     </div>
                                   )}
-                                  {btn.type === 'web_url' && (
+
+                                  {((btn.type as string) === 'check_follow' || (btn.type === 'postback' && btn.payload === 'CHECK_FOLLOW')) && (
+                                    <div className="bg-[#CECBF6]/10 border border-[#CECBF6]/20 rounded-xl p-4 text-xs text-[#CECBF6] font-medium space-y-2.5 animate-fadeIn">
+                                      <div className="flex items-center gap-2 font-bold text-white">
+                                        <UserCheck className="w-4 h-4 text-[#CECBF6]" />
+                                        <span>Check Follower Gate Button</span>
+                                      </div>
+                                      <p className="text-[11px] text-zinc-300 leading-relaxed">
+                                        When customers tap this button in Instagram DM, the system checks if they follow your account before continuing the flow.
+                                      </p>
+                                    </div>
+                                  )}
+
+                                  {((btn.type as string) === 'show_profile' || (btn.type === 'web_url' && btn.url?.includes('instagram.com'))) && (
+                                    <div className="space-y-3 bg-[#1c1b1b]/60 border border-white/10 rounded-xl p-3.5 animate-fadeIn">
+                                      <div className="flex items-center bg-[#121212] border border-white/10 rounded px-3 text-xs">
+                                        <LinkIcon className="w-4 h-4 text-zinc-500 mr-2.5 shrink-0" />
+                                        <input
+                                          disabled
+                                          type="text"
+                                          value={btn.url || `https://instagram.com/${activeAccount?.username || appUser?.username || 'shop'}`}
+                                          onChange={(e) => updateCarouselButton(activeCardIndex, bi, 'url', e.target.value)}
+                                          placeholder="https://instagram.com/username"
+                                          className="w-full bg-transparent border-none py-3 text-xs text-white focus:outline-none font-medium font-mono"
+                                        />
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {btn.type === 'web_url' && !btn.url?.includes('instagram.com') && (
                                     <div>
                                       <label className="font-sora text-[10px] font-bold text-zinc-400 tracking-wider block mb-1.5">Web Link URL</label>
                                       <div className="flex items-center bg-[#1c1b1b]/60 border border-white/10 rounded px-3 text-xs">
@@ -3869,6 +3927,46 @@ export default function DMContentEditor({ nodeId, onClose }: DMContentEditorProp
                       <span>Open on Instagram</span>
                       <ExternalLink className="w-3 h-3" />
                     </a>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Form Fields: Web Link URL format */}
+            {format === 'web_url' && (
+              <div className="space-y-6 animate-fadeIn">
+                <div className="bg-white/5 border border-white/10 p-5 rounded-2xl space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-cyan-400">
+                      <Globe className="w-5 h-5" />
+                      <h3 className="font-sora text-sm font-bold text-white">Web Link URL Card</h3>
+                    </div>
+                    <span className="text-[10px] font-bold text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" /> Browser Popup
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-400 leading-relaxed">
+                    When a user triggers or clicks this link, it opens the target website URL directly in a browser popup window.
+                  </p>
+
+                  <div className="space-y-2">
+                    <label className="font-sora text-xs font-bold text-zinc-300 block">
+                      Web Link URL
+                    </label>
+                    <div className="flex items-center bg-[#1c1b1b]/80 border border-white/10 rounded-xl px-3 text-xs focus-within:border-cyan-400/50">
+                      <Link2 className="w-4 h-4 text-cyan-400 mr-2.5 shrink-0" />
+                      <input
+                        type="text"
+                        value={webLinkUrl}
+                        onChange={(e) => setWebLinkUrl(e.target.value)}
+                        placeholder="https://example.com"
+                        className="w-full bg-transparent border-none py-3 text-xs text-white focus:outline-none font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-2 flex justify-center w-full">
+                    <WebLinkCard size="full" customUrl={webLinkUrl} customTitle={webLinkTitle} />
                   </div>
                 </div>
               </div>

@@ -117,10 +117,11 @@ export default function AutomationsDashboard() {
   const [deleteConfirmTarget, setDeleteConfirmTarget] = useState<Automation | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("automation_view_mode");
-      if (saved === "grid" || saved === "list") return saved;
+      // const saved = localStorage.getItem("automation_view_mode");
+      // if (saved === "grid" || saved === "list") return saved;
     }
-    return "grid";
+    // return "grid";
+    return "list";
   });
 
   const handleViewModeChange = (mode: "grid" | "list") => {

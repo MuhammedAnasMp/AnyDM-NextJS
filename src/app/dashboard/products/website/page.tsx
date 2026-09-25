@@ -684,7 +684,7 @@ export default function WebsiteSettingsPage() {
       id: p.id || idx,
       name: p.title || p.name || `Product #${p.id || idx + 1}`,
       price: p.price ? (String(p.price).includes("₹") ? String(p.price) : `₹${p.price}`) : "₹1,499",
-      image: p.main_media_url || p.image_url || p.images?.[0] || `https://picsum.photos/seed/prod${idx}/200/260`,
+      image: p.main_media_url || p.image_url || p.images?.[0] || `/icons/dark-placeholder.png`,
       discount: idx % 3 === 0 ? "-20%" : null,
     }))
     : [
@@ -2024,7 +2024,7 @@ export default function WebsiteSettingsPage() {
                         <div className={cn("flex gap-2", previewDevice === "mobile" ? "flex-col" : "flex-row")}>
                           <div className={cn("overflow-hidden bg-zinc-800", previewDevice === "mobile" ? "w-full aspect-[3/4]" : "w-2/5 aspect-square")}>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src="https://picsum.photos/seed/preview_pdp/200/260" alt="" className="w-full h-full object-cover" />
+                            <img src="/icons/dark-placeholder.png" alt="" className="w-full h-full object-cover" />
                           </div>
                           <div className="flex-1 space-y-2.5">
                             <div className="space-y-0.5">
@@ -2069,7 +2069,7 @@ export default function WebsiteSettingsPage() {
                                 <div key={i} className={cn("overflow-hidden", previewStyles.cardClass)}>
                                   <div className="aspect-square bg-zinc-800 overflow-hidden">
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={`https://picsum.photos/seed/rel${i}/60/60`} alt="" className="w-full h-full object-cover" />
+                                    <img src="/icons/dark-placeholder.png" alt="" className="w-full h-full object-cover" />
                                   </div>
                                   <div className="p-1">
                                     <p className={cn("text-[7px] truncate", previewStyles.textColorClass)}>Product {i}</p>
@@ -2263,7 +2263,7 @@ export default function WebsiteSettingsPage() {
                       <div className="p-3 space-y-3">
                         <div className="flex flex-col gap-2">
                           <div className="w-full aspect-[3/4] overflow-hidden bg-zinc-800">
-                            <img src="https://picsum.photos/seed/preview_pdp/200/260" alt="" className="w-full h-full object-cover" />
+                            <img src="/icons/dark-placeholder.png" alt="" className="w-full h-full object-cover" />
                           </div>
                           <div className="space-y-1">
                             <h2 className={cn("text-[10px] font-bold leading-tight", previewStyles.textColorClass)}>Summer Silk Wrap</h2>

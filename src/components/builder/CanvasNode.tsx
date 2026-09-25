@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store';
-import { updateNodePosition, selectNode, updateNodeData, removeNode, resetToPlaceholder, setLoopBackTarget, EXECUTION_COLUMNS, getNodeExecutionStep, resolveNodePosition, getNodeDimensions } from '@/store/slices/flowSlice';
+import { updateNodePosition, selectNode, updateNodeData, removeNode, resetToPlaceholder, setLoopBackTarget, EXECUTION_COLUMNS, getNodeExecutionStep, resolveNodePosition, getNodeDimensions, getHiddenNodeIds, getCardIndexForChildNode } from '@/store/slices/flowSlice';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { MessageSquare, Filter, Send, AtSign, Plus, Trophy, Gift, Sparkles, Clock, ChevronDown, Paperclip, X, Film, Headphones, Share2, Heart, Image as ImageIcon, ArrowRightFromLineIcon, FilterIcon, AlertCircle, User, UserCheck, ExternalLink, ShieldCheck, RotateCcw, Ban, SplitIcon, Cable, Plug } from 'lucide-react';
@@ -11,6 +11,7 @@ import Xarrow, { useXarrow } from 'react-xarrows';
 import { useCanvas } from './CanvasContext';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/Tooltip';
 import { InstagramProfileCard } from './InstagramProfileCard';
+import { WebLinkCard } from './WebLinkCard';
 
 const NODE_THEMES: Record<string, any> = {
     trigger: {
@@ -128,6 +129,8 @@ export function CanvasNode({ id }: { id: string }) {
     const selectedNodeId = useSelector((state: RootState) => state.flow.selectedNodeId);
     const edges = useSelector((state: RootState) => state.flow.edges);
     const nodes = useSelector((state: RootState) => state.flow.nodes);
+    const isAutoAdjustEnabled = useSelector((state: RootState) => state.flow.autoAdjust ?? true);
+    const { user: appUser, instagramAccounts } = useSelector((state: RootState) => state.auth);
     const updateXarrow = useXarrow();
     const { pan, scale, hoveredNodeId, setHoveredNodeId } = useCanvas();
     const activeFlow = React.useMemo(() => getActiveFlowPaths(hoveredNodeId, nodes, edges), [hoveredNodeId, nodes, edges]);
@@ -155,6 +158,7 @@ export function CanvasNode({ id }: { id: string }) {
     };
     const [formatMenuOpen, setFormatMenuOpen] = React.useState(false);
     const [activeLoopDragSourceId, setActiveLoopDragSourceId] = React.useState<string | null>(null);
+    const [activeCarouselIndex, setActiveCarouselIndex] = React.useState(0);
     const formatMenuRef = React.useRef<HTMLDivElement>(null);
 
     React.useEffect(() => {
@@ -196,7 +200,72 @@ export function CanvasNode({ id }: { id: string }) {
         };
     }, []);
 
-    if (!node) return null;
+    const hiddenNodeIds = React.useMemo(() => getHiddenNodeIds(nodes, edges), [nodes, edges]);
+
+    const [hoveredSubCardIdx, setHoveredSubCardIdx] = React.useState<number | null>(null);
+
+    const activeHoveredCardIdx = React.useMemo(() => {
+        if (!hoveredNodeId || !node || node.data?.dm_format !== 'generic_template' || !node.data?.show_all_cards) {
+            return null;
+        }
+
+        const queue = [hoveredNodeId];
+        const visited = new Set<string>([hoveredNodeId]);
+
+        while (queue.length > 0) {
+            const curr = queue.shift()!;
+            const inEdges = edges.filter(e => e.target === curr && !e.id.includes('loop') && !e.label?.includes('Loop'));
+            for (const edge of inEdges) {
+                if (edge.source === node.id) {
+                    const childNode = nodes.find(n => n.id === edge.target);
+                    if (childNode) {
+                        return getCardIndexForChildNode(node, childNode, edge);
+                    }
+                }
+                if (!visited.has(edge.source)) {
+                    visited.add(edge.source);
+                    queue.push(edge.source);
+                }
+            }
+        }
+
+        return null;
+    }, [hoveredNodeId, node, nodes, edges]);
+
+    const isValidLoopTargetCard = React.useMemo(() => {
+        if (!activeLoopDragSourceId || !node || activeLoopDragSourceId === node.id) return false;
+        const sourceNode = nodes.find(n => n.id === activeLoopDragSourceId);
+        if (!sourceNode) return false;
+
+        // 1. Must be a previous card (horizontally before the source node)
+        if (node.position.x >= sourceNode.position.x - 50) return false;
+
+        // 3. Branch restriction: If Following cannot connect to If Not Following & vice versa
+        const isSourceBranch = sourceNode.data?.is_cf_following || sourceNode.data?.is_cf_not_following;
+        const isTargetBranch = node.data?.is_cf_following || node.data?.is_cf_not_following;
+        if (isSourceBranch && isTargetBranch) return false;
+
+        // 4. Can't connect to starting trigger
+        if (node.type === 'trigger' || node.data?.is_icebreaker_trigger || node.data?.is_menu_trigger) return false;
+
+        // 5. Can't connect to keyword match (filter / condition)
+        if (node.type === 'condition') return false;
+
+        // 6. Can't connect to reply comment
+        if (node.data?.action_type === 'reply_comment') return false;
+
+        // 7. Can't connect to profile card or web link card
+        if (node.data?.dm_format === 'show_profile' || node.data?.is_profile_card || node.data?.dm_format === 'web_url' || node.data?.is_web_link_card) return false;
+
+        // 8. Can't connect to another loop back card
+        if (node.data?.dm_format === 'loop_back') return false;
+
+        // 9. Valid on action cards (including previous button template, carousel, text, quick reply, etc.)
+        if (node.type === 'action') return true;
+        return false;
+    }, [activeLoopDragSourceId, node, nodes]);
+
+    if (!node || hiddenNodeIds.has(id)) return null;
     const isSelected = selectedNodeId === id;
     const theme = NODE_THEMES[node.type] || NODE_THEMES.trigger;
     const Icon = theme.icon;
@@ -231,8 +300,6 @@ export function CanvasNode({ id }: { id: string }) {
     const nodeWidth = (node.data?.is_placeholder && !node.data?.messages?.length) ? 155 : (node.data?.is_cf_fork ? 40 : 320);
     const childThreshold = childExecNodes.length > 0 ? Math.min(...childExecNodes.map(c => c.position.x)) - nodeWidth - 40 : Infinity;
     const maxAllowedX = Math.min(colConfig.maxX, childThreshold);
-
-    const isAutoAdjustEnabled = useSelector((state: RootState) => state.flow.autoAdjust ?? true);
 
     const clampNodePosition = (targetX: number, targetY: number) => {
         if (!isAutoAdjustEnabled) {
@@ -324,40 +391,6 @@ export function CanvasNode({ id }: { id: string }) {
     const activeLoopEdge = edges.find(e => e.source === node.id && (e.id.includes('loop') || e.label?.includes('Loop')));
     const loopTargetNode = activeLoopEdge ? nodes.find(n => n.id === activeLoopEdge.target) : null;
 
-    // Determine if this card is a valid loop connection target (strictly previous cards, excluding same execution order step, triggers, filters, profile, comment reply, and sibling branches)
-    const isValidLoopTargetCard = React.useMemo(() => {
-        if (!activeLoopDragSourceId || activeLoopDragSourceId === node.id) return false;
-        const sourceNode = nodes.find(n => n.id === activeLoopDragSourceId);
-        if (!sourceNode) return false;
-
-        // 1. Must be a previous card (horizontally before the source node)
-        if (node.position.x >= sourceNode.position.x - 50) return false;
-
-        // 3. Branch restriction: If Following cannot connect to If Not Following & vice versa
-        const isSourceBranch = sourceNode.data?.is_cf_following || sourceNode.data?.is_cf_not_following;
-        const isTargetBranch = node.data?.is_cf_following || node.data?.is_cf_not_following;
-        if (isSourceBranch && isTargetBranch) return false;
-
-        // 4. Can't connect to starting trigger
-        if (node.type === 'trigger' || node.data?.is_icebreaker_trigger || node.data?.is_menu_trigger) return false;
-
-        // 5. Can't connect to keyword match (filter / condition)
-        if (node.type === 'condition') return false;
-
-        // 6. Can't connect to reply comment
-        if (node.data?.action_type === 'reply_comment') return false;
-
-        // 7. Can't connect to profile card
-        if (node.data?.dm_format === 'show_profile' || node.data?.is_profile_card) return false;
-
-        // 8. Can't connect to another loop back card
-        if (node.data?.dm_format === 'loop_back') return false;
-
-        // 9. Valid on action cards (including previous button template, carousel, text, quick reply, etc.)
-        if (node.type === 'action') return true;
-        return false;
-    }, [activeLoopDragSourceId, node, nodes]);
-
     // Custom overrides for action nodes as seen in the mockup
     let customPill = theme.pill;
     let customPillColor = theme.pillColor;
@@ -399,6 +432,10 @@ export function CanvasNode({ id }: { id: string }) {
                     customPill = 'INSTAGRAM';
                     customPillColor = 'bg-cyan-400 text-black font-extrabold leading-none';
                     customTitle = '👤 Show Profile View';
+                } else if (node.data.is_web_link_card || node.data.dm_format === 'web_url') {
+                    customPill = 'WEB LINK';
+                    customPillColor = 'bg-cyan-500 text-black font-extrabold leading-none';
+                    customTitle = '🌐 Open Web Link Popup';
                 } else if (node.data.parent_event === 'TRACK_ORDER') {
                     if (node.data.is_track_prompt) {
                         customPill = 'TRACK PROMPT';
@@ -763,6 +800,10 @@ export function CanvasNode({ id }: { id: string }) {
     );
 
     if (isProfileCardNode) {
+        const activeAccount = instagramAccounts?.find((acc: any) => String(acc.id) === String(appUser?.active_instagram_account_id)) || instagramAccounts?.[0];
+        const activeUsername = activeAccount?.username || appUser?.username || 'instagram';
+        const targetUrl = node.data?.profile_url || `https://instagram.com/${activeUsername}`;
+
         return (
             <motion.div
                 id={node.id}
@@ -780,11 +821,16 @@ export function CanvasNode({ id }: { id: string }) {
                         id: node.id,
                         rect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height }
                     }));
-                    setTimeout(() => {
-                        window.dispatchEvent(new CustomEvent('open-dm-format-editor', {
-                            detail: { nodeId: node.id }
-                        }));
-                    }, 50);
+                    const width = 800;
+                    const height = 600;
+                    const left = typeof window !== 'undefined' ? Math.max(0, Math.floor((window.innerWidth - width) / 2)) : 100;
+                    const top = typeof window !== 'undefined' ? Math.max(0, Math.floor((window.innerHeight - height) / 2)) : 100;
+                    const formattedUrl = targetUrl.startsWith('http://') || targetUrl.startsWith('https://') ? targetUrl : `https://${targetUrl}`;
+                    window.open(
+                        formattedUrl,
+                        'popupWindow',
+                        `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes`
+                    );
                 }}
                 className="absolute w-[320px] cursor-pointer pointer-events-auto select-none"
             >
@@ -800,7 +846,68 @@ export function CanvasNode({ id }: { id: string }) {
         );
     }
 
+    const isWebLinkNode = Boolean(
+        !node.data?.is_cf_following &&
+        !node.data?.is_cf_not_following &&
+        !node.data?.is_cf_fork &&
+        (
+            node.data?.is_web_link_card ||
+            node.data?.dm_format === 'web_url' ||
+            node.data?.parent_event === 'OPEN_WEB_LINK'
+        )
+    );
+
+    if (isWebLinkNode) {
+        const targetUrl = node.data?.url || node.data?.profile_url || 'https://example.com';
+
+        return (
+            <motion.div
+                id={node.id}
+                onPointerDown={handlePointerDown}
+                onPointerEnter={() => setHoveredNodeId && setHoveredNodeId(node.id)}
+                onPointerLeave={() => setHoveredNodeId && setHoveredNodeId(null)}
+                animate={{ x: screenX, y: screenY, scale }}
+                transition={{ duration: 0 }}
+                style={{ transformOrigin: '0 0', zIndex: isSelected ? 10 : 1 }}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    if (wasRecentlyDragged()) return;
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    dispatch(selectNode({
+                        id: node.id,
+                        rect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height }
+                    }));
+                    const width = 800;
+                    const height = 600;
+                    const left = typeof window !== 'undefined' ? Math.max(0, Math.floor((window.innerWidth - width) / 2)) : 100;
+                    const top = typeof window !== 'undefined' ? Math.max(0, Math.floor((window.innerHeight - height) / 2)) : 100;
+                    const formattedUrl = targetUrl.startsWith('http://') || targetUrl.startsWith('https://') ? targetUrl : `https://${targetUrl}`;
+                    window.open(
+                        formattedUrl,
+                        'popupWindow',
+                        `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes`
+                    );
+                }}
+                className="absolute w-[320px] cursor-pointer pointer-events-auto select-none"
+            >
+                <WebLinkCard
+                    size="canvas"
+                    customTitle={node.data?.title || node.data?.parent_label || 'Web Link Target'}
+                    customUrl={targetUrl}
+                    className={cn(
+                        isNodeActiveInFlow ? "ring-2 ring-cyan-400 border-cyan-400 shadow-[0_0_20px_rgba(34,211,238,0.4)]" : "",
+                        node.data?.validationError ? "ring-2 ring-rose-500 shadow-rose-500/30 animate-shake" : "",
+                        isSelected && !node.data?.validationError ? "ring-2 ring-cyan-400/60 border-cyan-400/60" : ""
+                    )}
+                />
+            </motion.div>
+        );
+    }
+
     const isEventReply = node.type === 'action' && !!node.data?.parent_event;
+
+    const isShowAllGenericTemplate = node.data?.dm_format === 'generic_template' && node.data?.show_all_cards;
+    const isOuterNodeActive = isNodeActiveInFlow && !isShowAllGenericTemplate;
 
     return (
         <motion.div
@@ -834,7 +941,7 @@ export function CanvasNode({ id }: { id: string }) {
             className={cn(
                 "absolute flex flex-col w-[320px] rounded-[1.25rem] border-[1px] cursor-pointer shadow-2xl pointer-events-auto transition-colors",
                 "backdrop-blur-[20px] bg-[#1c1b1b]/60",
-                isNodeActiveInFlow
+                isOuterNodeActive
                     ? "ring-2 ring-[#c4c0ff] border-[#c4c0ff] shadow-[0_0_20px_rgba(196,192,255,0.4)]"
                     : node.data?.validationError
                         ? "border-rose-500 ring-2 ring-rose-500/60 shadow-rose-500/20"
@@ -892,7 +999,7 @@ export function CanvasNode({ id }: { id: string }) {
                         <div className="w-7 h-7 rounded-md bg-[#2a2a2a] flex items-center justify-center border border-white/5 shadow-inner shrink-0">
                             <ArrowRightFromLineIcon className="w-4 h-4 text-white" />
                         </div>
-                        <h4 className="text-base font-bold text-white tracking-tight">{customTitle}</h4>
+                        <h4 className="text-[22px] font-bold text-white tracking-tight">{customTitle}</h4>
                     </div>
 
                     {/* Node Content Variations based on type and dynamic data */}
@@ -909,7 +1016,7 @@ export function CanvasNode({ id }: { id: string }) {
                                         )}
                                         <div className="flex flex-col gap-2">
                                             {(node.data?.icebreakers || []).map((ib: any, idx: number) => (
-                                                <div key={idx} className="bg-white/5 border border-[#444748] rounded-xl p-3 text-left text-xs font-semibold text-white flex items-center justify-between gap-3">
+                                                <div key={idx} className="bg-white/5 border border-[#444748] rounded-xl p-3 text-left text-[13px] font-bold text-white flex items-center justify-between gap-3">
                                                     <span>{ib.question || `Question ${idx + 1}`}</span>
                                                     {/* <span className="text-[8px] bg-[#8FE3FF]/10 text-[#8FE3FF] border border-[#8FE3FF]/20 px-1 py-0.2 rounded font-mono shrink-0 ">{ib.payload}</span> */}
                                                 </div>
@@ -935,7 +1042,7 @@ export function CanvasNode({ id }: { id: string }) {
                                         )}
                                         <div className="flex flex-col gap-2">
                                             {(node.data?.persistent_menu_items || []).map((item: any, idx: number) => (
-                                                <div key={idx} className="bg-white/5 border border-[#444748] rounded-xl p-3 text-left text-xs font-semibold text-white flex items-center justify-between gap-3">
+                                                <div key={idx} className="bg-white/5 border border-[#444748] rounded-xl p-3 text-left text-[13px] font-bold text-white flex items-center justify-between gap-3">
                                                     <span className="truncate">{item.title || `Button ${idx + 1}`}</span>
                                                 </div>
                                             ))}
@@ -1229,12 +1336,12 @@ export function CanvasNode({ id }: { id: string }) {
                                         }}
                                         className="bg-black/35 hover:bg-[#c4c0ff]/5 border border-white/5 hover:border-[#c4c0ff]/45 rounded-xl overflow-hidden flex flex-col transition-all"
                                     >
-                                        <div className="p-3.5 text-xs text-zinc-200 font-semibold border-b border-white/5 text-left bg-zinc-900/10">
+                                        <div className="p-3.5 text-[13px] text-zinc-100 font-bold border-b border-white/5 text-left bg-zinc-900/10">
                                             {node.data?.button_template_text || 'What would you like to do?'}
                                         </div>
                                         <div className="flex flex-col divide-y divide-white/5 bg-zinc-950/20">
                                             {buttons.map((btn: any, idx: number) => (
-                                                <span key={idx} className="py-2.5 text-xs text-[#3797F0] font-bold text-center">
+                                                <span key={idx} className="py-2.5 text-[13px] text-[#3797F0] font-extrabold text-center">
                                                     {btn.title || 'Button'}
                                                 </span>
                                             ))}
@@ -1247,51 +1354,181 @@ export function CanvasNode({ id }: { id: string }) {
                             })()}
 
                             {node.data?.dm_format === 'generic_template' && (() => {
-                                let elements = [];
+                                let elements: any[] = [];
                                 const elemsJson = node.data?.generic_template_elements_json;
                                 if (typeof elemsJson === 'string' && elemsJson.trim()) {
                                     try { elements = JSON.parse(elemsJson); } catch (e) { }
                                 } else if (Array.isArray(elemsJson)) {
                                     elements = elemsJson;
                                 }
-                                const firstElem = elements[0] || {};
+                                const activeCardIdx = typeof node.data?.active_card_index === 'number' ? node.data.active_card_index : 0;
+                                const safeIndex = Math.min(activeCardIdx, Math.max(0, elements.length - 1));
+                                const showAllCards = !!node.data?.show_all_cards;
+                                const displayElements = showAllCards ? elements : [elements[safeIndex] || elements[0] || {}];
+
                                 return (
-                                    <div
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            if (wasRecentlyDragged()) return;
-                                            window.dispatchEvent(new CustomEvent('open-dm-format-editor', {
-                                                detail: { nodeId: node.id }
-                                            }));
-                                        }}
-                                        className="bg-black/35 hover:bg-[#c4c0ff]/5 border border-white/5 hover:border-[#c4c0ff]/45 rounded-xl overflow-hidden flex flex-col transition-all"
-                                    >
-                                        {firstElem.image_url ? (
-                                            <div className="h-26 w-full bg-zinc-950 overflow-hidden relative border-b border-white/5 shrink-0">
-                                                <img src={firstElem.image_url} alt="" className="w-full h-full object-cover" />
-                                                <span className="absolute bottom-1.5 right-2 bg-black/85 px-2 py-0.5 rounded text-[8.5px] font-bold text-white tracking-wider">
-                                                    1 of {elements.length} Cards
+                                    <div className={cn(
+                                        "bg-black/35 border border-white/5 rounded-xl flex flex-col transition-all",
+                                        showAllCards ? "p-1.5 gap-2.5" : "overflow-hidden hover:bg-[#c4c0ff]/5 hover:border-[#c4c0ff]/45"
+                                    )}>
+                                        {elements.length > 1 && (
+                                            <div
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="flex items-center justify-between bg-zinc-950/90 border-b border-white/10 px-3 py-1.5 no-drag select-none rounded-lg"
+                                            >
+                                                <span className="text-[11px] font-extrabold text-zinc-300">
+                                                    {showAllCards ? `All ${elements.length} Cards` : `Card ${safeIndex + 1} of ${elements.length}`}
                                                 </span>
-                                            </div>
-                                        ) : (
-                                            <div className="h-16 w-full bg-white/5 flex flex-col items-center justify-center text-[10px] font-bold text-zinc-500 border-b border-white/5">
-                                                <span>Carousel Slider</span>
-                                                <span className="text-[8.5px] opacity-60">({elements.length} card templates)</span>
+                                                <div className="flex items-center gap-1 overflow-x-auto invisible-scrollbar">
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            const newVal = !showAllCards;
+                                                            dispatch(updateNodeData({ id: node.id, key: 'show_all_cards', value: newVal }));
+                                                            setTimeout(() => {
+                                                                window.dispatchEvent(new CustomEvent('update-xarrow'));
+                                                            }, 50);
+                                                        }}
+                                                        className={cn(
+                                                            "px-2 py-0.5 rounded text-[10.5px] font-extrabold transition-all cursor-pointer border flex items-center gap-1 select-none shrink-0",
+                                                            showAllCards
+                                                                ? "bg-purple-600/30 text-purple-300 border-purple-500/50 shadow-sm font-black"
+                                                                : "bg-white/5 text-zinc-400 hover:text-white border-white/10 hover:bg-white/10"
+                                                        )}
+                                                        title="Show all card flows"
+                                                    >
+                                                        <span className={cn("w-1.5 h-1.5 rounded-full", showAllCards ? "bg-purple-400 animate-pulse" : "bg-zinc-500")} />
+                                                        All
+                                                    </button>
+                                                    {elements.map((_: any, i: number) => (
+                                                        <button
+                                                            key={i}
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                dispatch(updateNodeData({ id: node.id, key: 'show_all_cards', value: false }));
+                                                                setActiveCarouselIndex(i);
+                                                                dispatch(updateNodeData({ id: node.id, key: 'active_card_index', value: i }));
+                                                                setTimeout(() => {
+                                                                    window.dispatchEvent(new CustomEvent('update-xarrow'));
+                                                                }, 50);
+                                                            }}
+                                                            className={cn(
+                                                                "px-2 py-0.5 rounded text-[10.5px] font-extrabold transition-all cursor-pointer border shrink-0",
+                                                                !showAllCards && i === safeIndex
+                                                                    ? "bg-[#c4c0ff] text-black border-[#c4c0ff] shadow-sm font-black"
+                                                                    : "bg-white/5 text-zinc-400 hover:text-white border-white/10 hover:bg-white/10"
+                                                            )}
+                                                        >
+                                                            {i + 1}
+                                                        </button>
+                                                    ))}
+                                                </div>
                                             </div>
                                         )}
-                                        <div className="p-3 flex flex-col bg-[#121212] justify-center min-h-[52px] border-b border-white/5">
-                                            <span className="text-xs font-bold text-white truncate text-left">{firstElem.title || 'Slide Title'}</span>
-                                            <span className="text-[9.5px] text-zinc-400 mt-0.5 truncate text-left">{firstElem.subtitle || 'Slide Description'}</span>
+                                        <div
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (wasRecentlyDragged()) return;
+                                                window.dispatchEvent(new CustomEvent('open-dm-format-editor', {
+                                                    detail: { nodeId: node.id }
+                                                }));
+                                            }}
+                                            className={cn(
+                                                "cursor-pointer flex flex-col",
+                                                showAllCards ? "gap-2.5" : "divide-y divide-white/10"
+                                            )}
+                                        >
+                                            {(() => {
+                                                const effectiveHoveredCardIdx = activeHoveredCardIdx !== null ? activeHoveredCardIdx : hoveredSubCardIdx;
+                                                const hasHoverInContainer = showAllCards && effectiveHoveredCardIdx !== null;
+
+                                                return displayElements.map((elem: any, idx: number) => {
+                                                    const actualCardIndex = showAllCards ? idx : safeIndex;
+                                                    const cardHandleId = `gt-card-${node.id}-${actualCardIndex}`;
+                                                    const isSpecificCardActive = showAllCards && effectiveHoveredCardIdx === actualCardIndex;
+
+                                                    return (
+                                                        <div
+                                                            key={idx}
+                                                            id={cardHandleId}
+                                                            onMouseEnter={() => {
+                                                                if (!showAllCards) return;
+                                                                setHoveredSubCardIdx(actualCardIndex);
+                                                                const cardEdge = edges.find(e => {
+                                                                    if (e.source !== node.id) return false;
+                                                                    const child = nodes.find(n => n.id === e.target);
+                                                                    return child && getCardIndexForChildNode(node, child, e) === actualCardIndex;
+                                                                });
+                                                                if (cardEdge) {
+                                                                    setHoveredNodeId(cardEdge.target);
+                                                                }
+                                                            }}
+                                                            onMouseLeave={() => {
+                                                                if (!showAllCards) return;
+                                                                setHoveredSubCardIdx(null);
+                                                                setHoveredNodeId(null);
+                                                            }}
+                                                            className={cn(
+                                                                "flex flex-col relative transition-all duration-200 group/gt-card rounded-xl border border-white/10 overflow-hidden",
+                                                                showAllCards && (
+                                                                    isSpecificCardActive
+                                                                        ? "ring-2 ring-[#c4c0ff] border-[#c4c0ff] bg-[#c4c0ff]/10 z-20 shadow-[0_0_20px_rgba(196,192,255,0.4)] scale-[1.01]"
+                                                                        : hasHoverInContainer
+                                                                            ? "opacity-40 grayscale-[20%]"
+                                                                            : "hover:border-white/20"
+                                                                )
+                                                            )}
+                                                        >
+                                                            {showAllCards && (
+                                                                <div
+                                                                    className={cn(
+                                                                        "absolute -right-1 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full border-2 border-zinc-950 shadow-md flex items-center justify-center z-30 pointer-events-none transition-all duration-200",
+                                                                        isSpecificCardActive
+                                                                            ? "bg-[#c4c0ff] ring-2 ring-[#c4c0ff]/80 scale-125 shadow-[0_0_10px_rgba(196,192,255,0.9)]"
+                                                                            : "bg-[#c4c0ff]/60"
+                                                                    )}
+                                                                >
+                                                                    <div className={cn("w-0.5 h-0.5 rounded-full", isSpecificCardActive ? "bg-black font-extrabold" : "bg-black")} />
+                                                                </div>
+                                                            )}
+                                                            {showAllCards && elements.length > 1 && (
+                                                                <div className="bg-zinc-900/80 px-3 py-1 text-[10px] font-extrabold text-purple-300 border-b border-white/5 flex items-center justify-between">
+                                                                    <span>Template Card #{actualCardIndex + 1}</span>
+                                                                </div>
+                                                            )}
+                                                            {elem.image_url ? (
+                                                                <div className="h-28 w-full bg-zinc-950 overflow-hidden relative border-b border-white/5 shrink-0">
+                                                                    <img src={elem.image_url} alt="" className="w-full h-full object-cover" />
+                                                                    <span className="absolute bottom-1.5 right-2 bg-black/85 px-2 py-0.5 rounded text-[9.5px] font-bold text-white tracking-wider">
+                                                                        Card #{actualCardIndex + 1}
+                                                                    </span>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="h-16 w-full bg-white/5 flex flex-col items-center justify-center text-[11px] font-bold text-zinc-400 border-b border-white/5">
+                                                                    <span>Carousel Card #{actualCardIndex + 1}</span>
+                                                                    <span className="text-[9.5px] opacity-70">({elements.length} card templates)</span>
+                                                                </div>
+                                                            )}
+                                                            <div className="p-3 flex flex-col bg-[#121212] justify-center min-h-[52px] border-b border-white/5">
+                                                                <span className="text-[13px] font-bold text-white truncate text-left">{elem.title || `Card ${actualCardIndex + 1} Title`}</span>
+                                                                <span className="text-[11px] text-zinc-400 mt-0.5 truncate text-left">{elem.subtitle || 'Slide Description'}</span>
+                                                            </div>
+                                                            {elem.buttons && elem.buttons.length > 0 && (
+                                                                <div className="flex flex-col divide-y divide-white/5 bg-zinc-950/20">
+                                                                    {elem.buttons.map((btn: any, bi: number) => (
+                                                                        <span key={bi} className="py-2.5 text-[12.5px] text-[#3797F0] font-bold text-center">
+                                                                            {btn.title || 'Button'}
+                                                                        </span>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                });
+                                            })()}
                                         </div>
-                                        {firstElem.buttons && firstElem.buttons.length > 0 && (
-                                            <div className="flex flex-col divide-y divide-white/5 bg-zinc-950/20">
-                                                {firstElem.buttons.map((btn: any, bi: number) => (
-                                                    <span key={bi} className="py-2.5 text-xs text-[#3797F0] font-bold text-center">
-                                                        {btn.title || 'Button'}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        )}
                                     </div>
                                 );
                             })()}
@@ -1709,6 +1946,8 @@ export function CanvasEdges() {
     const updateXarrow = useXarrow();
     const [badgeOffsets, setBadgeOffsets] = React.useState<Record<string, { x: number; y: number }>>({});
 
+    const hiddenNodeIds = React.useMemo(() => getHiddenNodeIds(nodes, edges), [nodes, edges]);
+
     const activeFlow = React.useMemo(() => getActiveFlowPaths(hoveredNodeId, nodes, edges), [hoveredNodeId, nodes, edges]);
 
     const xarrowRafRef = React.useRef<number | null>(null);
@@ -1724,6 +1963,8 @@ export function CanvasEdges() {
     return (
         <>
             {edges.map(edge => {
+                if (hiddenNodeIds.has(edge.source) || hiddenNodeIds.has(edge.target)) return null;
+
                 const isFollowingEdge = edge.label === 'If Following';
                 const isNotFollowingEdge = edge.label === 'If Not Following';
                 const isLoopEdge = edge.id.includes('loop') || edge.label?.includes('Loop');
@@ -1824,21 +2065,33 @@ export function CanvasEdges() {
                             />
 
                             {/* Segment 1: Source bottom side into the EXACT RIGHT handle of the badge */}
-                            <Xarrow
-                                key={`seg1-${edge.id}`}
-                                start={edge.source}
-                                end={`loop-badge-in-${edge.id}`}
-                                color={isActiveEdge ? "#c4c0ff" : "#c4c0ff"}
-                                strokeWidth={(isActiveEdge ? 2 : 1.75) * scale}
-                                path="smooth"
-                                showHead={false}
-                                curveness={0.55}
-                                startAnchor="bottom"
-                                endAnchor="right"
-                                dashness={{ strokeLen: 6, nonStrokeLen: 6 }}
-                                zIndex={0}
-                                passProps={{ className: loopClassName }}
-                            />
+                            {(() => {
+                                let loopStartId = edge.source;
+                                if (sNode?.data?.dm_format === 'generic_template' && sNode.data?.show_all_cards && tNode) {
+                                    const cardIdx = getCardIndexForChildNode(sNode, tNode, edge);
+                                    const cardHandleId = `gt-card-${sNode.id}-${cardIdx}`;
+                                    if (typeof window !== 'undefined' && document.getElementById(cardHandleId)) {
+                                        loopStartId = cardHandleId;
+                                    }
+                                }
+                                return (
+                                    <Xarrow
+                                        key={`seg1-${edge.id}`}
+                                        start={loopStartId}
+                                        end={`loop-badge-in-${edge.id}`}
+                                        color={isActiveEdge ? "#c4c0ff" : "#c4c0ff"}
+                                        strokeWidth={(isActiveEdge ? 2 : 1.75) * scale}
+                                        path="smooth"
+                                        showHead={false}
+                                        curveness={0.55}
+                                        startAnchor="bottom"
+                                        endAnchor="right"
+                                        dashness={{ strokeLen: 6, nonStrokeLen: 6 }}
+                                        zIndex={0}
+                                        passProps={{ className: loopClassName }}
+                                    />
+                                );
+                            })()}
 
                             {/* Segment 2: Exits horizontally from EXACT LEFT handle of the badge into BOTTOM of previous card */}
                             <Xarrow
@@ -1863,10 +2116,22 @@ export function CanvasEdges() {
                 const stdClassName = isActiveEdge ? "active-flow-wire-path" : "";
                 const stdDashness = isActiveEdge ? { strokeLen: 6, nonStrokeLen: 6 } : false;
 
+                const sourceNode = nodes.find(n => n.id === edge.source);
+                const targetNode = nodes.find(n => n.id === edge.target);
+
+                let startId = edge.source;
+                if (sourceNode?.data?.dm_format === 'generic_template' && sourceNode.data?.show_all_cards && targetNode) {
+                    const cardIdx = getCardIndexForChildNode(sourceNode, targetNode, edge);
+                    const cardHandleId = `gt-card-${sourceNode.id}-${cardIdx}`;
+                    if (typeof window !== 'undefined' && document.getElementById(cardHandleId)) {
+                        startId = cardHandleId;
+                    }
+                }
+
                 return (
                     <Xarrow
                         key={edge.id}
-                        start={edge.source}
+                        start={startId}
                         end={edge.target}
                         color={edgeColor}
                         strokeWidth={(isActiveEdge ? 2 : 1.75) * scale}

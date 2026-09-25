@@ -27,6 +27,7 @@ import {
   ImageIcon
 } from 'lucide-react';
 import { InstagramProfileCard } from './InstagramProfileCard';
+import { WebLinkCard } from './WebLinkCard';
 
 // Define simulation steps
 export type SimStep =
@@ -84,7 +85,7 @@ export default function SimulationWalkthrough({ onRestartRequest, onStepChange }
   const mediaDetails = triggerNode?.data?.media_ids_details || [];
   const selectedMedia = mediaDetails[0];
 
-  const postMediaUrl = selectedMedia?.media_url || selectedMedia?.thumbnail_url || "https://picsum.photos/seed/vibrant/400/250";
+  const postMediaUrl = selectedMedia?.media_url || selectedMedia?.thumbnail_url || "/icons/dark-placeholder.png";
   const postCaption = selectedMedia?.caption || triggerNode?.data?.caption || "Our new collection details are finally live! Comment below for early discount code ⚡🎁";
 
   // Extract condition
@@ -152,7 +153,7 @@ export default function SimulationWalkthrough({ onRestartRequest, onStepChange }
     if (!raw) return [{
       title: 'Welcome Product',
       subtitle: 'Premium quality slider description.',
-      image_url: 'https://picsum.photos/seed/product1/170/80',
+      image_url: '/icons/dark-placeholder.png',
       default_action: { type: 'web_url', url: 'https://shop.example.com' },
       buttons: [{ type: 'web_url', title: '🛒 Buy Now', url: 'https://shop.example.com' }]
     }];
@@ -747,6 +748,21 @@ export default function SimulationWalkthrough({ onRestartRequest, onStepChange }
                               {buttons.map((btn: any, idx: number) => (
                                 <button
                                   key={idx}
+                                  onClick={() => {
+                                    if (btn.type === 'web_url' || btn.url) {
+                                      const width = 800;
+                                      const height = 600;
+                                      const left = typeof window !== 'undefined' ? Math.max(0, Math.floor((window.innerWidth - width) / 2)) : 100;
+                                      const top = typeof window !== 'undefined' ? Math.max(0, Math.floor((window.innerHeight - height) / 2)) : 100;
+                                      const targetUrl = btn.url || 'https://example.com';
+                                      const formattedUrl = targetUrl.startsWith('http://') || targetUrl.startsWith('https://') ? targetUrl : `https://${targetUrl}`;
+                                      window.open(
+                                        formattedUrl,
+                                        'popupWindow',
+                                        `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes`
+                                      );
+                                    }
+                                  }}
                                   className="w-full py-2 rounded-lg bg-white/5 border border-white/5 text-[10px] font-bold text-white hover:bg-white/10 transition-all flex items-center justify-center gap-1 cursor-pointer"
                                 >
                                   <span>{btn.title || btn.name || 'Buy'}</span>
@@ -813,6 +829,13 @@ export default function SimulationWalkthrough({ onRestartRequest, onStepChange }
                           {dmFormat === 'show_profile' && (
                             <div className="w-full max-w-[245px] animate-fadeIn">
                               <InstagramProfileCard size="compact" />
+                            </div>
+                          )}
+
+                          {/* Web Link format */}
+                          {dmFormat === 'web_url' && (
+                            <div className="w-full max-w-[245px] animate-fadeIn">
+                              <WebLinkCard size="compact" customUrl={sendDmAction?.data?.url} customTitle={sendDmAction?.data?.title} />
                             </div>
                           )}
 

@@ -407,7 +407,7 @@ export function Topbar({ onTogglePreview, showPreview }: { onTogglePreview: () =
                     ? `From ${startFormatted}`
                     : 'Always Active'}
               </span>
-              <ChevronDown className={cn("w-3 h-3 text-zinc-400 transition-transform duration-200", showSchedulePopover && "rotate-180")} />
+              <ChevronDown className={cn("w-3 h-3 text-white transition-transform duration-200", showSchedulePopover && "rotate-180")} />
             </button>
 
             {showSchedulePopover && (

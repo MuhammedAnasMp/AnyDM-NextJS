@@ -2,11 +2,12 @@
 
 import * as React from 'react';
 import { useState } from 'react';
-import { MessageSquare, Mail, History, ShoppingBag, Trophy, Sparkles, Menu as MenuIcon, Loader2, X, PillIcon, ChevronLeft, ChevronRight, HdIcon, FocusIcon, MinusIcon, PlusIcon } from 'lucide-react';
+import { MessageSquare, Mail, History, ShoppingBag, Trophy, Sparkles, Menu as MenuIcon, Loader2, X, PillIcon, ChevronLeft, ChevronRight, HdIcon, FocusIcon, MinusIcon, PlusIcon, Magnet } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import DMContentEditor from '@/components/builder/WelcomeContentEditor';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '@/store';
+import { setFlow, toggleAutoAdjust } from '@/store/slices/flowSlice';
 import { getCategoryForTemplate } from './TemplateItem';
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/Tooltip';
@@ -135,7 +136,7 @@ function ZoomLevelDisplay() {
 }
 
 export function LeftSidebar() {
-
+  const dispatch = useDispatch();
   const searchParams = useSearchParams();
   const router = useRouter();
   const flowId = searchParams.get('id');
@@ -147,7 +148,12 @@ export function LeftSidebar() {
 
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [isLoadingWelcome, setIsLoadingWelcome] = useState<'icebreakers' | 'persistent_menu' | null>(null);
-  const [welcomeTab, setWelcomeTab] = useState<'icebreakers' | 'persistent_menu' | 'closed' | null>(urlWelcome);
+  const [welcomeTab, setWelcomeTab] = useState<'icebreakers' | 'persistent_menu' | 'closed' | null>(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 640 && initParam && !welcomeParam) {
+      return 'closed';
+    }
+    return urlWelcome;
+  });
   const [lastWelcomeTab, setLastWelcomeTab] = useState<'icebreakers' | 'persistent_menu'>('icebreakers');
 
   const nodes = useSelector((state: RootState) => state.flow.nodes);
@@ -205,8 +211,15 @@ export function LeftSidebar() {
     const handleToggle = () => {
       setIsPanelCollapsed(prev => !prev);
     };
+    const handleClose = () => {
+      setWelcomeTab('closed');
+    };
     window.addEventListener('toggle-welcome-panel', handleToggle);
-    return () => window.removeEventListener('toggle-welcome-panel', handleToggle);
+    window.addEventListener('close-welcome-panel', handleClose);
+    return () => {
+      window.removeEventListener('toggle-welcome-panel', handleToggle);
+      window.removeEventListener('close-welcome-panel', handleClose);
+    };
   }, []);
 
   React.useEffect(() => {
@@ -217,7 +230,7 @@ export function LeftSidebar() {
     return () => window.removeEventListener('schedule-popover-state', handleScheduleState);
   }, []);
 
-  // Hide entire sidebar if editing a regular flow (non-welcome flow) with mode=edit or if user collapsed panel
+  // Hide entire sidebar if editing a regular flow (non-welcome flow) with mode=edit or if user explicitly collapsed panel via top button
   if (isPanelCollapsed || (isEditMode && !activeWelcomeTab)) {
     return null;
   }
@@ -227,13 +240,6 @@ export function LeftSidebar() {
     setActiveCategory(next);
     if (next !== null) {
       setWelcomeTab('closed');
-      if (typeof window !== 'undefined') {
-        const params = new URLSearchParams(window.location.search);
-        params.delete('welcome');
-        params.delete('canvas_init');
-        const newSearch = params.toString() ? `?${params.toString()}` : window.location.pathname;
-        window.history.replaceState({}, '', newSearch);
-      }
     }
   };
 
@@ -241,13 +247,6 @@ export function LeftSidebar() {
     setLastWelcomeTab(tab);
     if (activeWelcomeTab === tab) {
       setWelcomeTab('closed');
-      if (typeof window !== 'undefined') {
-        const params = new URLSearchParams(window.location.search);
-        params.delete('welcome');
-        params.delete('canvas_init');
-        const newSearch = params.toString() ? `?${params.toString()}` : window.location.pathname;
-        window.history.replaceState({}, '', newSearch);
-      }
       return;
     }
     setIsLoadingWelcome(tab);
@@ -261,12 +260,12 @@ export function LeftSidebar() {
       if (match) {
         // Load the flow in canvas (client-side, no reload — local state preserved)
         router.push(`/dashboard/automations?id=${match.id}`);
+        setWelcomeTab(tab);
       } else {
         // Empty canvas with init card — use canvas_init param (not 'open' which triggers popup)
         router.push(`/dashboard/automations?canvas_init=${tab}`);
+        setWelcomeTab(tab);
       }
-      // Show mock UI panel in sidebar
-      setWelcomeTab(tab);
     } catch {
       router.push(`/dashboard/automations?canvas_init=${tab}`);
       setWelcomeTab(tab);
@@ -367,30 +366,51 @@ export function LeftSidebar() {
                 <span>☰ Persistent Menu</span>
               </TooltipContent>
             </Tooltip>
-            {/* Mobile-only zoom controls at bottom of rail */}
+            {/* Mobile-only zoom & alignment controls at bottom of rail */}
             <div className="sm:hidden mt-auto flex flex-col items-center gap-1 pb-6">
               <div className="w-8 h-px bg-white/10 mb-1" />
               <button
                 onClick={() => window.dispatchEvent(new CustomEvent('canvas-zoom-in'))}
                 className="w-8 h-8 rounded-lg flex items-center justify-center text-white/50 hover:text-white hover:bg-white/5 transition-all"
+                title="Zoom In"
               >
                 <PlusIcon size={15} />
-                {/* <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg> */}
               </button>
               <ZoomLevelDisplay />
               <button
                 onClick={() => window.dispatchEvent(new CustomEvent('canvas-zoom-out'))}
                 className="w-8 h-8 rounded-lg flex items-center justify-center text-white/50 hover:text-white hover:bg-white/5 transition-all"
+                title="Zoom Out"
               >
                 <MinusIcon size={15} />
-                {/* <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12" /></svg> */}
               </button>
               <button
                 onClick={() => window.dispatchEvent(new CustomEvent('canvas-focus-flow'))}
                 className="w-8 h-8 rounded-lg flex items-center justify-center text-white/50 hover:text-white hover:bg-white/5 transition-all"
-                title="Focus"
+                title="Focus Flow"
               >
                 <FocusIcon size={15} />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  dispatch(toggleAutoAdjust());
+                  setTimeout(() => window.dispatchEvent(new CustomEvent('update-xarrow')), 50);
+                  setTimeout(() => window.dispatchEvent(new CustomEvent('update-xarrow')), 150);
+                }}
+                className={cn(
+                  "w-8 h-8 rounded-lg flex items-center justify-center transition-all cursor-pointer border select-none",
+                  flow.autoAdjust !== false
+                    ? "bg-[#1e1b4b] border-[#c4c0ff]/50 text-[#c4c0ff] shadow-md shadow-[#c4c0ff]/10"
+                    : "bg-white/5 border-white/10 text-white/50 hover:text-white hover:bg-white/5"
+                )}
+                title={
+                  flow.autoAdjust !== false
+                    ? "Auto Adjust: ENABLED (Cards auto-align to columns). Click to allow free placement anywhere."
+                    : "Auto Adjust: DISABLED (Free Placement mode). Click to enable auto column alignment."
+                }
+              >
+                <Magnet className={cn("w-3.5 h-3.5", flow.autoAdjust !== false ? "text-[#c4c0ff]" : "text-white/50")} />
               </button>
             </div>
 
@@ -427,15 +447,7 @@ export function LeftSidebar() {
                 </div>
               </div>
 
-              <div
-                onClickCapture={() => {
-                  // Hide the template selection panel after a template is chosen
-                  setTimeout(() => {
-                    setActiveCategory(null);
-                  }, 150);
-                }}
-                className="flex-1 overflow-y-auto p-2 sm:p-3 space-y-1.5 pb-10 scrollbar-thin scrollbar-thumb-white/5"
-              >
+              <div className="flex-1 overflow-y-auto p-2 sm:p-3 space-y-1.5 pb-10 scrollbar-thin scrollbar-thumb-white/5">
                 {activeCategoryData.Components.map((Component, i) => (
                   <Component key={i} />
                 ))}
@@ -461,7 +473,7 @@ export function LeftSidebar() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: '-100%' }}
               transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-              className="h-full bg-[#131313] border-r border-[#393939] flex flex-col shadow-2xl relative w-[254px] sm:w-[360px]"
+              className="h-full bg-[#131313] border-r border-[#393939] flex flex-col shadow-2xl relative w-[280px] sm:w-[360px] max-w-[calc(100vw-44px)]"
             >
               <div className="px-2 py-2 sm:px-5 sm:pt-5 sm:pb-4 border-b border-[#2d2d2d] flex items-center justify-between shrink-0">
                 <div>
@@ -483,16 +495,7 @@ export function LeftSidebar() {
               {/* Floating Toggle Button on Right Edge of Mock UI Panel */}
               <button
                 type="button"
-                onClick={() => {
-                  setWelcomeTab('closed');
-                  if (typeof window !== 'undefined') {
-                    const params = new URLSearchParams(window.location.search);
-                    params.delete('welcome');
-                    params.delete('canvas_init');
-                    const newSearch = params.toString() ? `?${params.toString()}` : window.location.pathname;
-                    window.history.replaceState({}, '', newSearch);
-                  }
-                }}
+                onClick={() => setWelcomeTab('closed')}
                 className="absolute top-1/2 -right-4 -translate-y-1/2 w-8 h-8 rounded-full bg-[#1c1b1b] border border-[#20201f] hover:bg-[#2c2c2c] hover:border-zinc-500 text-zinc-400 hover:text-white flex items-center justify-center shadow-md cursor-pointer z-50 transition-all duration-200"
                 title="Hide Panel"
               >

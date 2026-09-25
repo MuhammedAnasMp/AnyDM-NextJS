@@ -61,7 +61,7 @@ export function getNodeDimensions(node: FlowNode): { width: number; height: numb
     if (node.data?.is_placeholder && !node.data?.messages?.length && node.type === 'action') {
         return { width: 155, height: 240 };
     }
-    if (node.data?.dm_format === 'show_profile' || node.data?.is_profile_card) {
+    if (node.data?.dm_format === 'show_profile' || node.data?.is_profile_card || node.data?.dm_format === 'web_url' || node.data?.is_web_link_card) {
         return { width: 320, height: 260 };
     }
     if (node.type === 'trigger') {
@@ -75,6 +75,18 @@ export function getNodeDimensions(node: FlowNode): { width: number; height: numb
     }
     if (node.type === 'reward') {
         return { width: 320, height: 220 };
+    }
+    if (node.data?.dm_format === 'generic_template') {
+        let elems = 1;
+        const elemsJson = node.data?.generic_template_elements_json;
+        if (typeof elemsJson === 'string' && elemsJson.trim()) {
+            try { elems = JSON.parse(elemsJson).length || 1; } catch (e) { }
+        } else if (Array.isArray(elemsJson)) {
+            elems = elemsJson.length || 1;
+        }
+        if (node.data?.show_all_cards && elems > 1) {
+            return { width: 320, height: Math.max(280, elems * 200) };
+        }
     }
     // Default action card
     return { width: 320, height: 280 };
@@ -246,11 +258,111 @@ const deleteNodeRecursively = (state: FlowState, nodeId: string, visited: Set<st
     state.nodes = state.nodes.filter(n => n.id !== nodeId);
 };
 
+export const getCardIndexForChildNode = (
+    gNode: FlowNode,
+    childNode: FlowNode,
+    edge?: FlowEdge
+): number => {
+    if (typeof childNode.data?.parent_card_index === 'number') {
+        return childNode.data.parent_card_index;
+    }
+
+    let elements: any[] = [];
+    const elemsJson = gNode.data?.generic_template_elements_json;
+    if (typeof elemsJson === 'string' && elemsJson.trim()) {
+        try { elements = JSON.parse(elemsJson); } catch (e) { }
+    } else if (Array.isArray(elemsJson)) {
+        elements = elemsJson;
+    }
+
+    if (elements.length <= 1) return 0;
+
+    const edgeLabel = (edge?.label || '').trim().toLowerCase();
+    const parentEvent = childNode.data?.parent_event;
+    const parentLabel = (childNode.data?.parent_label || '').trim().toLowerCase();
+
+    // 1. First pass: Match by exact title of button (edge label or parent label)
+    for (let i = 0; i < elements.length; i++) {
+        const buttons = elements[i]?.buttons || [];
+        for (const btn of buttons) {
+            const btnTitle = (btn.title || '').trim().toLowerCase();
+            if (btnTitle && (edgeLabel === btnTitle || parentLabel === btnTitle)) {
+                return i;
+            }
+        }
+    }
+
+    // 2. Second pass: Match custom payload
+    for (let i = 0; i < elements.length; i++) {
+        const buttons = elements[i]?.buttons || [];
+        for (const btn of buttons) {
+            const btnPayload = btn.payload || '';
+            if (parentEvent && btnPayload && parentEvent === btnPayload && !['CHECK_FOLLOW', 'SHOW_PROFILE', 'OPEN_WEB_LINK', 'TRACK_ORDER'].includes(btnPayload)) {
+                return i;
+            }
+        }
+    }
+
+    // 3. Third pass: Match standard built-in payloads if button present
+    for (let i = 0; i < elements.length; i++) {
+        const buttons = elements[i]?.buttons || [];
+        for (const btn of buttons) {
+            const btnPayload = btn.payload || '';
+            if (parentEvent === 'CHECK_FOLLOW' && btnPayload === 'CHECK_FOLLOW') return i;
+            if (parentEvent === 'SHOW_PROFILE' && (btn.is_profile_button || btnPayload === 'SHOW_PROFILE')) return i;
+            if (parentEvent === 'OPEN_WEB_LINK' && btn.type === 'web_url' && !btn.is_profile_button) return i;
+            if (parentEvent === 'TRACK_ORDER' && btnPayload === 'TRACK_ORDER') return i;
+        }
+    }
+
+    return 0;
+};
+
+export const getHiddenNodeIds = (nodes: FlowNode[], edges: FlowEdge[]): Set<string> => {
+    const hidden = new Set<string>();
+
+    const genericNodes = nodes.filter(
+        n => n.type === 'action' && n.data?.dm_format === 'generic_template'
+    );
+
+    genericNodes.forEach(gNode => {
+        if (gNode.data?.show_all_cards) {
+            return;
+        }
+        const activeCardIdx = typeof gNode.data?.active_card_index === 'number' ? gNode.data.active_card_index : 0;
+        const outgoingEdges = edges.filter(e => e.source === gNode.id && !e.id.includes('loop') && !e.label?.includes('Loop'));
+
+        outgoingEdges.forEach(edge => {
+            const childNode = nodes.find(n => n.id === edge.target);
+            if (childNode) {
+                const childCardIdx = getCardIndexForChildNode(gNode, childNode, edge);
+                if (childCardIdx !== activeCardIdx) {
+                    const stack = [childNode.id];
+                    while (stack.length > 0) {
+                        const currId = stack.pop()!;
+                        if (!hidden.has(currId)) {
+                            hidden.add(currId);
+                            const subEdges = edges.filter(e => e.source === currId && !e.id.includes('loop') && !e.label?.includes('Loop'));
+                            subEdges.forEach(se => {
+                                if (!hidden.has(se.target)) {
+                                    stack.push(se.target);
+                                }
+                            });
+                        }
+                    }
+                }
+            }
+        });
+    });
+
+    return hidden;
+};
+
 const syncLinkedNodes = (state: FlowState, nodeId: string) => {
     const node = state.nodes.find(n => n.id === nodeId);
     if (!node) return;
 
-    const activeEvents: { payload: string; label: string }[] = [];
+    const activeEvents: { payload: string; label: string; card_index?: number }[] = [];
 
     if (node.type === 'trigger') {
         if (node.data?.is_icebreaker_trigger) {
@@ -299,6 +411,11 @@ const syncLinkedNodes = (state: FlowState, nodeId: string) => {
                         seenPayloads.add('SHOW_PROFILE');
                         activeEvents.push({ payload: 'SHOW_PROFILE', label: btn.title || '👤 Visit Profile', extra: btn } as any);
                     }
+                } else if (btn.type === 'web_url' && btn.url) {
+                    if (!seenPayloads.has('OPEN_WEB_LINK')) {
+                        seenPayloads.add('OPEN_WEB_LINK');
+                        activeEvents.push({ payload: 'OPEN_WEB_LINK', label: btn.title || '🌐 Open Link', extra: btn } as any);
+                    }
                 } else if (btn.type !== 'web_url' && btn.type !== 'product' && btn.payload) {
                     if (!seenPayloads.has(btn.payload)) {
                         seenPayloads.add(btn.payload);
@@ -315,24 +432,30 @@ const syncLinkedNodes = (state: FlowState, nodeId: string) => {
                 elements = elemsJson;
             }
 
-            const seenPayloads = new Set<string>();
-            elements.forEach((elem) => {
-                (elem.buttons || []).forEach((btn: any) => {
+            elements.forEach((targetCard: any, elemIdx: number) => {
+                const cardButtons = targetCard?.buttons || [];
+                const seenPayloads = new Set<string>();
+                cardButtons.forEach((btn: any) => {
                     if (btn.payload === 'CHECK_FOLLOW') {
                         if (!seenPayloads.has('CHECK_FOLLOW')) {
                             seenPayloads.add('CHECK_FOLLOW');
-                            activeEvents.push({ payload: 'CHECK_FOLLOW', label: btn.title || '👉 Follow Us', extra: btn } as any);
+                            activeEvents.push({ payload: 'CHECK_FOLLOW', label: btn.title || '👉 Follow Us', extra: btn, card_index: elemIdx } as any);
                         }
                     } else if (btn.is_profile_button || (btn.type === 'web_url' && btn.url && btn.url.includes('instagram.com') && (btn.title?.includes('Profile') || btn.title?.includes('👤')))) {
                         if (!seenPayloads.has('SHOW_PROFILE')) {
                             seenPayloads.add('SHOW_PROFILE');
-                            activeEvents.push({ payload: 'SHOW_PROFILE', label: btn.title || '👤 Visit Profile', extra: btn } as any);
+                            activeEvents.push({ payload: 'SHOW_PROFILE', label: btn.title || '👤 Visit Profile', extra: btn, card_index: elemIdx } as any);
+                        }
+                    } else if (btn.type === 'web_url' && btn.url) {
+                        if (!seenPayloads.has('OPEN_WEB_LINK')) {
+                            seenPayloads.add('OPEN_WEB_LINK');
+                            activeEvents.push({ payload: 'OPEN_WEB_LINK', label: btn.title || '🌐 Open Link', extra: btn, card_index: elemIdx } as any);
                         }
                     } else if (btn.type !== 'web_url' && btn.type !== 'product' && btn.payload) {
                         const payload = btn.payload;
                         if (!seenPayloads.has(payload)) {
                             seenPayloads.add(payload);
-                            activeEvents.push({ payload, label: btn.title || payload, extra: btn } as any);
+                            activeEvents.push({ payload, label: btn.title || payload, extra: btn, card_index: elemIdx } as any);
                         }
                     }
                 });
@@ -341,6 +464,8 @@ const syncLinkedNodes = (state: FlowState, nodeId: string) => {
     } else {
         return;
     }
+
+    const isGeneric = node.data?.dm_format === 'generic_template';
 
     // Get current connected reply nodes for this node (via labeled non-loop edges)
     const connectedEdges = state.edges.filter(
@@ -351,31 +476,43 @@ const syncLinkedNodes = (state: FlowState, nodeId: string) => {
     connectedEdges.forEach(edge => {
         const childNode = state.nodes.find(n => n.id === edge.target);
         const parentEvent = childNode?.data?.parent_event;
-        const stillActive = activeEvents.some(ae => ae.payload === parentEvent);
+        const parentCardIdx = childNode ? getCardIndexForChildNode(node, childNode, edge) : 0;
+
+        const stillActive = activeEvents.some(ae => {
+            const aeCardIdx = typeof ae.card_index === 'number' ? ae.card_index : 0;
+            return ae.payload === parentEvent && (!isGeneric || aeCardIdx === parentCardIdx);
+        });
+
         if (!stillActive) {
             // Delete the child node and all downstream flows recursively
             deleteNodeRecursively(state, edge.target);
 
             // Also cleanup prompt/input/response sub-nodes if it was TRACK_ORDER
+            const cardPrefix = isGeneric ? `-c${parentCardIdx}` : '';
             if (parentEvent === 'TRACK_ORDER') {
-                const promptId = `${nodeId}-track-prompt`;
-                const inputId = `${nodeId}-track-input`;
-                const responseId = `${nodeId}-track-response`;
+                const promptId = `${nodeId}${cardPrefix}-track-prompt`;
+                const inputId = `${nodeId}${cardPrefix}-track-input`;
+                const responseId = `${nodeId}${cardPrefix}-track-response`;
                 state.nodes = state.nodes.filter(n => n.id !== promptId && n.id !== inputId && n.id !== responseId);
                 state.edges = state.edges.filter(e => e.source !== promptId && e.target !== promptId && e.source !== inputId && e.target !== inputId && e.source !== responseId && e.target !== responseId);
             }
             if (parentEvent === 'CHECK_FOLLOW') {
-                const forkId = `${nodeId}-cf-fork`;
-                const gateId = `${nodeId}-cf-gate`;
-                const followingId = `${nodeId}-cf-following`;
-                const notFollowingId = `${nodeId}-cf-not-following`;
+                const forkId = `${nodeId}${cardPrefix}-cf-fork`;
+                const gateId = `${nodeId}${cardPrefix}-cf-gate`;
+                const followingId = `${nodeId}${cardPrefix}-cf-following`;
+                const notFollowingId = `${nodeId}${cardPrefix}-cf-not-following`;
                 state.nodes = state.nodes.filter(n => n.id !== forkId && n.id !== gateId && n.id !== followingId && n.id !== notFollowingId);
                 state.edges = state.edges.filter(e => e.source !== forkId && e.target !== forkId && e.source !== gateId && e.target !== gateId && e.source !== followingId && e.target !== followingId && e.source !== notFollowingId && e.target !== notFollowingId);
             }
             if (parentEvent === 'SHOW_PROFILE') {
-                const profileId = `${nodeId}-profile-card`;
+                const profileId = `${nodeId}${cardPrefix}-profile-card`;
                 state.nodes = state.nodes.filter(n => n.id !== profileId);
                 state.edges = state.edges.filter(e => e.source !== profileId && e.target !== profileId);
+            }
+            if (parentEvent === 'OPEN_WEB_LINK') {
+                const webLinkId = `${nodeId}${cardPrefix}-weblink-card`;
+                state.nodes = state.nodes.filter(n => n.id !== webLinkId);
+                state.edges = state.edges.filter(e => e.source !== webLinkId && e.target !== webLinkId);
             }
         }
     });
@@ -387,18 +524,22 @@ const syncLinkedNodes = (state: FlowState, nodeId: string) => {
 
     // 2. Add missing nodes for new activeEvents
     activeEvents.forEach((ae, idx) => {
+        const aeCardIdx = typeof ae.card_index === 'number' ? ae.card_index : 0;
         const hasNode = remainingEdges.some(e => {
             const child = state.nodes.find(n => n.id === e.target);
-            return child?.data?.parent_event === ae.payload;
+            const childCardIdx = child ? getCardIndexForChildNode(node, child, e) : 0;
+            return child?.data?.parent_event === ae.payload && (!isGeneric || childCardIdx === aeCardIdx);
         });
 
         if (!hasNode) {
-            if (ae.payload === 'TRACK_ORDER') {
-                const promptId = `${nodeId}-track-prompt`;
-                const inputId = `${nodeId}-track-input`;
-                const responseId = `${nodeId}-track-response`;
+            const cardPrefix = isGeneric ? `-c${aeCardIdx}` : '';
 
-                if (!state.nodes.some(n => n.id === promptId)) {
+            if (ae.payload === 'TRACK_ORDER') {
+                const promptId = `${nodeId}${cardPrefix}-track-prompt`;
+                const inputId = `${nodeId}${cardPrefix}-track-input`;
+                const responseId = `${nodeId}${cardPrefix}-track-response`;
+
+                if (!state.nodes.some(n => n.id === promptId || (aeCardIdx === 0 && n.id === `${nodeId}-track-prompt`))) {
                     state.nodes.push({
                         id: promptId,
                         type: 'action',
@@ -412,12 +553,13 @@ const syncLinkedNodes = (state: FlowState, nodeId: string) => {
                             messages: ["Please reply with your Order ID to track your order. 📦"],
                             parent_event: 'TRACK_ORDER',
                             parent_label: ae.label,
+                            parent_card_index: aeCardIdx,
                             is_track_prompt: true,
                         },
                     });
                 }
 
-                if (!state.nodes.some(n => n.id === inputId)) {
+                if (!state.nodes.some(n => n.id === inputId || (aeCardIdx === 0 && n.id === `${nodeId}-track-input`))) {
                     state.nodes.push({
                         id: inputId,
                         type: 'action',
@@ -431,12 +573,13 @@ const syncLinkedNodes = (state: FlowState, nodeId: string) => {
                             messages: ["Customer replies with Order ID"],
                             parent_event: 'TRACK_ORDER',
                             parent_label: ae.label,
+                            parent_card_index: aeCardIdx,
                             is_track_input: true,
                         },
                     });
                 }
 
-                if (!state.nodes.some(n => n.id === responseId)) {
+                if (!state.nodes.some(n => n.id === responseId || (aeCardIdx === 0 && n.id === `${nodeId}-track-response`))) {
                     state.nodes.push({
                         id: responseId,
                         type: 'action',
@@ -450,44 +593,45 @@ const syncLinkedNodes = (state: FlowState, nodeId: string) => {
                             messages: ["Returns Live status details"],
                             parent_event: 'TRACK_ORDER',
                             parent_label: ae.label,
+                            parent_card_index: aeCardIdx,
                             is_track_response: true,
                         },
                     });
                 }
 
-                if (!state.edges.some(e => e.source === nodeId && e.target === promptId)) {
+                if (!state.edges.some(e => e.source === nodeId && (e.target === promptId || (aeCardIdx === 0 && e.target === `${nodeId}-track-prompt`)))) {
                     state.edges.push({
-                        id: `edge-${nodeId}-prompt-${Date.now()}`,
+                        id: `edge-${nodeId}${cardPrefix}-prompt-${Date.now()}`,
                         source: nodeId,
                         target: promptId,
                         label: ae.label,
                     });
                 }
 
-                if (!state.edges.some(e => e.source === promptId && e.target === inputId)) {
+                if (!state.edges.some(e => (e.source === promptId || (aeCardIdx === 0 && e.source === `${nodeId}-track-prompt`)) && (e.target === inputId || (aeCardIdx === 0 && e.target === `${nodeId}-track-input`)))) {
                     state.edges.push({
-                        id: `edge-prompt-input-${Date.now()}`,
+                        id: `edge-prompt-input${cardPrefix}-${Date.now()}`,
                         source: promptId,
                         target: inputId,
                         label: "Awaiting DM",
                     });
                 }
 
-                if (!state.edges.some(e => e.source === inputId && e.target === responseId)) {
+                if (!state.edges.some(e => (e.source === inputId || (aeCardIdx === 0 && e.source === `${nodeId}-track-input`)) && (e.target === responseId || (aeCardIdx === 0 && e.target === `${nodeId}-track-response`)))) {
                     state.edges.push({
-                        id: `edge-input-response-${Date.now()}`,
+                        id: `edge-input-response${cardPrefix}-${Date.now()}`,
                         source: inputId,
                         target: responseId,
                         label: "Send Response",
                     });
                 }
             } else if (ae.payload === 'CHECK_FOLLOW') {
-                const forkId = `${nodeId}-cf-fork`;
-                const followingId = `${nodeId}-cf-following`;
-                const notFollowingId = `${nodeId}-cf-not-following`;
+                const forkId = `${nodeId}${cardPrefix}-cf-fork`;
+                const followingId = `${nodeId}${cardPrefix}-cf-following`;
+                const notFollowingId = `${nodeId}${cardPrefix}-cf-not-following`;
 
                 // 1. Y-Split Junction Pin (shows Button Name on the first half wire)
-                if (!state.nodes.some(n => n.id === forkId)) {
+                if (!state.nodes.some(n => n.id === forkId || (aeCardIdx === 0 && n.id === `${nodeId}-cf-fork`))) {
                     state.nodes.push({
                         id: forkId,
                         type: 'action',
@@ -499,21 +643,23 @@ const syncLinkedNodes = (state: FlowState, nodeId: string) => {
                             action_type: 'send_dm',
                             parent_event: 'CHECK_FOLLOW',
                             parent_label: ae.label || '👉 Follow Us',
+                            parent_card_index: aeCardIdx,
                             button_name: ae.label || '👉 Follow Us',
                             is_cf_fork: true,
                             is_placeholder: false,
                         },
                     });
                 } else {
-                    const fNode = state.nodes.find(n => n.id === forkId);
+                    const fNode = state.nodes.find(n => n.id === forkId || (aeCardIdx === 0 && n.id === `${nodeId}-cf-fork`));
                     if (fNode) {
                         fNode.data.button_name = ae.label || fNode.data.button_name;
                         fNode.data.parent_label = ae.label || fNode.data.parent_label;
+                        fNode.data.parent_card_index = aeCardIdx;
                     }
                 }
 
                 // 2. Branch 1: If Following Node (Message Type list menu)
-                if (!state.nodes.some(n => n.id === followingId)) {
+                if (!state.nodes.some(n => n.id === followingId || (aeCardIdx === 0 && n.id === `${nodeId}-cf-following`))) {
                     state.nodes.push({
                         id: followingId,
                         type: 'action',
@@ -526,6 +672,7 @@ const syncLinkedNodes = (state: FlowState, nodeId: string) => {
                             parent_event: 'CHECK_FOLLOW',
                             cf_branch: 'following',
                             parent_label: '✅ If Following',
+                            parent_card_index: aeCardIdx,
                             is_cf_following: true,
                             is_placeholder: true,
                         },
@@ -533,7 +680,7 @@ const syncLinkedNodes = (state: FlowState, nodeId: string) => {
                 }
 
                 // 3. Branch 2: If Not Following Node (Message Type list menu)
-                if (!state.nodes.some(n => n.id === notFollowingId)) {
+                if (!state.nodes.some(n => n.id === notFollowingId || (aeCardIdx === 0 && n.id === `${nodeId}-cf-not-following`))) {
                     state.nodes.push({
                         id: notFollowingId,
                         type: 'action',
@@ -546,6 +693,7 @@ const syncLinkedNodes = (state: FlowState, nodeId: string) => {
                             parent_event: 'CHECK_FOLLOW',
                             cf_branch: 'not_following',
                             parent_label: '❌ If Not Following',
+                            parent_card_index: aeCardIdx,
                             is_cf_not_following: true,
                             is_placeholder: true,
                         },
@@ -553,12 +701,13 @@ const syncLinkedNodes = (state: FlowState, nodeId: string) => {
                 }
 
                 // Edge 1 (Stem): Parent DM -> Y-Split Junction
-                const parentToForkEdge = state.edges.find(e => e.source === nodeId && e.target === forkId);
+                const targetForkId = state.nodes.find(n => n.id === forkId || (aeCardIdx === 0 && n.id === `${nodeId}-cf-fork`))?.id || forkId;
+                const parentToForkEdge = state.edges.find(e => e.source === nodeId && e.target === targetForkId);
                 if (!parentToForkEdge) {
                     state.edges.push({
-                        id: `edge-${nodeId}-fork-${Date.now()}`,
+                        id: `edge-${nodeId}${cardPrefix}-fork-${Date.now()}`,
                         source: nodeId,
-                        target: forkId,
+                        target: targetForkId,
                         label: ae.label || "Check Follow",
                     });
                 } else if (parentToForkEdge.label !== ae.label) {
@@ -566,28 +715,30 @@ const syncLinkedNodes = (state: FlowState, nodeId: string) => {
                 }
 
                 // Edge 2 (Top Branch): Y-Split Junction -> If Following Card
-                if (!state.edges.some(e => e.source === forkId && e.target === followingId)) {
+                const targetFollowingId = state.nodes.find(n => n.id === followingId || (aeCardIdx === 0 && n.id === `${nodeId}-cf-following`))?.id || followingId;
+                if (!state.edges.some(e => e.source === targetForkId && e.target === targetFollowingId)) {
                     state.edges.push({
-                        id: `edge-${forkId}-following-${Date.now()}`,
-                        source: forkId,
-                        target: followingId,
+                        id: `edge-${targetForkId}-following-${Date.now()}`,
+                        source: targetForkId,
+                        target: targetFollowingId,
                         label: "If Following",
                     });
                 }
 
                 // Edge 3 (Bottom Branch): Y-Split Junction -> If Not Following Card
-                if (!state.edges.some(e => e.source === forkId && e.target === notFollowingId)) {
+                const targetNotFollowingId = state.nodes.find(n => n.id === notFollowingId || (aeCardIdx === 0 && n.id === `${nodeId}-cf-not-following`))?.id || notFollowingId;
+                if (!state.edges.some(e => e.source === targetForkId && e.target === targetNotFollowingId)) {
                     state.edges.push({
-                        id: `edge-${forkId}-not-following-${Date.now()}`,
-                        source: forkId,
-                        target: notFollowingId,
+                        id: `edge-${targetForkId}-not-following-${Date.now()}`,
+                        source: targetForkId,
+                        target: targetNotFollowingId,
                         label: "If Not Following",
                     });
                 }
             } else if (ae.payload === 'SHOW_PROFILE') {
-                const profileId = `${nodeId}-profile-card`;
+                const profileId = `${nodeId}${cardPrefix}-profile-card`;
 
-                if (!state.nodes.some(n => n.id === profileId)) {
+                if (!state.nodes.some(n => n.id === profileId || (aeCardIdx === 0 && n.id === `${nodeId}-profile-card`))) {
                     state.nodes.push({
                         id: profileId,
                         type: 'action',
@@ -602,24 +753,68 @@ const syncLinkedNodes = (state: FlowState, nodeId: string) => {
                             profile_button_text: (ae as any).extra?.title || '👤 Visit Profile',
                             parent_event: 'SHOW_PROFILE',
                             parent_label: '👤 Profile View',
+                            parent_card_index: aeCardIdx,
                             is_profile_card: true,
                             is_placeholder: false,
                         },
                     });
                 } else {
-                    const pNode = state.nodes.find(n => n.id === profileId);
+                    const pNode = state.nodes.find(n => n.id === profileId || (aeCardIdx === 0 && n.id === `${nodeId}-profile-card`));
                     if (pNode) {
                         pNode.data.profile_url = (ae as any).extra?.url || pNode.data.profile_url;
                         pNode.data.profile_button_text = (ae as any).extra?.title || pNode.data.profile_button_text;
+                        pNode.data.parent_card_index = aeCardIdx;
                     }
                 }
 
-                if (!state.edges.some(e => e.source === nodeId && e.target === profileId)) {
+                const targetProfileId = state.nodes.find(n => n.id === profileId || (aeCardIdx === 0 && n.id === `${nodeId}-profile-card`))?.id || profileId;
+                if (!state.edges.some(e => e.source === nodeId && e.target === targetProfileId)) {
                     state.edges.push({
-                        id: `edge-${nodeId}-profile-${Date.now()}`,
+                        id: `edge-${nodeId}${cardPrefix}-profile-${Date.now()}`,
                         source: nodeId,
-                        target: profileId,
+                        target: targetProfileId,
                         label: "Show Profile",
+                    });
+                }
+            } else if (ae.payload === 'OPEN_WEB_LINK') {
+                const webLinkId = `${nodeId}${cardPrefix}-weblink-card`;
+
+                if (!state.nodes.some(n => n.id === webLinkId || (aeCardIdx === 0 && n.id === `${nodeId}-weblink-card`))) {
+                    state.nodes.push({
+                        id: webLinkId,
+                        type: 'action',
+                        position: {
+                            x: node.position.x + 360,
+                            y: node.position.y + idx * 320,
+                        },
+                        data: {
+                            action_type: 'send_dm',
+                            dm_format: 'web_url',
+                            url: (ae as any).extra?.url || 'https://example.com',
+                            title: (ae as any).extra?.title || '🌐 Open Web Link',
+                            parent_event: 'OPEN_WEB_LINK',
+                            parent_label: (ae as any).extra?.title || '🌐 Open Link',
+                            parent_card_index: aeCardIdx,
+                            is_web_link_card: true,
+                            is_placeholder: false,
+                        },
+                    });
+                } else {
+                    const wNode = state.nodes.find(n => n.id === webLinkId || (aeCardIdx === 0 && n.id === `${nodeId}-weblink-card`));
+                    if (wNode) {
+                        wNode.data.url = (ae as any).extra?.url || wNode.data.url || 'https://example.com';
+                        wNode.data.title = (ae as any).extra?.title || wNode.data.title || '🌐 Open Web Link';
+                        wNode.data.parent_card_index = aeCardIdx;
+                    }
+                }
+
+                const targetWebLinkId = state.nodes.find(n => n.id === webLinkId || (aeCardIdx === 0 && n.id === `${nodeId}-weblink-card`))?.id || webLinkId;
+                if (!state.edges.some(e => e.source === nodeId && e.target === targetWebLinkId)) {
+                    state.edges.push({
+                        id: `edge-${nodeId}${cardPrefix}-weblink-${Date.now()}`,
+                        source: nodeId,
+                        target: targetWebLinkId,
+                        label: "Open Link",
                     });
                 }
             } else {
@@ -636,6 +831,7 @@ const syncLinkedNodes = (state: FlowState, nodeId: string) => {
                         is_placeholder: true,
                         parent_event: ae.payload,
                         parent_label: ae.label,
+                        parent_card_index: aeCardIdx,
                     },
                 };
                 state.nodes.push(newNode);
@@ -650,7 +846,8 @@ const syncLinkedNodes = (state: FlowState, nodeId: string) => {
             // Update edge label if the button/pill text changed
             const edge = remainingEdges.find(e => {
                 const child = state.nodes.find(n => n.id === e.target);
-                return child?.data?.parent_event === ae.payload;
+                const childCardIdx = typeof child?.data?.parent_card_index === 'number' ? child.data.parent_card_index : 0;
+                return child?.data?.parent_event === ae.payload && (!isGeneric || childCardIdx === aeCardIdx);
             });
             if (edge) {
                 if (edge.label !== ae.label) {
@@ -921,6 +1118,7 @@ export const flowSlice = createSlice({
 
             const tId = `node-t-${Date.now()}`;
             state.nodes.push({ id: tId, type: 'trigger', position: { x: 80, y: 150 }, data: targetData, ruleType, templateId: tid });
+            syncLinkedNodes(state, tId);
 
             let parentNodeId = tId;
 
@@ -957,6 +1155,9 @@ export const flowSlice = createSlice({
                     // Offset vertically with at least 40px gap between action cards
                     state.nodes.push({ id: aId, type: 'action', position: { x: posX, y: caseData.giveaway ? 360 + (i * 320) : 150 + (i * 320) }, data: { ...act, is_placeholder: !hasConfiguredData }, ruleType, templateId: tid });
                     state.edges.push({ id: `edge-${Date.now()}-act-${i}`, source: parentNodeId, target: aId });
+
+                    // Synchronize linked DM reply nodes for postbacks, quick replies, check follow, track order, show profile
+                    syncLinkedNodes(state, aId);
                 });
             }
         },

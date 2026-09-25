@@ -12,7 +12,7 @@ import {
     AlertCircle, Edit2,
     Send,
     Menu,
-    Pill
+    Pill, Sparkles, Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import api from '@/lib/services/api.service';
@@ -58,7 +58,7 @@ function PhonePreview({
     postsCount,
     mutualsText,
     isStatic = false,
-    profile_urls = 'https://fastly.picsum.photos/id/163/100/100.jpg?hmac=9D295GBymPnQLD2d08k8kQEME1CLEWklEqzuOpz7V_s'
+    profile_urls = '/icons/dark-placeholder.png'
 }: PhonePreviewProps) {
     const [animationStep, setAnimationStep] = React.useState<'list' | 'chat'>(isStatic ? 'chat' : 'list');
 
@@ -387,6 +387,8 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
     const dispatch = useDispatch();
     const router = useRouter();
     const currentFlowId = useSelector((state: RootState) => state.flow.id);
+    const nodes = useSelector((state: RootState) => state.flow.nodes);
+    const [isInitializingFlow, setIsInitializingFlow] = React.useState(false);
     const [mounted, setMounted] = React.useState(false);
 
     React.useEffect(() => {
@@ -565,6 +567,142 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
             setIsSampleLoading(prev => ({ ...prev, [type]: false }));
         }
     }, [activeAccountId, welcomePrompt, iceBreakers, persistentMenuItems, composerInputDisabled, isSavedOnInstagram]);
+
+    const handleInitializeExperience = React.useCallback(async (tabToInit: 'icebreakers' | 'persistent_menu') => {
+        if (!activeAccountId) return;
+        setIsInitializingFlow(true);
+        try {
+            if (tabToInit === 'icebreakers') {
+                const sampleIB = [
+                    { question: "How can I contact support?", payload: "SUPPORT" }
+                ];
+                const storageKey = `anydm_welcome_settings_${activeAccountId}`;
+                localStorage.setItem(storageKey, JSON.stringify({
+                    welcomePrompt: "Tap to send a question suggested by us",
+                    iceBreakers: sampleIB,
+                    composerInputDisabled: false,
+                    persistentMenuItems: [],
+                    isSaved: { icebreakers: false, persistent_menu: false }
+                }));
+
+                const triggerId = `node-t-${Date.now()}`;
+                const triggerData = {
+                    is_icebreaker_trigger: true,
+                    welcome_prompt: "Tap to send a question suggested by us",
+                    icebreakers: sampleIB
+                };
+                const triggerNode = {
+                    id: triggerId,
+                    type: 'trigger' as const,
+                    position: { x: 80, y: 150 },
+                    data: triggerData
+                };
+
+                const actionId = `node-a-${Date.now()}-0`;
+                const actionNode = {
+                    id: actionId,
+                    type: 'action' as const,
+                    position: { x: 540, y: 150 },
+                    ruleType: 'dm_automation',
+                    data: {
+                        action_type: 'send_dm',
+                        dm_format: 'text',
+                        message_mode: 'fixed',
+                        messages: [`Hello! Customize this reply for: "${sampleIB[0].question}"`],
+                        parent_event: sampleIB[0].payload,
+                        parent_label: sampleIB[0].question,
+                        is_placeholder: true
+                    }
+                };
+
+                const edge = {
+                    id: `edge-${Date.now()}-0`,
+                    source: triggerId,
+                    target: actionId,
+                    label: sampleIB[0].question
+                };
+
+                dispatch(setFlow({
+                    id: '',
+                    name: 'Welcome Message Flow',
+                    nodes: [triggerNode, actionNode],
+                    edges: [edge],
+                    selectedNodeId: null,
+                    mediaPicker: null
+                }));
+
+                router.push(`/dashboard/automations?welcome=icebreakers`);
+            } else {
+                const sampleMenu: MenuItem[] = [
+                    { type: 'postback', title: 'Talk to Sales', payload: 'TALK_TO_SALES' }
+                ];
+                const storageKey = `anydm_welcome_settings_${activeAccountId}`;
+                localStorage.setItem(storageKey, JSON.stringify({
+                    welcomePrompt: "Tap to send a question suggested by us",
+                    iceBreakers: [],
+                    composerInputDisabled: false,
+                    persistentMenuItems: sampleMenu,
+                    isSaved: { icebreakers: false, persistent_menu: false }
+                }));
+
+                const triggerId = `node-t-${Date.now()}`;
+                const triggerData = {
+                    is_menu_trigger: true,
+                    composer_input_disabled: false,
+                    persistent_menu_items: sampleMenu
+                };
+                const triggerNode = {
+                    id: triggerId,
+                    type: 'trigger' as const,
+                    position: { x: 80, y: 150 },
+                    data: triggerData
+                };
+
+                const actionId = `node-a-${Date.now()}-0`;
+                const actionNode = {
+                    id: actionId,
+                    type: 'action' as const,
+                    position: { x: 540, y: 150 },
+                    ruleType: 'dm_automation',
+                    data: {
+                        action_type: 'send_dm',
+                        dm_format: 'text',
+                        message_mode: 'fixed',
+                        messages: [`Hello! Customize this reply for: "${sampleMenu[0].title}"`],
+                        parent_event: sampleMenu[0].payload,
+                        parent_label: sampleMenu[0].title,
+                        is_placeholder: true
+                    }
+                };
+
+                const edge = {
+                    id: `edge-${Date.now()}-0`,
+                    source: triggerId,
+                    target: actionId,
+                    label: sampleMenu[0].title
+                };
+
+                dispatch(setFlow({
+                    id: '',
+                    name: 'Persistent Menu Flow',
+                    nodes: [triggerNode, actionNode],
+                    edges: [edge],
+                    selectedNodeId: null,
+                    mediaPicker: null
+                }));
+
+                router.push(`/dashboard/automations?welcome=persistent_menu`);
+            }
+            if (typeof window !== 'undefined' && window.innerWidth < 640) {
+                window.dispatchEvent(new CustomEvent('close-welcome-panel'));
+            }
+        } catch (e: any) {
+            console.error("Failed to initialize welcome experience:", e);
+            alert("Failed to initialize: " + (e.response?.data?.error || e.message));
+        } finally {
+            setIsInitializingFlow(false);
+        }
+    }, [activeAccountId, dispatch, router]);
 
     const handleEditPayloadFlow = React.useCallback(async (payloadKey: string, type: 'icebreakers' | 'persistent_menu') => {
         try {
@@ -1462,7 +1600,7 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
             <div className={defaultTab ? "flex flex-col" : "grid grid-cols-1 lg:grid-cols-2 gap-8"}>
                 {/* 1. Icebreakers preview */}
                 {(!defaultTab || defaultTab === 'icebreakers') && (
-                    <div className="flex justify-center items-center w-full py-1 sm:py-2 overflow-hidden">
+                    <div className="flex flex-col justify-center items-center w-full py-1 sm:py-2 overflow-hidden">
                         <div className="transform scale-[0.85] sm:scale-100 origin-top flex justify-center -mb-[76px] sm:mb-0">
                             <PhonePreview
                                 type="icebreakers"
@@ -1478,12 +1616,36 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                                 profile_urls={activeAccount?.profile_picture_url || appUser?.photo_url || null}
                             />
                         </div>
+
+                        {nodes.length === 0 && (
+                            <div className="block sm:hidden w-full max-w-[220px] mx-auto mt-2 p-3 rounded-xl text-center space-y-2.5 shadow-2xl relative z-30">
+
+                                <button
+                                    type="button"
+                                    onClick={() => handleInitializeExperience('icebreakers')}
+                                    disabled={isInitializingFlow}
+                                    className="w-full py-2.5 px-3 bg-sky-500 hover:bg-sky-600 disabled:opacity-50 text-white rounded text-xs font-bold tracking-tight transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-sky-500/20 active:scale-95"
+                                >
+                                    {isInitializingFlow ? (
+                                        <>
+                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                            <span>Initializing...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Plus className="w-3.5 h-3.5" />
+                                            <span>Initialize Flow Template</span>
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
 
                 {/* 2. Menu Options preview */}
                 {(!defaultTab || defaultTab === 'persistent_menu') && (
-                    <div className="flex justify-center items-center w-full py-1 sm:py-2 overflow-hidden">
+                    <div className="flex flex-col justify-center items-center w-full py-1 sm:py-2 overflow-hidden">
                         <div className="transform scale-[0.85] sm:scale-100 origin-top flex justify-center -mb-[76px] sm:mb-0">
                             <PhonePreview
                                 type="persistent_menu"
@@ -1499,6 +1661,30 @@ export default function DMContentEditor({ nodeId, onClose, defaultTab }: DMConte
                                 profile_urls={activeAccount?.profile_picture_url || appUser?.photo_url || null}
                             />
                         </div>
+
+                        {nodes.length === 0 && (
+                            <div className="block sm:hidden w-full max-w-[220px] mx-auto mt-2 p-3 rounded-xl text-center space-y-2.5 shadow-2xl relative z-30">
+
+                                <button
+                                    type="button"
+                                    onClick={() => handleInitializeExperience('persistent_menu')}
+                                    disabled={isInitializingFlow}
+                                    className="w-full py-2.5 px-3 bg-sky-500 hover:bg-sky-600 disabled:opacity-50 text-white rounded text-xs font-bold tracking-tight transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-sky-500/20 active:scale-95"
+                                >
+                                    {isInitializingFlow ? (
+                                        <>
+                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                            <span>Initializing...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Plus className="w-3.5 h-3.5" />
+                                            <span>Initialize Flow Template</span>
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

@@ -196,7 +196,7 @@
         "messages": [
           "Here's the product you asked about 👇"
         ],
-        "generic_template_elements_json": "[{\n  \"title\": \"Summer Tote Bag\",\n  \"subtitle\": \"Premium leather. 3 colors. Limited stock.\",\n  \"image_url\": \"https://loremflickr.com/400/300/cat\",\n  \"default_action\": { \"type\": \"web_url\", \"url\": \"https://anydm.in\" },\n  \"buttons\": [\n    { \"type\": \"web_url\",  \"title\": \"🛒 Buy Now\", \"url\": \"https://anydm.in\" },\n    { \"type\": \"postback\", \"title\": \"💬 Ask a Question\", \"payload\": \"ASK_PRODUCT_QUESTION\" }\n  ]\n}]",
+        "generic_template_elements_json": "[{\n  \"title\": \"Summer Tote Bag\",\n  \"subtitle\": \"Premium leather. 3 colors. Limited stock.\",\n  \"image_url\": \"/icons/dark-placeholder.png\",\n  \"default_action\": { \"type\": \"web_url\", \"url\": \"https://anydm.in\" },\n  \"buttons\": [\n    { \"type\": \"web_url\",  \"title\": \"🛒 Buy Now\", \"url\": \"https://anydm.in\" },\n    { \"type\": \"postback\", \"title\": \"💬 Ask a Question\", \"payload\": \"ASK_PRODUCT_QUESTION\" }\n  ]\n}]",
         "linked_product_id": 42,
         "rate_limit_scope": "user",
         "rate_limit_limit": 1,
@@ -251,7 +251,7 @@
           "Welcome! 👋 How can we help you today?"
         ],
         "button_template_text": "What would you like to do?",
-        "button_template_buttons_json": "[\n  { \"type\": \"web_url\",  \"title\": \"🛍️ Shop Now\",    \"url\": \"https://anydm.in\" },\n  { \"type\": \"web_url\",  \"title\": \"📦 Track Order\", \"url\": \"https://anydm.in\" },\n  { \"type\": \"postback\", \"title\": \"💬 Contact Us\",  \"payload\": \"CONTACT_SUPPORT\" }\n]",
+        "button_template_buttons_json": "[\n  { \"type\": \"web_url\",  \"title\": \"🛍️ Shop Now\",    \"url\": \"https://anydm.in\" },\n  { \"type\": \"postback\", \"title\": \"📦 Track Order\", \"payload\": \"TRACK_ORDER\" },\n  { \"type\": \"postback\", \"title\": \"💬 Contact Us\",  \"payload\": \"CONTACT_SUPPORT\" }\n]",
         "rate_limit_scope": "user",
         "rate_limit_limit": 1,
         "rate_limit_window_seconds": 86400,
@@ -355,7 +355,7 @@
         "messages": [
           "Here's the product from our story 👇"
         ],
-        "generic_template_elements_json": "[{\n  \"title\": \"Limited Edition Sneakers\",\n  \"subtitle\": \"Only 50 pairs left. Ships worldwide.\",\n  \"image_url\": \"https://loremflickr.com/400/300/cat\",\n  \"buttons\": [\n    { \"type\": \"web_url\", \"title\": \"🛒 Order Now\", \"url\": \"https://anydm.in\" }\n  ]\n}]",
+        "generic_template_elements_json": "[{\n  \"title\": \"Limited Edition Sneakers\",\n  \"subtitle\": \"Only 50 pairs left. Ships worldwide.\",\n  \"image_url\": \"/icons/dark-placeholder.png\",\n  \"buttons\": [\n    { \"type\": \"web_url\", \"title\": \"🛒 Order Now\", \"url\": \"https://anydm.in\" }\n  ]\n}]",
         "rate_limit_scope": "user",
         "rate_limit_limit": 1,
         "rate_limit_window_seconds": 86400,
@@ -450,7 +450,7 @@
         "messages": [
           "Here's our latest collection 🛍️"
         ],
-        "generic_template_elements_json": "[\n  {\n    \"title\": \"Summer Collection 2026\",\n    \"subtitle\": \"Dresses, tops, and accessories\",\n    \"image_url\": \"https://loremflickr.com/400/300/cat\",\n    \"buttons\": [{ \"type\": \"web_url\", \"title\": \"View Collection\", \"url\": \"https://anydm.in\" }]\n  },\n  {\n    \"title\": \"Winter Essentials\",\n    \"subtitle\": \"Coats, boots, and scarves\",\n    \"image_url\": \"https://loremflickr.com/400/300/cat\",\n    \"buttons\": [{ \"type\": \"web_url\", \"title\": \"View Collection\", \"url\": \"https://anydm.in\" }]\n  },\n  {\n    \"title\": \"Accessories\",\n    \"subtitle\": \"Bags, hats, and jewelry\",\n    \"image_url\": \"https://loremflickr.com/400/300/cat\",\n    \"buttons\": [{ \"type\": \"web_url\", \"title\": \"View Collection\", \"url\": \"https://anydm.in\" }]\n  }\n]",
+        "generic_template_elements_json": "[\n  {\n    \"title\": \"Summer Collection 2026\",\n    \"subtitle\": \"Dresses, tops, and accessories\",\n    \"image_url\": \"/icons/dark-placeholder.png\",\n    \"buttons\": [{ \"type\": \"web_url\", \"title\": \"View Collection\", \"url\": \"https://anydm.in\" }]\n  },\n  {\n    \"title\": \"Winter Essentials\",\n    \"subtitle\": \"Coats, boots, and scarves\",\n    \"image_url\": \"/icons/dark-placeholder.png\",\n    \"buttons\": [{ \"type\": \"web_url\", \"title\": \"View Collection\", \"url\": \"https://anydm.in\" }]\n  },\n  {\n    \"title\": \"Accessories\",\n    \"subtitle\": \"Bags, hats, and jewelry\",\n    \"image_url\": \"/icons/dark-placeholder.png\",\n    \"buttons\": [{ \"type\": \"web_url\", \"title\": \"View Collection\", \"url\": \"https://anydm.in\" }]\n  }\n]",
         "rate_limit_scope": "user",
         "rate_limit_limit": 1,
         "rate_limit_window_seconds": 43200,
@@ -1239,7 +1239,7 @@
         "messages": [
           "Here are the shoes from our latest reel 👟"
         ],
-        "generic_template_elements_json": "[{\n  \"title\": \"Air Runner Pro — White/Black\",\n  \"subtitle\": \"Sizes 36–46. Free shipping on orders over 100.\",\n  \"image_url\": \"https://loremflickr.com/400/300/cat\",\n  \"buttons\": [\n    { \"type\": \"web_url\",  \"title\": \"🛒 Buy Now — 89\", \"url\": \"https://anydm.in\" },\n    { \"type\": \"postback\", \"title\": \"📏 Check My Size\",  \"payload\": \"CHECK_SIZE_SHOES\" }\n  ]\n}]",
+        "generic_template_elements_json": "[{\n  \"title\": \"Air Runner Pro — White/Black\",\n  \"subtitle\": \"Sizes 36–46. Free shipping on orders over 100.\",\n  \"image_url\": \"/icons/dark-placeholder.png\",\n  \"buttons\": [\n    { \"type\": \"web_url\",  \"title\": \"🛒 Buy Now — 89\", \"url\": \"https://anydm.in\" },\n    { \"type\": \"postback\", \"title\": \"📏 Check My Size\",  \"payload\": \"CHECK_SIZE_SHOES\" }\n  ]\n}]",
         "linked_product_id": 99,
         "rate_limit_scope": "user",
         "rate_limit_limit": 1,

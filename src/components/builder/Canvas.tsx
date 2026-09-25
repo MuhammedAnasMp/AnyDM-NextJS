@@ -109,6 +109,7 @@ export function Canvas() {
   React.useEffect(() => {
     if (typeof window !== 'undefined' && window.innerWidth < 640) {
       setScale(0.65);
+      setCardPosition({ x: 55, y: 100 });
     }
   }, []);
 
@@ -281,6 +282,10 @@ export function Canvas() {
         selectedNodeId: null,
         mediaPicker: null
       }));
+      if (typeof window !== 'undefined' && window.innerWidth < 640) {
+        setCardPosition({ x: 55, y: 100 });
+        setPan({ x: 0, y: 0 });
+      }
     }
   }, [openTab, dispatch]);
 
@@ -430,6 +435,9 @@ export function Canvas() {
 
         // Client-side redirect to open sidebar panel
         router.push(`/dashboard/automations?welcome=persistent_menu`);
+      }
+      if (typeof window !== 'undefined' && window.innerWidth < 640) {
+        window.dispatchEvent(new CustomEvent('close-welcome-panel'));
       }
     } catch (e: any) {
       console.error("Failed to initialize welcome experience:", e);
@@ -988,8 +996,8 @@ export function Canvas() {
             initial={{ x: cardPosition.x * scale + pan.x, y: cardPosition.y * scale + pan.y, scale }}
             animate={{ x: cardPosition.x * scale + pan.x, y: cardPosition.y * scale + pan.y, scale }}
             transition={{ duration: 0 }}
-            style={{ transformOrigin: '0 0', zIndex: 10 }}
-            className="absolute max-w-sm w-[320px] p-6 rounded bg-[#1c1b1b]/90 border border-white/10 shadow-2xl text-center space-y-5 backdrop-blur-md pointer-events-auto cursor-grab active:cursor-grabbing select-none"
+            style={{ transformOrigin: '0 0', zIndex: 25 }}
+            className="absolute hidden sm:block max-w-sm w-[320px] p-6 rounded bg-[#1c1b1b]/95 border border-white/10 shadow-2xl text-center space-y-5 backdrop-blur-md pointer-events-auto cursor-grab active:cursor-grabbing select-none"
           >
             <div className="w-12 h-12 mx-auto rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white shrink-0">
               {openTab === 'icebreakers' ? (
@@ -1011,13 +1019,14 @@ export function Canvas() {
             <button
               type="button"
               onPointerDown={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
               onClick={(e) => {
                 e.stopPropagation();
                 if (isDraggingCard.current) return;
                 handleInitializeWelcomeExperience();
               }}
               disabled={isInitializing}
-              className="w-full py-2 px-4 bg-sky-500 hover:bg-sky-600 disabled:opacity-50 text-white rounded text-xs font-bold tracking-tight transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-sky-500/20"
+              className="w-full py-2.5 px-4 bg-sky-500 hover:bg-sky-600 disabled:opacity-50 text-white rounded text-xs font-bold tracking-tight transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-sky-500/20 active:scale-95"
             >
               {isInitializing ? (
                 <>
